@@ -77,7 +77,7 @@
       { text: 'Double-click a chart, open the Look tab, and pick a font and a "Dark pop-up". Press Apply.', check: function () { return anyChart(function (c) { return c.style; }); } },
       { text: 'Double-click a chart again, open Tooltip, choose "₹ crore" and Apply. Hover over the chart in Interact mode to see it.', check: function () { return anyChart(function (c) { return c.tooltip; }); } }] },
     { title: 'Drill-down and filters', steps: [
-      { text: 'Double-click the "Revenue by state" chart, open "Data & drill-down" and press "Use this data". Then Apply.', check: function () { return anyChart(function (c) { return c.binding; }); } },
+      { text: 'Double-click the "Sales by region" chart, open "Data & drill-down" and press "Use this data". Then Apply.', check: function () { return anyChart(function (c) { return c.binding; }); } },
       { text: 'Add a filter pane: Layout › Filter pane, tick one or two fields, Save.', point: ['Layout', 'Filter pane'], check: function () { return rt() && rt().state.filters.length > 0; } },
       { text: 'Switch to Interact (top right) and double-click a bar to drill down. Use the breadcrumb above the chart to go back.', check: function () { var r = rt(); return !!r && Object.keys(r.drill).some(function (k) { return r.drill[k].length; }); } }] },
     { title: 'Build from scratch', steps: [

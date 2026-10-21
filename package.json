@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "build": "node tools/build.js",
-    "test": "node tests/smoke.test.js && node tests/v2.test.js",
+    "test": "node tests/smoke.test.js && node tests/v2.test.js && node tests/mcp.test.js",
+    "mcp": "node tools/mcp/mothership-mcp.js",
     "serve": "node tools/serve.js"
   },
   "devDependencies": {

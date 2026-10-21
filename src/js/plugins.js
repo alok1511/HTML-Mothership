@@ -14,7 +14,7 @@
       history: MS.history, toast: MS.toast, dialog: MS.dialog, form: MS.form, prompt: MS.prompt, confirm: MS.confirm,
       h: MS.h, esc: MS.esc, sanitize: MS.sanitize, lib: MS.lib, download: MS.download, pickFiles: MS.pickFiles, readFile: MS.readFile,
       tabs: MS.tabs, blocks: MS.blocks, insert: MS.insert, charts: MS.charts, data: MS.data, brand: MS.brand, edit: MS.edit,
-      exportHtml: MS.exportHtml, on: MS.on,
+      exportHtml: MS.exportHtml, on: MS.on, run: function (tool, args) { return MS.api.run(tool, args); },
       registerPlugin: P.register
     };
   }

@@ -688,7 +688,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     if (b.top) list = list.slice(0, b.top);
     var labels = list.map(function (g) { return g.label; });
     var series = G.series.map(function (s) {
-      return { name: s === '_' ? (b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
+      return { name: s === '_' ? (b.agg === 'count' || !b.measure ? 'Count' : b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
     });
     var gm = {}; list.forEach(function (g) { gm[g.label] = g; });
     rt.groups[c.key] = gm;
