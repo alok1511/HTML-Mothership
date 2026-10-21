@@ -18,6 +18,8 @@
     '.ms-block.ms-drop-after{box-shadow:4px 0 0 #6366f1}',
     '.ms-grid.ms-drop-end{outline:2px dashed #6366f1;outline-offset:4px}',
     '.ms-dragging{opacity:.4}',
+    '@keyframes ms-flash{0%,60%{box-shadow:0 0 0 4px rgba(99,102,241,.55)}100%{box-shadow:0 0 0 4px rgba(99,102,241,0)}}',
+    '.ms-flash{animation:ms-flash 1.5s ease-out;border-radius:6px}',
     '#ms-ribbon .ms-rgrip{position:absolute;left:0;right:0;bottom:-3px;height:6px;cursor:ns-resize}',
     'body.ms-edit-mode #ms-ribbon{position:sticky}',
     '.ms-pgrip{position:absolute;top:0;bottom:0;right:0;width:6px;cursor:ew-resize}',
@@ -27,6 +29,8 @@
     'body.ms-edit-mode .ms-sub:empty::before{content:"Add a subtitle (double-click)";color:#94a3b8;font-style:italic}',
     'body.ms-edit-mode .ms-title:empty::before{content:"Add a title (double-click)";color:#94a3b8;font-style:italic}',
     'body.ms-edit-mode .ms-grid:empty{min-height:160px;border:2px dashed #cbd5e1;border-radius:10px}',
+    'body.ms-edit-mode .ms-section>.ms-grid:empty::before{content:"Empty section. Select the section title, then use Insert to add a chart, KPI cards or a text box here."}',
+    'body.ms-edit-mode .ms-spacer{outline:1px dashed #cbd5e1}',
     'body.ms-edit-mode .ms-grid:empty::before{content:"Empty tab. Paste a chart (Ctrl+V), drag a chart onto this tab in the ribbon, or use Insert.";display:block;padding:60px 20px;text-align:center;color:#94a3b8;grid-column:1/-1}'
   ].join('\n');
 
@@ -141,6 +145,8 @@
     if (t.closest && t.closest('[contenteditable="true"]')) return;
     e.preventDefault(); e.stopPropagation();
     if (t.closest && t.closest('#ms-ribbon .ms-tabbtn')) { var id = t.closest('.ms-tabbtn').getAttribute('data-ms-tabbtn'); return MS.tabs.rename(id); }
+    var kp = t.closest && t.closest('.ms-kpi');
+    if (kp && t.closest('.ms-kpi-value')) { E.select(kp); return kp.hasAttribute('data-ms-kpi') ? MS.compose.kpiSettings(kp) : E.startText(t.closest('.ms-kpi-value')); }
     var p = pick(t);
     var rt = MS.rt(), c = p && rt && rt.chartOf(p);
     if (c && !(p.closest('.ms-head'))) { E.select(p); return MS.charts.settings(c.key); }
@@ -156,12 +162,15 @@
     if (el) el.classList.add('ms-sel');
     MS.emit('selection', el);
   };
-  E.reveal = function (el) {
+  E.reveal = function (el, flash) {
     var rt = MS.rt();
     var sec = el.closest && el.closest('section.ms-tab');
-    if (sec && rt && !sec.classList.contains('ms-active')) rt.showTab(sec.getAttribute('data-ms-tab'));
-    setTimeout(function () { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 60);
-    E.select(el);
+    if (sec && rt && !sec.classList.contains('ms-active')) { rt.showTab(sec.getAttribute('data-ms-tab')); MS.emit('structure'); }
+    setTimeout(function () {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (flash) { el.classList.remove('ms-flash'); void el.offsetWidth; el.classList.add('ms-flash'); setTimeout(function () { el.classList.remove('ms-flash'); }, 1600); }
+    }, 60);
+    if (MS.mode === 'edit') E.select(el);
   };
 
   function chartUnit(el) {

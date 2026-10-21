@@ -5,7 +5,7 @@ window.MS = window.MS || {};
 
   /* ---------- event bus ---------- */
   var handlers = {};
-  MS.on = function (ev, fn) { (handlers[ev] = handlers[ev] || []).push(fn); };
+  MS.on = function (ev, fn) { (handlers[ev] = handlers[ev] || []).push(fn); return function () { var a = handlers[ev], i = a.indexOf(fn); if (i >= 0) a.splice(i, 1); }; };
   MS.emit = function (ev, data) { (handlers[ev] || []).slice().forEach(function (fn) { try { fn(data); } catch (e) { console.error(e); } }); };
 
   /* ---------- dom ---------- */

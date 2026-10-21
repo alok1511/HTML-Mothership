@@ -71,21 +71,21 @@
     var charts = rt.charts();
     var cSec = h('section', { 'class': 'ol-sec' }, [h('div', { 'class': 'ol-head' }, [h('span', { text: 'Charts (' + charts.length + ')' }),
       charts.length ? h('button', { 'class': 'icon-btn', title: 'Add title / subtitle / inference to every chart', onclick: MS.blocks.wrapAll }, ['✎']) : null])]);
-    if (!charts.length) cSec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'No Chart.js, ECharts or Plotly charts found. Other visuals can still be selected, moved and resized by clicking them.' }));
+    if (!charts.length) cSec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'No charts found. Pictures, tables and other visuals can still be selected, moved and resized by clicking them.' }));
     var tabsById = {}; if (rt.layoutEnabled()) rt.tabs().forEach(function (t) { tabsById[t.id] = t.title; });
     charts.forEach(function (c) {
       var b = c.el.closest('.ms-block'), info = rt.chartInfo(c.key) || {};
-      var title = (b && b.querySelector('.ms-title').textContent.trim()) || info.title || MS.blocks.guessTitle(c.el) || (info.type + ' chart');
+      var title = MS.charts.nameOf(c.key);
       var sec = c.el.closest('section.ms-tab');
       var cs = rt.state.charts[c.key] || {};
-      var row = h('div', { 'class': 'ol-row' + (MS.sel && (MS.sel === b || MS.sel.contains(c.el)) ? ' active' : '') }, [
-        h('span', { 'class': 'badge ' + c.lib, text: c.lib === 'chartjs' ? 'CJS' : c.lib === 'echarts' ? 'EC' : 'PL' }),
+      var row = h('div', { 'class': 'ol-row' + (MS.sel && (MS.sel === b || MS.sel.contains(c.el)) ? ' active' : ''), title: MS.charts.kindName(info.type) + ' · click to go to it, double-click for settings' }, [
+        h('span', { 'class': 'kind', text: MS.charts.kindIcon(info.type) }),
         h('span', { 'class': 'grow name', text: title }),
-        cs.binding ? h('span', { title: 'Bound to data: drill-down and filters on', text: '⛁' }) : null,
-        cs.tooltip ? h('span', { title: 'Custom tooltip', text: '💬' }) : null,
+        cs.binding ? h('span', { title: 'Linked to data: drill-down and filters work', text: '⛁' }) : null,
+        cs.tooltip || cs.style ? h('span', { title: 'Custom pop-up or look', text: '💬' }) : null,
         sec ? h('small', { 'class': 'muted', text: tabsById[sec.getAttribute('data-ms-tab')] || '' }) : null
       ]);
-      row.addEventListener('click', function () { MS.edit.reveal(b || MS.edit.chartUnit(c.el)); });
+      row.addEventListener('click', function () { MS.edit.reveal(b || MS.edit.chartUnit(c.el), true); });
       row.addEventListener('dblclick', function () { MS.charts.settings(c.key); });
       cSec.appendChild(row);
     });
@@ -103,8 +103,9 @@
     });
     if (ds.length) dSec.appendChild(h('button', { 'class': 'btn sm', style: { margin: '6px 10px' }, onclick: MS.data.filters }, ['Design filter pane…']));
     host.appendChild(dSec);
+    host.appendChild(MS.review.outlineSection());
   };
-  ['structure', 'child-loaded', 'tab-shown', 'theme', 'changed'].forEach(function (ev) { MS.on(ev, MS.debounce(O.render, 60)); });
+  ['structure', 'child-loaded', 'tab-shown', 'theme', 'changed', 'comments'].forEach(function (ev) { MS.on(ev, MS.debounce(O.render, 60)); });
 
   /* ============================================================ INSPECTOR */
   var Ins = MS.inspector = {};
@@ -173,6 +174,18 @@
         h('small', { 'class': 'hint', text: 'Tip: drag the corner handle of the block.' })]));
     }
 
+    /* chart look */
+    if (chartKey && rt) {
+      var look = MS.charts.styleEditor((rt.state.charts[chartKey] || {}).style, function (v) { MS.charts.setStyle(chartKey, v, 'Chart look', true); }, true);
+      host.appendChild(group('Chart look', [look, h('div', { 'class': 'row gap' }, [
+        h('button', { 'class': 'btn sm', onclick: function () { MS.charts.styleAll(look.values()); } }, ['Use on every chart']),
+        h('button', { 'class': 'btn sm', onclick: function () { MS.charts.settings(chartKey, 'Tooltip'); } }, ['Pop-up text…'])]),
+        h('div', { 'class': 'row gap' }, [
+        h('button', { 'class': 'btn sm', title: 'Copy this chart\'s look, colours and order to other charts', onclick: function () { MS.painter.copy(chartKey); } }, ['🖌 Painter']),
+        h('button', { 'class': 'btn sm', title: 'Use this chart\'s category order on every chart', onclick: function () { MS.order.fromChart(chartKey); } }, ['⇅ Order everywhere']),
+        h('button', { 'class': 'btn sm', onclick: function () { MS.chartOut.image(chartKey); } }, ['🖼 Image'])])]));
+    }
+
     /* text */
     var fonts = MS.fonts.list();
     var fam = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim();
@@ -188,12 +201,33 @@
     var align = h('div', { 'class': 'seg small' }, ['left', 'center', 'right', 'justify'].map(function (a) {
       return h('button', { 'class': 'seg-btn' + (cs.textAlign === a || (a === 'left' && cs.textAlign === 'start') ? ' on' : ''), title: a, onclick: function () { MS.edit.style(el, { textAlign: a }, 'Align'); } }, [{ left: '⟸', center: '≡', right: '⟹', justify: '☰' }[a]]);
     }));
+    var lh = h('input', { type: 'number', 'class': 'inp', step: 0.1, min: 0.8, max: 3, placeholder: 'auto', value: el.style.lineHeight || '' });
+    lh.addEventListener('change', function () { MS.edit.style(el, { lineHeight: lh.value }, 'Line height'); });
+    var ls = h('input', { type: 'number', 'class': 'inp', step: 0.5, min: -2, max: 20, placeholder: '0', value: parseFloat(el.style.letterSpacing) || '' });
+    ls.addEventListener('change', function () { MS.edit.style(el, { letterSpacing: ls.value === '' ? '' : ls.value + 'px' }, 'Letter spacing'); });
+    var tcase = h('select', { 'class': 'inp' }, [['', 'As typed'], ['uppercase', 'UPPERCASE'], ['lowercase', 'lowercase'], ['capitalize', 'Title Case']].map(function (o) { var op = h('option', { value: o[0], text: o[1] }); if ((el.style.textTransform || '') === o[0]) op.selected = true; return op; }));
+    tcase.addEventListener('change', function () { MS.edit.style(el, { textTransform: tcase.value }, 'Text case'); });
+    var deco = h('div', { 'class': 'seg small' }, [['B', 'bold', { fontWeight: '700' }], ['I', 'italic', { fontStyle: 'italic' }], ['U', 'underline', { textDecoration: 'underline' }]].map(function (o) {
+      return h('button', { 'class': 'seg-btn', title: o[1], style: o[2], onclick: function () { MS.edit.select(el); MS.edit.format(o[1]); } }, [o[0]]);
+    }));
     host.appendChild(group('Text', [
       h('label', { 'class': 'field' }, [h('span', { text: 'Font' }), fSel]),
       h('div', { 'class': 'row gap' }, [h('label', { 'class': 'field grow' }, [h('span', { text: 'Size (px)' }), size]), h('label', { 'class': 'field grow' }, [h('span', { text: 'Weight' }), weight])]),
       h('div', { 'class': 'row gap' }, [h('label', { 'class': 'field grow' }, [h('span', { text: 'Colour' }), col]), h('label', { 'class': 'field grow' }, [h('span', { text: 'Background' }), bgc])]),
-      h('label', { 'class': 'field' }, [h('span', { text: 'Align' }), align])
+      h('div', { 'class': 'row gap' }, [h('label', { 'class': 'field' }, [h('span', { text: 'Align' }), align]), h('label', { 'class': 'field' }, [h('span', { text: 'Style' }), deco])]),
+      h('div', { 'class': 'row gap' }, [h('label', { 'class': 'field grow' }, [h('span', { text: 'Line height' }), lh]), h('label', { 'class': 'field grow' }, [h('span', { text: 'Spacing (px)' }), ls]), h('label', { 'class': 'field grow' }, [h('span', { text: 'Case' }), tcase])])
     ]));
+
+    /* hover pop-up for any element */
+    var tipTxt = h('textarea', { 'class': 'inp', rows: 2, placeholder: 'e.g. Revenue is net of GST. Source: SAP, refreshed every Monday.', value: el.getAttribute('data-ms-tip') || '' });
+    tipTxt.addEventListener('change', function () {
+      var v = tipTxt.value.trim();
+      MS.history.attrs(v ? 'Hover pop-up' : 'Remove hover pop-up', el, ['data-ms-tip'], function (x) { if (v) x.setAttribute('data-ms-tip', v); else x.removeAttribute('data-ms-tip'); });
+    });
+    host.appendChild(group('Hover pop-up', [
+      h('label', { 'class': 'field' }, [h('span', { text: chartKey ? 'Note shown when hovering over this block (chart pop-ups are under Chart look)' : 'Text shown when someone hovers over this element' }), tipTxt]),
+      h('div', { 'class': 'row gap' }, [h('button', { 'class': 'btn sm', onclick: Ins.tipStyle }, ['Pop-up style…']), h('small', { 'class': 'hint', text: 'Shows in Interact mode, presenting and the exported file.' })])
+    ], !el.hasAttribute('data-ms-tip')));
 
     /* box */
     var boxFields = [['width', 'Width'], ['height', 'Height'], ['padding', 'Padding'], ['margin', 'Margin'], ['borderRadius', 'Corner radius'], ['border', 'Border']];
@@ -217,7 +251,33 @@
     if (long) { var t = (el.textContent || '').trim().slice(0, 30); if (t) s += ' “' + t + (el.textContent.trim().length > 30 ? '…' : '') + '”'; }
     return s;
   }
-  function group(title, kids) { return h('details', { 'class': 'ins-group', open: true }, [h('summary', { text: title })].concat(kids)); }
+  function group(title, kids, closed) {
+    var key = 'insp-' + title, open = MS.prefs.get(key, closed ? 'closed' : 'open') !== 'closed';
+    var d = h('details', { 'class': 'ins-group', open: open }, [h('summary', { text: title })].concat(kids));
+    d.addEventListener('toggle', function () { MS.prefs.set(key, d.open ? 'open' : 'closed'); });
+    return d;
+  }
+  // one style for every hover pop-up on the page (and optionally the charts' pop-ups too)
+  Ins.tipStyle = function () {
+    var rt = MS.rt(); if (!rt) return;
+    var t = rt.state.layout.tip || {};
+    var f = MS.form([
+      { key: 'bg', label: 'Background', type: 'color', value: t.bg || '#111827' },
+      { key: 'color', label: 'Text colour', type: 'color', value: t.color || '#f9fafb' },
+      { key: 'border', label: 'Border colour', type: 'color', value: t.border || '#111827' },
+      { key: 'size', label: 'Text size (px)', type: 'number', min: 9, max: 24, value: t.size || 13 },
+      { key: 'radius', label: 'Corner radius (px)', type: 'number', min: 0, max: 20, value: t.radius != null ? t.radius : 6 },
+      { key: 'width', label: 'Maximum width (px)', type: 'number', min: 120, max: 600, value: t.width || 280 },
+      { key: 'charts', label: 'Use the same look for chart pop-ups', type: 'checkbox', value: false }
+    ]);
+    MS.dialog({ title: 'Hover pop-up style', body: f, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
+      if (!v) return;
+      MS.history.group('Pop-up style', function () {
+        MS.history.state('Pop-up style', function (s) { s.layout.tip = { bg: v.bg, color: v.color, border: v.border, size: v.size, radius: v.radius, width: v.width }; });
+        if (v.charts) MS.history.state('Chart pop-ups', function (s) { rt.charts().forEach(function (c) { var cs = s.charts[c.key] = s.charts[c.key] || {}; cs.style = Object.assign({}, cs.style, { tipBg: v.bg, tipColor: v.color, tipBorder: v.border, tipSize: v.size, tipRadius: v.radius }); }); });
+      });
+    });
+  };
   function colorField(value, onChange, allowClear) {
     var theme = MS.rt() && MS.rt().state.theme;
     var c = h('input', { type: 'color', value: value });

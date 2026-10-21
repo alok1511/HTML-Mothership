@@ -13,6 +13,7 @@
     exportAs: need(function () { MS.versions.exportFile(true); }),
     saveVersion: need(MS.versions.savePrompt),
     versions: MS.versions.list,
+    tour: function () { MS.help.tour(); }, tutorial: function () { MS.help.tutorial(); }, guide: function () { MS.help.guide(); }, newDoc: function () { MS.compose.newDoc(); },
     print: need(function () { MS.child.win.focus(); MS.child.win.print(); }),
     reload: need(function () { MS.reload(); }),
     undo: function () { MS.history.undo(); }, redo: function () { MS.history.redo(); },
@@ -29,6 +30,7 @@
   MS.RIBBON = [
     { tab: 'File', groups: [
       { name: 'Open', items: [
+        { icon: '✨', label: 'New', title: 'Start a new dashboard from scratch', run: function () { MS.compose.newDoc(); } },
         { icon: '📂', label: 'Open', title: 'Open a dashboard (.html), a Mothership export, a brand skill, a recipe (.json) or a plugin (Ctrl+O)', run: MS.cmd.open },
         { icon: '🗂', label: 'Open folder', title: 'Open a dashboard together with its scripts, styles, images and data files. Everything is bundled into one file.', run: MS.cmd.openFolder },
         { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } }] },
@@ -61,7 +63,19 @@
         { icon: '🅣', label: 'Text box', title: 'A block with a title and text', run: needRt(MS.insert.text) },
         { icon: '🖼', label: 'Image', title: 'Insert image(s) as blocks', run: needRt(MS.insert.image) },
         { icon: '📎', label: 'From file', title: 'Insert a document, table or slides as a block in the current tab', run: needRt(MS.insert.fileBlock) },
-        { icon: '▤', label: 'Table', title: 'A table snapshot from a dataset', run: needRt(MS.insert.table) }] }
+        { icon: '▤', label: 'Table', title: 'A table snapshot from a dataset', run: needRt(MS.insert.table) }] },
+      { name: 'Page', items: [
+        { icon: '🟦', label: 'Header', title: MS.compose.PARTS.banner.title, run: need(function () { MS.compose.part('banner'); }) },
+        { icon: '▭', label: 'Section', title: MS.compose.PARTS.section.title, run: need(function () { MS.compose.part('section'); }) },
+        { icon: '◫', label: 'Columns', title: 'Two or three columns of text side by side', run: need(function (e) { MS.menu(e.currentTarget, [{ label: '2 columns', run: function () { MS.compose.part('cols2'); } }, { label: '3 columns', run: function () { MS.compose.part('cols3'); } }]); }) },
+        { icon: 'H', label: 'Heading', title: 'A heading', run: need(function () { MS.compose.part('heading'); }) },
+        { icon: '¶', label: 'Paragraph', title: 'A paragraph of text', run: need(function () { MS.compose.part('para'); }) },
+        { icon: '💡', label: 'Callout', title: MS.compose.PARTS.callout.title, run: need(function () { MS.compose.part('callout'); }) },
+        { icon: '⋯', label: 'More', title: 'Divider, spacer, button link', run: need(function (e) { MS.menu(e.currentTarget, [{ label: '― Divider line', run: function () { MS.compose.part('divider'); } }, { label: '↕ Spacer', run: function () { MS.compose.part('spacer'); } }, { label: '🔗 Button link…', run: MS.compose.button }]); }) },
+        { icon: '▁', label: 'Footer', title: 'A footer under every tab: source, owner, date, confidentiality', run: need(MS.compose.footer) }] },
+      { name: 'From data', items: [
+        { icon: '📊', label: 'Chart', title: 'A new chart from a dataset. It follows the filter pane and can drill down.', run: needRt(MS.compose.chart) },
+        { icon: '🔢', label: 'KPI cards', title: 'A row of headline numbers. With a dataset they follow the filter pane.', run: need(MS.compose.kpis) }] }
     ] },
     { tab: 'Layout', groups: [
       { name: 'Tabs', items: [
@@ -94,35 +108,67 @@
     { tab: 'Charts', groups: [
       { name: 'Selected chart', items: [
         { icon: '⚙', label: 'Settings', title: 'Commentary, size, tooltip, data & drill-down for the selected chart', run: needRt(function () { MS.charts.settings(); }) },
-        { icon: '💬', label: 'Tooltip', title: 'What the hover pop-up shows', run: needRt(function () { MS.charts.settings(); setTimeout(function () { var b = MS.$$('.seg-btn')[1]; if (b) b.click(); }, 30); }) },
-        { icon: '⤓', label: 'Drill-down', title: 'Bind to data and choose what double-click does', run: needRt(function () { MS.charts.settings(); setTimeout(function () { var b = MS.$$('.seg-btn')[2]; if (b) b.click(); }, 30); }) },
+        { icon: '💬', label: 'Tooltip', title: 'What the hover pop-up shows', run: needRt(function () { MS.charts.settings(null, 'Tooltip'); }) },
+        { icon: '⤓', label: 'Drill-down', title: 'Bind to data and choose what double-click does', run: needRt(function () { MS.charts.settings(null, 'Data & drill-down'); }) },
+        { icon: '🎨', label: 'Look', title: 'Fonts, text colour, legend and hover pop-up style for the selected chart', run: needRt(function () { MS.charts.settings(null, 'Look'); }) },
         { icon: '✎', label: 'Commentary', title: 'Add a title / subtitle / inference header', run: sel(function (el) { MS.edit.select(MS.blocks.wrap(el, true)); }) }] },
+      { name: 'Consistency', items: [
+        { icon: '🖌', label: 'Format painter', title: 'Copy the selected chart\'s look, category colours and order onto other charts', run: needRt(function () { MS.painter.copy(); }) },
+        { icon: '⇅', label: 'Category order', title: 'One order (e.g. North, South, East, West) on every chart that shows those categories', run: needRt(function () { MS.order.dialog(MS.charts.selectedKey()); }) },
+        { icon: '🎨', label: 'Category colours', title: 'Give each category or series one colour on every chart', run: needRt(MS.catColors.dialog) }] },
+      { name: 'Share', items: [
+        { icon: '🖼', label: 'As image', title: 'Save the selected chart as a PNG for PowerPoint, Word or email', run: needRt(function () { MS.chartOut.image(); }) },
+        { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) }] },
       { name: 'All charts', items: [
         { icon: '💬', label: 'Tooltips', title: 'Set one tooltip format for every chart', run: needRt(MS.charts.tooltipAll) },
+        { icon: '🎨', label: 'Look', title: 'One font, legend and pop-up style for every chart', run: needRt(function () {
+          var st = null, ed = MS.charts.styleEditor(null, function (v) { st = v; });
+          MS.dialog({ title: 'Same look for every chart', body: ed, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply to all', primary: true, value: 'ok' }] }).then(function (v) { if (v) MS.charts.styleAll(st); });
+        }) },
         { icon: '✎', label: 'Commentary', title: 'Add commentary headers to every chart', run: needRt(MS.blocks.wrapAll) }] }
     ] },
     { tab: 'Data', groups: [
       { name: 'Datasets', items: [
         { icon: '🔍', label: 'Find data', title: 'Find tables of data inside the dashboard\'s scripts', run: needRt(MS.data.discover) },
         { icon: '⛁', label: 'Load data', title: 'Load JSON, CSV or Excel as a dataset', run: needRt(MS.data.loadFile) },
-        { icon: '☰', label: 'Manage', title: 'View, download or remove datasets', run: needRt(MS.data.manage) }] },
+        { icon: '☰', label: 'Manage', title: 'View, download, refresh or remove datasets', run: needRt(MS.data.manage) }] },
+      { name: 'Drill-down', items: [
+        { icon: '⤓', label: 'Drill-down data', title: 'Load an Excel, CSV or Markdown file with the detail behind your charts. It is embedded and linked, so double-click works offline.', run: needRt(MS.drillData.load) },
+        { icon: '📝', label: 'Template', title: 'Save a CSV template for the selected chart to fill in with deeper levels', run: needRt(function () { MS.chartOut.template(); }) }] },
       { name: 'Filters', items: [{ icon: '⚲', label: 'Filter pane', title: 'Design the filter pane', run: needRt(MS.data.filters) }] }
     ] },
     { tab: 'View', groups: [
       { name: 'Present', items: [
         { icon: '▶', label: 'Present', title: 'Full screen, tab by tab (F5)', run: MS.cmd.present },
         { icon: '🗒', label: 'Presenter view', title: 'Present with a separate window for notes, timer and next tab', run: MS.cmd.presenter }] },
-      { name: 'Preview size', items: [
-        { icon: '🖥', label: 'Desktop', run: function () { MS.stageWidth(null); } },
-        { icon: '💻', label: 'Laptop', run: function () { MS.stageWidth(1280); } },
-        { icon: '📱', label: 'Tablet', run: function () { MS.stageWidth(820); } },
-        { icon: '📱', label: 'Phone', run: function () { MS.stageWidth(390); } }] },
+      { name: 'Zoom', items: [
+        { icon: '⤢', label: 'Fit', title: 'Fit the whole width of the dashboard in the window', run: function () { MS.view.setZoom('fit'); } },
+        { icon: '1:1', label: '100%', title: 'Actual size', run: function () { MS.view.setZoom(1); } },
+        { icon: '＋', label: 'Zoom in', title: 'Ctrl + mouse wheel also zooms', run: function () { MS.view.step(1); } },
+        { icon: '－', label: 'Zoom out', run: function () { MS.view.step(-1); } }] },
+      { name: 'Draw at', items: [
+        { icon: '🖥', label: 'Auto', title: 'Draw at a desktop width (1280 px or more) and scale to fit, so the layout never gets squashed', run: function () { MS.view.setWidth('auto'); }, toggle: function () { return MS.view.width === 'auto'; } },
+        { icon: '💻', label: 'Laptop', title: '1366 px wide', run: function () { MS.view.setWidth(1366); }, toggle: function () { return MS.view.width === 1366; } },
+        { icon: '📱', label: 'Tablet', title: '820 px wide', run: function () { MS.view.setWidth(820); }, toggle: function () { return MS.view.width === 820; } },
+        { icon: '📱', label: 'Phone', title: '390 px wide', run: function () { MS.view.setWidth(390); }, toggle: function () { return MS.view.width === 390; } },
+        { icon: '⋯', label: 'Other', title: 'Full HD, 1440 px or the panel width', run: function (e) { MS.view.menu(e.currentTarget); } }] },
       { name: 'Panels', items: [
         { icon: '◧', label: 'Outline', run: function () { document.body.classList.toggle('no-left'); } },
         { icon: '◨', label: 'Inspector', run: function () { document.body.classList.toggle('no-right'); } }] },
       { name: 'Safety', items: [
         { icon: '🛡', label: 'Safe mode', title: 'Open the dashboard with its scripts blocked (for files you don\'t trust)', run: MS.cmd.safe, toggle: function () { return MS.settings.safe; } },
         { icon: '🔒', label: 'Network lock', title: 'Block all internet access from the dashboard while editing', run: MS.cmd.netLock, toggle: function () { return MS.settings.netLock; } }] }
+    ] },
+    { tab: 'Review', groups: [
+      { name: 'Comment on', items: [
+        { icon: '📍', label: 'Element', title: 'Click a part of the dashboard and write a comment', run: function () { MS.review.start('element'); } },
+        { icon: '▭', label: 'Area', title: 'Drag a box over the screen and write a comment', run: function () { MS.review.start('area'); } },
+        { icon: '⚡', label: 'Interaction', title: 'Comment on what you just did: a filter, a drill-down, a pop-up. Use Interact mode first.', run: function () { MS.review.start('interaction'); } }] },
+      { name: 'Comments', items: [
+        { icon: '📌', label: 'Pins', title: 'Show or hide the numbered comment pins on the dashboard', run: function () { MS.review.togglePins(); }, toggle: function () { return MS.review.showPins; } },
+        { icon: '🗑', label: 'Clear all', title: 'Delete all comments (Ctrl+Z to undo)', run: function () { MS.review.clear(); } }] },
+      { name: 'AI prompt', items: [
+        { icon: '✨', label: 'Make prompt', title: 'Turn every comment into one prompt you can paste into an AI assistant', run: function () { MS.review.prompt(); } }] }
     ] },
     { tab: 'Plugins', groups: function () {
       var gs = [{ name: 'Manage', items: [
@@ -133,7 +179,17 @@
         if (p.buttons && p.buttons.length) gs.push({ name: p.name, items: p.buttons.map(function (b) { return { icon: b.icon || '⚡', label: b.label, title: b.title || p.description, run: function () { try { b.run(window.Mothership.api()); } catch (e) { MS.toast(p.name + ': ' + e.message, 'error'); } } }; }) });
       });
       return gs;
-    } }
+    } },
+    { tab: 'Help', groups: [
+      { name: 'Learn', items: [
+        { icon: '🧭', label: 'Quick tour', title: 'A 2-minute tour of the screen', run: function () { MS.help.tour(); } },
+        { icon: '🎓', label: 'Tutorial', title: 'Hands-on lessons with a sample dashboard. Each step shows you where to click.', run: function () { MS.help.tutorial(); } },
+        { icon: '📖', label: 'User guide', title: 'How to do everything, searchable', run: function () { MS.help.guide(); } }] },
+      { name: 'Reference', items: [
+        { icon: '⌨', label: 'Shortcuts', run: function () { MS.help.guide('shortcuts'); } },
+        { icon: '❓', label: 'Problems?', title: 'Fixes for common problems', run: function () { MS.help.guide('troubleshooting'); } },
+        { icon: 'ℹ', label: 'About', run: function () { MS.help.about(); } }] }
+    ] }
   ];
 
   var R = MS.ribbon = { active: MS.prefs.get('ribbonTab', 'Home') };
@@ -159,11 +215,13 @@
   };
   function fontControls() {
     var fam = h('select', { 'class': 'inp sm', title: 'Font', id: 'rb-font' }, MS.fonts.list().map(function (f) { return h('option', { value: f, text: f }); }));
-    fam.addEventListener('change', need(function () { MS.edit.format('fontName', /\s/.test(fam.value) ? '"' + fam.value + '"' : fam.value); }));
+    // with a chart selected, the font box styles the chart's own text (axes, legend, pop-up)
+    var chartSel = function () { return MS.sel && MS.mode === 'edit' && !MS.editingText && MS.charts.selectedKey(); };
+    fam.addEventListener('change', need(function () { var k = chartSel(); if (k) return MS.charts.setStyle(k, { font: fam.value }, 'Chart font'); MS.edit.format('fontName', /\s/.test(fam.value) ? '"' + fam.value + '"' : fam.value); }));
     var size = h('input', { 'class': 'inp sm', type: 'number', min: 6, max: 200, title: 'Font size (px)', id: 'rb-size', style: { width: '58px' } });
-    size.addEventListener('change', need(function () { if (MS.sel) MS.edit.style(MS.sel, { fontSize: size.value + 'px' }, 'Font size'); }));
+    size.addEventListener('change', need(function () { var k = chartSel(); if (k) return MS.charts.setStyle(k, { size: +size.value }, 'Chart text size'); if (MS.sel) MS.edit.style(MS.sel, { fontSize: size.value + 'px' }, 'Font size'); }));
     var color = h('input', { type: 'color', title: 'Text colour', id: 'rb-color' });
-    color.addEventListener('change', need(function () { MS.edit.format('foreColor', color.value); }));
+    color.addEventListener('change', need(function () { var k = chartSel(); if (k) return MS.charts.setStyle(k, { color: color.value }, 'Chart text colour'); MS.edit.format('foreColor', color.value); }));
     var hi = h('input', { type: 'color', title: 'Highlight / fill', value: '#fff59d' });
     hi.addEventListener('change', need(function () { MS.edit.format('hiliteColor', hi.value); }));
     var mk = function (lbl, cmd, title, style) { var b = h('button', { 'class': 'fbtn', title: title, style: style }, [lbl]); b.addEventListener('mousedown', function (e) { e.preventDefault(); }); b.addEventListener('click', need(function () { MS.edit.format(cmd); })); return b; };
@@ -189,6 +247,7 @@
 
   /* ---------------------------------------------------------- keyboard */
   MS.handleKey = function (e, fromChild) {
+    if (e.key === 'Escape' && MS.review.picking) { e.preventDefault(); return MS.review.cancel(); }
     if (MS.present.key(e)) return;
     var t = e.target, typing = t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
     var mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
