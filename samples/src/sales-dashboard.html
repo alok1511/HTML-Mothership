@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Performance FY25</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; background: #f5f6fa; color: #222; }
+  header { background: #263859; color: #fff; padding: 18px 28px; }
+  header h1 { margin: 0; font-size: 24px; }
+  header p { margin: 4px 0 0; opacity: .8; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 28px 0; }
+  .kpi { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .kpi .label { font-size: 12px; text-transform: uppercase; color: #777; }
+  .kpi .value { font-size: 26px; font-weight: bold; margin-top: 6px; color: #263859; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 28px 28px; }
+  .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size: 16px; margin: 0 0 10px; color: #444; }
+  .chart-box { position: relative; height: 280px; }
+  footer { padding: 0 28px 24px; color: #888; font-size: 12px; }
+</style>
+<script data-inline="vendor/charts/chart.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>Sales Performance — FY 2024-25</h1>
+  <p>All-India sales, by region, state and city. Figures in ₹.</p>
+</header>
+<section class="kpis">
+  <div class="kpi"><div class="label">Total sales</div><div class="value" id="kpi-sales">–</div></div>
+  <div class="kpi"><div class="label">Profit</div><div class="value" id="kpi-profit">–</div></div>
+  <div class="kpi"><div class="label">Units sold</div><div class="value" id="kpi-units">–</div></div>
+  <div class="kpi"><div class="label">Margin</div><div class="value" id="kpi-margin">–</div></div>
+</section>
+<section class="grid">
+  <div class="card"><h2>Sales by region</h2><div class="chart-box"><canvas id="regionChart"></canvas></div></div>
+  <div class="card"><h2>Monthly sales trend</h2><div class="chart-box"><canvas id="trendChart"></canvas></div></div>
+  <div class="card"><h2>Sales mix by category</h2><div class="chart-box"><canvas id="categoryChart"></canvas></div></div>
+  <div class="card"><h2>Profit by channel</h2><div class="chart-box"><canvas id="channelChart"></canvas></div></div>
+</section>
+<footer>Source: illustrative data generated for the Mothership demo.</footer>
+<script>
+// Illustrative data: one row per city × category × month × channel.
+const geo = {
+  North: { 'Delhi': ['New Delhi', 'Dwarka'], 'Uttar Pradesh': ['Lucknow', 'Noida', 'Kanpur'], 'Punjab': ['Ludhiana', 'Amritsar'] },
+  West: { 'Maharashtra': ['Mumbai', 'Pune', 'Nagpur'], 'Gujarat': ['Ahmedabad', 'Surat'], 'Rajasthan': ['Jaipur', 'Udaipur'] },
+  South: { 'Karnataka': ['Bengaluru', 'Mysuru'], 'Tamil Nadu': ['Chennai', 'Coimbatore'], 'Telangana': ['Hyderabad'], 'Kerala': ['Kochi'] },
+  East: { 'West Bengal': ['Kolkata', 'Siliguri'], 'Odisha': ['Bhubaneswar'], 'Bihar': ['Patna'] }
+};
+const categories = ['Electronics', 'Apparel', 'Home', 'Grocery'];
+const channels = ['Online', 'Retail'];
+const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const salesData = [];
+Object.keys(geo).forEach(region => Object.keys(geo[region]).forEach(state => geo[region][state].forEach(city => {
+  const size = 0.6 + rnd() * 1.4;
+  categories.forEach((category, ci) => months.forEach((month, mi) => channels.forEach(channel => {
+    const season = 1 + 0.35 * Math.sin((mi + 2) / 12 * Math.PI * 2) + (mi >= 6 && mi <= 8 ? 0.4 : 0);
+    const sales = Math.round(size * season * (180000 + ci * 60000) * (channel === 'Online' ? 0.8 : 1.2) * (0.7 + rnd() * 0.6));
+    const margin = [0.12, 0.28, 0.2, 0.07][ci] * (0.8 + rnd() * 0.4);
+    salesData.push({ region, state, city, category, channel, month, sales, profit: Math.round(sales * margin), units: Math.round(sales / [9000, 1400, 2600, 450][ci]) });
+  })));
+})));
+
+const inr = v => '₹' + (v / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' Cr';
+const sum = (rows, f) => rows.reduce((a, r) => a + r[f], 0);
+const by = (rows, key, f) => { const m = {}; rows.forEach(r => m[r[key]] = (m[r[key]] || 0) + r[f]); return m; };
+
+document.getElementById('kpi-sales').textContent = inr(sum(salesData, 'sales'));
+document.getElementById('kpi-profit').textContent = inr(sum(salesData, 'profit'));
+document.getElementById('kpi-units').textContent = sum(salesData, 'units').toLocaleString('en-IN');
+document.getElementById('kpi-margin').textContent = (sum(salesData, 'profit') / sum(salesData, 'sales') * 100).toFixed(1) + '%';
+
+const reg = by(salesData, 'region', 'sales');
+new Chart(document.getElementById('regionChart'), {
+  type: 'bar',
+  data: { labels: Object.keys(reg), datasets: [{ label: 'Sales', data: Object.values(reg), backgroundColor: '#3e7cb1' }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+});
+const trend = by(salesData, 'month', 'sales');
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: { labels: months, datasets: [{ label: 'Sales', data: months.map(m => trend[m]), borderColor: '#e07a5f', backgroundColor: 'rgba(224,122,95,.15)', fill: true, tension: .3 }] },
+  options: { responsive: true, maintainAspectRatio: false }
+});
+const cat = by(salesData, 'category', 'sales');
+new Chart(document.getElementById('categoryChart'), {
+  type: 'doughnut',
+  data: { labels: Object.keys(cat), datasets: [{ label: 'Sales', data: Object.values(cat), backgroundColor: ['#3e7cb1', '#81b29a', '#f2cc8f', '#e07a5f'] }] },
+  options: { responsive: true, maintainAspectRatio: false }
+});
+const ch = by(salesData, 'channel', 'profit');
+new Chart(document.getElementById('channelChart'), {
+  type: 'bar',
+  data: { labels: Object.keys(ch), datasets: [{ label: 'Profit', data: Object.values(ch), backgroundColor: '#81b29a' }] },
+  options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Standard help tabs",
+  "description": "Turns on tabs, gives every chart a commentary header and Indian-format tooltips, and adds How-to, FAQ and Methodology tabs.",
+  "steps": [
+    { "do": "layout", "ribbon": { "position": "top", "height": 46 } },
+    { "do": "wrapCharts" },
+    { "do": "tooltip", "charts": "*", "template": "{label}\n{value:inr}" },
+    { "do": "addTab", "title": "How to use", "markdown": "# How to use this dashboard\n\n1. Use the **filter pane** on the left to narrow the data.\n2. **Hover** over a chart to see exact values.\n3. **Double-click** a bar or slice to drill down. Use the breadcrumb above the chart to go back up.\n4. Press **Alt + →** / **Alt + ←** to move between tabs.\n" },
+    { "do": "addTab", "title": "FAQ", "markdown": "# Frequently asked questions\n\n## How often is the data refreshed?\nMonthly, on the 5th working day.\n\n## Who do I contact about a number?\nThe dashboard owner listed on the Methodology tab.\n" },
+    { "do": "addTab", "title": "Methodology", "markdown": "# Methodology\n\n**Source:** describe the source systems here.\n\n**Definitions:** list each metric and how it is calculated.\n\n**Owner:** name, team, email.\n" }
+  ]
+}

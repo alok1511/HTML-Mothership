@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service Operations</title>
+<style>
+  body { font-family: Verdana, sans-serif; margin: 0; background: #fff; color: #333; }
+  .top { padding: 16px 24px; border-bottom: 4px solid #c0392b; }
+  .top h1 { margin: 0; font-size: 22px; }
+  .wrap { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px 24px; }
+  .panel { flex: 1 1 420px; border: 1px solid #ddd; border-radius: 6px; padding: 12px; }
+  .panel h3 { margin: 0 0 8px; font-size: 15px; }
+  .ec { width: 100%; height: 300px; }
+</style>
+<script data-inline="vendor/charts/echarts.min.js"></script>
+</head>
+<body>
+<div class="top"><h1>Service Operations — Q3</h1><p>Ticket volumes and SLA performance across support teams.</p></div>
+<div class="wrap">
+  <div class="panel"><h3>Tickets by team</h3><div id="teamChart" class="ec"></div></div>
+  <div class="panel"><h3>SLA status</h3><div id="slaChart" class="ec"></div></div>
+  <div class="panel"><h3>Weekly volume</h3><div id="weekChart" class="ec"></div></div>
+</div>
+<script>
+var teams = { Claims: ['Motor', 'Health', 'Property'], Policy: ['New business', 'Renewals'], Billing: ['Refunds', 'Collections'], Digital: ['App', 'Portal'] };
+var opsData = []; var s = 3; function r() { s = (s * 16807) % 2147483647; return s / 2147483647; }
+Object.keys(teams).forEach(function (team) { teams[team].forEach(function (queue) { for (var w = 1; w <= 13; w++) {
+  var t = Math.round(40 + r() * 120 + (team === 'Claims' ? 60 : 0));
+  opsData.push({ team: team, queue: queue, week: 'W' + w, tickets: t, breached: Math.round(t * (0.04 + r() * 0.12)), status: r() > 0.85 ? 'Breached' : (r() > 0.3 ? 'Within SLA' : 'At risk') });
+} }); });
+function agg(key, f) { var m = {}; opsData.forEach(function (d) { m[d[key]] = (m[d[key]] || 0) + (f ? d[f] : 1); }); return m; }
+var byTeam = agg('team', 'tickets');
+echarts.init(document.getElementById('teamChart')).setOption({ tooltip: { trigger: 'item' }, xAxis: { type: 'category', data: Object.keys(byTeam) }, yAxis: { type: 'value' }, series: [{ name: 'Tickets', type: 'bar', data: Object.values(byTeam) }] });
+var bySla = agg('status');
+echarts.init(document.getElementById('slaChart')).setOption({ tooltip: { trigger: 'item' }, series: [{ name: 'SLA', type: 'pie', radius: ['40%', '70%'], data: Object.keys(bySla).map(function (k) { return { name: k, value: bySla[k] }; }) }] });
+var byWeek = agg('week', 'tickets');
+echarts.init(document.getElementById('weekChart')).setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(byWeek) }, yAxis: { type: 'value' }, series: [{ name: 'Tickets', type: 'line', smooth: true, data: Object.values(byWeek) }] });
+window.addEventListener('resize', function () { ['teamChart', 'slaChart', 'weekChart'].forEach(function (id) { echarts.getInstanceByDom(document.getElementById(id)).resize(); }); });
+</script>
+</body>
+</html>

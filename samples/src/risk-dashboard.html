@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio Risk Monitor</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; padding: 24px; background: #fbfaf7; color: #2b2b2b; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  .sub { color: #666; margin-bottom: 18px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .plot { height: 340px; background: #fff; border: 1px solid #e6e1d6; }
+</style>
+<script data-inline="vendor/charts/plotly-basic.min.js"></script>
+</head>
+<body>
+<h1>Portfolio Risk Monitor</h1>
+<div class="sub">Exposure by sector and rating. Illustrative figures in ₹ crore.</div>
+<div class="row">
+  <div id="sectorPlot" class="plot"></div>
+  <div id="ratingPlot" class="plot"></div>
+</div>
+<script>
+window.riskData = [];
+var sectors = { Financials: ['Banks', 'NBFCs', 'Insurance'], Energy: ['Oil & Gas', 'Power'], Industrials: ['Infra', 'Capital goods'], Consumer: ['FMCG', 'Autos'], Technology: ['IT services'] };
+var ratings = ['AAA', 'AA', 'A', 'BBB']; var q = 11; function rr() { q = (q * 16807) % 2147483647; return q / 2147483647; }
+Object.keys(sectors).forEach(function (sec) { sectors[sec].forEach(function (ind) { ratings.forEach(function (rt) {
+  riskData.push({ sector: sec, industry: ind, rating: rt, exposure: Math.round(50 + rr() * 450), pd: +(0.1 + ratings.indexOf(rt) * 0.6 + rr() * 0.5).toFixed(2) });
+}); }); });
+function sumBy(k) { var m = {}; riskData.forEach(function (d) { m[d[k]] = (m[d[k]] || 0) + d.exposure; }); return m; }
+var s1 = sumBy('sector'), s2 = sumBy('rating');
+Plotly.newPlot('sectorPlot', [{ type: 'bar', x: Object.keys(s1), y: Object.values(s1), name: 'Exposure', marker: { color: '#7a5c3e' } }], { title: { text: 'Exposure by sector' }, margin: { t: 40, l: 50, r: 20, b: 40 } }, { responsive: true, displayModeBar: false });
+Plotly.newPlot('ratingPlot', [{ type: 'pie', labels: Object.keys(s2), values: Object.values(s2), name: 'Rating', hole: .45 }], { title: { text: 'Exposure by rating' }, margin: { t: 40, l: 20, r: 20, b: 20 } }, { responsive: true, displayModeBar: false });
+</script>
+</body>
+</html>
