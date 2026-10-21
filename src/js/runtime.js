@@ -31,6 +31,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     s.datasets = s.datasets || {};
     s.filters = s.filters || [];
     s.textOverrides = s.textOverrides || {};
+    s.kpis = s.kpis || {};
+    s.comments = s.comments || [];
     s.layout = s.layout || {};
     var L = s.layout;
     L.ribbon = L.ribbon || {};
@@ -39,6 +41,9 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     L.pane = L.pane || {};
     L.pane.width = L.pane.width || 230;
     if (L.pane.visible === undefined) L.pane.visible = true;
+    L.tip = L.tip || {};
+    L.orders = L.orders || [];  // category orders, e.g. [['North','South','East','West']]
+    L.colors = L.colors || {};  // colour per category or series name, shared by every chart
     return s;
   }
   rt.state = normalize(readState());
@@ -112,6 +117,9 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   /* ------------------------------------------------------------ chart adapters */
   function sum(arr) { var s = 0; (arr || []).forEach(function (v) { var n = Number(v && typeof v === 'object' ? (v.y != null ? v.y : v.value) : v); if (!isNaN(n)) s += n; }); return s; }
 
+  function put(o, k, v) { if (v === undefined) delete o[k]; else o[k] = v; }
+  function fontOf(st, size) { var f = {}; if (st.font) f.family = st.font; if (size) f.size = +size; return f; }
+
   var A = {};
   A.chartjs = {
     list: function () {
@@ -150,6 +158,23 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       };
       i.update('none');
     },
+    setCatColors: function (i, map) {
+      var labels = i.data.labels || [], radial = /pie|doughnut|polarArea/.test(i.config.type), many = i.data.datasets.length > 1 && !radial;
+      i.data.datasets.forEach(function (d) {
+        var line = (d.type || i.config.type) === 'line' || (d.type || i.config.type) === 'radar';
+        if (many) { var c = map[d.label]; if (c) { d.borderColor = c; d.backgroundColor = line ? c + '33' : c; } return; }
+        if (line) return;
+        var base = d.backgroundColor;
+        d.backgroundColor = labels.map(function (l, j) { return map[l] || (Array.isArray(base) ? base[j % base.length] : base); });
+        if (!radial) d.borderColor = d.backgroundColor;
+      });
+      i.update('none');
+    },
+    image: function (i) {
+      var cv = i.canvas, out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height;
+      var x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.drawImage(cv, 0, 0);
+      return Promise.resolve(out.toDataURL('image/png'));
+    },
     setPalette: function (i, colors) {
       this.snapshot(i);
       var radial = /pie|doughnut|polarArea/.test(i.config.type);
@@ -180,6 +205,40 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       });
       i.data.datasets.length = series.length;
       i.update();
+    },
+    setStyle: function (i, st) {
+      var o = i.config.options = i.config.options || {}; o.plugins = o.plugins || {};
+      var TK = ['backgroundColor', 'titleColor', 'bodyColor', 'footerColor', 'borderColor', 'borderWidth', 'titleFont', 'bodyFont', 'cornerRadius'];
+      if (!i.__msStyleOrig) { var t0 = o.plugins.tooltip || {}, tk = {}; TK.forEach(function (k) { tk[k] = deepClone(t0[k]); }); i.__msStyleOrig = { scales: deepClone(o.scales), legend: deepClone(o.plugins.legend), title: deepClone(o.plugins.title), tip: tk }; }
+      var O = i.__msStyleOrig;
+      put(o, 'scales', deepClone(O.scales)); put(o.plugins, 'legend', deepClone(O.legend)); put(o.plugins, 'title', deepClone(O.title));
+      var t = o.plugins.tooltip = o.plugins.tooltip || {};
+      TK.forEach(function (k) { put(t, k, deepClone(O.tip[k])); });
+      if (st) {
+        var f = fontOf(st, st.size), hasF = !!(st.font || st.size);
+        var tint = function (x) { if (!x) return; if (hasF) x.font = Object.assign({}, typeof x.font === 'object' ? x.font : {}, f); if (st.color) x.color = st.color; };
+        if (!/^(pie|doughnut)$/.test(i.config.type) && (hasF || st.color || st.axisFormat)) {
+          o.scales = o.scales || {};
+          Object.keys(i.scales || {}).forEach(function (id) {
+            var sc = o.scales[id] = o.scales[id] || {};
+            tint(sc.ticks = sc.ticks || {});
+            if (st.axisFormat && id !== 'r' && i.scales[id].type !== 'category') sc.ticks.callback = function (v) { return fmtNum(v, st.axisFormat); };
+            if (sc.title) tint(sc.title);
+            if (id === 'r') tint(sc.pointLabels = sc.pointLabels || {});
+          });
+        }
+        var lg = o.plugins.legend = o.plugins.legend || {};
+        tint(lg.labels = lg.labels || {});
+        if (st.legend === 'none') lg.display = false; else if (st.legend) { lg.display = true; lg.position = st.legend; }
+        var ti = o.plugins.title;
+        if (ti) { if (st.font) ti.font = Object.assign({}, typeof ti.font === 'object' ? ti.font : {}, { family: st.font }); if (st.color) ti.color = st.color; }
+        if (st.tipBg) t.backgroundColor = st.tipBg;
+        if (st.tipColor) t.titleColor = t.bodyColor = t.footerColor = st.tipColor;
+        if (st.tipBorder) { t.borderColor = st.tipBorder; t.borderWidth = 1; }
+        if (st.tipSize || st.font) { t.bodyFont = fontOf(st, st.tipSize); t.titleFont = Object.assign(fontOf(st, st.tipSize), { weight: 'bold' }); }
+        if (st.tipRadius !== undefined && st.tipRadius !== '') t.cornerRadius = +st.tipRadius;
+      }
+      i.update('none');
     },
     onDbl: function (elm, i, cb) {
       elm.addEventListener('dblclick', function (e) {
@@ -232,6 +291,22 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         }).join('<br>');
       } } });
     },
+    setCatColors: function (i, map) {
+      var o = i.getOption(), ax = this.cat(o), ss = o.series || [];
+      var labels = ax ? (o[ax][0].data || []).map(function (x) { return x && typeof x === 'object' ? x.value : x; }) : null;
+      var many = ss.length > 1 && !/pie|funnel/.test((ss[0] || {}).type);
+      var ns = ss.map(function (sr) {
+        if (many) { var c = map[sr.name]; return c ? { itemStyle: { color: c }, lineStyle: { color: c } } : {}; }
+        return { data: (sr.data || []).map(function (d, j) {
+          var name = labels ? labels[j] : d && d.name, c = map[name];
+          var item = d && typeof d === 'object' && !Array.isArray(d) ? Object.assign({}, d) : { value: d };
+          if (c) item.itemStyle = Object.assign({}, item.itemStyle, { color: c });
+          return item;
+        }) };
+      });
+      i.setOption({ series: ns });
+    },
+    image: function (i) { return Promise.resolve(i.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' })); },
     setPalette: function (i, colors) { this.snapshot(i); i.setOption({ color: colors || i.__msOrig.color }); },
     setData: function (i, labels, series) {
       this.snapshot(i);
@@ -249,6 +324,45 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       var patch = { series: ns };
       if (ax) { var a = deepClone(o[ax]); a[0].data = labels; patch[ax] = a; }
       i.setOption(patch, { replaceMerge: ['series'] });
+    },
+    setStyle: function (i, st) {
+      var o = i.getOption();
+      if (!i.__msStyleOrig) {
+        var ax = function (a) { var l = deepClone(a.axisLabel) || {}; if (l.formatter === undefined) l.formatter = null; return { axisLabel: l, nameTextStyle: deepClone(a.nameTextStyle) || {} }; };
+        i.__msStyleOrig = {
+          textStyle: deepClone(o.textStyle) || {},
+          xAxis: (o.xAxis || []).map(ax), yAxis: (o.yAxis || []).map(ax),
+          legend: (o.legend || []).map(function (l) { return { show: l.show, orient: l.orient || 'horizontal', top: l.top == null ? 'auto' : l.top, bottom: l.bottom == null ? 'auto' : l.bottom, left: l.left == null ? 'auto' : l.left, right: l.right == null ? 'auto' : l.right, textStyle: deepClone(l.textStyle) || {} }; }),
+          title: (o.title || []).map(function (t) { return { textStyle: deepClone(t.textStyle) || {} }; }),
+          tooltip: (o.tooltip || []).map(function (t) { return { backgroundColor: t.backgroundColor, borderColor: t.borderColor, borderWidth: t.borderWidth, borderRadius: t.borderRadius, textStyle: deepClone(t.textStyle) || {} }; })
+        };
+      }
+      var p = deepClone(i.__msStyleOrig);
+      if (st) {
+        var txt = function (x) { if (st.font) x.fontFamily = st.font; if (st.size) x.fontSize = +st.size; if (st.color) x.color = st.color; };
+        if (st.font) p.textStyle.fontFamily = st.font;
+        p.xAxis.concat(p.yAxis).forEach(function (a) { txt(a.axisLabel); txt(a.nameTextStyle); });
+        p.legend.forEach(function (l) {
+          txt(l.textStyle);
+          if (st.legend === 'none') l.show = false;
+          else if (st.legend) {
+            l.show = true; l.orient = st.legend === 'left' || st.legend === 'right' ? 'vertical' : 'horizontal';
+            l.top = st.legend === 'top' ? 0 : st.legend === 'bottom' ? 'auto' : 'middle'; l.bottom = st.legend === 'bottom' ? 0 : 'auto';
+            l.left = st.legend === 'left' ? 0 : st.legend === 'right' ? 'auto' : 'center'; l.right = st.legend === 'right' ? 0 : 'auto';
+          }
+        });
+        p.title.forEach(function (t) { if (st.font) t.textStyle.fontFamily = st.font; if (st.color) t.textStyle.color = st.color; });
+        if (st.axisFormat) ['xAxis', 'yAxis'].forEach(function (ax) { (o[ax] || []).forEach(function (a, k) { if (a.type === 'value' && p[ax][k]) p[ax][k].axisLabel.formatter = function (v) { return fmtNum(v, st.axisFormat); }; }); });
+        p.tooltip.forEach(function (t) {
+          if (st.tipBg) t.backgroundColor = st.tipBg;
+          if (st.tipBorder) { t.borderColor = st.tipBorder; t.borderWidth = 1; }
+          if (st.tipRadius !== undefined && st.tipRadius !== '') t.borderRadius = +st.tipRadius;
+          if (st.tipColor) t.textStyle.color = st.tipColor;
+          if (st.tipSize) t.textStyle.fontSize = +st.tipSize;
+          if (st.font) t.textStyle.fontFamily = st.font;
+        });
+      }
+      i.setOption(p);
     },
     onDbl: function (elm, i, cb) { i.on('dblclick', function (p) { cb({ label: p.name, index: p.dataIndex, series: p.seriesIndex }); }); },
     clone: function (i, target) {
@@ -281,6 +395,17 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         window.Plotly.restyle(e, { hovertext: [txt], hovertemplate: ['%{hovertext}<extra></extra>'] }, [k]);
       });
     },
+    setCatColors: function (e, map) {
+      var self = this, many = e.data.length > 1 && (e.data[0] || {}).type !== 'pie';
+      e.data.forEach(function (t, k) {
+        if (many) { var c = map[t.name]; if (c) window.Plotly.restyle(e, { 'marker.color': c, 'line.color': c }, [k]); return; }
+        var full = (e._fullData || [])[k] || {}, fm = full.marker || {};
+        var base = t.type === 'pie' ? (fm.colors || []) : fm.color;
+        var cols = [].map.call(self.lv(t).l, function (l, j) { return map[l] || (Array.isArray(base) ? base[j % (base.length || 1)] : base); });
+        if (t.type === 'pie') window.Plotly.restyle(e, { 'marker.colors': [cols] }, [k]); else window.Plotly.restyle(e, { 'marker.color': [cols] }, [k]);
+      });
+    },
+    image: function (e) { return window.Plotly.toImage(e, { format: 'png', scale: 2 }); },
     setPalette: function (e, colors) {
       this.snapshot(e);
       e.data.forEach(function (t, k) {
@@ -305,6 +430,26 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       });
       window.Plotly.react(e, nd, e.layout);
     },
+    setStyle: function (e, st) {
+      var L = e.layout || {};
+      var cp = function (v) { return v === undefined ? null : JSON.parse(JSON.stringify(v)); };
+      if (!e.__msStyleOrig) e.__msStyleOrig = { font: cp(L.font), hoverlabel: cp(L.hoverlabel), showlegend: cp(L.showlegend), legend: cp(L.legend) };
+      var O = e.__msStyleOrig, u = { font: cp(O.font), hoverlabel: cp(O.hoverlabel), showlegend: cp(O.showlegend), legend: cp(O.legend) };
+      if (st) {
+        if (st.font || st.size || st.color) { u.font = u.font || {}; if (st.font) u.font.family = st.font; if (st.size) u.font.size = +st.size; if (st.color) u.font.color = st.color; }
+        if (st.tipBg || st.tipColor || st.tipBorder || st.tipSize || st.font) {
+          var hl = u.hoverlabel = u.hoverlabel || {}; hl.font = hl.font || {};
+          if (st.tipBg) hl.bgcolor = st.tipBg; if (st.tipBorder) hl.bordercolor = st.tipBorder;
+          if (st.tipColor) hl.font.color = st.tipColor; if (st.tipSize) hl.font.size = +st.tipSize; if (st.font) hl.font.family = st.font;
+        }
+        if (st.legend === 'none') u.showlegend = false;
+        else if (st.legend) {
+          u.showlegend = true;
+          u.legend = Object.assign(u.legend || {}, { top: { orientation: 'h', x: 0, xanchor: 'left', y: 1.12, yanchor: 'bottom' }, bottom: { orientation: 'h', x: 0, xanchor: 'left', y: -0.18, yanchor: 'top' }, right: { orientation: 'v', x: 1.02, xanchor: 'left', y: 1, yanchor: 'top' }, left: { orientation: 'v', x: -0.15, xanchor: 'right', y: 1, yanchor: 'top' } }[st.legend]);
+        }
+      }
+      window.Plotly.relayout(e, u);
+    },
     onDbl: function (e, i, cb) {
       var last = null;
       e.on('plotly_click', function (d) {
@@ -326,6 +471,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
 
   /* ------------------------------------------------------------ chart registry */
   function keyOf(elm, lib, idx) {
+    var nat = elm.closest('[data-ms-chart]');
+    if (nat) return nat.getAttribute('data-ms-chart');
     var copy = elm.closest('[data-ms-copyof]');
     if (copy) return copy.getAttribute('data-ms-id');
     return elm.getAttribute('data-ms-id') || (elm.id ? '#' + elm.id : lib + '@' + idx);
@@ -349,6 +496,83 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var c = rt.chart(key); if (!c) return null;
     var inf = c.a.info(c.inst); inf.key = key; inf.lib = c.lib; return inf;
   };
+  // The numbers a chart was drawn with (before any binding), as labels + series.
+  function num(v) { var n = Number(v && typeof v === 'object' ? (v.y != null ? v.y : v.value != null ? (Array.isArray(v.value) ? v.value[v.value.length - 1] : v.value) : v.x) : v); return isNaN(n) ? null : n; }
+  rt.chartData = function (key) {
+    var c = rt.chart(key); if (!c) return null;
+    var i = c.inst, labels = [], series = [];
+    if (c.lib === 'chartjs') {
+      var O = i.__msOrig;
+      labels = (O ? O.labels : i.data.labels) || [];
+      series = (O ? O.datasets : i.data.datasets).map(function (d, k) { return { name: d.label || ('Series ' + (k + 1)), values: (d.data || []).map(num) }; });
+    } else if (c.lib === 'echarts') {
+      var o = i.__msOrig || i.getOption(), ax = A.echarts.cat(o), ss = o.series || [];
+      labels = ax ? (o[ax][0].data || []).map(function (x) { return x && typeof x === 'object' ? x.value : x; }) : ((ss[0] || {}).data || []).map(function (d) { return d && d.name; });
+      series = ss.map(function (x, k) { return { name: x.name || ('Series ' + (k + 1)), values: (x.data || []).map(num) }; });
+    } else {
+      var tr = i.__msOrig || i.data;
+      labels = [].slice.call(A.plotly.lv(tr[0] || {}).l);
+      series = tr.map(function (t, k) { return { name: t.name || ('Series ' + (k + 1)), values: [].map.call(A.plotly.lv(t).v, num) }; });
+    }
+    return { labels: labels.map(String), series: series };
+  };
+  // Rows made from the chart's own numbers (long format when there are several series).
+  rt.rowsFromChart = function (key) {
+    var d = rt.chartData(key); if (!d || !d.labels.length) return [];
+    var rows = [];
+    d.labels.forEach(function (l, j) {
+      if (d.series.length === 1) rows.push({ Category: l, Value: d.series[0].values[j] });
+      else d.series.forEach(function (s) { rows.push({ Category: l, Series: s.name, Value: s.values[j] }); });
+    });
+    return rows;
+  };
+  // Find tables in the page whose columns contain this chart's labels: the data behind the chart.
+  rt.matchData = function (key) {
+    var d = rt.chartData(key); if (!d || !d.labels.length) return [];
+    var want = d.labels.slice(0, 60).map(function (x) { return x.trim().toLowerCase(); });
+    var cands = Object.keys(rt.state.datasets).map(function (n) { return { name: n, def: rt.state.datasets[n], added: true }; });
+    var known = JSON.stringify(rt.state.datasets);
+    rt.discoverDatasets().forEach(function (f) {
+      if (known.indexOf(JSON.stringify(f.expr || f.scriptId)) >= 0 && !f.sub) return;
+      cands.push({ name: (f.expr || f.scriptId + (f.sub ? '.' + f.sub : '')).replace(/^window\./, ''), def: f.expr ? { expr: f.expr, source: 'page' } : { scriptId: f.scriptId, sub: f.sub, source: 'page' }, added: false });
+    });
+    var out = [];
+    cands.forEach(function (cd) {
+      var rows = rt.rowsOf(cd.def); if (!rows.length) return;
+      var sample = rows.length > 5000 ? rows.slice(0, 5000) : rows, best = null;
+      Object.keys(rows[0]).forEach(function (f) {
+        var vals = new Set(); sample.forEach(function (r) { if (r[f] != null) vals.add(String(r[f]).trim().toLowerCase()); });
+        if (vals.size > 2000 && vals.size === sample.length) return; // an id column
+        var hit = want.filter(function (w) { return vals.has(w); }).length;
+        if (hit && (!best || hit > best.hit)) best = { field: f, hit: hit };
+      });
+      if (best && best.hit / want.length >= 0.5) out.push({ name: cd.name, def: cd.def, added: cd.added, field: best.field, score: best.hit / want.length, rows: rows.length });
+    });
+    return out.sort(function (a, b) { return b.score - a.score || b.rows - a.rows; });
+  };
+  rt.chartImage = function (key) { var c = rt.chart(key); return c ? c.a.image(c.inst) : Promise.reject(new Error('No such chart')); };
+  // The colour each category / series is drawn in now (for the format painter).
+  rt.chartColors = function (key) {
+    var c = rt.chart(key); if (!c) return {};
+    var info = c.a.info(c.inst), out = {}, labels = info.labels || [], series = info.series || [];
+    try {
+      if (c.lib === 'chartjs') {
+        var ds = c.inst.data.datasets, radial = /pie|doughnut|polarArea/.test(c.inst.config.type);
+        if (ds.length > 1 && !radial) ds.forEach(function (d) { var b = d.borderColor || d.backgroundColor; if (d.label && typeof b === 'string') out[d.label] = b; });
+        else { var bg = ds[0] && ds[0].backgroundColor; labels.forEach(function (l, j) { var v = Array.isArray(bg) ? bg[j % bg.length] : bg; if (typeof v === 'string') out[l] = v; }); }
+      } else if (c.lib === 'echarts') {
+        var o = c.inst.getOption(), pal = o.color || [], ss = o.series || [];
+        if (ss.length > 1 && !/pie|funnel/.test(ss[0].type)) ss.forEach(function (sr, k) { out[sr.name] = (sr.itemStyle && sr.itemStyle.color) || pal[k % pal.length]; });
+        else (ss[0].data || []).forEach(function (d, j) { var col = d && d.itemStyle && d.itemStyle.color; out[labels[j]] = typeof col === 'string' ? col : (/pie|funnel/.test(ss[0].type) ? pal[j % pal.length] : (ss[0].itemStyle && ss[0].itemStyle.color) || pal[0]); });
+      } else {
+        var fd = c.inst._fullData || [];
+        if (fd.length > 1 && fd[0].type !== 'pie') fd.forEach(function (t) { if (t.name && t.marker && typeof t.marker.color === 'string') out[t.name] = t.marker.color; });
+        else { var m = fd[0] && fd[0].marker || {}, arr = fd[0] && fd[0].type === 'pie' ? m.colors : m.color; labels.forEach(function (l, j) { var v = Array.isArray(arr) ? arr[j % arr.length] : arr; if (typeof v === 'string') out[l] = v; }); }
+      }
+    } catch (e) {}
+    Object.keys(out).forEach(function (k) { if (!out[k] || typeof out[k] !== 'string') delete out[k]; });
+    return out;
+  };
   rt.setChart = function (key, patch) {
     var cs = rt.state.charts[key] = rt.state.charts[key] || {};
     Object.keys(patch).forEach(function (k) { if (patch[k] === null) delete cs[k]; else cs[k] = patch[k]; });
@@ -363,8 +587,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     return Array.isArray(v) && v.length > 1 && v[0] && typeof v[0] === 'object' && !Array.isArray(v[0]) &&
       Object.getPrototypeOf(v[0]) === Object.prototype && Object.keys(v[0]).length >= 2;
   }
-  rt.getRows = function (name) {
-    var d = rt.state.datasets[name];
+  rt.getRows = function (name) { return rt.rowsOf(rt.state.datasets[name]); };
+  rt.rowsOf = function (d) {
     if (!d) return [];
     if (d.rows) return d.rows;
     if (d.expr) { var v = resolveExpr(d.expr); return isRows(v) ? v : []; }
@@ -460,10 +684,11 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     if (b.sort === 'desc') list.sort(function (x, y) { return y.value - x.value; });
     else if (b.sort === 'asc') list.sort(function (x, y) { return x.value - y.value; });
     else list.sort(function (x, y) { return x.label < y.label ? -1 : x.label > y.label ? 1 : 0; });
+    if (!b.sort) { var oi = orderLabels(list.map(function (g) { return g.label; })); if (oi) list = oi.map(function (j) { return list[j]; }); }
     if (b.top) list = list.slice(0, b.top);
     var labels = list.map(function (g) { return g.label; });
     var series = G.series.map(function (s) {
-      return { name: s === '_' ? (b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
+      return { name: s === '_' ? (b.agg === 'count' || !b.measure ? 'Count' : b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
     });
     var gm = {}; list.forEach(function (g) { gm[g.label] = g; });
     rt.groups[c.key] = gm;
@@ -567,11 +792,21 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var cs = rt.state.charts[c.key];
     var T = rt.state.theme;
     var pal = T && T.chartsFollowTheme !== false && T.palette && T.palette.length ? T.palette : null;
+    var reset = false;
     try {
-      if (pal || c.inst.__msPal) { if (force || c.inst.__msPal !== String(pal)) { c.a.setPalette(c.inst, pal); c.inst.__msPal = pal ? String(pal) : null; } }
       if (cs && cs.binding) renderBound(c);
-      else if (c.inst.__msBound) { c.a.setData(c.inst, null); var h = c.el.closest('.ms-block'); h = h && h.querySelector('.ms-crumbs'); if (h) h.innerHTML = ''; }
+      else if (c.inst.__msBound) { reset = true; c.a.setData(c.inst, null); var h = c.el.closest('.ms-block'); h = h && h.querySelector('.ms-crumbs'); if (h) h.innerHTML = ''; }
       c.inst.__msBound = !!(cs && cs.binding);
+      var reordered = !c.inst.__msBound && applyOrder(c);
+      if (reordered) reset = true;
+      if (!pal && c.inst.__msNative) pal = NATIVE_PAL;
+      var cat = catMapFor(c), ck = (pal ? String(pal) : '') + '|' + (cat ? JSON.stringify(cat) : '') + '|' + (c.inst.__msOrderKey || '');
+      if (force || ck !== (c.inst.__msColKey || '|') || (c.inst.__msBound && (c.lib === 'chartjs' || cat))) {
+        if (pal || c.inst.__msPal || cat || c.inst.__msCat) c.a.setPalette(c.inst, pal);
+        c.inst.__msPal = pal ? String(pal) : null;
+        if (cat) c.a.setCatColors(c.inst, cat);
+        c.inst.__msCat = !!cat; c.inst.__msColKey = ck;
+      }
       var tpl = cs && cs.tooltip;
       if (tpl || c.inst.__msTip) {
         c.a.setTooltip(c.inst, tpl ? function (ctx) {
@@ -580,11 +815,136 @@ MS.RUNTIME_FN = function MothershipRuntime() {
           if (ctx.pct === undefined && ctx.total) ctx.pct = ctx.value / ctx.total * 100;
           return fmt(tpl, ctx);
         } : null);
+        if (!tpl && c.inst.__msTip) reset = true;
         c.inst.__msTip = !!tpl;
+      }
+      var st = cs && cs.style, sk = st ? JSON.stringify(st) : '';
+      if (c.a.setStyle && (force || sk !== (c.inst.__msStyleKey || '') || (sk && reset && c.lib === 'echarts'))) {
+        if (sk || c.inst.__msStyleKey) c.a.setStyle(c.inst, st || null);
+        c.inst.__msStyleKey = sk;
       }
       if (!c.el.__msDbl) { c.el.__msDbl = true; c.a.onDbl(c.el, c.inst, function (hit) { onChartDbl(rt.chart(c.key) || c, hit); }); }
       if (c.el.closest('.ms-block:not(.ms-inline) .ms-visual') && !c.inst.__msFill) { c.inst.__msFill = true; c.a.fill(c.inst); }
     } catch (e) { console.warn('[Mothership] chart apply failed', c.key, e); }
+  }
+
+
+
+  /* ------------------------------------------------------------ shared category order + colours */
+  function low(x) { return String(x == null ? '' : x).trim().toLowerCase(); }
+  function lookColor(name) {
+    var m = rt.state.layout.colors, k = low(name);
+    if (!m || !k) return null;
+    if (m[name]) return m[name];
+    for (var key in m) if (low(key) === k) return m[key];
+    return null;
+  }
+  rt.lookColor = lookColor;
+  // The labels in the shared order (if an order covers at least two of them), the rest after in their own order.
+  function orderLabels(labels) {
+    var orders = rt.state.layout.orders || [], L = labels.map(low);
+    for (var i = 0; i < orders.length; i++) {
+      var o = orders[i].map(low), hits = L.filter(function (x) { return o.indexOf(x) >= 0; });
+      if (hits.length < 2) continue;
+      var idx = labels.map(function (_, j) { return j; });
+      idx.sort(function (a, b) {
+        var pa = o.indexOf(L[a]), pb = o.indexOf(L[b]);
+        if (pa < 0 && pb < 0) return a - b;
+        if (pa < 0) return 1; if (pb < 0) return -1;
+        return pa - pb;
+      });
+      return idx;
+    }
+    return null;
+  }
+  rt.orderLabels = orderLabels;
+  function applyOrder(c) {
+    var d = rt.chartData(c.key);
+    var idx = d && d.labels.length > 1 ? orderLabels(d.labels) : null;
+    var same = !idx || idx.every(function (v, j) { return v === j; });
+    var key = same ? '' : JSON.stringify(idx);
+    if (key === (c.inst.__msOrderKey || '')) return false;
+    if (same) c.a.setData(c.inst, null);
+    else c.a.setData(c.inst, idx.map(function (j) { return d.labels[j]; }), d.series.map(function (sr) { return { name: sr.name, values: idx.map(function (j) { return sr.values[j]; }) }; }));
+    c.inst.__msOrderKey = key;
+    return true;
+  }
+  function catMapFor(c) {
+    var m = rt.state.layout.colors; if (!m || !Object.keys(m).length) return null;
+    var info = c.a.info(c.inst), out = {}, n = 0;
+    (info.labels || []).concat(info.series || []).forEach(function (l) { var col = lookColor(l); if (col) { out[l] = col; n++; } });
+    return n ? out : null;
+  }
+
+  /* ------------------------------------------------------------ charts built in Mothership (Chart.js + a dataset) */
+  var NATIVE_PAL = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
+  function nativeConfig(spec) {
+    var t = spec.type || 'bar', type = { hbar: 'bar', stacked: 'bar', area: 'line' }[t] || t;
+    var o = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: /pie|doughnut/.test(t) || !!spec.legend, position: 'bottom' } } };
+    if (t === 'hbar') o.indexAxis = 'y';
+    if (t === 'stacked') o.scales = { x: { stacked: true }, y: { stacked: true } };
+    return { type: type, data: { labels: [], datasets: [{ label: '', data: [], fill: t === 'area', tension: t === 'line' || t === 'area' ? 0.3 : 0 }] }, options: o };
+  }
+  function renderNative() {
+    if (!window.Chart) return;
+    Array.prototype.forEach.call(D.querySelectorAll('[data-ms-chart]'), function (h) {
+      var cv = h.querySelector('canvas');
+      if (cv && window.Chart.getChart && window.Chart.getChart(cv)) return;
+      var cs = rt.state.charts[h.getAttribute('data-ms-chart')];
+      if (!cs || !cs.native) return;
+      h.innerHTML = '';
+      cv = el('canvas'); h.appendChild(cv);
+      try { var i = new window.Chart(cv, nativeConfig(cs.native)); i.__msNative = true; } catch (e) { console.warn('[Mothership] chart failed', e); }
+    });
+  }
+  rt.nativeConfig = nativeConfig;
+
+  /* ------------------------------------------------------------ KPI cards (follow the filter pane) */
+  function aggregate(rows, measure, agg) {
+    if (agg === 'count') return rows.length;
+    if (agg === 'distinct') { var seen = {}; rows.forEach(function (r) { seen[r[measure]] = 1; }); return Object.keys(seen).length; }
+    var vals = rows.map(function (r) { return Number(r[measure]); }).filter(function (v) { return !isNaN(v); });
+    if (!vals.length) return null;
+    if (agg === 'avg') return vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    if (agg === 'min') return Math.min.apply(null, vals);
+    if (agg === 'max') return Math.max.apply(null, vals);
+    return vals.reduce(function (a, b) { return a + b; }, 0);
+  }
+  rt.aggregate = aggregate;
+  function renderKpis() {
+    Array.prototype.forEach.call(D.querySelectorAll('[data-ms-kpi]'), function (h) {
+      var k = rt.state.kpis[h.getAttribute('data-ms-kpi')], v = h.querySelector('.ms-kpi-value');
+      if (!k || !v || !k.dataset || !rt.state.datasets[k.dataset]) return;
+      var val = aggregate(filteredRows(k.dataset), k.measure, k.agg || 'sum');
+      var txt = val == null ? '–' : fmtNum(val, k.format || (k.agg === 'count' || k.agg === 'distinct' ? 'int' : ''));
+      if (v.textContent !== txt) v.textContent = txt;
+    });
+  }
+
+  /* ------------------------------------------------------------ hover pop-ups on any element ([data-ms-tip]) */
+  var tipEl = null;
+  function tipCss() {
+    var t = rt.state.layout.tip || {};
+    return '.ms-hovertip{position:fixed;z-index:99998;pointer-events:none;max-width:' + (t.width || 280) + 'px;padding:8px 10px;white-space:pre-line;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.18);' +
+      'background:' + (t.bg || '#111827') + ';color:' + (t.color || '#f9fafb') + ';border:1px solid ' + (t.border || 'transparent') + ';border-radius:' + (t.radius != null ? t.radius : 6) + 'px;font-size:' + (t.size || 13) + 'px;' + (t.font ? 'font-family:' + t.font + ';' : '') + '}' +
+      '[data-ms-tip]{cursor:help}';
+  }
+  function bindTips() {
+    if (D.__msTips) return; D.__msTips = true;
+    D.addEventListener('mouseover', function (e) {
+      var t = e.target && e.target.closest && e.target.closest('[data-ms-tip]');
+      if (!t || (EDITOR && window.__MS_EDIT_MODE)) { if (tipEl) tipEl.style.display = 'none'; return; }
+      if (!tipEl || !tipEl.isConnected) { tipEl = el('div', { 'class': 'ms-hovertip', 'data-ms-editor': '' }); D.body.appendChild(tipEl); }
+      tipEl.textContent = t.getAttribute('data-ms-tip');
+      tipEl.style.display = 'block';
+    });
+    D.addEventListener('mousemove', function (e) {
+      if (!tipEl || tipEl.style.display === 'none') return;
+      var w = tipEl.offsetWidth, hh = tipEl.offsetHeight, x = e.clientX + 14, y = e.clientY + 16;
+      if (x + w > innerWidth - 8) x = e.clientX - w - 10;
+      if (y + hh > innerHeight - 8) y = e.clientY - hh - 10;
+      tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+    });
   }
 
   function cloneCopies() {
@@ -670,6 +1030,34 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     '.ms-crumb-cur{font-weight:600}',
     '.ms-crumb-sep{color:var(--ms-muted)}',
     '.ms-crumb-hint{color:var(--ms-muted);margin-left:8px;font-style:italic}',
+    '.ms-section{margin:24px 0;padding:0}',
+    '.ms-section-head{margin:0 0 12px}',
+    '.ms-section-head h2{margin:0;font-size:20px;font-family:var(--ms-font-heading,inherit)}',
+    '.ms-section-head p{margin:4px 0 0;color:var(--ms-muted)}',
+    '.ms-section>.ms-grid{min-height:40px}',
+    '.ms-banner{padding:28px 24px;border-radius:12px;margin:0 0 20px;background:linear-gradient(135deg,var(--ms-primary),color-mix(in srgb,var(--ms-primary) 55%,#000));color:#fff}',
+    '.ms-banner h1{margin:0;font-size:26px;font-family:var(--ms-font-heading,inherit)}',
+    '.ms-banner p{margin:6px 0 0;opacity:.9}',
+    '.ms-page-footer{padding:14px 24px;border-top:1px solid var(--ms-border);color:var(--ms-muted);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 24px;justify-content:space-between;background:var(--ms-surface)}',
+    '.ms-page-footer p{margin:0}',
+    '.ms-cols{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:16px;margin:16px 0}',
+    '.ms-col{padding:4px 0}',
+    '.ms-col h3{margin:0 0 6px;font-size:16px}',
+    '.ms-col p{margin:0;line-height:1.55}',
+    '.ms-callout{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:8px;margin:12px 0;background:color-mix(in srgb,var(--ms-primary) 8%,transparent);border-left:4px solid var(--ms-primary)}',
+    '.ms-callout-icon{font-size:18px;line-height:1.3}',
+    '.ms-callout p{margin:0}',
+    '.ms-divider{border:0;border-top:1px solid var(--ms-border);margin:20px 0}',
+    '.ms-spacer{height:32px}',
+    '.ms-btn{display:inline-block;padding:8px 16px;border-radius:8px;background:var(--ms-primary);color:#fff!important;text-decoration:none;font-weight:600}',
+    '.ms-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:12px 0 16px}',
+    '.ms-kpis.ms-in-grid{grid-column:1/-1}',
+    '.ms-section.ms-in-grid,.ms-cols.ms-in-grid,.ms-callout.ms-in-grid,.ms-divider.ms-in-grid,.ms-banner.ms-in-grid,.ms-spacer.ms-in-grid,.ms-heading.ms-in-grid,.ms-para.ms-in-grid{grid-column:1/-1}',
+    '.ms-kpi{background:var(--ms-surface);border:1px solid var(--ms-border);border-radius:10px;padding:14px 16px;border-top:3px solid var(--ms-primary)}',
+    '.ms-kpi-label{font-size:12px;color:var(--ms-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}',
+    '.ms-kpi-value{font-size:26px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}',
+    '.ms-kpi-note{font-size:12px;color:var(--ms-muted)}',
+    '[data-ms-chart]{position:relative;width:100%;height:100%}',
     '.ms-modal-wrap{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px}',
     '.ms-modal{background:var(--ms-surface);color:inherit;border-radius:12px;max-width:min(1100px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);min-width:320px}',
     '.ms-modal-head{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--ms-border)}',
@@ -737,7 +1125,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var main = own(el('main', { id: 'ms-main' }));
     var first = own(el('section', { 'class': 'ms-tab', 'data-ms-tab': uid('t'), 'data-ms-title': firstTitle || 'Dashboard', 'data-ms-kind': 'original' }));
     Array.prototype.slice.call(D.body.childNodes).forEach(function (n) {
-      if (n.nodeType === 1 && (n.id === 'ms-state' || n.id === 'ms-runtime' || n.hasAttribute('data-ms-editor') || n.classList.contains('ms-modal-wrap'))) return;
+      if (n.nodeType === 1 && (n.id === 'ms-state' || n.id === 'ms-runtime' || n.hasAttribute('data-ms-editor') || n.classList.contains('ms-modal-wrap') || n.classList.contains('ms-page-footer'))) return;
       if (n.nodeType === 1 && n.id === 'ms-filter-pane') { body.appendChild(n); return; }
       first.appendChild(n);
     });
@@ -831,6 +1219,10 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     }
     renderFilters();
     applyText();
+    renderNative();
+    renderKpis();
+    ensureStyle('ms-tip-css', tipCss());
+    bindTips();
     cloneCopies();
     rt.charts().forEach(function (c) { applyChart(c, force); });
     try { window.dispatchEvent(new CustomEvent('ms:refresh')); } catch (e) {}

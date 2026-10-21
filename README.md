@@ -23,7 +23,10 @@
 9. [How it works](#9-how-it-works)
 10. [Limitations and known gaps](#10-limitations-and-known-gaps)
 11. [Developing](#11-developing)
-12. [Roadmap ideas](#12-roadmap-ideas)
+12. [Connect an AI assistant (MCP)](#12-connect-an-ai-assistant-mcp)
+13. [Roadmap ideas](#13-roadmap-ideas)
+
+New to Mothership? Open it and click **Help › Guided tour** (2 minutes) or **Help › Tutorial** (7 short hands-on lessons). [`docs/TUTORIAL.md`](docs/TUTORIAL.md) has the same lessons on paper.
 
 ---
 
@@ -88,6 +91,27 @@ HTML-Mothership/
 | **Print / Save as PDF** with one tab per page | Handouts |
 | **Recipes** | Re-apply the same standard edits (tabs, tooltips, theme) to every new dashboard in one click |
 | **Deep links** | The exported file remembers the tab in the URL (`#tab=FAQ`) |
+
+### New in v2
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Fit and zoom** | Status bar (bottom right), **View › Zoom**, Ctrl + mouse wheel | The dashboard is drawn at a real desktop width (1280 px or more) and scaled down to fit the panel, so it never squashes. Zoom in to 200% to work on detail. |
+| **Style anything** | Select any element, then the Inspector or **Home** | Fonts, size, colour, bold/italic/underline, line height, spacing, case, background, border, corners, shadow. |
+| **Chart look** | Double-click a chart › **Look**, or **Charts › Look** | Font, size and colour of axes and legend, legend position, number format on the axis (₹, crore, lakh, %), and the pop-up's colours and font. Presets included. |
+| **Hover pop-ups on anything** | Inspector › **Hover pop-up** | Add a pop-up to a KPI, a heading, an image. One style for all pop-ups (and optionally chart pop-ups too). |
+| **Plain chart names** | Left panel › Outline | Charts are listed by their title (e.g. "Sales by region"), never by library names. Click one to jump to it. |
+| **Data found automatically** | Chart › **Data & drill-down** | Mothership matches the chart's categories to the tables inside the page and offers "Use this data", with a sensible next drill level. Or use the numbers drawn in the chart. |
+| **One category order everywhere** | **Charts › Category order** | Set North, South, East, West once. Every chart that shows those categories follows it, even if the page draws them differently. |
+| **Category colours** | **Charts › Category colours** | "Retail is always green" on every chart. |
+| **Format painter** | **Charts › Format painter**, or 🖌 in the Inspector | Copy one chart's look, colours, order and pop-up onto charts with the same categories, all charts, or the ones you click. |
+| **Drill-down data from Markdown or Excel** | **Data › Drill-down data** | Upload a `.md` (one table under a heading naming the chart), `.xlsx` (one sheet per chart), `.csv` or `.json`. It is embedded and linked to the right chart. **Data › Template** gives you a ready-to-fill file. |
+| **Build from scratch** | **File › New**, **Insert › Page** and **Insert › From data** | Header banner, sections, 2/3 columns, headings, paragraphs, callouts, dividers, spacers, buttons, page footer, KPI cards and new charts (bar, stacked, line, area, pie, doughnut) that follow filters and drill down. New dashboards can start with Overview, How to use, FAQs and Methodology tabs. |
+| **Review comments → AI prompt** | **Review** tab, or the 📍 ▭ ⚡ bar above the dashboard | Comment on an element, a screen area, or an interaction (click, hover, filter, drill) in either mode. **✨ Prompt** turns all comments into one clear prompt for any AI assistant, with rules that keep Mothership's settings intact. Copy it, save it as `.md`, or export the dashboard with the comments inside. |
+| **Help** | **Help** tab | Guided tour, hands-on tutorial with automatic checks, and a searchable guide. |
+| **Chart as image / chart data** | **Charts › Share** | PNG of a chart for PowerPoint or email; the chart's numbers or its linked data as CSV for Excel. |
+| **Refresh data from a file** | **Data › Manage › Refresh from file** | Replace last month's embedded data with this month's. Charts, KPI cards and filters keep their settings. |
+| **AI assistant connection (MCP)** | `tools/mcp/mothership-mcp.js` | Every feature above as a tool an AI assistant can use. See [§12](#12-connect-an-ai-assistant-mcp). |
 
 ---
 
@@ -293,7 +317,8 @@ No build step is needed to run or edit. Plain JavaScript (ES5-style, classic `<s
 
 ```bash
 npm install            # Playwright, only for tests
-npm test               # end-to-end: opens mothership.html from file://, edits each sample, exports, re-opens the export
+npm test               # end-to-end: opens mothership.html from file://, edits each sample, exports, re-opens the export;
+                       # then the v2 features, then the MCP server driven over stdio
 npm run build          # regenerate samples/*.html, samples/samples.js and dist/mothership-standalone.html
 npm run serve          # optional: http://localhost:8080
 ```
@@ -312,6 +337,12 @@ npm run serve          # optional: http://localhost:8080
 | `src/js/plugins.js` | Plugin API and recipes |
 | `src/js/versions.js` | Export, versions, autosave |
 | `src/js/present.js` | Presenter mode |
+| `src/js/compose.js` | Build from scratch: page parts, KPI cards, new charts, new dashboard |
+| `src/js/arrange.js` | Category order, category colours, format painter, chart image/CSV, drill-down data files |
+| `src/js/review.js` | Review comments and the AI prompt |
+| `src/js/help.js` | Tour, tutorial, guide |
+| `src/js/api.js` | `MS.api`: every feature as a JSON function (used by the MCP server) |
+| `tools/mcp/mothership-mcp.js` | The MCP server (stdio, no dependencies) |
 | `src/js/panels.js` / `ribbon.js` / `app.js` | UI |
 | `vendor/` | marked, mammoth, SheetJS, JSZip, pdf.js, and chart libs for samples (see `THIRD_PARTY_NOTICES.md`) |
 
@@ -319,15 +350,68 @@ After changing `src/`, run `npm run build` so `dist/mothership-standalone.html` 
 
 ---
 
-## 12. Roadmap ideas
+## 12. Connect an AI assistant (MCP)
+
+The Model Context Protocol (MCP) lets an AI assistant such as Claude Desktop or Claude Code use Mothership directly: "open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it".
+
+```
+ AI assistant ──stdio──▶ mothership-mcp.js ──DevTools──▶ Edge/Chrome ──▶ mothership.html ──▶ MS.api
+   (Claude)               (Node, no packages)             (hidden window)    (the real editor)
+```
+
+**What you need:** Node.js 16 or newer, and Edge or Chrome (already on most office laptops). No `npm install`, no internet, no admin rights. If Node is not allowed on your laptop, the MCP server can't run, but everything else in Mothership still works.
+
+**Claude Desktop:** *Settings › Developer › Edit Config* and add (change the path to where you unzipped Mothership):
+
+```json
+{
+  "mcpServers": {
+    "mothership": {
+      "command": "node",
+      "args": ["C:\\Users\\you\\Documents\\HTML-Mothership\\tools\\mcp\\mothership-mcp.js"],
+      "env": { "MOTHERSHIP_OUT": "C:\\Users\\you\\Documents\\Dashboards" }
+    }
+  }
+}
+```
+
+**Claude Code:** the repo includes `.mcp.json`, so opening Claude Code in this folder offers the `mothership` server. Or run `claude mcp add mothership -- node tools/mcp/mothership-mcp.js`.
+
+**Tools.** About 75, generated from `MS.api` (see [`docs/EXTENDING.md`](docs/EXTENDING.md#msapi-and-the-mcp-server)), so anything new added to `MS.api` appears automatically. The main ones:
+
+| Group | Tools |
+|---|---|
+| Files | `open_file`, `open_folder`, `new_dashboard`, `export_html`, `screenshot`, `chart_image`, `insert_file`, `load_data`, `drill_data_file`, `load_brand`, `save_prompt` |
+| Look at it | `status`, `outline`, `find`, `get_element`, `list_comments`, `dataset_rows`, `brand_check` |
+| Text and style | `set_text`, `replace_text`, `set_style`, `set_popup`, `popup_style`, `move_element`, `duplicate`, `delete` |
+| Build | `insert_part`, `insert_text_block`, `insert_button`, `insert_kpis`, `insert_chart`, `insert_table`, `resize_block` |
+| Tabs | `layout`, `add_tab`, `rename_tab`, `move_tab`, `hide_tab`, `duplicate_tab`, `move_chart`, `tab_notes` |
+| Charts | `chart_settings` (commentary, pop-up text, look, data, drill), `chart_look_all`, `tooltip_all`, `category_order`, `category_colors`, `format_painter`, `find_chart_data`, `link_chart_data`, `drill`, `chart_data` |
+| Data | `discover_datasets`, `add_dataset`, `refresh_dataset`, `drill_data`, `filter_pane`, `set_filter` |
+| Review | `add_comment`, `update_comment`, `comments_prompt` |
+| Anything else | `undo`, `redo`, `run_recipe`, `call` (any Mothership function by name) |
+
+**Settings** (optional `env` entries):
+
+| Variable | Default | Use |
+|---|---|---|
+| `MOTHERSHIP_BROWSER` | Edge, then Chrome | Full path to `msedge.exe` or `chrome.exe` |
+| `MOTHERSHIP_HEADLESS` | `1` (hidden) | `0` shows the browser window so you can watch the edits |
+| `MOTHERSHIP_ATTACH` | off | Work in *your* browser window instead: start Edge with `msedge --remote-debugging-port=9222`, open `mothership.html`, and set this to `9222` |
+| `MOTHERSHIP_OUT` | current folder | Where `export_html`, `save_prompt` and screenshots go when no path is given |
+| `MOTHERSHIP_HTML` | `mothership.html` | Use `dist/mothership-standalone.html` instead, for example |
+
+Exports never overwrite your original: the default name is `<name>-edited.html`. Every change is undoable, so "undo the last three changes" works too.
+
+---
+
+## 13. Roadmap ideas
 
 Not built yet, roughly in order of value:
 
 1. **Highcharts and D3 adapters**: the next most common dashboard libraries.
-2. **Chart builder**: create a new chart from a dataset inside Mothership (bar/line/pie on bundled ECharts), not only edit existing ones.
-3. **KPI card builder** bound to datasets, so values respond to the filter pane.
-4. **Compare versions**: side-by-side diff of two versions' text and settings.
-5. **Comments / review mode**: sticky notes on elements that are exported but hidden, for reviewer sign-off.
-6. **Template gallery**: save a tab layout and reuse it across dashboards (partly covered by recipes today).
-7. **Accessibility pass**: alt-text prompts for images and charts, keyboard navigation audit of exports.
-8. **Scheduled refresh** for dashboards whose data is a local CSV/Excel: re-load the file and re-export in one click.
+2. **Compare versions**: side-by-side diff of two versions' text and settings.
+3. **Template gallery**: save a tab layout and reuse it across dashboards (partly covered by recipes today).
+4. **Accessibility pass**: alt-text prompts for images and charts, keyboard navigation audit of exports.
+5. **Scheduled refresh**: re-load a local CSV/Excel and re-export in one click (manual refresh exists under Data › Manage).
+6. **Conditional formatting** for KPI cards and tables (red/amber/green thresholds).

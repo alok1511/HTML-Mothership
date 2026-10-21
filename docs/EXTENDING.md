@@ -85,9 +85,34 @@ Mothership.registerPlugin({
 | `toast, dialog, form, prompt, confirm, h, esc, sanitize, download, pickFiles, readFile, lib(name)` | UI and file helpers. `lib('xlsx' \| 'marked' \| 'mammoth' \| 'jszip' \| 'pdf')` lazy-loads a bundled library. |
 | `exportHtml()` | current export as a string |
 | `on(event, fn)` | events: `child-loaded`, `selection`, `changed`, `structure`, `theme`, `tab-shown`, `saved` |
+| `run(tool, args)` | any `MS.api` tool (below), e.g. `api.run('category_order', { order: ['North','South','East','West'] })`. Returns a Promise. |
 
 Nodes you create inside the child must carry `data-ms-own` (or be created via `blocks.create`), otherwise the export treats them as script-generated and strips them.
 
 ## Runtime API inside the child (and in exported files)
 
 `window.__MS_RT`: `tabs()`, `showTab(id)`, `step(±1)`, `charts()`, `chartInfo(key)`, `setChart(key, patch)`, `getRows(name)`, `filteredRows(name)`, `filterValues`, `drill`, `refresh()`, `fmt(template, ctx)`. Events on `window`: `ms:tab` (`detail: {id, title}`), `ms:refresh`.
+
+## MS.api and the MCP server
+
+`src/js/api.js` exposes every editor feature as a function that takes one JSON object, returns JSON (or a Promise of it) and never opens a dialog. It is what the MCP server (`tools/mcp/mothership-mcp.js`) calls, and plugins can use it through `api.run`.
+
+```js
+MS.api.run('chart_settings', { chart: 'Sales by region', inference: 'South leads.', look: { axisFormat: 'cr', legend: 'bottom' } });
+MS.api.describe();   // [{ name, description, inputSchema }] for every tool (JSON Schema)
+```
+
+Charts are named by their plain title (`"Sales by region"`), by key, or by part of the title. Elements are named by the `ref` that `find` returns, or by any CSS selector. All changes go through `MS.history`, so `undo` works.
+
+**Adding a tool.** Add an entry to `A` in `api.js`:
+
+```js
+A.my_tool = { d: 'What it does, in plain English.', p: { chart: ['string', 'Chart name', true], size: ['number', 'Text size'] },
+  f: function (a) { var key = chartKey(a.chart); /* … via MS.history … */ return { ok: true }; } };
+```
+
+It appears in `MS.api`, in the MCP tool list and in `api.run` automatically. Keep descriptions short and non-technical; the assistant reads them to choose tools.
+
+**How the server works.** It is plain Node with no packages. It starts Edge or Chrome (hidden) with `--remote-debugging-port`, opens `mothership.html`, and for each tool call runs `MS.api.run(name, args)` in the page via the DevTools protocol (`Runtime.evaluate`), using a small built-in WebSocket client. File tools (`open_file`, `open_folder`, `load_data`, `drill_data_file`, `load_brand`, `insert_file`) read the file in Node and pass it in as base64. `export_html`, `save_prompt` and `screenshot` write to disk in Node. Messages are newline-delimited JSON-RPC on stdin/stdout; logs go to stderr.
+
+`tests/mcp.test.js` drives the server exactly as an MCP client does.

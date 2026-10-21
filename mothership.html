@@ -16,6 +16,7 @@
     <button class="seg-btn on" data-mode="edit" title="Click to select, double-click to edit">✎ Edit</button>
     <button class="seg-btn" data-mode="interact" title="Use the dashboard normally: filters, tooltips, drill-down">☝ Interact</button>
   </div>
+  <div id="cmt-bar" class="cmt-bar"></div>
   <button class="btn" id="btn-present" title="Present (F5)">▶ Present</button>
   <button class="btn primary" id="btn-export" title="Save the edited dashboard as an .html file (Ctrl+E)">⬇ Export HTML</button>
 </header>
@@ -37,14 +38,21 @@
         <div class="row gap center">
           <button class="btn primary lg" data-act="open">📂 Open dashboard…</button>
           <button class="btn lg" data-act="openFolder" title="Use this when the dashboard loads its own .js/.css/.json files">🗂 Open folder…</button>
+          <button class="btn lg" data-act="newDoc" title="Build a dashboard from scratch">✨ New</button>
           <button class="btn lg" data-act="sample">🧪 Try a sample</button>
+        </div>
+        <div class="row gap center learn">
+          <button class="btn" data-act="tour">🧭 2-minute tour</button>
+          <button class="btn" data-act="tutorial">🎓 Hands-on tutorial</button>
+          <button class="btn" data-act="guide">📖 User guide</button>
         </div>
         <p class="muted">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
         <ol class="steps">
           <li><b>Open</b> a dashboard. Click anything to select it. Double-click text to type.</li>
           <li><b>Layout › Tabbed layout</b> adds a ribbon of tabs. Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
           <li><b>Design › Load brand</b> applies your colours and fonts from a skill file.</li>
-          <li><b>Double-click a chart</b> to set its commentary, tooltip, and drill-down levels.</li>
+          <li><b>Double-click a chart</b> to set its commentary, look, pop-up and drill-down levels.</li>
+          <li><b>💬 Comment</b> on anything, then <b>✨ Prompt</b> turns your comments into instructions for an AI assistant.</li>
           <li><b>Export HTML</b> saves one file you can share, or reopen here later.</li>
         </ol>
       </div>
@@ -53,7 +61,7 @@
   <aside id="right"><div id="inspector"></div></aside>
 </div>
 
-<footer id="statusbar"><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span></footer>
+<footer id="statusbar"><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span><span id="zoomctl"></span></footer>
 <div id="toasts" aria-live="polite"></div>
 <div id="dropzone"><div>Drop to open or add</div></div>
 
@@ -66,9 +74,14 @@
 <script src="src/js/brand.js"></script>
 <script src="src/js/importers.js"></script>
 <script src="src/js/data.js"></script>
+<script src="src/js/compose.js"></script>
+<script src="src/js/arrange.js"></script>
+<script src="src/js/api.js"></script>
 <script src="src/js/plugins.js"></script>
 <script src="src/js/versions.js"></script>
 <script src="src/js/present.js"></script>
+<script src="src/js/review.js"></script>
+<script src="src/js/help.js"></script>
 <script src="src/js/panels.js"></script>
 <script src="src/js/ribbon.js"></script>
 <script src="src/js/app.js"></script>

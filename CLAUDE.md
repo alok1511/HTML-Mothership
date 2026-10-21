@@ -8,10 +8,11 @@ A zero-install, offline, PowerPoint-style editor for HTML dashboards. The user r
 - **`src/js/runtime.js` is stringified and injected** into the child and every export. Inside `MS.RUNTIME_FN` you can't reference anything outside the function body.
 - Every editor mutation goes through `MS.history` (see `src/js/history.js`) so undo/redo keeps working.
 - Elements Mothership adds to the child need `data-ms-own`. Untagged elements are stripped on export (they're assumed script-generated).
+- `src/js/api.js` (`MS.api`) is the dialog-free layer for every feature; the MCP server (`tools/mcp/mothership-mcp.js`, plain Node, no packages) calls it over the DevTools protocol. New features should get an `MS.api` entry too.
 - After changing `src/`, run `node tools/build.js` so `dist/mothership-standalone.html` and `samples/` stay in sync, then `npm test` (Playwright, from file://).
 
 ## Code style
 ES5-style JavaScript (`var`, `function`), 2-space indent, small helpers (`MS.h`, `MS.$`, `MS.$$`). User-facing text is plain English and Indian context (₹, lakh/crore formats). India is the default locale (`en-IN`).
 
 ## Docs
-`README.md` (user guide), `docs/ARCHITECTURE.md`, `docs/EXTENDING.md` (plugins, recipes, skills).
+`README.md` (user guide), `docs/ARCHITECTURE.md`, `docs/EXTENDING.md` (plugins, recipes, skills, MS.api/MCP), `docs/TUTORIAL.md`.

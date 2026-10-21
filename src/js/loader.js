@@ -206,10 +206,11 @@
     opts = opts || {};
     if (!MS.child) throw new Error('Nothing is open');
     var rt = MS.rt();
-    var state = rt ? rt.getState() : (MS.doc.state || {});
+    var state = rt ? rt.getState() : JSON.parse(JSON.stringify(MS.doc.state || {}));
+    if (opts.dropComments) delete state.comments;
     var root = MS.child.doc.documentElement.cloneNode(true);
     MS.$$('[data-ms-editor]', root).forEach(function (n) { n.remove(); });
-    MS.$$('.ms-sel,.ms-hover,.ms-editing,.ms-drop,.ms-dragging', root).forEach(function (n) { n.classList.remove('ms-sel', 'ms-hover', 'ms-editing', 'ms-drop', 'ms-dragging'); if (!n.className) n.removeAttribute('class'); });
+    MS.$$('.ms-sel,.ms-hover,.ms-editing,.ms-drop,.ms-dragging,.ms-flash,.ms-cmt-hover', root).forEach(function (n) { n.classList.remove('ms-sel', 'ms-hover', 'ms-editing', 'ms-drop', 'ms-dragging', 'ms-flash', 'ms-cmt-hover'); if (!n.className) n.removeAttribute('class'); });
     MS.$$('[contenteditable]', root).forEach(function (n) { n.removeAttribute('contenteditable'); n.removeAttribute('spellcheck'); });
     MS.$$('[_echarts_instance_]', root).forEach(function (n) { n.removeAttribute('_echarts_instance_'); n.innerHTML = ''; });
     var body = root.querySelector('body');

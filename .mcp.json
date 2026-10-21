@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mothership": {
+      "command": "node",
+      "args": ["tools/mcp/mothership-mcp.js"]
+    }
+  }
+}

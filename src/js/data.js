@@ -100,8 +100,10 @@
   var Ins = MS.insert = {};
   Ins.block = function (b) {
     var rt = MS.rt(), sel = MS.sel && MS.blocks.of(MS.sel);
+    var section = !sel && MS.sel && MS.sel.isConnected && MS.sel.closest('.ms-section');
     var host;
     if (sel) host = sel.parentNode;
+    else if (section) host = MS.blocks.ensureGrid(section);
     else if (rt && rt.layoutEnabled()) {
       var sec = rt.tabEl(rt.activeTab);
       host = sec.getAttribute('data-ms-kind') === 'content' ? sec.querySelector('.ms-doc') : MS.blocks.ensureGrid(sec);
@@ -186,6 +188,22 @@
       MS.toast('Datasets added. Now bind a chart to one: select a chart, then Charts › Data & drill-down.', 'ok', 7000);
     });
   };
+  // Swap an embedded dataset's rows for a new file (e.g. the monthly refresh); everything linked to it keeps working.
+  Dt.replace = function (name) {
+    var rt = MS.rt(); if (!rt || !rt.state.datasets[name]) return;
+    MS.pickFiles('.json,.csv,.tsv,.xlsx,.xls,.xlsm,.ods,.md').then(function (fs) {
+      if (!fs[0]) return;
+      MS.drillData.read(fs[0]).then(function (tables) {
+        var t = tables.filter(function (x) { return x.rows && x.rows.length; })[0];
+        if (!t) return MS.toast('No table found in ' + fs[0].name, 'warn');
+        var oldCols = rt.fields(name).map(function (f) { return f.name; }), newCols = Object.keys(t.rows[0]);
+        var missing = oldCols.filter(function (c) { return newCols.indexOf(c) < 0; });
+        var go = function () { MS.history.state('Refresh ' + name, function (s) { s.datasets[name] = { rows: t.rows, source: 'file', file: fs[0].name, refreshed: new Date().toISOString() }; }); MS.toast(name + ' refreshed: ' + t.rows.length + ' rows from ' + fs[0].name + '.', 'ok', 6000); };
+        if (missing.length) MS.confirm('Some columns are missing', 'The new file has no ' + missing.join(', ') + '. Charts or filters using them will be empty. Continue?', 'Refresh anyway').then(function (ok) { if (ok) go(); });
+        else go();
+      }).catch(function (e) { MS.toast('Could not read the file: ' + e.message, 'error'); });
+    });
+  };
   Dt.manage = function () {
     var rt = MS.rt(); if (!rt) return;
     var names = Object.keys(rt.state.datasets);
@@ -196,6 +214,7 @@
         return MS.h('div', { 'class': 'list-row' }, [
           MS.h('div', { 'class': 'grow' }, [MS.h('strong', { text: n }), MS.h('small', { 'class': 'muted', text: ' · ' + rows.length + ' rows · ' + (d.rows ? 'embedded' : 'linked to page') })]),
           MS.h('button', { 'class': 'btn sm', onclick: function () { rt.showDetails(n, rows); } }, ['View']),
+          d.rows ? MS.h('button', { 'class': 'btn sm', title: 'Load this month\'s file in place of the old data. Charts, filters and KPI cards keep their settings.', onclick: function () { close(); Dt.replace(n); } }, ['Refresh from file']) : null,
           MS.h('button', { 'class': 'btn sm', onclick: function () { MS.download(n.replace(/\W+/g, '_') + '.json', JSON.stringify(rows, null, 1), 'application/json'); } }, ['Download']),
           MS.h('button', { 'class': 'btn sm danger', onclick: function (e) { MS.history.state('Remove dataset', function (s) { delete s.datasets[n]; s.filters = s.filters.filter(function (f) { return f.dataset !== n; }); }); e.target.closest('.list-row').remove(); MS.emit('structure'); } }, ['Remove'])
         ]);
@@ -251,6 +270,27 @@
     var c = rt.chartOf(MS.sel.classList.contains('ms-block') ? (MS.sel.querySelector('.ms-visual') || MS.sel) : MS.sel);
     return c ? c.key : null;
   };
+  /* plain-English chart names and kinds for people who don't know (or care) about chart libraries */
+  var KIND = { bar: 'Bar chart', hbar: 'Bar chart', stacked: 'Stacked bar chart', line: 'Line chart', area: 'Area chart', pie: 'Pie chart', doughnut: 'Doughnut chart', polarArea: 'Polar chart', radar: 'Radar chart',
+    scatter: 'Scatter chart', bubble: 'Bubble chart', funnel: 'Funnel chart', gauge: 'Gauge', heatmap: 'Heat map', treemap: 'Tree map', sankey: 'Flow chart', candlestick: 'Price chart', histogram: 'Histogram', box: 'Box plot', map: 'Map' };
+  C.kindName = function (type) { return KIND[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) + ' chart' : 'Chart'); };
+  C.kindIcon = function (type) { return /pie|doughnut|polar|sunburst/.test(type || '') ? '◔' : /line|area|scatter|bubble/.test(type || '') ? '📈' : /bar|histogram|box|funnel/.test(type || '') ? '📊' : /heat|tree|map/.test(type || '') ? '▦' : '📉'; };
+  function humanize(id) {
+    if (!id || /^(ms|t|c|x|k)[a-z0-9]{6,8}$/.test(id) || /^(chart|canvas|plot|graph|div|container)?[-_]?\d*$/i.test(id)) return '';
+    var w = id.replace(/^#/, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_.]+/g, ' ').replace(/\b(chart|canvas|plot|graph|div|container|el|wrap|wrapper)\b/gi, '').replace(/\s+/g, ' ').trim();
+    return w.length > 1 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '';
+  }
+  C.nameOf = function (key) {
+    var rt = MS.rt(), c = rt && rt.chart(key); if (!c) return 'Chart';
+    var b = c.el.closest('.ms-block'), info = rt.chartInfo(key) || {}, cs = rt.state.charts[key] || {};
+    var t = (b && b.querySelector('.ms-title') && b.querySelector('.ms-title').textContent.trim()) || cs.title || info.title || MS.blocks.guessTitle(c.el);
+    if (!t) { var n = c.el; for (var i = 0; i < 3 && n && !t; i++, n = n.parentElement) t = (n.getAttribute && (n.getAttribute('aria-label') || n.getAttribute('title'))) || humanize(n.id); }
+    if (!t) {
+      var same = rt.charts().filter(function (x) { return (rt.chartInfo(x.key) || {}).type === info.type; });
+      t = C.kindName(info.type) + (same.length > 1 ? ' ' + (same.map(function (x) { return x.key; }).indexOf(key) + 1) : '');
+    }
+    return t.replace(/\s+/g, ' ');
+  };
   C.requireKey = function () { var k = C.selectedKey(); if (!k) MS.toast('Select a chart first (click it in the dashboard, or in the Charts list on the left).', 'warn'); return k; };
 
   var PRESETS = [
@@ -263,7 +303,7 @@
     ['{label}\nValue: {value:inr}\nRecords: {count}', 'Value + record count (bound charts)']
   ];
 
-  C.settings = function (key) {
+  C.settings = function (key, startTab) {
     var rt = MS.rt(); key = key || C.requireKey(); if (!rt || !key) return;
     var c = rt.chart(key), info = rt.chartInfo(key) || {};
     var cs = JSON.parse(JSON.stringify(rt.state.charts[key] || {}));
@@ -331,9 +371,49 @@
       dynamic.appendChild(levelsWrap);
       dynamic.appendChild(f);
     }
-    dsSel.addEventListener('change', function () { levels = []; drawData(); });
+    /* find the data behind the chart (tables in the page whose columns hold the chart's labels) */
+    var suggest = MS.h('div', { 'class': 'suggest' });
+    function nextLevel(name, field) {
+      var rows = rt.getRows(name).slice(0, 5000), count = function (f) { var v = new Set(); rows.forEach(function (r) { v.add(r[f]); }); return v.size; };
+      var base = count(field), best = null;
+      rt.fields(name).forEach(function (f) { if (f.numeric || f.name === field) return; var n = count(f.name); if (n > base && n <= 500 && (!best || n < best.n)) best = { name: f.name, n: n }; });
+      return best && best.name;
+    }
+    function useData(name, def, added, field, fromChart) {
+      if (!added) {
+        var base = name, i = 2; while (rt.state.datasets[name]) name = base + ' (' + (i++) + ')';
+        MS.history.state('Add dataset ' + name, function (s) { s.datasets[name] = JSON.parse(JSON.stringify(def)); });
+        dsSel.appendChild(MS.h('option', { value: name, text: name })); dsNames.push(name);
+      }
+      dsSel.value = name;
+      levels = [field]; var nx = !fromChart && nextLevel(name, field); if (nx) levels.push(nx);
+      drawData();
+      if (fromChart && measureSel) { measureSel.value = 'Value'; if (seriesSel && rt.fields(name).some(function (f) { return f.name === 'Series'; })) seriesSel.value = 'Series'; }
+      drawSuggest();
+      MS.toast('Data linked. Check the drill path below, then press Apply.', 'ok');
+    }
+    function drawSuggest() {
+      suggest.innerHTML = '';
+      if (dsSel.value) return;
+      var m = []; try { m = rt.matchData(key); } catch (e) { console.warn(e); }
+      var nice = C.nameOf(key).slice(0, 40);
+      if (m.length) {
+        var best = m[0];
+        suggest.appendChild(MS.h('div', { 'class': 'callout ok' }, [
+          MS.h('p', { html: 'Found the data behind this chart: <b>' + MS.esc(best.name) + '</b> (' + best.rows.toLocaleString('en-IN') + ' rows). Its <b>' + MS.esc(best.field) + '</b> column matches ' + Math.round(best.score * 100) + '% of the chart\'s labels.' }),
+          MS.h('div', { 'class': 'row gap' }, [MS.h('button', { 'class': 'btn primary sm', type: 'button', onclick: function () { useData(best.name, best.def, best.added, best.field); } }, ['Use this data'])].concat(m.slice(1, 3).map(function (x) {
+            return MS.h('button', { 'class': 'btn sm', type: 'button', title: x.rows + ' rows, matched on ' + x.field, onclick: function () { useData(x.name, x.def, x.added, x.field); } }, ['Use ' + x.name]);
+          })))]));
+      } else suggest.appendChild(MS.h('p', { 'class': 'muted', text: 'No table in this page matches this chart\'s labels. You can still use the numbers drawn in the chart, or load a data file (Data tab).' }));
+      var own = rt.rowsFromChart(key);
+      if (own.length) suggest.appendChild(MS.h('button', { 'class': 'btn sm', type: 'button', title: 'Makes a small table from the values shown in the chart. Good for tooltips, sorting and top N; there is nothing deeper to drill into.', onclick: function () {
+        useData(nice + ' (chart numbers)', { rows: own, source: 'chart' }, false, 'Category', true);
+      } }, ['Use the numbers drawn in this chart']));
+    }
+    dsSel.addEventListener('change', function () { levels = []; drawData(); drawSuggest(); });
     drawData();
-    var dataPane = MS.h('div', {}, [MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
+    drawSuggest();
+    var dataPane = MS.h('div', {}, [suggest, MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
 
     /* -- layout & commentary pane -- */
     var head = block && block.querySelector('.ms-head');
@@ -348,22 +428,30 @@
     var layPane = block ? lay : MS.h('div', {}, [lay, MS.h('small', { 'class': 'hint', text: 'A header with these three lines will be added above the chart.' })]);
     var origLay = JSON.stringify(lay.values());
 
-    var tabs = [['Commentary & size', layPane], ['Tooltip', tipPane], ['Data & drill-down', dataPane]];
+    /* -- look pane (fonts, legend, pop-up style), previewed live on the chart -- */
+    var origStyle = cs.style || null, lookStyle = origStyle;
+    var lookPreview = function (st) { lookStyle = st; if (c && c.a.setStyle) { try { c.a.setStyle(c.inst, st); c.inst.__msStyleKey = st ? JSON.stringify(st) : ''; } catch (e) {} } };
+    var lookPane = MS.h('div', {}, [C.styleEditor(origStyle, lookPreview), MS.h('small', { 'class': 'hint', text: 'Changes show on the chart straight away. Hover over the chart after closing to see the pop-up.' }),
+      MS.h('div', { 'class': 'row gap' }, [MS.h('button', { 'class': 'btn sm', type: 'button', onclick: function () { C.styleAll(lookStyle); } }, ['Use this look on every chart'])])]);
+    var tabs = [['Commentary & size', layPane], ['Look', lookPane], ['Tooltip', tipPane], ['Data & drill-down', dataPane]];
     var nav = MS.h('div', { 'class': 'seg' }), panes = MS.h('div');
     tabs.forEach(function (t, i) {
-      var p = MS.h('div', { 'class': 'seg-pane' + (i ? '' : ' on') }, [t[1]]);
+      var on = startTab ? t[0] === startTab : !i;
+      var p = MS.h('div', { 'class': 'seg-pane' + (on ? ' on' : '') }, [t[1]]);
       panes.appendChild(p);
-      nav.appendChild(MS.h('button', { 'class': 'seg-btn' + (i ? '' : ' on'), type: 'button', onclick: function (e) { MS.$$('.seg-btn', nav).forEach(function (x) { x.classList.remove('on'); }); MS.$$('.seg-pane', panes).forEach(function (x) { x.classList.remove('on'); }); e.target.classList.add('on'); p.classList.add('on'); } }, [t[0]]));
+      nav.appendChild(MS.h('button', { 'class': 'seg-btn' + (on ? ' on' : ''), type: 'button', onclick: function (e) { MS.$$('.seg-btn', nav).forEach(function (x) { x.classList.remove('on'); }); MS.$$('.seg-pane', panes).forEach(function (x) { x.classList.remove('on'); }); e.target.classList.add('on'); p.classList.add('on'); } }, [t[0]]));
     });
     var closeDlg = function () { var w = MS.$('.dlg-wrap'); if (w) w.remove(); };
-    var title = 'Chart settings · ' + ((head && head.querySelector('.ms-title').textContent) || info.title || guessed || key) + ' (' + (info.lib || '?') + ' ' + (info.type || '') + ')';
+    var title = 'Chart settings · ' + C.nameOf(key) + ' (' + C.kindName(info.type).toLowerCase() + ')';
     MS.dialog({ title: title, wide: true, enterSubmits: false, body: MS.h('div', {}, [nav, panes]), buttons: [
       { label: 'Reset chart', value: 'reset', danger: true }, { label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: 'apply' }] }).then(function (v) {
-      if (!v) return;
-      if (v === 'reset') { rt.drill[key] = []; return MS.history.state('Reset chart', function (s) { delete s.charts[key]; }); }
+      var revert = function () { if (JSON.stringify(lookStyle) !== JSON.stringify(origStyle)) lookPreview(origStyle); };
+      if (!v) return revert();
+      if (v === 'reset') { revert(); rt.drill[key] = []; return MS.history.state('Reset chart', function (s) { delete s.charts[key]; }); }
       MS.history.group('Chart settings', function () {
         var next = JSON.parse(JSON.stringify(rt.state.charts[key] || {}));
         if (tplIn.value.trim()) next.tooltip = tplIn.value; else delete next.tooltip;
+        if (lookStyle) next.style = lookStyle; else delete next.style;
         if (dsSel.value && measureSel) {
           var bv = colsSel.values();
           next.binding = { dataset: dsSel.value, levels: levels.filter(Boolean), measure: bv.measure, agg: bv.agg, series: bv.series || undefined, sort: bv.sort || undefined, top: bv.top || undefined };
@@ -396,5 +484,78 @@
       if (v === null) return;
       MS.history.state('Tooltip on all charts', function (s) { rt.charts().forEach(function (c) { s.charts[c.key] = s.charts[c.key] || {}; if (v) s.charts[c.key].tooltip = v; else delete s.charts[c.key].tooltip; }); });
     });
+  };
+
+  /* -- chart look: fonts, legend and pop-up (tooltip) style -- */
+  C.STYLE_PRESETS = [
+    ['Light pop-up', { tipBg: '#ffffff', tipColor: '#1f2937', tipBorder: '#d1d5db', tipRadius: 6 }],
+    ['Dark pop-up', { tipBg: '#111827', tipColor: '#f9fafb', tipBorder: '', tipRadius: 6 }],
+    ['Brand pop-up', function () { var T = MS.rt() && MS.rt().state.theme, p = T && T.colors && T.colors.primary || '#4f46e5'; return { tipBg: p, tipColor: '#ffffff', tipBorder: '', tipRadius: 8 }; }]
+  ];
+  function clean(st) { var o = {}; Object.keys(st || {}).forEach(function (k) { if (st[k] !== '' && st[k] != null) o[k] = st[k]; }); return Object.keys(o).length ? o : null; }
+  C.cleanStyle = clean;
+  C.setStyle = function (key, patch, label, replace) {
+    var rt = MS.rt(); if (!rt || !key) return;
+    MS.history.state(label || 'Chart style', function (s) {
+      var cs = s.charts[key] = s.charts[key] || {};
+      var st = clean(Object.assign({}, replace ? {} : cs.style, patch));
+      if (st) cs.style = st; else delete cs.style;
+    });
+  };
+  C.styleAll = function (style) {
+    var rt = MS.rt(); if (!rt) return;
+    MS.history.state('Style on all charts', function (s) {
+      rt.charts().forEach(function (c) { var cs = s.charts[c.key] = s.charts[c.key] || {}; var st = clean(style); if (st) cs.style = JSON.parse(JSON.stringify(st)); else delete cs.style; });
+    });
+    MS.toast('Applied this look to ' + rt.charts().length + ' chart(s).', 'ok');
+  };
+  function optColor(value, onChange, onCommit) {
+    var c = MS.h('input', { type: 'color', value: value || '#000000' });
+    var wrap = MS.h('div', { 'class': 'colorfield' + (value ? '' : ' unset') });
+    var clr = MS.h('button', { 'class': 'icon-btn', type: 'button', title: 'Use the chart\'s own colour' }, ['⌀']);
+    c.addEventListener(onCommit ? 'change' : 'input', function () { wrap.classList.remove('unset'); wrap.value = c.value; onChange(); });
+    clr.addEventListener('click', function () { wrap.classList.add('unset'); wrap.value = ''; onChange(); });
+    wrap.value = value || '';
+    wrap.set = function (v) { wrap.value = v || ''; if (v) c.value = v; wrap.classList.toggle('unset', !v); };
+    wrap.appendChild(c); wrap.appendChild(clr);
+    return wrap;
+  }
+  // A small form for a chart's look. onChange(style) fires on every edit.
+  C.styleEditor = function (style, onChange, compact) {
+    style = style || {};
+    var fonts = MS.fonts.list();
+    if (style.font && fonts.indexOf(style.font) < 0) fonts.unshift(style.font);
+    var font = MS.h('select', { 'class': 'inp' }, [MS.h('option', { value: '', text: '(chart default)' })].concat(fonts.map(function (f) { var o = MS.h('option', { value: f, text: f }); if (f === style.font) o.selected = true; return o; })));
+    var size = MS.h('input', { 'class': 'inp', type: 'number', min: 6, max: 40, placeholder: 'auto', value: style.size || '' });
+    var legend = MS.h('select', { 'class': 'inp' }, [['', '(chart default)'], ['top', 'Top'], ['bottom', 'Bottom'], ['right', 'Right'], ['left', 'Left'], ['none', 'Hidden']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.legend || '')) op.selected = true; return op; }));
+    var tipSize = MS.h('input', { 'class': 'inp', type: 'number', min: 8, max: 32, placeholder: 'auto', value: style.tipSize || '' });
+    var tipRadius = MS.h('input', { 'class': 'inp', type: 'number', min: 0, max: 24, placeholder: 'auto', value: style.tipRadius != null ? style.tipRadius : '' });
+    var axisFmt = MS.h('select', { 'class': 'inp', title: 'How numbers on the value axis are written (Chart.js and ECharts charts)' }, [['', '(chart default)'], ['int', '1,23,456'], ['inr', '₹1,23,456'], ['cr', '₹ crore'], ['lakh', '₹ lakh'], ['k', 'Thousands (K)'], ['m', 'Millions (M)'], ['pct', 'Percent (%)']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.axisFormat || '')) op.selected = true; return op; }));
+    var color = optColor(style.color, fire, compact), tipBg = optColor(style.tipBg, fire, compact), tipColor = optColor(style.tipColor, fire, compact), tipBorder = optColor(style.tipBorder, fire, compact);
+    function val() {
+      return clean({ font: font.value, size: size.value ? +size.value : '', color: color.value, legend: legend.value, axisFormat: axisFmt.value, tipBg: tipBg.value, tipColor: tipColor.value, tipBorder: tipBorder.value, tipSize: tipSize.value ? +tipSize.value : '', tipRadius: tipRadius.value === '' ? '' : +tipRadius.value });
+    }
+    function fire() { onChange(val()); }
+    [font, size, legend, tipSize, tipRadius, axisFmt].forEach(function (i) { i.addEventListener('change', fire); });
+    function set(st) {
+      font.value = st.font || ''; size.value = st.size || ''; legend.value = st.legend || ''; axisFmt.value = st.axisFormat || ''; tipSize.value = st.tipSize || ''; tipRadius.value = st.tipRadius != null ? st.tipRadius : '';
+      color.set(st.color); tipBg.set(st.tipBg); tipColor.set(st.tipColor); tipBorder.set(st.tipBorder);
+    }
+    var f = function (label, inp) { return MS.h('label', { 'class': 'field grow' }, [MS.h('span', { text: label }), inp]); };
+    var presets = MS.h('div', { 'class': 'chips' }, C.STYLE_PRESETS.map(function (p) {
+      return MS.h('button', { 'class': 'chip', type: 'button', onclick: function () { var v = typeof p[1] === 'function' ? p[1]() : p[1]; set(Object.assign(val() || {}, v)); fire(); } }, [p[0]]);
+    }).concat([MS.h('button', { 'class': 'chip', type: 'button', title: 'Back to how the chart looked originally', onclick: function () { set({}); fire(); } }, ['Reset look'])]));
+    var root = MS.h('div', { 'class': 'style-ed' + (compact ? ' compact' : '') }, [
+      MS.h('h4', { text: 'Chart text' }),
+      f('Font', font),
+      MS.h('div', { 'class': 'row gap' }, [f('Size (px)', size), f('Colour', color)]),
+      MS.h('div', { 'class': 'row gap' }, [f('Legend', legend), f('Axis numbers', axisFmt)]),
+      MS.h('h4', { text: 'Hover pop-up (tooltip)' }),
+      MS.h('div', { 'class': 'row gap' }, [f('Background', tipBg), f('Text', tipColor)]),
+      MS.h('div', { 'class': 'row gap' }, [f('Border', tipBorder), f('Text size', tipSize), f('Corners', tipRadius)]),
+      presets
+    ]);
+    root.values = val; root.set = set;
+    return root;
   };
 })(window.MS);

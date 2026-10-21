@@ -4,10 +4,17 @@
   var V = MS.versions = {};
   var handle = null; // File System Access handle from the last "Export", so later saves can overwrite it
 
-  V.exportFile = function (saveAs) {
+  V.exportFile = function (saveAs, opts) {
     if (!MS.child) return MS.toast('Nothing to export yet.', 'warn');
+    var n = MS.review ? MS.review.list().length : 0;
+    if (n && !opts) {
+      return MS.dialog({ title: 'Keep the review comments?', body: MS.h('p', { text: 'This dashboard has ' + n + ' review comment(s). They are invisible to viewers, but anyone who opens the file in Mothership can read them. Leave them out if you are sharing the file outside your team.' }),
+        buttons: [{ label: 'Cancel', value: null }, { label: 'Keep comments', value: 'keep' }, { label: 'Leave comments out', primary: true, value: 'drop' }] }).then(function (v) {
+        if (v) V.exportFile(saveAs, { dropComments: v === 'drop' });
+      });
+    }
     var html;
-    try { html = MS.exportHtml(); } catch (e) { return MS.toast('Export failed: ' + e.message, 'error'); }
+    try { html = MS.exportHtml(opts); } catch (e) { return MS.toast('Export failed: ' + e.message, 'error'); }
     var name = MS.exportName();
     if (window.showSaveFilePicker && (saveAs || !handle)) {
       return window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'HTML page', accept: { 'text/html': ['.html', '.htm'] } }] })

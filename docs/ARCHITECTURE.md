@@ -15,6 +15,9 @@
 ┌──────────────────────── mothership.html (editor) ─────────────────────────┐
 │ ribbon.js  panels.js  app.js        UI                                    │
 │ childedit.js  data.js  brand.js     editing commands (all go via history) │
+│ compose.js  arrange.js  review.js   build, order/colours/painter, comments│
+│ help.js                             tour, tutorial, guide                 │
+│ api.js                              MS.api: every feature as JSON (MCP)   │
 │ importers.js  plugins.js            files in, extensions                  │
 │ loader.js  versions.js              open / export / versions              │
 │ history.js  core.js                 undo-redo, helpers                    │
@@ -94,3 +97,25 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 * Network lock injects a strict CSP `<meta>` (editor only, removed on export).
 * Imported documents go through `MS.sanitize`.
 * Plugins run via `new Function` after an explicit confirmation showing their source.
+
+## v2 additions
+
+**Fit and zoom.** The iframe is given a virtual width (`MS.view.renderWidth`, at least 1280 px, or the panel width if wider) and scaled with `transform: scale()` (`transform-origin: 0 0`). The dashboard lays out exactly as on a desktop. Mouse events inside the iframe keep the iframe's own coordinates, so selection and drag need no correction.
+
+**New state** (all in `#ms-state`, so exports keep it):
+
+| Key | Holds |
+|---|---|
+| `layout.orders` | Arrays of category names. `applyOrder` reorders any chart whose labels overlap one of them (unbound charts via the adapter's `setData`). |
+| `layout.colors` | Category → colour. Applied per chart through the adapter's `setCatColors`. |
+| `layout.tip` | Style of hover pop-ups on elements (`[data-ms-tip]`). |
+| `charts[key].style` | Chart look (fonts, legend, axis number format, pop-up colours), applied with the adapter's `setStyle`. |
+| `charts[key].native` | A chart built in Mothership (`{type}`); rendered with Chart.js, which is embedded into the child as `data-ms-own data-ms-lib`. |
+| `kpis` | KPI cards bound to datasets (`aggregate` + Indian formats), recomputed on every filter change. |
+| `comments` | Review comments (element ref / area / interaction log + snapshot), shown as pins in the editor only. |
+
+**Order in `applyChart`:** binding or restore → shared order → palette and category colours → tooltip → look. ECharts resets options on `setOption`, so the look is re-applied after.
+
+**Finding a chart's data.** `rt.matchData(key)` compares the chart's labels with the distinct values of every column of every dataset (added, or discovered in the page's scripts). A column holding at least half the labels is a match; the best one is offered with the next-finer column as the second drill level.
+
+**MS.api and MCP.** `api.js` wraps features as dialog-free JSON functions; `tools/mcp/mothership-mcp.js` starts Edge/Chrome over the DevTools protocol and calls them. See `docs/EXTENDING.md`.

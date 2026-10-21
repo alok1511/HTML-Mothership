@@ -13,6 +13,7 @@
     if (first) rt.showTab(first.id);
     MS.setMode('interact');
     document.body.classList.add('presenting');
+    if (MS.view) MS.view.layout();
     var stage = MS.$('#stage');
     if (stage.requestFullscreen) stage.requestFullscreen().catch(function () {});
     hud = MS.h('div', { 'class': 'hud' }); stage.appendChild(hud);
@@ -30,6 +31,7 @@
     if (!Pr.on) return;
     Pr.on = false;
     document.body.classList.remove('presenting', 'blank');
+    if (MS.view) setTimeout(MS.view.layout, 50);
     if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
     if (hud) hud.remove();
     if (laser) laser.remove();
