@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mothership</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f46e5'/%3E%3Cpath d='M7 21h18M10 21l2-7h8l2 7M13 14l3-5 3 5' stroke='white' stroke-width='2.4' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="src/css/mothership.css">
+</head>
+<body>
+<header id="appbar">
+  <div class="logo"><span class="mark">◆</span> Mothership</div>
+  <div id="doc-name" title="Open document">No dashboard open</div>
+  <div class="spacer"></div>
+  <div class="seg mode" role="group" aria-label="Mode">
+    <button class="seg-btn on" data-mode="edit" title="Click to select, double-click to edit">✎ Edit</button>
+    <button class="seg-btn" data-mode="interact" title="Use the dashboard normally: filters, tooltips, drill-down">☝ Interact</button>
+  </div>
+  <button class="btn" id="btn-present" title="Present (F5)">▶ Present</button>
+  <button class="btn primary" id="btn-export" title="Save the edited dashboard as an .html file (Ctrl+E)">⬇ Export HTML</button>
+</header>
+
+<nav id="ribbon">
+  <div id="ribbon-tabs"></div>
+  <div id="ribbon-body"></div>
+</nav>
+
+<div id="workspace">
+  <aside id="left"><div id="outline"></div></aside>
+  <main id="stage">
+    <div id="stage-frame-host"></div>
+    <div id="empty">
+      <div class="welcome">
+        <div class="big-mark">◆</div>
+        <h1>Mothership</h1>
+        <p class="lead">Open an HTML dashboard and edit it like a PowerPoint deck: text, fonts, brand colours, chart tooltips, drill-downs, tabs and help pages. Then export it as one HTML file.</p>
+        <div class="row gap center">
+          <button class="btn primary lg" data-act="open">📂 Open dashboard…</button>
+          <button class="btn lg" data-act="openFolder" title="Use this when the dashboard loads its own .js/.css/.json files">🗂 Open folder…</button>
+          <button class="btn lg" data-act="sample">🧪 Try a sample</button>
+        </div>
+        <p class="muted">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
+        <ol class="steps">
+          <li><b>Open</b> a dashboard. Click anything to select it. Double-click text to type.</li>
+          <li><b>Layout › Tabbed layout</b> adds a ribbon of tabs. Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
+          <li><b>Design › Load brand</b> applies your colours and fonts from a skill file.</li>
+          <li><b>Double-click a chart</b> to set its commentary, tooltip, and drill-down levels.</li>
+          <li><b>Export HTML</b> saves one file you can share, or reopen here later.</li>
+        </ol>
+      </div>
+    </div>
+  </main>
+  <aside id="right"><div id="inspector"></div></aside>
+</div>
+
+<footer id="statusbar"><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span></footer>
+<div id="toasts" aria-live="polite"></div>
+<div id="dropzone"><div>Drop to open or add</div></div>
+
+<script src="src/js/core.js"></script>
+<script src="src/js/history.js"></script>
+<script src="src/js/sanitize.js"></script>
+<script src="src/js/runtime.js"></script>
+<script src="src/js/loader.js"></script>
+<script src="src/js/childedit.js"></script>
+<script src="src/js/brand.js"></script>
+<script src="src/js/importers.js"></script>
+<script src="src/js/data.js"></script>
+<script src="src/js/plugins.js"></script>
+<script src="src/js/versions.js"></script>
+<script src="src/js/present.js"></script>
+<script src="src/js/panels.js"></script>
+<script src="src/js/ribbon.js"></script>
+<script src="src/js/app.js"></script>
+</body>
+</html>
