@@ -80,7 +80,8 @@
   MS.on('child-loaded', function () {
     setTimeout(function () {
       var r = rt(); if (!r || r.state.locale || !MS.child) return;
-      var t = (MS.child.doc.body && MS.child.doc.body.textContent || '').slice(0, 200000);
+      // only what people see: script and style text (and our own runtime) would give false alarms
+      var b = MS.child.doc.body, t = b ? (b.innerText || '').slice(0, 200000) : '';
       var hits = { INR: (t.match(/₹|\bcrores?\b|\blakhs?\b|\bRs\.?\s?\d/gi) || []).length, EUR: (t.match(/€/g) || []).length, GBP: (t.match(/£/g) || []).length };
       var best = Object.keys(hits).sort(function (a, b) { return hits[b] - hits[a]; })[0];
       if (hits[best] >= 3) MS.status('This dashboard shows ' + { INR: '₹ (India)', EUR: '€', GBP: '£' }[best] + ' amounts. Mothership writes numbers in US $ until you change Design › Region & currency.');

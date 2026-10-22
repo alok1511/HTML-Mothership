@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '2.3.0'
+VERSION = '2.4.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -631,7 +631,8 @@ def call_tool(name, args):
 # --------------------------------------------------------------------------- MCP over stdio (newline-delimited JSON-RPC)
 INSTRUCTIONS = ('Mothership edits HTML dashboards like PowerPoint edits slides. Start with open_file (or new_dashboard), then outline to see the tabs, charts, '
                 'datasets and comments. Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. '
-                'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default).')
+                'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). '
+                'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout.')
 
 _out_lock = threading.Lock()
 

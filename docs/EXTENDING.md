@@ -30,10 +30,13 @@ Three extension points, from safest to most powerful:
   "fonts": { "heading": "Montserrat, sans-serif", "body": "\"Open Sans\", sans-serif" },
   "fontFiles": [{ "family": "Montserrat", "weight": 700, "data": "data:font/woff2;base64,..." }],
   "logo": "data:image/png;base64,...",
-  "applyToPage": true, "force": false, "chartsFollowTheme": true,
+  "applyToPage": true, "force": false, "forceFonts": false, "chartsFollowTheme": true,
+  "map": [{ "from": "#13315c", "to": "#0B3D91", "role": "primary" }],
   "css": "/* extra CSS */"
 }
 ```
+
+`map` swaps the dashboard's own colours for brand colours (in its style sheets, CSS variables and inline styles). Leave it out and Mothership works it out from what each colour is used for (`MS.brand.plan(theme)`); `[]` keeps the dashboard's colours. `forceFonts` puts the brand fonts on every element except icons and code.
 
 ## Recipe steps
 
@@ -155,3 +158,13 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 **Tracker:** `MS.tracker.rows()`, `.build()` (→ xlsx bytes, via SheetJS), `.apply(arrayBuffer)` (matches the ID column).
 
 **Compare:** `MS.compare.compare(htmlA, htmlB)` → `{changes, sections:[{title, items:[{op: '+'|'-'|'~', text, before, after}]}]}`. It reads `#ms-state`, the tabs and the visible text of each file; text uses a longest-common-subsequence diff.
+
+## v3.3 building blocks
+
+**The dashboard's own tabs** (`src/js/pagetabs.js`, runtime `rt.pageTabs`). The runtime finds tab buttons (`[role=tab]`, `[data-tab]`, `[data-target]`, `[aria-controls]`, `.tab`/`.tab-btn`/`.nav-link`…) and links each to its panel by `aria-controls`, `data-tab`/`data-target`, `href="#id"` or a quoted id in `onclick`, else by order among same-sized sibling groups. It learns the "active" class from the buttons and panels. `rt.pageTabs(fresh)` → `{tabs:[{index, title, btn, panel, active, via}], btnActive, panelActive}`, `rt.showPageTab(i)` (clicks the button, then forces the classes if the page didn't), `rt.pageTabOf(node)`. A `ms:pagetab` event fires on every switch. Editor: `MS.pageTabs.list()`, `.show(which)`, `.add(title, html, after)`, `.rename(which, title)`, `.move(which, to)`, `.remove(which, true)`, `.insertHost()`; `which` is an index or a title. All undoable. API/MCP: `page_tabs`.
+
+**Comments** (`src/js/review.js`). `MS.setMode('comment')` turns on Comment mode. `MS.review.addElement(el)` / `.addArea({left, top, w, h})` (client px) open the composer in the Comments pane (`R.compose(c, contextLines, extraEl, beforeSave)`). An area is stored with `area.anchor = {ref, dx, dy}`: the nearest element holding the whole box, and the offset from the top-left of its content (`rect - scrollTop` when it scrolls itself). `MS.review.placeOf(c)` → `{box, clip}` in screen px or `null` when out of sight; pins are drawn in a fixed layer and redrawn on any scroll. Comments carry `by` and `replies:[{id, text, by, at}]`; `R.reply(id, text)`, `R.resolve(id)`, `R.remove(id)`, `R.select(id, go)`, `R.showPane(on)`.
+
+**Legends.** `rt.legendItems(chart)` → `[{name, item, sw}]`: the page's own HTML legend next to a chart (an element whose text is a category or series name, with a small coloured swatch). After category colours or the palette change, the runtime paints the swatches to match (the old colour is kept in `data-ms-legend-orig`). `rt.legendOf(node)` → `{key, name}`; `MS.edit.style` on a swatch sets the category colour instead. `MS.catColors.pick(name, key)` is the colour dialog a Chart.js legend click opens.
+
+**Brand mapping.** `MS.brand.pageColors()` → `{colors:[{hex, text, fill, border, n, status, where}], bodyBg, fontsElsewhere}`; `MS.brand.plan(theme)` → `{map, fontsElsewhere}`; `MS.brand.preview(theme)` shows the dialog; `MS.brand.loadFile(file, direct)`. Runtime: `rt.eachRule(fn(rule, media))` walks the page's own style sheets; `theme.map` becomes override rules in `#ms-theme-css` plus inline swaps remembered in `data-ms-colmap`.

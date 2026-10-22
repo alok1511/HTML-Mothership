@@ -60,12 +60,12 @@ HTML-Mothership/
 | Load a child HTML inside the Mothership | **File › Open / Open folder**, or drag & drop | Runs in an editable frame. Works from `file://`. |
 | Edit text directly | Double-click any text (or select + Enter) | Bold/italic/underline/colour on the selected words while typing |
 | Font changes | **Home › Font**, or the Inspector (right panel) | Upload brand font files under **Design › Fonts** (embedded, works offline) |
-| Colour scheme from a skill file | **Design › Load brand** | Reads `SKILL.md`, `.skill`/`.zip`, or theme `.json`. Recolours page and charts. |
+| Colour scheme from a skill file | **Design › Load brand** | Reads `SKILL.md`, `.skill`/`.zip`, or theme `.json`. Shows which of the dashboard's colours become which brand colour, then recolours page and charts. |
 | What on-hover pop-ups show | Double-click a chart › **Tooltip** | Template such as `{label}: {value:cr}`, Indian formats (`inr`, `cr`, `lakh`) |
 | How double-click works and drill-down levels | Chart › **Data & drill-down** | Pick dataset, levels (e.g. Region › State › City), measure. Double-click can drill, show records, or cross-filter. |
 | Title, subtitle and inference before every graph | **Layout › Commentary** (all charts) or per chart | Brand check flags charts missing an inference |
 | Design a filter pane | **Layout / Data › Filter pane** | Left side or top bar, cascading drop-downs, resizable |
-| Ribbon tabs: create, delete, rearrange, hide | **Layout › Tabbed layout**, then the **Tabs** list (left panel) | Drag to reorder, rename, hide, add speaker notes |
+| Tabs: create, delete, rearrange, hide | Your dashboard's own tabs: **Your tabs** (left panel) or **Layout › Add tab**. A one-page dashboard: **Layout › Tab ribbon**, then the **Tabs** list | Drag to reorder, double-click to rename. Ribbon tabs can also be hidden and have speaker notes |
 | Copy / paste / move graphs across tabs | Ctrl+C / Ctrl+X / Ctrl+V, **Send to tab** in the Inspector, or drag the ⠿ handle onto a tab name | Copies are live charts, not pictures |
 | Resize graphs | Drag the block's corner, or set width (1–12 columns) and height | Charts re-flow automatically |
 | Resize the ribbon | Drag its bottom edge, or **Layout › Size** | Ribbon can sit on top or on the left |
@@ -107,7 +107,7 @@ HTML-Mothership/
 | **Format painter** | **Charts › Format painter**, or 🖌 in the Inspector | Copy one chart's look, colours, order and pop-up onto charts with the same categories, all charts, or the ones you click. |
 | **Drill-down data from Markdown or Excel** | **Data › Drill-down data** | Upload a `.md` (one table under a heading naming the chart), `.xlsx` (one sheet per chart), `.csv` or `.json`. It is embedded and linked to the right chart. **Data › Template** gives you a ready-to-fill file. |
 | **Build from scratch** | **File › New**, **Insert › Page** and **Insert › From data** | Header banner, sections, 2/3 columns, headings, paragraphs, callouts, dividers, spacers, buttons, page footer, KPI cards and new charts (bar, stacked, line, area, pie, doughnut) that follow filters and drill down. New dashboards can start with Overview, How to use, FAQs and Methodology tabs. |
-| **Review comments → AI prompt** | **Review** tab, or the 📍 ▭ ⚡ bar above the dashboard | Comment on an element, a screen area, or an interaction (click, hover, filter, drill) in either mode. **✨ Prompt** turns all comments into one clear prompt for any AI assistant, with rules that keep Mothership's settings intact. Copy it, save it as `.md`, or export the dashboard with the comments inside. |
+| **Review comments → AI prompt** | **💬 Comment** mode, the **Comments pane**, or the **Review** tab | Comment on an element, a screen area, or an interaction (click, hover, filter, drill). **✨ Prompt** turns all comments into one clear prompt for any AI assistant, with rules that keep Mothership's settings intact. Copy it, save it as `.md`, or export the dashboard with the comments inside. |
 | **Help** | **Help** tab | Guided tour, hands-on tutorial with automatic checks, and a searchable guide. |
 | **Chart as image / chart data** | **Charts › Share** | PNG of a chart for PowerPoint or email; the chart's numbers or its linked data as CSV for Excel. |
 | **Refresh data from a file** | **Data › Manage › Refresh from file** | Replace last month's embedded data with this month's. Charts, KPI cards and filters keep their settings. |
@@ -151,6 +151,18 @@ HTML-Mothership/
 | **Calm failure message** | Published files | If part of a dashboard fails to load, viewers see one line ("Part of this dashboard didn't load…") instead of a broken page. |
 | **MCP tools** | Both servers | `get_locale`, `set_locale`, `publish_check`, `publish_html`; `open_file` takes a `password`. |
 
+### New in v3.3: tabs you already have, comments like PowerPoint, colours that stay in step
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Your own tabs** | **Your tabs** (left panel), **Layout › Add tab** | Mothership finds the tabs your dashboard already has (buttons with `data-tab`, `aria-controls`, `href="#…"` or `onclick="openTab(…)"`). Click to switch, even in Edit mode; double-click to rename; drag to reorder; ⋯ to delete. **Add tab** makes a new tab that looks and works like the others, and Insert puts things on the tab you are looking at. The old "Tabbed layout" is now **Tab ribbon**, for one-page dashboards. |
+| **Comment mode** | **💬 Comment** (next to Edit and Interact) | Click anything to comment on it, or drag a box around an area. Tabs still switch. You type in the Comments pane, not a pop-up (Ctrl+Enter adds). |
+| **Pins that stay put** | Automatic | Area boxes and pins are tied to the content under them, so they move when you scroll, including inside panels with their own scroll bar, and hide when their tab isn't showing. |
+| **Comments pane** | **🗨 Comments** (top), or the **Comments** tab on the right | Every comment in one list, grouped by tab, like PowerPoint. Click one to go to it; **Reply**, **Resolve**, **Edit**, ✨ prompt, delete. Filter Open / All / Must fix / Resolved. Your name on comments and replies (optional). Replies go into AI prompts too. |
+| **Legend and chart colours in step** | Select a chart: **Colours** in the right panel; or click a legend entry | Change a colour once and the chart, its legend (also a legend written in the page's HTML) and every chart showing the same name follow. Recolouring a legend swatch recolours the chart. Also fixes Chart.js bars that kept their old colour on screen. |
+| **Brand skills that behave the same everywhere** | **Design › Load brand** | A `.zip` is read in full and always in the same order (SKILL.md first). Before applying, a **preview** lists each colour the dashboard uses and the brand colour it becomes (main colour and shades → primary, backgrounds → background/card, text → text, lines → border; red/green status colours kept). Untick or change any row and watch the dashboard update. Optional: brand fonts everywhere (icons keep theirs). |
+| **MCP tools** | Both servers | `page_tabs` (list, show, add, rename, move, delete); `set_mode` takes `comment`; `update_comment` takes `reply`; `list_comments` returns replies; `apply_theme` reports the colours it swapped. |
+
 ---
 
 ## 3. How-to guide
@@ -163,7 +175,10 @@ HTML-Mothership/
 - Text you edit on the page's own elements is kept even if the dashboard's script rewrites it on load (e.g. KPI values): Mothership re-applies your text after the page draws. Elements marked **script-made** are created entirely by the dashboard's code, so edits to them may be lost when the page reloads. Edit their source (chart settings, data) instead.
 
 ### Tabs and the ribbon
-1. **Layout › Tabbed layout** wraps your original page into a first tab called *Dashboard* and adds a ribbon.
+**If your dashboard already has tabs**, use them: they are listed under **Your tabs** in the left panel. Click to switch (in Edit mode too), double-click to rename, drag to reorder, **⋯** to add a tab after one, load a file into a new tab, or delete. **Layout › Add tab** adds one at the end. Insert puts new parts on the tab you are looking at. You don't need the tab ribbon below.
+
+**If your dashboard is one long page:**
+1. **Layout › Tab ribbon** wraps your original page into a first tab called *Dashboard* and adds a ribbon.
 2. Add tabs from the left panel: **+ Chart tab** (a 12-column grid), **+ Text tab**, or **+ From file**.
 3. Reorder by dragging in the Tabs list. Use **⋯** to rename, duplicate, add speaker notes, load a file into the tab, or delete. Use **◉** to hide or show.
 4. **Layout › Top / Left / Size / Title** style the ribbon. You can also drag its edge.
@@ -244,6 +259,10 @@ It looks for these, in this order:
 1. A fenced ```` ```json ```` block with `colors`, `palette`, `fonts` (most precise).
 2. CSS variables such as `--brand-primary: #0B3D91`.
 3. Labelled lines or table rows: `Primary: #0B3D91`, `| Background | #F7F8FA |`, `Chart palette: #.., #.., #..`, `Heading font: Montserrat`, `Body font: Open Sans`.
+
+A `.zip` or `.skill` is read in full: `SKILL.md` first, then the other `.md` guides and `.css` files in name order (a `theme.json`/`brand.json`/`tokens.json` with `colors` wins). So the same zip always gives the same theme.
+
+**What changes on your dashboard.** Dashboards set their own colours in their CSS, so a brand only changes the page if those colours are swapped. Before applying, Mothership shows every colour the dashboard uses with the brand colour it becomes, chosen by what the colour is used for: the most-used colour and its shades → primary (then secondary, accent, chart colours), the page background → background, light card backgrounds → surface, dark text → text, grey text → muted, lines → border. Colours on parts named like up/down/good/bad/danger are kept. Untick or change any row; the dashboard updates behind the dialog. The choice is saved in the dashboard (`theme.map`) and the swap is done with override rules, so undo or *Remove theme* puts everything back. Assistants using `apply_theme` get the same mapping without the dialog (pass `map: []` to skip it).
 
 Colour roles: `primary secondary accent background surface text muted border ribbonBg ribbonText paneBg`. You can review and adjust everything in **Design › Edit theme** (live preview), export it as `*.theme.json`, and pick it again later from **Design › Library**.
 

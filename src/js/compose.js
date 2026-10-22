@@ -26,6 +26,8 @@
       if (sec.getAttribute('data-ms-kind') === 'grid') return MS.blocks.ensureGrid(sec);
       return sec;
     }
+    // the dashboard's own tabs: the tab on screen
+    var ph = MS.pageTabs && MS.pageTabs.insertHost(); if (ph) return ph;
     return d.body;
   }
   function place(node, label, where) {

@@ -21,7 +21,13 @@
   };
   T.toggleLayout = function () {
     var rt = MS.rt(); if (!rt) return;
-    if (!rt.layoutEnabled()) return T.ensureLayout() && MS.toast('Tabbed layout on. Your original page is the "Dashboard" tab. Add tabs from the left panel or the Insert menu.', 'ok', 6000);
+    if (!rt.layoutEnabled() && MS.pageTabs.has()) {
+      var names = MS.pageTabs.list().map(function (t) { return '“' + t.title + '”'; }).join(', ');
+      return MS.confirm('Your dashboard already has tabs', 'It has its own tabs (' + names + '). To add, rename or reorder those, use the "Your tabs" list on the left or Layout › Add tab.\n\nThe tab ribbon wraps the whole page, tabs included, in one more set of tabs. Most dashboards with tabs don\'t need it.', 'Add the ribbon anyway').then(function (ok) {
+        if (ok) T.ensureLayout() && MS.toast('Tab ribbon on. Your page (with its own tabs) is the "Dashboard" tab.', 'ok', 6000);
+      });
+    }
+    if (!rt.layoutEnabled()) return T.ensureLayout() && MS.toast('Tab ribbon on. Your original page is the "Dashboard" tab. Add tabs from the left panel or the Insert menu.', 'ok', 6000);
     var others = rt.tabs().length - 1;
     MS.confirm('Turn off tabbed layout?', 'The content of all ' + (others + 1) + ' tabs will be placed one after another on a single page. A version is saved first, so you can go back from File › Versions.', 'Turn off').then(function (ok) {
       if (!ok) return;
@@ -35,6 +41,9 @@
     });
   };
   T.add = function (title, kind, html) {
+    // a dashboard with its own tabs gets a new tab of its own kind, not Mothership's tab ribbon
+    var r0 = MS.rt();
+    if (r0 && !r0.layoutEnabled() && MS.pageTabs.has()) { var i = MS.pageTabs.add(title, kind === 'content' && html ? '<div class="ms-doc">' + html + '</div>' : null); return i == null ? null : 'page:' + i; }
     if (!T.ensureLayout()) return null;
     var rt = MS.rt();
     var id = rt.addTab(title, kind || 'grid', html || '');
@@ -43,6 +52,8 @@
     return id;
   };
   T.addPrompt = function (kind) {
+    var r0 = MS.rt();
+    if (r0 && !r0.layoutEnabled() && MS.pageTabs.has()) return MS.pageTabs.addPrompt();
     MS.prompt(kind === 'content' ? 'New text tab' : 'New chart tab', kind === 'content' ? 'Notes' : 'New tab', 'Tab title').then(function (t) {
       if (!t) return;
       var id = T.add(t, kind, kind === 'content' ? '<h1>' + MS.esc(t) + '</h1><p>Double-click to write here, or use Insert › Into this tab to load a file.</p>' : '');
@@ -107,7 +118,8 @@
     else if (rt && rt.layoutEnabled()) {
       var sec = rt.tabEl(rt.activeTab);
       host = sec.getAttribute('data-ms-kind') === 'content' ? sec.querySelector('.ms-doc') : MS.blocks.ensureGrid(sec);
-    } else { host = MS.child.doc.body; b.classList.add('ms-inline'); }
+    } else if (MS.pageTabs.insertHost()) { host = MS.pageTabs.insertHost(); b.classList.add('ms-inline'); }
+    else { host = MS.child.doc.body; b.classList.add('ms-inline'); }
     MS.history.move('Insert', b, function () { if (sel) host.insertBefore(b, sel.nextSibling); else if (host === MS.child.doc.body) host.insertBefore(b, MS.child.doc.getElementById('ms-state')); else host.appendChild(b); });
     MS.decorate();
     setTimeout(function () { MS.edit.reveal(b); }, 50);

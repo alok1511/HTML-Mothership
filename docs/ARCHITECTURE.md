@@ -145,3 +145,13 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 **Publishing** (`publish.js`). `MS.publish.build()` writes `state.publish = {version, at, by, note, asOf, badge, log[], lock?, seal}` through `MS.exportHtml({publish})`, with `seal` as 64 zeros, hashes the whole file (SHA-256, Web Crypto) and puts the hash in place of the zeros. `verify()` swaps it back and re-hashes. Normal exports delete `seal`, so the working copy keeps the lock details (for the next publish) but is never locked. `MS.openHtml` calls `MS.publish.gate()` first when the file has both `lock` and `seal`; the lock is `{salt, iter: 150000, key}` from PBKDF2-SHA-256. The runtime draws the corner badge (`#ms-badge`) and the failure bar (`#ms-errbar`) only outside the editor.
 
 **Checks and reports** (`insights.js`) are editor-only and read what is on screen: `rt.chartData(key, true)` for charts, the KPI cards' text for KPIs.
+
+## v3.3 additions
+
+**Page tabs** are the dashboard's own, so Mothership never wraps or rebuilds them: it finds them in the runtime (`rt.pageTabs`), switches them by clicking their button (the page's own script does the work) and only forces the active classes when nothing changed. New tabs are clones of an existing button and an empty panel with the same classes, stamped with `data-ms-id` so they export, and their link (`data-tab`, `aria-controls`, `href`, `onclick` literal) is rewritten to the new panel id. The runtime also handles clicks on tabs the page's script doesn't know about, so added tabs work in the exported file. Every change is a `MS.history` move or attrs step.
+
+**Comment mode** is a third editor mode next to Edit and Interact. Capture-phase listeners in the child turn a click into an element comment and a drag (more than 8 px) into an area comment, and let page tabs, the tab ribbon and breadcrumbs through. Pins live in `#ms-cmt-layer` (`position: fixed`, `data-ms-editor`, never exported) and are recomputed from their anchors on scroll (capture phase, so inner scroll bars count), resize, tab change and any edit. Older comments without an anchor keep page coordinates.
+
+**Colour sync.** Chart.js 4 does not redraw new dataset colours after `update('none')`, so colour changes use a full update with animation turned off for that one call. HTML legends are found per chart (`rt.legendItems`) and repainted after colours apply.
+
+**Brand mapping** runs in the runtime, so exported files keep it: `theme.map` is turned into override rules with the same selectors (and `@media` wrappers) as the page's own rules that use those colours, placed after them, plus inline style swaps. Removing the theme removes the rules and puts inline colours back.

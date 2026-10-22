@@ -17,6 +17,11 @@
   /* ---------------------------------------------------------- describing things in plain English */
   function tabOf(el) {
     var r = rt(), sec = el && el.closest && el.closest('section.ms-tab');
+    // the dashboard's own tabs are the more specific answer
+    if (MS.pageTabs) {
+      var pt = el ? MS.pageTabs.of(el) : (!r || !r.layoutEnabled() ? MS.pageTabs.active() : null);
+      if (pt) return { id: 'page:' + pt.index, title: pt.title, page: true };
+    }
     if (sec) return { id: sec.getAttribute('data-ms-tab'), title: sec.getAttribute('data-ms-title') };
     if (r && r.layoutEnabled()) { var t = r.tabs().filter(function (x) { return x.id === r.activeTab; })[0]; if (t && !(el && el.closest && el.closest('.ms-page-footer'))) return { id: t.id, title: t.title }; }
     return null;
@@ -33,7 +38,7 @@
     if (el.closest('.ms-page-footer')) return { what: 'page footer “' + clip(el.textContent, 60) + '”' };
     if (el.closest('#ms-filter-pane')) return { what: 'filter pane' + (el.tagName === 'SELECT' || el.closest('.ms-filter') ? ' › filter “' + clip((el.closest('.ms-filter') || el).querySelector('span') && (el.closest('.ms-filter') || el).querySelector('span').textContent, 30) + '”' : '') };
     if (el.closest('#ms-ribbon')) return { what: 'tab bar (ribbon)' + (el.closest('.ms-tabbtn') ? ' › tab “' + clip(el.textContent, 30) + '”' : '') };
-    var t = el.tagName.toLowerCase(), txt = clip(el.textContent, 70);
+    var t = el.tagName.toLowerCase(), txt = clip(el.innerText || el.textContent, 70);
     var names = { h1: 'main heading', h2: 'heading', h3: 'heading', h4: 'heading', p: 'paragraph', button: 'button', a: 'link', img: 'image', table: 'table', select: 'drop-down', input: 'input box', li: 'list item', ul: 'list', ol: 'list', header: 'header', footer: 'footer', nav: 'navigation bar', svg: 'graphic' };
     if (el.classList.contains('ms-block')) return { what: 'block “' + clip(el.querySelector('.ms-title') && el.querySelector('.ms-title').textContent, 50) + '”' };
     if (el.classList.contains('ms-title')) return { what: 'chart/block title “' + txt + '”' };
@@ -78,7 +83,7 @@
     if (log.length > 40) log.shift();
   }
   R.log = function () { return log.slice(); };
-  function recording() { return MS.mode !== 'edit' || (MS.present && MS.present.on); }
+  function recording() { return MS.mode === 'interact' || (MS.present && MS.present.on); }
   function labelFor(el) {
     var l = el.closest('label'); if (l) { var sp = l.querySelector('span'); return clip((sp || l).textContent, 40); }
     if (el.id) { var lb = cdoc().querySelector('label[for="' + el.id + '"]'); if (lb) return clip(lb.textContent, 40); }
@@ -162,28 +167,30 @@
     return out;
   }
 
-  /* ---------------------------------------------------------- picking an element or an area in the dashboard */
-  var PICK_CSS = '.ms-cmt-hover{outline:2px solid #f59e0b!important;outline-offset:2px;cursor:crosshair!important}' +
-    'body.ms-cmt-picking,body.ms-cmt-picking *{cursor:crosshair!important}' +
-    '#ms-cmt-layer{position:absolute;left:0;top:0;width:0;height:0;z-index:99990}' +
-    '.ms-cmt-pin{position:absolute;min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;border-radius:11px 11px 11px 2px;background:#f59e0b;color:#111;font:700 12px/22px system-ui,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer;transform:translate(-4px,-18px)}' +
+  /* ---------------------------------------------------------- Comment mode: click to comment on a thing, drag to comment on an area */
+  var PICK_CSS = 'body.ms-comment-mode,body.ms-comment-mode *{cursor:crosshair!important}' +
+    'body.ms-comment-mode .ms-cmt-pass,body.ms-comment-mode .ms-cmt-pass *{cursor:pointer!important}' +
+    '.ms-cmt-hover{outline:2px solid #f59e0b!important;outline-offset:2px}' +
+    '#ms-cmt-layer{position:fixed;left:0;top:0;width:0;height:0;z-index:99990;pointer-events:none}' +
+    '#ms-cmt-layer>*{position:fixed;box-sizing:border-box}' +
+    '.ms-cmt-pin{min-width:22px;height:22px;padding:0 5px;border-radius:11px 11px 11px 2px;background:#f59e0b;color:#111;font:700 12px/22px system-ui,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer!important;pointer-events:auto;transform:translate(-4px,-18px)}' +
     '.ms-cmt-pin.done{background:#9ca3af}' +
-    '.ms-cmt-area{position:absolute;border:2px dashed #f59e0b;background:rgba(245,158,11,.08);border-radius:4px;pointer-events:none}' +
+    '.ms-cmt-pin.cur{background:#2563eb;color:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.35),0 2px 6px rgba(0,0,0,.3)}' +
+    '.ms-cmt-area{border:2px dashed #f59e0b;background:rgba(245,158,11,.08);border-radius:4px}' +
     '.ms-cmt-area.done{border-color:#9ca3af;background:none}' +
-    '.ms-cmt-area .ms-cmt-pin{pointer-events:auto;left:-2px;top:-2px}' +
-    '#ms-cmt-shield{position:fixed;inset:0;z-index:99999;cursor:crosshair;background:rgba(15,23,42,.06)}' +
-    '#ms-cmt-rect{position:fixed;border:2px dashed #f59e0b;background:rgba(245,158,11,.12);pointer-events:none}';
+    '.ms-cmt-area.cur,.ms-cmt-box.cur{border:2px solid #2563eb;background:rgba(37,99,235,.08);border-radius:4px}' +
+    '.ms-cmt-area.pending,.ms-cmt-box.pending{border:2px dashed #2563eb;background:rgba(37,99,235,.10);border-radius:4px}' +
+    '#ms-cmt-rect{position:fixed;border:2px dashed #2563eb;background:rgba(37,99,235,.10);pointer-events:none;z-index:99999}';
   function ensureCss() {
     var d = cdoc(); if (!d || d.getElementById('ms-cmt-css')) return;
     var st = d.createElement('style'); st.id = 'ms-cmt-css'; st.setAttribute('data-ms-editor', ''); st.textContent = PICK_CSS; d.head.appendChild(st);
   }
+  function commenting() { return MS.mode === 'comment' && !(MS.present && MS.present.on); }
   R.cancel = function () {
     var d = cdoc(); R.picking = null;
     if (!d) return;
-    d.body.classList.remove('ms-cmt-picking');
     MS.$$('.ms-cmt-hover', d).forEach(function (n) { n.classList.remove('ms-cmt-hover'); });
-    ['ms-cmt-shield', 'ms-cmt-rect'].forEach(function (id) { var n = d.getElementById(id); if (n) n.remove(); });
-    MS.$$('.cmt-tool').forEach(function (b) { b.classList.remove('on'); });
+    var n = d.getElementById('ms-cmt-rect'); if (n) n.remove();
   };
   function pickTarget(t) {
     if (!t || t.nodeType !== 1 || /^(HTML|BODY)$/.test(t.tagName) || t.closest('#ms-cmt-layer')) return null;
@@ -191,79 +198,172 @@
     if (p.id === 'ms-app' || p.id === 'ms-main' || p.id === 'ms-body' || p.classList.contains('ms-tab')) return null;
     return p;
   }
+  // things that keep working in Comment mode: the dashboard's tabs, the tab ribbon, breadcrumbs, pop-up tables and the pins themselves
+  function passThrough(t) {
+    if (!t || t.nodeType !== 1) return false;
+    if (t.closest('#ms-cmt-layer,#ms-ribbon .ms-tabbtn,.ms-crumbs button,.ms-modal-wrap,.ms-pane-reset')) return true;
+    var r = rt(), pt = r && r.pageTabOf ? r.pageTabOf(t) : null;
+    return !!(pt && (pt.btn === t || pt.btn.contains(t)));
+  }
   R.start = function (kind) {
     if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
     if (!rt()) return MS.toast('Comments need the dashboard\'s scripts. Turn off Safe mode (View tab).', 'warn');
     R.cancel();
     if (kind === 'interaction') return R.addInteraction();
-    ensureCss();
-    R.picking = kind;
-    MS.$$('.cmt-tool[data-kind="' + kind + '"]').forEach(function (b) { b.classList.add('on'); });
-    var d = cdoc();
-    if (kind === 'element') {
-      d.body.classList.add('ms-cmt-picking');
-      if (MS.mode === 'edit' && MS.sel) { var s = MS.sel; R.cancel(); return R.addElement(s); }
-      MS.toast('Click the part of the dashboard you want to comment on. Esc to cancel.', '', 4000);
-    } else {
-      var shield = d.createElement('div'); shield.id = 'ms-cmt-shield'; shield.setAttribute('data-ms-editor', ''); d.body.appendChild(shield);
-      MS.toast('Drag a box around the area you want to comment on. Esc to cancel.', '', 4000);
-    }
+    if (kind === 'element' && MS.mode === 'edit' && MS.sel) return R.addElement(MS.sel);
+    MS.setMode('comment');
+    MS.toast(kind === 'area' ? 'Drag a box around the area you want to comment on.' : 'Click the part you want to comment on, or drag a box around an area.', '', 4000);
   };
   function attachPicker(c) {
-    var d = c.doc, w = c.win, hov = null, start = null, rect = null;
+    var d = c.doc, w = c.win, hov = null, start = null, rect = null, eat = false;
+    var unhover = function () { if (hov) hov.classList.remove('ms-cmt-hover'); hov = null; };
     w.addEventListener('mouseover', function (e) {
-      if (R.picking !== 'element') return;
-      if (hov) hov.classList.remove('ms-cmt-hover');
+      if (!commenting() || start) return;
+      unhover();
+      if (passThrough(e.target)) return;
       hov = pickTarget(e.target); if (hov) hov.classList.add('ms-cmt-hover');
     }, true);
-    w.addEventListener('click', function (e) {
-      if (R.picking !== 'element') return;
-      e.preventDefault(); e.stopImmediatePropagation();
-      var t = pickTarget(e.target); R.cancel(); if (t) R.addElement(t, e);
-    }, true);
-    ['mousedown', 'mouseup', 'dblclick'].forEach(function (ev) { w.addEventListener(ev, function (e) { if (R.picking === 'element') { e.preventDefault(); e.stopImmediatePropagation(); } }, true); });
     w.addEventListener('mousedown', function (e) {
-      if (R.picking !== 'area' || e.target.id !== 'ms-cmt-shield') return;
+      if (!commenting() || e.button !== 0 || passThrough(e.target)) return;
       e.preventDefault(); e.stopImmediatePropagation();
-      start = { x: e.clientX, y: e.clientY };
-      rect = d.createElement('div'); rect.id = 'ms-cmt-rect'; rect.setAttribute('data-ms-editor', ''); d.body.appendChild(rect);
+      start = { x: e.clientX, y: e.clientY, t: e.target };
     }, true);
     w.addEventListener('mousemove', function (e) {
-      if (!start || !rect) return;
+      if (!start) return;
+      if (!rect && Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) < 8) return;
+      if (!rect) { unhover(); ensureCss(); rect = d.createElement('div'); rect.id = 'ms-cmt-rect'; rect.setAttribute('data-ms-editor', ''); d.body.appendChild(rect); }
       rect.style.left = Math.min(start.x, e.clientX) + 'px'; rect.style.top = Math.min(start.y, e.clientY) + 'px';
       rect.style.width = Math.abs(e.clientX - start.x) + 'px'; rect.style.height = Math.abs(e.clientY - start.y) + 'px';
     }, true);
     w.addEventListener('mouseup', function (e) {
       if (!start) return;
-      var r = { left: Math.min(start.x, e.clientX), top: Math.min(start.y, e.clientY), w: Math.abs(e.clientX - start.x), h: Math.abs(e.clientY - start.y) };
-      start = null; R.cancel();
-      if (r.w < 8 || r.h < 8) return MS.toast('That box was too small. Try again and drag a bigger box.', 'warn');
+      var s = start; start = null;
+      if (!rect) return;
+      e.preventDefault(); e.stopImmediatePropagation(); eat = true; setTimeout(function () { eat = false; }, 0);
+      var r = { left: Math.min(s.x, e.clientX), top: Math.min(s.y, e.clientY), w: Math.abs(e.clientX - s.x), h: Math.abs(e.clientY - s.y) };
+      rect.remove(); rect = null;
+      if (r.w < 12 || r.h < 12) return MS.toast('That box was too small. Drag a bigger box, or just click an item.', 'warn');
       R.addArea(r);
     }, true);
-    d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && R.picking) { e.stopPropagation(); R.cancel(); } }, true);
-    w.addEventListener('scroll', MS.debounce(R.renderPins, 50));
-    w.addEventListener('resize', MS.debounce(R.renderPins, 80));
+    w.addEventListener('click', function (e) {
+      if (!commenting() || passThrough(e.target)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (eat) return;
+      var t = pickTarget(e.target); unhover(); if (t) R.addElement(t, e);
+    }, true);
+    w.addEventListener('dblclick', function (e) { if (commenting() && !passThrough(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+    d.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !commenting()) return;
+      e.stopPropagation();
+      if (R.draft) R.discard(); else MS.setMode('edit');
+    }, true);
+    // pins follow the content however it scrolls: the window, or a panel with its own scroll bar
+    d.addEventListener('scroll', pinsNow, true);
+    w.addEventListener('resize', pinsNow);
   }
 
-  /* ---------------------------------------------------------- the comment dialog */
-  function editor(c, extra) {
-    var f = MS.form([
-      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in millions, and add last year for comparison.' },
-      { key: 'type', label: 'Type', type: 'select', options: TYPES, value: c.type || 'change' },
-      { key: 'prio', label: 'Priority', type: 'select', options: PRIOS, value: c.prio || 'should' }
-    ]);
-    f.inputs.text.placeholder = 'e.g. Show values in millions, and add last year for comparison.';
-    var labels = f.querySelectorAll(':scope > label');
-    f.appendChild(h('div', { 'class': 'row gap' }, [labels[1], labels[2]]));
-    return { el: h('div', { 'class': 'cmt-ed' }, [extra, f]), f: f };
+  /* ---------------------------------------------------------- anchoring an area to the content under it */
+  function isScroller(n) {
+    if (!n || n.nodeType !== 1 || n === cdoc().documentElement || n === cdoc().body) return false;
+    var cs = MS.child.win.getComputedStyle(n);
+    return /(auto|scroll|overlay)/.test(cs.overflowY + ' ' + cs.overflowX) && (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1);
   }
-  function ask(title, c, extra, isNew) {
-    var ed = editor(c, extra);
-    var btns = [{ label: 'Cancel', value: null }];
-    if (!isNew) btns.unshift({ label: 'Delete', danger: true, value: 'delete' }, { label: c.done ? 'Re-open' : 'Mark done', value: 'done' }, { label: '✨ Prompt for this one', value: 'prompt' });
-    btns.push({ label: isNew ? 'Add comment' : 'Save', primary: true, value: function () { var v = ed.f.values(); if (!v.text.trim()) { ed.f.inputs.text.focus(); MS.toast('Type a comment first.', 'warn'); return false; } return v; } });
-    return MS.dialog({ title: title, body: ed.el, enterSubmits: false, buttons: btns });
+  // where (0,0) of an element's content is on screen now
+  function originOf(n) {
+    var b = n.getBoundingClientRect(), sc = isScroller(n);
+    return { x: b.left - (sc ? n.scrollLeft : 0), y: b.top - (sc ? n.scrollTop : 0) };
   }
+  function shown(n) { return n === cdoc().documentElement || (n.isConnected && n.getClientRects().length > 0); }
+  // the visible window onto an element: the screen, cut down by every scrolling or clipping box around it
+  function clipOf(n, self) {
+    var w = MS.child.win, c = { l: 0, t: 0, r: w.innerWidth, b: w.innerHeight };
+    for (var p = self ? n : n.parentElement; p && p.nodeType === 1 && p !== cdoc().body && p !== cdoc().documentElement; p = p.parentElement) {
+      var cs = w.getComputedStyle(p);
+      if (!/(auto|scroll|hidden|clip|overlay)/.test(cs.overflowX + ' ' + cs.overflowY)) continue;
+      var b = p.getBoundingClientRect();
+      c = { l: Math.max(c.l, b.left), t: Math.max(c.t, b.top), r: Math.min(c.r, b.right), b: Math.min(c.b, b.bottom) };
+    }
+    return c;
+  }
+  function anchorFor(r) {
+    var d = cdoc(), layer = d.getElementById('ms-cmt-layer'), x2 = r.left + r.w, y2 = r.top + r.h;
+    if (layer) layer.style.display = 'none';
+    var pts = [[r.left + 3, r.top + 3], [x2 - 3, r.top + 3], [r.left + 3, y2 - 3], [x2 - 3, y2 - 3], [r.left + r.w / 2, r.top + r.h / 2]];
+    var els = pts.map(function (p) { return d.elementFromPoint(p[0], p[1]); }).filter(Boolean);
+    if (layer) layer.style.display = '';
+    var a = els[0] || d.documentElement;
+    els.forEach(function (e) { while (a && !a.contains(e)) a = a.parentElement; });
+    if (!a || a === d.body || a.closest('[data-ms-editor]')) a = d.documentElement;
+    var o = originOf(a);
+    return { el: a, ref: a === d.documentElement ? 'html' : refOf(a), dx: Math.round(r.left - o.x), dy: Math.round(r.top - o.y) };
+  }
+  function onTab(c) {
+    var t = c.tab, r = rt(); if (!t || !t.id) return true;
+    if (String(t.id).indexOf('page:') === 0) { var a = MS.pageTabs.active(); return !a || a.title === t.title; }
+    return !r.layoutEnabled() || t.id === r.activeTab;
+  }
+  // where a comment is on screen now: {box:{l,t,w,h}, clip} or null when it is out of sight
+  R.placeOf = function (c) {
+    var w = MS.child.win, el, b, clip;
+    if (c.kind === 'element' && c.target) {
+      el = findRef(c.target.ref); if (!el || !shown(el)) return null;
+      var rr = el.getBoundingClientRect(); b = { l: rr.left, t: rr.top, w: rr.width, h: rr.height }; clip = clipOf(el);
+    } else if (c.kind === 'area' && c.area) {
+      var an = c.area.anchor;
+      if (an) {
+        el = findRef(an.ref); if (!el || !shown(el)) return null;
+        if (el === cdoc().documentElement && !onTab(c)) return null;
+        var o = originOf(el); b = { l: o.x + an.dx, t: o.y + an.dy, w: c.area.w, h: c.area.h }; clip = clipOf(el, true);
+      } else {
+        if (!onTab(c)) return null;
+        b = { l: c.area.x - w.scrollX, t: c.area.y - w.scrollY, w: c.area.w, h: c.area.h }; clip = clipOf(cdoc().body);
+      }
+    } else return null;
+    if (b.l + b.w < clip.l || b.l > clip.r || b.t + b.h < clip.t || b.t > clip.b) return null;
+    return { box: b, clip: clip };
+  };
+
+  /* ---------------------------------------------------------- pins in the dashboard (a fixed layer, redrawn as you scroll) */
+  R.renderPins = function () {
+    var d = cdoc(), r = rt(); if (!d || !d.body) return;
+    ensureCss();
+    var layer = d.getElementById('ms-cmt-layer');
+    if (!layer) { layer = d.createElement('div'); layer.id = 'ms-cmt-layer'; layer.setAttribute('data-ms-editor', ''); d.body.appendChild(layer); }
+    layer.innerHTML = '';
+    if (!r) return;
+    var draw = function (c, label, cls, withBox) {
+      var p = R.placeOf(c); if (!p) return;
+      var b = p.box, k = p.clip;
+      if (withBox) {
+        var box = d.createElement('div'); box.className = cls;
+        box.style.left = b.l + 'px'; box.style.top = b.t + 'px'; box.style.width = b.w + 'px'; box.style.height = b.h + 'px';
+        var it = Math.max(0, k.t - b.t), ir = Math.max(0, b.l + b.w - k.r), ib = Math.max(0, b.t + b.h - k.b), il = Math.max(0, k.l - b.l);
+        if (it || ir || ib || il) box.style.clipPath = 'inset(' + it + 'px ' + ir + 'px ' + ib + 'px ' + il + 'px)';
+        layer.appendChild(box);
+      }
+      if (label == null) return;
+      var px = c.kind === 'element' ? Math.min(b.l + b.w, k.r) - 12 : Math.max(b.l, k.l) + 2, py = Math.max(b.t, k.t) + (c.kind === 'element' ? 4 : 2);
+      if (py > k.b - 4 || px < k.l - 4 || px > k.r) return;
+      var pin = d.createElement('div'); pin.className = 'ms-cmt-pin' + (c.done ? ' done' : '') + (c.id === R.current ? ' cur' : '');
+      pin.textContent = label; pin.title = clip(c.text, 140) + (c.replies && c.replies.length ? ' (' + c.replies.length + ' repl' + (c.replies.length === 1 ? 'y' : 'ies') + ')' : '');
+      pin.style.left = px + 'px'; pin.style.top = py + 'px';
+      pin.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); R.select(c.id, false); });
+      pin.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      layer.appendChild(pin);
+    };
+    if (R.showPins) list().forEach(function (c, i) {
+      if (c.done && R.filter === 'open' && c.id !== R.current) return;
+      var cur = c.id === R.current;
+      draw(c, String(i + 1), c.kind === 'area' ? 'ms-cmt-area' + (c.done ? ' done' : '') + (cur ? ' cur' : '') : 'ms-cmt-box' + (cur ? ' cur' : ''), c.kind === 'area' || cur);
+    });
+    if (R.draft) draw(R.draft.c, null, c0kind(R.draft.c) + ' pending', true);
+  };
+  function c0kind(c) { return c.kind === 'area' ? 'ms-cmt-area' : 'ms-cmt-box'; }
+  var raf = 0;
+  function pinsNow() { if (raf) return; raf = (MS.child.win.requestAnimationFrame || setTimeout)(function () { raf = 0; R.renderPins(); }); }
+  R.togglePins = function () { R.showPins = !R.showPins; MS.prefs.set('showPins', R.showPins); R.renderPins(); MS.ribbon.render(); };
+
+  /* ---------------------------------------------------------- making a comment (the composer lives in the Comments pane) */
   function save(c, label) {
     MS.history.state(label || 'Comment', function (s) {
       s.comments = s.comments || [];
@@ -272,21 +372,31 @@
     });
     MS.emit('comments');
   }
-  function base(kind) { var t = tabOf(null); return { id: rt().uid('m'), kind: kind, created: new Date().toISOString(), tab: t, type: 'change', prio: 'should' }; }
+  function patch(id, label, fn) {
+    MS.history.state(label, function (s) { (s.comments || []).forEach(function (c) { if (c.id === id) fn(c); }); });
+    MS.emit('comments');
+  }
+  function author() { return MS.prefs.get('author', '') || ''; }
+  function base(kind) { var t = tabOf(null); return { id: rt().uid('m'), kind: kind, created: new Date().toISOString(), by: author(), tab: t, type: 'change', prio: 'should', replies: [] }; }
   function ctxBox(lines) { return h('div', { 'class': 'cmt-ctx' }, lines.filter(Boolean).map(function (l) { return h('div', { html: l }); })); }
+  R.compose = function (c, ctx, extra, done) {
+    R.draft = { c: c, ctx: ctx, extra: extra, done: done };
+    R.showPane(true); R.renderPane(); R.renderPins();
+    setTimeout(function () { var t = MS.$('#cmt-pane .cmt-draft textarea'); if (t) t.focus(); }, 30);
+  };
+  R.discard = function () { R.draft = null; R.renderPane(); R.renderPins(); };
 
   R.addElement = function (el, e) {
     var d = R.describe(el), c = base('element'), t = tabOf(el);
     c.tab = t; c.target = { what: d.what, ref: refOf(el), css: cssPath(el), section: sectionOf(el), chart: d.chart, html: clip(el.outerHTML, 300) };
     if (R.locate) c.loc = R.locate(el);
     if (d.chart && e) { var cc = rt().chart(d.chart.key); var pl = cc && pointLabel(cc, e); if (pl) c.target.point = pl; }
-    var ctx = ctxBox(['<b>On:</b> ' + MS.esc(d.what) + (c.target.point ? ' at “' + MS.esc(c.target.point) + '”' : ''), '<b>Where:</b> ' + MS.esc(c.loc ? R.trail(c.loc) : [t && 'Tab “' + t.title + '”', c.target.section].filter(Boolean).join(' › ') || 'the page')]);
-    ask('Comment on this element', c, ctx, true).then(function (v) { if (!v || typeof v !== 'object') return; Object.assign(c, v); save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); });
+    R.compose(c, ['<b>On:</b> ' + MS.esc(d.what) + (c.target.point ? ' at “' + MS.esc(c.target.point) + '”' : ''), '<b>Where:</b> ' + MS.esc(c.loc ? R.trail(c.loc) : [t && 'Tab “' + t.title + '”', c.target.section].filter(Boolean).join(' › ') || 'the page')]);
   };
   R.addArea = function (r) {
     var w = MS.child.win, d = cdoc(), c = base('area');
-    c.area = { x: Math.round(r.left + w.scrollX), y: Math.round(r.top + w.scrollY), w: Math.round(r.w), h: Math.round(r.h), vw: w.innerWidth, vh: w.innerHeight, tab: c.tab && c.tab.id };
-    // what is inside the box
+    var an = anchorFor(r);
+    c.area = { x: Math.round(r.left + w.scrollX), y: Math.round(r.top + w.scrollY), w: Math.round(r.w), h: Math.round(r.h), vw: w.innerWidth, vh: w.innerHeight, tab: c.tab && c.tab.id, anchor: { ref: an.ref, dx: an.dx, dy: an.dy } };
     var inside = [], seen = [];
     var within = function (b) { var ix = Math.max(0, Math.min(b.right, r.left + r.w) - Math.max(b.left, r.left)), iy = Math.max(0, Math.min(b.bottom, r.top + r.h) - Math.max(b.top, r.top)); return b.width * b.height > 0 && ix * iy / (b.width * b.height) > 0.6; };
     (rt().charts() || []).forEach(function (ch) { if (ch.el.offsetParent !== null && within(ch.el.getBoundingClientRect())) { inside.push(R.describe(ch.el).what); seen.push(ch.el); } });
@@ -295,111 +405,199 @@
       if (within(n.getBoundingClientRect())) { inside.push(R.describe(n).what); seen.push(n); }
     });
     c.inside = inside;
+    var at = an.el !== d.documentElement ? tabOf(an.el) : null; if (at) { c.tab = at; c.area.tab = at.id; }
     if (R.locateArea) c.loc = R.locateArea(r, seen);
-    var ctx = ctxBox(['<b>Area:</b> ' + c.area.w + ' × ' + c.area.h + ' px' + (c.tab ? ' on the “' + MS.esc(c.tab.title) + '” tab' : ''),
-      inside.length ? '<b>Inside it:</b><br>' + inside.slice(0, 8).map(function (x) { return '· ' + MS.esc(x); }).join('<br>') : '<i>Nothing recognisable inside the box (maybe empty space).</i>']);
-    ask('Comment on this area', c, ctx, true).then(function (v) { if (!v || typeof v !== 'object') return; Object.assign(c, v); save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); });
+    R.compose(c, ['<b>Area:</b> ' + c.area.w + ' × ' + c.area.h + ' px' + (c.tab ? ' on the “' + MS.esc(c.tab.title) + '” tab' : ''),
+      inside.length ? '<b>Inside it:</b> ' + inside.slice(0, 6).map(function (x) { return MS.esc(x); }).join('; ') : '<i>Nothing recognisable inside the box (maybe empty space).</i>']);
   };
   R.addInteraction = function () {
+    if (!MS.child || !rt()) return MS.toast('Open a dashboard first.', 'warn');
     var steps = log.slice(-10), snap = snapshot(), c = base('interaction');
     var checks = steps.map(function (s, i) { return { s: s, cb: h('input', { type: 'checkbox', checked: i >= steps.length - 4 }) }; });
-    var ago = function (t) { var x = Math.round((Date.now() - t) / 1000); return x < 60 ? x + 's ago' : Math.round(x / 60) + ' min ago'; };
     var stepsBox = checks.length ? h('div', { 'class': 'list' }, checks.map(function (k) { return h('label', { 'class': 'list-row' }, [k.cb, h('span', { 'class': 'grow', text: k.s.text }), h('small', { 'class': 'muted', text: ago(k.s.t) })]); }))
-      : h('p', { 'class': 'muted', text: 'Nothing recorded yet. Switch to Interact mode (top right), use the dashboard (tabs, filters, hovering, double-clicking), then come back here.' });
+      : h('p', { 'class': 'muted small', text: 'Nothing recorded yet. Switch to Interact mode (top), use the dashboard (tabs, filters, hovering, double-clicking), then come back here.' });
     var stateLines = [snap.tab ? '<b>Tab:</b> ' + MS.esc(snap.tab) : '', snap.filters ? '<b>Filters:</b> ' + MS.esc(snap.filters.join(', ')) : '', snap.drill ? '<b>Drill-down:</b> ' + MS.esc(snap.drill.join('; ')) : '',
       snap.hover ? '<b>Last pop-up:</b> ' + MS.esc(snap.hover.name) + (snap.hover.tip ? ' showed “' + MS.esc(snap.hover.tip) + '”' : '') : ''];
-    var extra = h('div', {}, [h('h4', { text: 'What you did (tick the steps that matter)' }), stepsBox, h('h4', { text: 'Where things are now' }), ctxBox(stateLines.some(Boolean) ? stateLines : ['<i>Default view: no filters or drill-down.</i>'])]);
-    ask('Comment on an interaction', c, extra, true).then(function (v) {
-      if (!v || typeof v !== 'object') return;
-      Object.assign(c, v);
+    var extra = h('div', {}, [h('div', { 'class': 'small strong', text: 'What you did (tick the steps that matter)' }), stepsBox]);
+    R.compose(c, stateLines.some(Boolean) ? stateLines : ['<i>Default view: no filters or drill-down.</i>'], extra, function (c) {
       c.steps = checks.filter(function (k) { return k.cb.checked; }).map(function (k) { return k.s.text; });
       c.state = { tab: snap.tab, filters: snap.filters, drill: snap.drill, popup: snap.hover ? { chart: snap.hover.name, at: snap.hover.label, text: snap.hover.tip } : undefined };
-      save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok');
     });
   };
-  R.edit = function (id) {
-    var c = list().filter(function (x) { return x.id === id; })[0]; if (!c) return;
-    c = JSON.parse(JSON.stringify(c));
-    var n = list().map(function (x) { return x.id; }).indexOf(id) + 1;
-    var ctx = ctxBox([KIND_ICON[c.kind] + ' <b>' + (c.kind === 'element' ? MS.esc(c.target.what) : c.kind === 'area' ? 'Area with ' + (c.inside || []).length + ' item(s)' : 'Interaction: ' + MS.esc((c.steps || []).slice(-1)[0] || 'current view')) + '</b>', c.tab ? 'Tab: ' + MS.esc(c.tab.title) : '']);
-    ask('Comment ' + n, c, ctx, false).then(function (v) {
-      if (!v) return;
-      if (v === 'delete') { MS.history.state('Delete comment', function (s) { s.comments = s.comments.filter(function (x) { return x.id !== id; }); }); return MS.emit('comments'); }
-      if (v === 'done') { c.done = !c.done; return save(c, c.done ? 'Comment done' : 'Comment re-opened'); }
-      if (v === 'prompt') return R.prompt({ ids: [id] });
-      Object.assign(c, v); save(c, 'Edit comment');
-    });
-  };
+  function byId(id) { return list().filter(function (x) { return x.id === id; })[0]; }
+  R.edit = function (id) { if (!byId(id)) return; R.editing = id; R.select(id, true); };
   R.goTo = function (id) {
-    var c = list().filter(function (x) { return x.id === id; })[0]; if (!c) return;
-    var r = rt();
-    if (c.kind === 'element') { var el = findRef(c.target.ref); if (el) return MS.edit.reveal(el, true); return MS.toast('That element is no longer in the dashboard.', 'warn'); }
-    if (c.kind === 'area') {
-      if (c.area.tab && r.layoutEnabled()) r.showTab(c.area.tab);
-      setTimeout(function () { MS.child.win.scrollTo({ top: Math.max(0, c.area.y - 80), behavior: 'smooth' }); R.renderPins(); }, 60);
-      return;
+    var c = byId(id); if (!c) return;
+    var r = rt(), t = c.tab;
+    if (t && t.id) {
+      if (String(t.id).indexOf('page:') === 0) { if (!onTab(c)) MS.pageTabs.show(t.title); }
+      else if (r.layoutEnabled() && r.activeTab !== t.id) r.showTab(t.id);
     }
-    if (c.tab && r.layoutEnabled()) r.showTab(c.tab.id);
+    setTimeout(function () {
+      var el = c.kind === 'element' ? findRef(c.target.ref) : c.kind === 'area' && c.area.anchor ? findRef(c.area.anchor.ref) : null;
+      if (c.kind === 'element') { if (!el) return MS.toast('That item is no longer in the dashboard.', 'warn'); MS.edit.reveal(el, false); }
+      else if (c.kind === 'area') {
+        if (el && el !== cdoc().documentElement) {
+          MS.edit.reveal(el, false);
+          // bring the box itself into view inside whatever scrolls
+          setTimeout(function () { var p = R.placeOf(c); if (!p) { var s = el; while (s && !isScroller(s)) s = s.parentElement; var y = originOf(el).y + c.area.anchor.dy; if (s) s.scrollTop += y - s.getBoundingClientRect().top - 60; else MS.child.win.scrollBy(0, y - 80); } R.renderPins(); }, 80);
+        } else if (el) MS.child.win.scrollTo({ top: Math.max(0, c.area.anchor.dy - 80) });
+        else MS.child.win.scrollTo({ top: Math.max(0, c.area.y - 80), behavior: 'smooth' });
+      }
+      R.renderPins();
+    }, 60);
   };
+  // pick a comment: highlight its pin, show its card, and (from the pane) go to it in the dashboard
+  R.select = function (id, go) {
+    R.current = id; R.showPane(true); R.renderPane(); R.renderPins();
+    if (go) R.goTo(id);
+    setTimeout(function () { var card = MS.$('#cmt-pane .cmt-card.cur'); if (card && card.scrollIntoView) card.scrollIntoView({ block: 'nearest' }); }, 20);
+  };
+  R.resolve = function (id) { var c = byId(id); if (c) patch(id, c.done ? 'Re-open comment' : 'Resolve comment', function (x) { x.done = !x.done; x.doneAt = x.done ? new Date().toISOString() : undefined; }); };
+  R.remove = function (id) { MS.history.state('Delete comment', function (s) { s.comments = s.comments.filter(function (x) { return x.id !== id; }); }); if (R.current === id) R.current = null; MS.emit('comments'); };
+  R.reply = function (id, text) { if (!String(text || '').trim()) return; patch(id, 'Reply to comment', function (x) { (x.replies = x.replies || []).push({ id: rt().uid('y'), text: String(text).trim(), by: author(), at: new Date().toISOString() }); }); };
   R.clear = function () {
     if (!list().length) return;
     MS.confirm('Delete all ' + list().length + ' comments?', 'You can undo this with Ctrl+Z.', 'Delete all', true).then(function (ok) {
-      if (ok) { MS.history.state('Delete all comments', function (s) { s.comments = []; }); MS.emit('comments'); }
+      if (ok) { MS.history.state('Delete all comments', function (s) { s.comments = []; }); R.current = null; MS.emit('comments'); }
     });
   };
-  R.togglePins = function () { R.showPins = !R.showPins; MS.prefs.set('showPins', R.showPins); R.renderPins(); MS.ribbon.render(); };
 
-  /* ---------------------------------------------------------- pins in the dashboard */
-  R.renderPins = function () {
-    var d = cdoc(), r = rt(); if (!d || !d.body) return;
-    var layer = d.getElementById('ms-cmt-layer');
-    if (!layer) { ensureCss(); layer = d.createElement('div'); layer.id = 'ms-cmt-layer'; layer.setAttribute('data-ms-editor', ''); d.body.appendChild(layer); }
-    layer.innerHTML = '';
-    if (!R.showPins || !r) return;
-    var w = MS.child.win;
-    list().forEach(function (c, i) {
-      var pin = d.createElement('div'); pin.className = 'ms-cmt-pin' + (c.done ? ' done' : ''); pin.textContent = i + 1; pin.title = clip(c.text, 140);
-      pin.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); R.edit(c.id); });
-      pin.addEventListener('mousedown', function (e) { e.stopPropagation(); });
-      if (c.kind === 'element') {
-        var el = findRef(c.target.ref); if (!el || el.offsetParent === null) return;
-        var b = el.getBoundingClientRect();
-        pin.style.left = Math.round(b.right + w.scrollX - 12) + 'px'; pin.style.top = Math.round(b.top + w.scrollY + 4) + 'px';
-        layer.appendChild(pin);
-      } else if (c.kind === 'area') {
-        if (c.area.tab && r.layoutEnabled() && c.area.tab !== r.activeTab) return;
-        var box = d.createElement('div'); box.className = 'ms-cmt-area' + (c.done ? ' done' : '');
-        box.style.left = c.area.x + 'px'; box.style.top = c.area.y + 'px'; box.style.width = c.area.w + 'px'; box.style.height = c.area.h + 'px';
-        box.appendChild(pin); layer.appendChild(box);
-      }
-    });
+  /* ---------------------------------------------------------- the Comments pane (right side, like PowerPoint) */
+  function ago(t) {
+    var x = Math.round((Date.now() - (typeof t === 'number' ? t : Date.parse(t))) / 1000);
+    if (!(x >= 0)) return '';
+    return x < 45 ? 'just now' : x < 3600 ? Math.round(x / 60) + ' min ago' : x < 86400 ? Math.round(x / 3600) + ' h ago' : new Date(Date.now() - x * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+  R.filter = MS.prefs.get('cmtFilter', 'open');
+  R.showPane = function (on) {
+    var host = MS.$('#cmt-pane'), ins = MS.$('#inspector'); if (!host || !ins) return;
+    if (on && document.body.classList.contains('no-right')) document.body.classList.remove('no-right');
+    host.hidden = !on; ins.hidden = !!on; R.paneOn = !!on;
+    MS.$$('#right-tabs button').forEach(function (b) { b.classList.toggle('on', (b.getAttribute('data-pane') === 'comments') === !!on); });
+    if (on) R.renderPane();
   };
+  function where(c) { return c.loc && R.trail ? R.trail(c.loc) : c.tab ? 'Tab “' + c.tab.title + '”' : ''; }
+  function what(c) { return c.kind === 'element' ? (c.target.point ? c.target.what + ' at “' + c.target.point + '”' : c.target.what) : c.kind === 'area' ? 'Area' + (c.inside && c.inside.length ? ' with ' + clip(c.inside.slice(0, 2).join(', '), 60) : '') : 'Interaction: ' + ((c.steps || []).slice(-1)[0] || 'current view'); }
+  function composer(c, isNew, ctx, extra, onSave, onCancel) {
+    var ta = h('textarea', { 'class': 'inp', rows: 3, placeholder: isNew ? 'Type your comment… (Ctrl+Enter to add)' : 'Comment' });
+    ta.value = c.text || '';
+    var ty = h('select', { 'class': 'inp' }, TYPES.map(function (o) { return h('option', { value: o.value, text: o.label, selected: o.value === (c.type || 'change') }); }));
+    var pr = h('select', { 'class': 'inp' }, PRIOS.map(function (o) { return h('option', { value: o.value, text: o.label, selected: o.value === (c.prio || 'should') }); }));
+    var nm = isNew ? h('input', { 'class': 'inp', placeholder: 'Your name (optional)', value: author() }) : null;
+    var go = function () {
+      if (!ta.value.trim()) { ta.focus(); return MS.toast('Type a comment first.', 'warn'); }
+      if (nm) { MS.prefs.set('author', nm.value.trim()); c.by = nm.value.trim(); }
+      c.text = ta.value.trim(); c.type = ty.value; c.prio = pr.value; onSave(c);
+    };
+    ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); go(); } if (e.key === 'Escape') { e.preventDefault(); onCancel(); } });
+    return h('div', { 'class': 'cmt-draft' }, [ctx ? ctxBox(ctx) : null, extra || null, ta,
+      h('div', { 'class': 'row gap' }, [ty, pr]), nm,
+      h('div', { 'class': 'row gap' }, [h('span', { 'class': 'grow' }), h('button', { 'class': 'btn sm', onclick: onCancel }, ['Cancel']), h('button', { 'class': 'btn sm primary', onclick: go }, [isNew ? 'Add comment' : 'Save'])])]);
+  }
+  function card(c, n) {
+    var cur = c.id === R.current, editing = R.editing === c.id;
+    var el = h('div', { 'class': 'cmt-card' + (cur ? ' cur' : '') + (c.done ? ' done' : ''), 'data-id': c.id });
+    el.appendChild(h('div', { 'class': 'cmt-top' }, [h('span', { 'class': 'cmt-n' + (c.done ? ' done' : ''), text: String(n) }), h('span', { 'class': 'kind', text: KIND_ICON[c.kind] || '' }),
+      h('span', { 'class': 'grow cmt-what', text: clip(what(c), 70), title: where(c) }),
+      c.prio === 'must' && !c.done ? h('span', { 'class': 'tag warn', text: 'must' }) : null, c.done ? h('span', { 'class': 'tag ok', text: '✓ resolved' }) : null]));
+    if (editing) el.appendChild(composer(JSON.parse(JSON.stringify(c)), false, null, null, function (v) { R.editing = null; patch(c.id, 'Edit comment', function (x) { x.text = v.text; x.type = v.type; x.prio = v.prio; }); }, function () { R.editing = null; R.renderPane(); }));
+    else el.appendChild(h('div', { 'class': 'cmt-text', text: c.text }));
+    el.appendChild(h('div', { 'class': 'cmt-meta muted small', text: [c.by || 'Reviewer', ago(c.created), (TYPES.filter(function (t) { return t.value === c.type; })[0] || {}).label].filter(Boolean).join(' · ') }));
+    (c.replies || []).forEach(function (rp) {
+      el.appendChild(h('div', { 'class': 'cmt-reply' }, [h('div', { 'class': 'cmt-meta muted small', text: (rp.by || 'Reviewer') + ' · ' + ago(rp.at) }), h('div', { 'class': 'cmt-text', text: rp.text })]));
+    });
+    if (cur && !editing) {
+      var rta = h('textarea', { 'class': 'inp', rows: 1, placeholder: 'Reply… (Ctrl+Enter)' });
+      var send = function () { var v = rta.value; rta.value = ''; R.reply(c.id, v); };
+      rta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } });
+      rta.addEventListener('click', function (e) { e.stopPropagation(); });
+      el.appendChild(h('div', { 'class': 'cmt-replybox row gap' }, [rta, h('button', { 'class': 'btn sm', onclick: function (e) { e.stopPropagation(); send(); } }, ['Reply'])]));
+      el.appendChild(h('div', { 'class': 'cmt-acts' }, [
+        h('button', { 'class': 'btn sm' + (c.done ? '' : ' primary'), onclick: function (e) { e.stopPropagation(); R.resolve(c.id); } }, [c.done ? '↺ Re-open' : '✓ Resolve']),
+        h('button', { 'class': 'btn sm', onclick: function (e) { e.stopPropagation(); R.edit(c.id); } }, ['✎ Edit']),
+        h('button', { 'class': 'btn sm', title: 'A prompt for an AI assistant from this comment only', onclick: function (e) { e.stopPropagation(); R.prompt({ ids: [c.id] }); } }, ['✨']),
+        h('button', { 'class': 'btn sm danger', title: 'Delete (Ctrl+Z to undo)', onclick: function (e) { e.stopPropagation(); R.remove(c.id); } }, ['🗑'])]));
+    }
+    el.addEventListener('click', function (e) { if (e.target.closest('textarea,select,input,button')) return; R.select(c.id, true); });
+    return el;
+  }
+  R.renderPane = function () {
+    var host = MS.$('#cmt-pane'); if (!host || host.hidden) return;
+    var keep = host.scrollTop; host.innerHTML = '';
+    var cs = list(), open = cs.filter(function (c) { return !c.done; }).length;
+    host.appendChild(h('div', { 'class': 'cmt-head' }, [h('strong', { 'class': 'grow', text: 'Comments' }),
+      h('button', { 'class': 'icon-btn', title: 'Comment on what you just did in Interact mode (filters, drill-down, pop-ups)', onclick: function () { R.addInteraction(); } }, ['⚡']),
+      h('button', { 'class': 'icon-btn', title: 'Turn the comments into a prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨']),
+      h('button', { 'class': 'icon-btn', title: 'More', onclick: function (e) { MS.menu(e.currentTarget, [
+        { label: (R.showPins ? 'Hide' : 'Show') + ' pins on the dashboard', run: R.togglePins },
+        { label: 'Excel tracker…', run: function () { MS.tracker.exportFile(); } },
+        { label: 'Update from tracker…', run: function () { MS.tracker.importFile(); } },
+        { label: 'Change my name…', run: function () { MS.prompt('Your name on comments and replies', author()).then(function (v) { if (v !== null) { MS.prefs.set('author', v.trim()); R.renderPane(); } }); } },
+        '-', { label: 'Delete all comments', danger: true, run: R.clear }]); } }, ['⋯'])]));
+    if (!MS.child) { host.appendChild(h('p', { 'class': 'muted pad-sm', text: 'Open a dashboard to comment on it.' })); return; }
+    host.appendChild(commenting()
+      ? h('div', { 'class': 'cmt-hint on' }, [h('b', { text: 'Commenting. ' }), 'Click anything to comment on it, or drag a box around an area. Tabs still switch. ', h('button', { 'class': 'linklike', onclick: function () { MS.setMode('edit'); } }, ['Stop (Esc)'])])
+      : h('div', { 'class': 'cmt-hint' }, [h('button', { 'class': 'btn sm primary', onclick: function () { MS.setMode('comment'); } }, ['💬 New comment']), h('span', { 'class': 'muted small', text: ' Then click a part of the dashboard or drag a box.' })]));
+    if (R.draft) {
+      var dr = R.draft;
+      host.appendChild(h('div', { 'class': 'cmt-card new' }, [h('div', { 'class': 'cmt-top' }, [h('span', { 'class': 'cmt-n', text: String(cs.length + 1) }), h('strong', { text: 'New comment' })]),
+        composer(dr.c, true, dr.ctx, dr.extra, function (c) { if (dr.done) dr.done(c); R.draft = null; R.current = c.id; save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); }, R.discard)]));
+    }
+    var chips = [['open', 'Open (' + open + ')'], ['all', 'All (' + cs.length + ')'], ['must', 'Must fix'], ['done', 'Resolved']];
+    host.appendChild(h('div', { 'class': 'seg small cmt-filter' }, chips.map(function (x) {
+      return h('button', { 'class': 'seg-btn' + (R.filter === x[0] ? ' on' : ''), onclick: function () { R.filter = x[0]; MS.prefs.set('cmtFilter', x[0]); R.renderPane(); R.renderPins(); } }, [x[1]]);
+    })));
+    var show = cs.filter(function (c) { return R.filter === 'all' || (R.filter === 'open' && !c.done) || (R.filter === 'done' && c.done) || (R.filter === 'must' && c.prio === 'must' && !c.done) || c.id === R.current; });
+    if (!cs.length) host.appendChild(h('p', { 'class': 'muted pad-sm small', text: 'No comments yet. Press 💬 Comment at the top (or here), then click anything on the dashboard, or drag a box around an area. Every comment gets a numbered pin that stays on the content as you scroll.' }));
+    else if (!show.length) host.appendChild(h('p', { 'class': 'muted pad-sm small', text: R.filter === 'open' ? 'Everything is resolved. 🎉' : 'Nothing here.' }));
+    var groups = [], byTab = {};
+    show.forEach(function (c) { var k = c.tab ? c.tab.title : 'Whole page'; if (!byTab[k]) { byTab[k] = []; groups.push(k); } byTab[k].push(c); });
+    groups.forEach(function (g) {
+      if (groups.length > 1 || g !== 'Whole page') host.appendChild(h('div', { 'class': 'cmt-group', text: g }));
+      byTab[g].forEach(function (c) { host.appendChild(card(c, cs.indexOf(c) + 1)); });
+    });
+    host.scrollTop = keep;
+  };
+  var paneSoon = MS.debounce(function () { R.renderPane(); }, 60);
   var pinsSoon = MS.debounce(function () { R.renderPins(); }, 120);
   ['comments', 'changed', 'structure', 'tab-shown', 'history'].forEach(function (ev) { MS.on(ev, pinsSoon); });
+  ['comments', 'history', 'child-loaded'].forEach(function (ev) { MS.on(ev, paneSoon); });
   MS.on('comments', function () { R.syncBar(); });
   MS.on('history', function () { R.syncBar(); });
   MS.on('child-loaded', function (c) {
-    log = []; lastHover = null; R.picking = null;
+    log = []; lastHover = null; R.picking = null; R.draft = null; R.current = null; R.editing = null;
     attachPicker(c); attachLog(c);
     c.win.addEventListener('ms:refresh', pinsSoon);
-    setTimeout(function () { R.renderPins(); R.syncBar(); }, 300);
+    if (MS.mode === 'comment') c.doc.body.classList.add('ms-comment-mode');
+    setTimeout(function () { ensureCss(); markPass(); R.renderPins(); R.syncBar(); }, 300);
   });
-  MS.on('mode', function (m) { if (m === 'interact') note('Switched to Interact mode'); });
+  // the dashboard's own tab buttons keep a pointer cursor in Comment mode
+  function markPass() { var g = MS.pageTabs && MS.pageTabs.group(); if (g) g.tabs.forEach(function (t) { t.btn.classList.add('ms-cmt-pass'); }); }
+  MS.on('structure', function () { if (MS.child && rt()) markPass(); });
+  MS.on('mode', function (m) {
+    if (m === 'interact') note('Switched to Interact mode');
+    var d = cdoc(); if (d && d.body) { d.body.classList.toggle('ms-comment-mode', m === 'comment'); if (m === 'comment') { ensureCss(); markPass(); } }
+    if (m !== 'comment') R.cancel();
+    if (m === 'comment') R.showPane(true); else R.renderPane();
+  });
+  // selecting something in Edit mode brings the Format pane back
+  MS.on('selection', function (el) { if (el && MS.mode === 'edit' && R.paneOn) R.showPane(false); });
 
-  /* ---------------------------------------------------------- comment buttons in the top bar */
+  /* ---------------------------------------------------------- top bar: open the pane, make a prompt */
   R.syncBar = function () {
-    var n = list().filter(function (c) { return !c.done; }).length, b = MS.$('#cmt-count');
-    if (b) { b.textContent = n ? String(n) : ''; b.style.display = n ? '' : 'none'; }
+    var n = list().filter(function (c) { return !c.done; }).length;
+    MS.$$('#cmt-count, #rtab-count').forEach(function (b) { b.textContent = n ? String(n) : ''; b.style.display = n ? '' : 'none'; });
   };
   R.bar = function () {
     var host = MS.$('#cmt-bar'); if (!host) return;
-    var tool = function (kind, icon, label, title) { return h('button', { 'class': 'seg-btn cmt-tool', 'data-kind': kind, title: title, onclick: function () { R.start(kind); } }, [icon + ' ', h('span', { 'class': 'lbl', text: label })]); };
-    host.appendChild(h('span', { 'class': 'cmt-label', text: '💬' }));
-    host.appendChild(h('div', { 'class': 'seg', role: 'group', 'aria-label': 'Comment' }, [
-      tool('element', '📍', 'Element', 'Comment on one part of the dashboard: click it'),
-      tool('area', '▭', 'Area', 'Comment on an area of the screen: drag a box'),
-      tool('interaction', '⚡', 'Interaction', 'Comment on what you just did: a filter, a drill-down, a pop-up…')]));
-    host.appendChild(h('button', { 'class': 'btn', id: 'btn-prompt', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ Prompt ', h('span', { 'class': 'count', id: 'cmt-count' })]));
+    host.appendChild(h('button', { 'class': 'btn', id: 'btn-cmts', title: 'Show all comments (like PowerPoint\'s Comments pane)', onclick: function () { R.showPane(!R.paneOn); } }, ['🗨 Comments ', h('span', { 'class': 'count', id: 'cmt-count' })]));
+    host.appendChild(h('button', { 'class': 'btn', id: 'btn-prompt', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ Prompt']));
+    var rt0 = MS.$('#right-tabs');
+    if (rt0 && !rt0.firstChild) {
+      rt0.appendChild(h('button', { 'data-pane': 'format', 'class': 'on', onclick: function () { R.showPane(false); } }, ['Format']));
+      rt0.appendChild(h('button', { 'data-pane': 'comments', onclick: function () { R.showPane(true); } }, ['Comments ', h('span', { 'class': 'count', id: 'rtab-count' })]));
+    }
     R.syncBar();
   };
 
@@ -407,15 +605,16 @@
   R.outlineSection = function () {
     var cs = list();
     var sec = h('section', { 'class': 'ol-sec' }, [h('div', { 'class': 'ol-head' }, [h('span', { text: 'Comments (' + cs.length + ')' }),
-      h('button', { 'class': 'icon-btn', title: 'Comment on an element', onclick: function () { R.start('element'); } }, ['📍']),
+      h('button', { 'class': 'icon-btn', title: 'New comment: click or drag on the dashboard', onclick: function () { MS.setMode('comment'); } }, ['💬']),
       cs.length ? h('button', { 'class': 'icon-btn', title: 'Make a prompt from the comments', onclick: function () { R.prompt(); } }, ['✨']) : null])]);
-    if (!cs.length) sec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'Use 💬 at the top to comment on an element, an area or an interaction. Then press ✨ Prompt to turn them into instructions for an AI assistant.' }));
+    if (!cs.length) sec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'Press 💬 Comment at the top, then click anything or drag a box. ✨ Prompt turns comments into instructions for an AI assistant.' }));
     cs.forEach(function (c, i) {
-      var row = h('div', { 'class': 'ol-row' + (c.done ? ' hidden' : ''), title: c.text }, [
+      var row = h('div', { 'class': 'ol-row' + (c.done ? ' hidden' : '') + (c.id === R.current ? ' active' : ''), title: c.text }, [
         h('span', { 'class': 'cmt-n', text: String(i + 1) }), h('span', { 'class': 'kind', text: KIND_ICON[c.kind] }),
         h('span', { 'class': 'grow name', text: clip(c.text, 60) }),
+        c.replies && c.replies.length ? h('span', { 'class': 'tag', text: '↩ ' + c.replies.length }) : null,
         c.prio === 'must' ? h('span', { 'class': 'tag warn', text: 'must' }) : null]);
-      row.addEventListener('click', function () { R.goTo(c.id); });
+      row.addEventListener('click', function () { R.select(c.id, true); });
       row.addEventListener('dblclick', function () { R.edit(c.id); });
       sec.appendChild(row);
     });
@@ -427,7 +626,7 @@
   R.buildPrompt = function (o) {
     var r = rt(), cs = list().filter(function (c) { return o.includeDone || !c.done; });
     var file = o.fileName || MS.exportName(), L = [];
-    var tabs = r && r.layoutEnabled() ? r.tabs().filter(function (t) { return !t.hidden; }).map(function (t) { return t.title; }) : [];
+    var tabs = r && r.layoutEnabled() ? r.tabs().filter(function (t) { return !t.hidden; }).map(function (t) { return t.title; }) : MS.pageTabs.list().map(function (t) { return t.title; });
     L.push('# Update an HTML dashboard from review comments', '');
     L.push('You are an expert front-end developer and data-visualisation designer. I reviewed an HTML dashboard and left ' + cs.length + ' numbered comment' + (cs.length === 1 ? '' : 's') + '. Please make the changes they ask for.', '');
     L.push('## The dashboard', '');

@@ -138,7 +138,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       return { n: MS.review.list().length, pins: d.querySelectorAll('.ms-cmt-pin').length, prompt: p, exported: MS.exportHtml({ dropComments: true }), kept: MS.exportHtml() };
     });
     await wait(300);
-    const pins = await page.evaluate(() => MS.child.doc.querySelectorAll('.ms-cmt-pin').length);
+    // pins stay on the content, so only the ones in view are drawn: look from the top of the page
+    const pins = await page.evaluate(() => { MS.child.win.scrollTo(0, 0); MS.review.renderPins(); return MS.child.doc.querySelectorAll('.ms-cmt-pin').length; });
     check('review: comments stored', rv.n === 3, rv.n);
     check('review: pins drawn', pins >= 1, pins);
     check('review: prompt has every comment and the rules', ['#### 1.', '#### 2.', '#### 3.', 'Make the title shorter', 'Drill should go to city', 'data-ms-', 'US Dollar'].every(s => rv.prompt.indexOf(s) >= 0), rv.prompt.slice(0, 400));

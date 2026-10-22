@@ -12,7 +12,7 @@ The same lessons as **Help › Tutorial** inside Mothership, where each step poi
 
 ## Lesson 2: Tabs and pages
 
-1. Turn the dashboard into tabs: Layout › Tabbed layout.
+1. Turn the dashboard into tabs: Layout › Tab ribbon. (If your dashboard already has its own tabs, use Layout › Add tab instead.)
 2. Add a text tab for a How-to page: Insert › Text tab.
 3. Add a page header to it: Insert › Header. Double-click its text to edit.
 4. Add a footer that shows under every tab: Insert › Footer.
@@ -39,9 +39,9 @@ The same lessons as **Help › Tutorial** inside Mothership, where each step poi
 
 ## Lesson 6: Review and AI prompt
 
-1. Press 📍 Element at the top, click something, and write a comment.
-2. Press ▭ Area and drag a box around part of the screen. Write a comment.
-3. Switch to Interact, use a filter or drill down, then press ⚡ Interaction and describe what should change.
+1. Press 💬 Comment at the top, click something, and write your comment in the Comments pane on the right.
+2. Still in Comment mode, drag a box around part of the screen. Write a comment. Scroll: the box stays on the content.
+3. Switch to Interact, use a filter or drill down, then press ⚡ in the Comments pane (or Review › What I did) and describe what should change.
 4. Press ✨ Prompt and copy the result into your AI assistant, with the exported file attached.
 
 ## Lesson 7: Brand and share
@@ -128,24 +128,33 @@ The **Insert** tab has page parts. They go after whatever you have selected, or 
 
 ## Tabs and moving charts
 
-- Layout › **Tabbed layout** turns the page into tabs with a ribbon across the top (or down the left).
+**Your dashboard already has tabs?** Mothership finds them and lists them under **Your tabs** in the left panel. Click a tab (in the dashboard or the list) to switch, even in Edit mode. Double-click to rename, drag to reorder, ⋯ for more. **Layout › Add tab** (or + Add tab) adds a new tab that looks and works like the others; Insert then puts things on the tab you are looking at. You do not need the tab ribbon.
+
+**One long page?** Layout › **Tab ribbon** splits it into tabs with a ribbon across the top (or down the left). It is Mothership's own ribbon, so only use it on dashboards without tabs.
+
 - Drag tabs in the left panel to reorder; use ⋯ to rename, hide, duplicate, add speaker notes or delete.
 - Move a chart to another tab: drag its ⠿ handle onto the tab name in the dashboard's ribbon (hold `Ctrl` to copy), or use **Send to tab** in the right panel.
 - Resize a chart block with its corner handle.
 
 ## Brand and theme
 
-Design › **Load brand** reads colours, fonts and a logo from a brand skill file (SKILL.md, .skill or .zip) or a theme .json. **Edit theme** changes them by hand. **Brand check** finds off-brand colours, low contrast and charts without commentary.
+Design › **Load brand** reads colours, fonts and a logo from a brand skill file (SKILL.md, .skill or .zip) or a theme .json. A .zip is read in full and always the same way: SKILL.md first, then the other guides and style sheets in name order.
+
+Before anything changes you see a **preview**: every colour your dashboard uses, and the brand colour it will become (its main colour and shades → primary, light backgrounds → background or card, dark text → text, lines → border). Status colours such as red and green for up and down are kept. Untick or change any row; the dashboard updates behind the dialog. The same brand on the same dashboard always gives the same result.
+
+**Edit theme** changes the brand by hand. **Brand check** finds off-brand colours, low contrast and charts without commentary.
 
 ## Comments and AI prompts
 
-Use the 💬 buttons at the top (or the Review tab) to leave comments:
+Mothership has three modes at the top: **Edit** (change things), **💬 Comment** (review) and **Interact** (use the dashboard as a viewer).
 
-- **📍 Element**: click a part of the dashboard. In Edit mode, the selected element is used.
-- **▭ Area**: drag a box over the screen. Mothership notes the charts and text inside it.
-- **⚡ Interaction**: comment on something you just did in Interact mode. Mothership remembers your recent steps (tabs, filters, drill-downs, pop-ups) and the current view.
+- In **Comment** mode, **click** anything to comment on it, or **drag a box** around an area. Tabs still switch, so you can move around. Esc stops.
+- You write the comment in the **Comments pane** on the right, not a pop-up. Ctrl+Enter adds it.
+- **⚡ What I did**: comment on something you just did in Interact mode. Mothership remembers your recent steps (tabs, filters, drill-downs, pop-ups) and the current view.
 
-Every comment records exactly **where** it is: tab › section › card or chart › item, plus the data point you clicked and where it sits on the page. Numbered pins mark each one; click a pin to edit, close or delete it.
+Every comment gets a numbered pin that stays on the content when you scroll, even inside a panel with its own scroll bar, and hides when its tab is not showing. The **Comments pane** (🗨 Comments at the top) lists them all by tab, like PowerPoint: click one to go to it, then **Reply**, **Resolve**, **Edit** or delete. Filter by Open, All, Must fix or Resolved. Your name (optional) goes on comments and replies.
+
+Every comment records exactly **where** it is: tab › section › card or chart › item, plus the data point you clicked.
 
 ### ✨ Prompt builder
 

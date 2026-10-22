@@ -130,14 +130,24 @@
 
   function onClick(e) {
     if (MS.mode !== 'edit') return;
-    var t = e.target;
+    var t = e.target, r = MS.rt();
     if (t.closest && t.closest('[contenteditable="true"]')) return;
+    if (r && r.ptClicking) return;
+    // the dashboard's own tabs switch in Edit mode too (and get selected, so they can be renamed or styled)
+    var pt = r && r.pageTabOf && t.nodeType === 1 ? r.pageTabOf(t) : null;
+    if (pt && (pt.btn === t || pt.btn.contains(t))) { e.preventDefault(); e.stopPropagation(); r.showPageTab(pt.index); E.select(pt.btn); MS.emit('structure'); return; }
     if (t.closest && (t.closest('#ms-ribbon .ms-tabbtn') || t.closest('#ms-filter-pane select') || t.closest('.ms-crumbs button') || t.closest('.ms-modal-wrap') || t.closest('.ms-pane-reset'))) {
       if (t.closest('#ms-ribbon .ms-tabbtn')) setTimeout(function () { MS.emit('structure'); }, 0);
       return;
     }
     e.preventDefault(); e.stopPropagation();
     E.select(pick(t));
+    // a click on a Chart.js legend entry: change that colour (chart and legend together)
+    var ch = r && t.tagName === 'CANVAS' ? r.chartOf(t) : null, lg = ch && ch.lib === 'chartjs' && ch.inst.legend;
+    if (lg && lg.legendHitBoxes && lg.options && lg.options.display !== false) {
+      var bx = t.getBoundingClientRect(), x = e.clientX - bx.left, y = e.clientY - bx.top;
+      lg.legendHitBoxes.forEach(function (hb, i) { var it = lg.legendItems[i]; if (it && x >= hb.left && x <= hb.left + hb.width && y >= hb.top && y <= hb.top + hb.height) MS.catColors.pick(it.text, ch.key); });
+    }
   }
   function onDbl(e) {
     if (MS.mode !== 'edit') return;
@@ -145,6 +155,8 @@
     if (t.closest && t.closest('[contenteditable="true"]')) return;
     e.preventDefault(); e.stopPropagation();
     if (t.closest && t.closest('#ms-ribbon .ms-tabbtn')) { var id = t.closest('.ms-tabbtn').getAttribute('data-ms-tabbtn'); return MS.tabs.rename(id); }
+    var ptb = MS.rt() && t.nodeType === 1 && MS.rt().pageTabOf ? MS.rt().pageTabOf(t) : null;
+    if (ptb && (ptb.btn === t || ptb.btn.contains(t))) return MS.pageTabs.rename(ptb.index);
     var kp = t.closest && t.closest('.ms-kpi');
     if (kp && t.closest('.ms-kpi-value')) { E.select(kp); return kp.hasAttribute('data-ms-kpi') ? MS.compose.kpiSettings(kp) : E.startText(t.closest('.ms-kpi-value')); }
     var p = pick(t);
@@ -166,6 +178,8 @@
     var rt = MS.rt();
     var sec = el.closest && el.closest('section.ms-tab');
     if (sec && rt && !sec.classList.contains('ms-active')) { rt.showTab(sec.getAttribute('data-ms-tab')); MS.emit('structure'); }
+    var pt = MS.pageTabs && MS.pageTabs.of(el);
+    if (pt && !pt.active) { rt.showPageTab(pt.index); MS.emit('structure'); }
     setTimeout(function () {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
       if (flash) { el.classList.remove('ms-flash'); void el.offsetWidth; el.classList.add('ms-flash'); setTimeout(function () { el.classList.remove('ms-flash'); }, 1600); }
@@ -252,6 +266,9 @@
   };
   E.style = function (el, props, label) {
     if (!el) return;
+    // a legend swatch written in the page: recolour the chart instead, and the swatch follows
+    var bgv = props.backgroundColor || props.background, lg = bgv && MS.rt() && MS.rt().legendOf ? MS.rt().legendOf(el) : null;
+    if (lg) { var m = {}; m[lg.name] = bgv; return MS.catColors.set(m, 'Colour of “' + lg.name + '”'); }
     if (E.isGenerated(el)) MS.toast('This element is drawn by the dashboard\'s script, so style changes may not survive a reload.', 'warn', 5000);
     MS.history.attrs(label || 'Style', el, ['style'], function (x) {
       Object.keys(props).forEach(function (k) {
