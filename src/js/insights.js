@@ -62,11 +62,19 @@
   function tokens(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !STOP[w] && !/^\d+$/.test(w); }).map(function (w) { return w.replace(/(ies)$/, 'y').replace(/s$/, ''); }); }
   function overlap(a, b) { var n = 0; a.forEach(function (w) { if (b.indexOf(w) >= 0) n++; }); return n; }
   // "₹1.25 Cr" -> { v: 12500000, tol: 50000, pct: false }
+  function regionComma() { return (1.5).toLocaleString(MS.locale.get().locale).indexOf(',') >= 0; }
   N.parse = function (text) {
     var t = String(text || '').replace(/ /g, ' ').trim();
-    // regions that write 1.234,5 (Germany, France…): swap to 1234.5 first
-    var dot = (1.5).toLocaleString(MS.locale.get().locale).indexOf(',') >= 0;
-    var plain = dot ? t.replace(/[.\s\u202f]/g, '').replace(/,/g, '.') : t.replace(/,/g, '');
+    // which mark is the decimal point? read it from the number itself (1,234.5 or 1.234,5),
+    // and only fall back to the region setting when it can't tell (1.234 or 1,234 alone)
+    var num0 = (t.match(/-?\d[\d.,\s\u202f\u00a0']*/) || [''])[0].replace(/[\s\u202f\u00a0']+$/, ''), comma;
+    var lc = num0.lastIndexOf(','), ld = num0.lastIndexOf('.');
+    if (lc >= 0 && ld >= 0) comma = lc > ld;
+    else if (lc >= 0) comma = !/^-?\d{1,3}(,\d{2,3})+$/.test(num0) || (num0.match(/,/g).length === 1 && /,\d{3}$/.test(num0) && regionComma());
+    else if (ld >= 0) comma = (num0.match(/\./g).length > 1) || (/^-?\d{1,3}\.\d{3}$/.test(num0) && regionComma());
+    else comma = false;
+    var fixed = comma ? num0.replace(/[.\s\u202f\u00a0']/g, '').replace(',', '.') : num0.replace(/[,\s\u202f\u00a0']/g, '');
+    var plain = num0 ? t.replace(num0, fixed) : t;
     var m = plain.match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|thousand|k\b|millions?|mn\b|m\b|billions?|bn\b|b\b|%)?/i);
     if (!m) return null;
     var num = parseFloat(m[1]), unit = (m[2] || '').toLowerCase(), dec = (m[1].split('.')[1] || '').length;

@@ -1354,20 +1354,21 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     try { if (!NF[k]) NF[k] = new Intl.NumberFormat(L.locale, o); return NF[k].format(x); }
     catch (e) { try { return new Intl.NumberFormat('en-US', o).format(x); } catch (e2) { return String(x); } }
   }
-  function curSymbol() {
-    var L = locale();
-    try { var p = new Intl.NumberFormat(L.locale, { style: 'currency', currency: L.currency }).formatToParts(1).filter(function (q) { return q.type === 'currency'; })[0]; return p ? p.value : L.currency; } catch (e) { return L.currency; }
+  function curSymbol(code) {
+    var L = locale(); code = code || L.currency;
+    try { var p = new Intl.NumberFormat(L.locale, { style: 'currency', currency: code }).formatToParts(1).filter(function (q) { return q.type === 'currency'; })[0]; return p ? p.value : code; } catch (e) { return code; }
   }
   rt.curSymbol = curSymbol;
   // 1.2M / $1.2M (or 1.2 Cr / ₹1.2 Cr with Indian units)
-  function shortNum(n, money) {
+  // code: a currency the chart itself names (₹, €…), which wins over the region's
+  function shortNum(n, money, code) {
     var L = locale(), a = Math.abs(n), d2 = { maximumFractionDigits: 2, minimumFractionDigits: 0 };
-    if (L.indian) {
+    if (code ? code === 'INR' : L.indian) {
       var u = a >= 1e7 ? [1e7, ' Cr'] : a >= 1e5 ? [1e5, ' L'] : a >= 1e3 ? [1e3, 'K'] : [1, ''];
-      return (money ? curSymbol() : '') + nf(n / u[0], d2) + u[1];
+      return (money ? curSymbol(code) : '') + nf(n / u[0], d2) + u[1];
     }
     var o = a >= 1e3 ? { notation: 'compact', compactDisplay: 'short', maximumSignificantDigits: 3 } : { maximumFractionDigits: a < 10 ? 2 : 0 };
-    if (money) { o.style = 'currency'; o.currency = L.currency; }
+    if (money) { o.style = 'currency'; o.currency = code || L.currency; }
     return nf(n, o);
   }
   function fmt(tpl, ctx) {
@@ -2088,10 +2089,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     if (f) return function (v) { return fmtNum(v, f); };
     var money = /[₹$€£¥]|rs\.?\b|inr|usd|eur|gbp|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
     var pct = /%|percent|ratio|rate|share|margin %/i.test(hint);
+    // a chart that names its currency keeps it, whatever the region setting
+    var m = /₹|\brs\.?\s|\binr\b|crore|lakh|€|\beur\b|£|\bgbp\b|¥|\bjpy\b|\$|\busd\b/i.exec(hint || ''), code = null;
+    if (m) { var t = m[0].toLowerCase(); code = /₹|rs|inr|crore|lakh/.test(t) ? 'INR' : /€|eur/.test(t) ? 'EUR' : /£|gbp/.test(t) ? 'GBP' : /¥|jpy/.test(t) ? 'JPY' : 'USD'; if (code === locale().currency) code = null; }
     return function (v) {
       if (v == null) return '–';
       var a = Math.abs(v);
       if (pct && a <= 100) return fmtNum(v, 'pct');
+      if (code) return a >= 1e4 ? shortNum(v, true, code) : nf(v, { style: 'currency', currency: code, maximumFractionDigits: a < 10 ? 2 : 0, minimumFractionDigits: 0 });
       if (a >= 1e4) return fmtNum(v, money ? 'curshort' : 'short');
       return money ? fmtNum(v, 'cur') : fmtNum(v, a < 10 ? 'num' : 'int');
     };
@@ -2829,12 +2834,17 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     b.title = 'Click for release notes';
   }
   var errShown = false;
-  if (!EDITOR) window.addEventListener('error', function (e) {
+  function showErr(msg) {
     if (errShown || !D.body) return; errShown = true;
-    var bar = el('div', { id: 'ms-errbar', role: 'alert' }, [el('span', { text: 'Part of this dashboard didn\u2019t load' + (e && e.message ? ' (' + String(e.message).slice(0, 80) + ')' : '') + '. The rest works. If it persists, ask the owner for a fresh copy.' }),
+    var bar = el('div', { id: 'ms-errbar', role: 'alert' }, [el('span', { text: 'Part of this dashboard didn\u2019t load' + (msg ? ' (' + String(msg).slice(0, 80) + ')' : '') + '. The rest works. If it persists, ask the owner for a fresh copy.' }),
       el('button', { text: '\u2715', title: 'Hide', onclick: function () { bar.remove(); } })]);
     D.body.appendChild(bar);
-  });
+  }
+  if (!EDITOR) {
+    // errors before the runtime loaded were noted by the #ms-early script in <head>
+    if (window.__msErrs && window.__msErrs.length) showErr(window.__msErrs[0].message);
+    window.addEventListener('error', function (e) { showErr(e && e.message); });
+  }
 
   rt.refresh = function (force) {
     ensureStyle('ms-base-css', BASE_CSS);
@@ -2918,6 +2928,12 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var rs = doc.createElement('script'); rs.id = 'ms-runtime'; rs.setAttribute('data-ms-own', '');
     rs.textContent = MS.RUNTIME_SRC().replace(/<\/script/gi, '<\\/script');
     doc.body.appendChild(rs);
+    // first thing in <head>: note script errors from the very start, before the page's own scripts run
+    // (the runtime shows viewers a calm message; "Ready to publish?" lists them)
+    var early = doc.getElementById('ms-early'); if (early) early.remove();
+    early = doc.createElement('script'); early.id = 'ms-early'; early.setAttribute('data-ms-own', '');
+    early.textContent = EARLY;
+    doc.head.insertBefore(early, doc.head.firstChild);
 
     if (opts.editor) {
       var head = doc.head;
@@ -2931,6 +2947,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     }
     return { html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML, doc: doc };
   };
+  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<20)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
   function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
   MS.safeJson = safeJson;
 
@@ -3056,8 +3073,10 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
             doc.head.insertBefore(s, doc.head.firstChild);
           }
           if (missing.length) MS.toast('Could not find: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : ''), 'warn', 8000);
-          MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true, password: opts && opts.password });
-          MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+          return MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true, password: opts && opts.password }).then(function (ok) {
+            if (ok) MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+            return ok;
+          });
         });
       });
     });
@@ -5561,7 +5580,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password == null ? undefined : a.password }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
     } };
   A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true], password: ['string', 'Password, for a published file locked for editing'] },
-    f: function (a) { MS.openFolder(a.files.map(fileOf), { password: a.password }); return settle(2500).then(function () { return A.outline.f({}); }); } };
+    f: function (a) { return Promise.resolve(MS.openFolder(a.files.map(fileOf), { password: a.password })).then(function (ok) { if (ok === false) throw new Error('Not opened: the dashboard is locked for editing.'); return settle(2500); }).then(function () { return A.outline.f({}); }); } };
   A.new_dashboard = { d: 'Start a new dashboard from scratch.', p: { title: ['string', 'Dashboard name'], tabs: ['boolean', 'Start with Overview, How to use, FAQs and Methodology tabs (default true)'] },
     f: function (a) {
       MS.dirty = false; MS.compose.newDoc();
@@ -7270,11 +7289,19 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   function tokens(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !STOP[w] && !/^\d+$/.test(w); }).map(function (w) { return w.replace(/(ies)$/, 'y').replace(/s$/, ''); }); }
   function overlap(a, b) { var n = 0; a.forEach(function (w) { if (b.indexOf(w) >= 0) n++; }); return n; }
   // "₹1.25 Cr" -> { v: 12500000, tol: 50000, pct: false }
+  function regionComma() { return (1.5).toLocaleString(MS.locale.get().locale).indexOf(',') >= 0; }
   N.parse = function (text) {
     var t = String(text || '').replace(/ /g, ' ').trim();
-    // regions that write 1.234,5 (Germany, France…): swap to 1234.5 first
-    var dot = (1.5).toLocaleString(MS.locale.get().locale).indexOf(',') >= 0;
-    var plain = dot ? t.replace(/[.\s\u202f]/g, '').replace(/,/g, '.') : t.replace(/,/g, '');
+    // which mark is the decimal point? read it from the number itself (1,234.5 or 1.234,5),
+    // and only fall back to the region setting when it can't tell (1.234 or 1,234 alone)
+    var num0 = (t.match(/-?\d[\d.,\s\u202f\u00a0']*/) || [''])[0].replace(/[\s\u202f\u00a0']+$/, ''), comma;
+    var lc = num0.lastIndexOf(','), ld = num0.lastIndexOf('.');
+    if (lc >= 0 && ld >= 0) comma = lc > ld;
+    else if (lc >= 0) comma = !/^-?\d{1,3}(,\d{2,3})+$/.test(num0) || (num0.match(/,/g).length === 1 && /,\d{3}$/.test(num0) && regionComma());
+    else if (ld >= 0) comma = (num0.match(/\./g).length > 1) || (/^-?\d{1,3}\.\d{3}$/.test(num0) && regionComma());
+    else comma = false;
+    var fixed = comma ? num0.replace(/[.\s\u202f\u00a0']/g, '').replace(',', '.') : num0.replace(/[,\s\u202f\u00a0']/g, '');
+    var plain = num0 ? t.replace(num0, fixed) : t;
     var m = plain.match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|thousand|k\b|millions?|mn\b|m\b|billions?|bn\b|b\b|%)?/i);
     if (!m) return null;
     var num = parseFloat(m[1]), unit = (m[2] || '').toLowerCase(), dec = (m[1].split('.')[1] || '').length;
@@ -7738,16 +7765,18 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   /* ================================================================ ready to publish? */
   var Pf = MS.preflight = {};
-  MS.childErrors = [];
-  MS.on('child-loaded', function (c) {
-    MS.childErrors = [];
-    try { c.win.addEventListener('error', function (e) { MS.childErrors.push(String(e.message || 'Script error') + (e.filename ? ' (' + String(e.filename).split('/').pop() + (e.lineno ? ':' + e.lineno : '') + ')' : '')); }); } catch (e) {}
-  });
+  // script errors since the page started (recorded by the #ms-early script that opening adds to <head>)
+  function childErrors() {
+    var list = []; try { list = (MS.child && MS.child.win.__msErrs) || []; } catch (e) {}
+    return list.map(function (e) { return e.message + (e.file ? ' (' + e.file + (e.line ? ':' + e.line : '') + ')' : ''); });
+  }
+  Pf.errors = childErrors;
   Pf.run = function () {
     var r = rt(), d = MS.child.doc, out = [];
     var add = function (status, title, detail, fix) { out.push({ status: status, title: title, detail: detail || '', fix: fix || '' }); };
     // script errors
-    if (MS.childErrors.length) add('fail', 'The dashboard had script errors', MS.childErrors.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
+    var errs = childErrors();
+    if (errs.length) add('fail', 'The dashboard had script errors', errs.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
     else add('pass', 'No script errors');
     // charts that drew nothing
     var charts = r ? r.charts() : [], empty = charts.filter(function (c) { var x = r.chartData(c.key, true); return !x || !x.labels.length || !x.series.some(function (s) { return s.values.some(function (v) { return v != null; }); }); });

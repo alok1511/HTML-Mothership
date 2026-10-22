@@ -34,6 +34,12 @@
     var rs = doc.createElement('script'); rs.id = 'ms-runtime'; rs.setAttribute('data-ms-own', '');
     rs.textContent = MS.RUNTIME_SRC().replace(/<\/script/gi, '<\\/script');
     doc.body.appendChild(rs);
+    // first thing in <head>: note script errors from the very start, before the page's own scripts run
+    // (the runtime shows viewers a calm message; "Ready to publish?" lists them)
+    var early = doc.getElementById('ms-early'); if (early) early.remove();
+    early = doc.createElement('script'); early.id = 'ms-early'; early.setAttribute('data-ms-own', '');
+    early.textContent = EARLY;
+    doc.head.insertBefore(early, doc.head.firstChild);
 
     if (opts.editor) {
       var head = doc.head;
@@ -47,6 +53,7 @@
     }
     return { html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML, doc: doc };
   };
+  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<20)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
   function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
   MS.safeJson = safeJson;
 
@@ -172,8 +179,10 @@
             doc.head.insertBefore(s, doc.head.firstChild);
           }
           if (missing.length) MS.toast('Could not find: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : ''), 'warn', 8000);
-          MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true, password: opts && opts.password });
-          MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+          return MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true, password: opts && opts.password }).then(function (ok) {
+            if (ok) MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+            return ok;
+          });
         });
       });
     });

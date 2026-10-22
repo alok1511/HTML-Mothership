@@ -122,20 +122,21 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     try { if (!NF[k]) NF[k] = new Intl.NumberFormat(L.locale, o); return NF[k].format(x); }
     catch (e) { try { return new Intl.NumberFormat('en-US', o).format(x); } catch (e2) { return String(x); } }
   }
-  function curSymbol() {
-    var L = locale();
-    try { var p = new Intl.NumberFormat(L.locale, { style: 'currency', currency: L.currency }).formatToParts(1).filter(function (q) { return q.type === 'currency'; })[0]; return p ? p.value : L.currency; } catch (e) { return L.currency; }
+  function curSymbol(code) {
+    var L = locale(); code = code || L.currency;
+    try { var p = new Intl.NumberFormat(L.locale, { style: 'currency', currency: code }).formatToParts(1).filter(function (q) { return q.type === 'currency'; })[0]; return p ? p.value : code; } catch (e) { return code; }
   }
   rt.curSymbol = curSymbol;
   // 1.2M / $1.2M (or 1.2 Cr / ₹1.2 Cr with Indian units)
-  function shortNum(n, money) {
+  // code: a currency the chart itself names (₹, €…), which wins over the region's
+  function shortNum(n, money, code) {
     var L = locale(), a = Math.abs(n), d2 = { maximumFractionDigits: 2, minimumFractionDigits: 0 };
-    if (L.indian) {
+    if (code ? code === 'INR' : L.indian) {
       var u = a >= 1e7 ? [1e7, ' Cr'] : a >= 1e5 ? [1e5, ' L'] : a >= 1e3 ? [1e3, 'K'] : [1, ''];
-      return (money ? curSymbol() : '') + nf(n / u[0], d2) + u[1];
+      return (money ? curSymbol(code) : '') + nf(n / u[0], d2) + u[1];
     }
     var o = a >= 1e3 ? { notation: 'compact', compactDisplay: 'short', maximumSignificantDigits: 3 } : { maximumFractionDigits: a < 10 ? 2 : 0 };
-    if (money) { o.style = 'currency'; o.currency = L.currency; }
+    if (money) { o.style = 'currency'; o.currency = code || L.currency; }
     return nf(n, o);
   }
   function fmt(tpl, ctx) {
@@ -856,10 +857,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     if (f) return function (v) { return fmtNum(v, f); };
     var money = /[₹$€£¥]|rs\.?\b|inr|usd|eur|gbp|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
     var pct = /%|percent|ratio|rate|share|margin %/i.test(hint);
+    // a chart that names its currency keeps it, whatever the region setting
+    var m = /₹|\brs\.?\s|\binr\b|crore|lakh|€|\beur\b|£|\bgbp\b|¥|\bjpy\b|\$|\busd\b/i.exec(hint || ''), code = null;
+    if (m) { var t = m[0].toLowerCase(); code = /₹|rs|inr|crore|lakh/.test(t) ? 'INR' : /€|eur/.test(t) ? 'EUR' : /£|gbp/.test(t) ? 'GBP' : /¥|jpy/.test(t) ? 'JPY' : 'USD'; if (code === locale().currency) code = null; }
     return function (v) {
       if (v == null) return '–';
       var a = Math.abs(v);
       if (pct && a <= 100) return fmtNum(v, 'pct');
+      if (code) return a >= 1e4 ? shortNum(v, true, code) : nf(v, { style: 'currency', currency: code, maximumFractionDigits: a < 10 ? 2 : 0, minimumFractionDigits: 0 });
       if (a >= 1e4) return fmtNum(v, money ? 'curshort' : 'short');
       return money ? fmtNum(v, 'cur') : fmtNum(v, a < 10 ? 'num' : 'int');
     };
@@ -1597,12 +1602,17 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     b.title = 'Click for release notes';
   }
   var errShown = false;
-  if (!EDITOR) window.addEventListener('error', function (e) {
+  function showErr(msg) {
     if (errShown || !D.body) return; errShown = true;
-    var bar = el('div', { id: 'ms-errbar', role: 'alert' }, [el('span', { text: 'Part of this dashboard didn\u2019t load' + (e && e.message ? ' (' + String(e.message).slice(0, 80) + ')' : '') + '. The rest works. If it persists, ask the owner for a fresh copy.' }),
+    var bar = el('div', { id: 'ms-errbar', role: 'alert' }, [el('span', { text: 'Part of this dashboard didn\u2019t load' + (msg ? ' (' + String(msg).slice(0, 80) + ')' : '') + '. The rest works. If it persists, ask the owner for a fresh copy.' }),
       el('button', { text: '\u2715', title: 'Hide', onclick: function () { bar.remove(); } })]);
     D.body.appendChild(bar);
-  });
+  }
+  if (!EDITOR) {
+    // errors before the runtime loaded were noted by the #ms-early script in <head>
+    if (window.__msErrs && window.__msErrs.length) showErr(window.__msErrs[0].message);
+    window.addEventListener('error', function (e) { showErr(e && e.message); });
+  }
 
   rt.refresh = function (force) {
     ensureStyle('ms-base-css', BASE_CSS);

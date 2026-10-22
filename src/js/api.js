@@ -57,7 +57,7 @@
       return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password == null ? undefined : a.password }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
     } };
   A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true], password: ['string', 'Password, for a published file locked for editing'] },
-    f: function (a) { MS.openFolder(a.files.map(fileOf), { password: a.password }); return settle(2500).then(function () { return A.outline.f({}); }); } };
+    f: function (a) { return Promise.resolve(MS.openFolder(a.files.map(fileOf), { password: a.password })).then(function (ok) { if (ok === false) throw new Error('Not opened: the dashboard is locked for editing.'); return settle(2500); }).then(function () { return A.outline.f({}); }); } };
   A.new_dashboard = { d: 'Start a new dashboard from scratch.', p: { title: ['string', 'Dashboard name'], tabs: ['boolean', 'Start with Overview, How to use, FAQs and Methodology tabs (default true)'] },
     f: function (a) {
       MS.dirty = false; MS.compose.newDoc();

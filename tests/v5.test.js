@@ -52,6 +52,18 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     check('region: undoable', loc.undone === 'USD', loc.undone);
     check('region: many countries and currencies to pick from', loc.countries >= 50 && loc.currencies >= 50, { c: loc.countries, cur: loc.currencies });
 
+    const pr = await page.evaluate(() => {
+      const P = t => { const r = MS.numcheck.parse(t); return r && r.v; }, rt = MS.rt(), k = rt.charts()[0].key;
+      const out = { us: [P('$1,234.50'), P('1.234,5 €'), P('₹12,34,567'), P('₹16.2 Cr'), P('$1.2 million')] };
+      out.euroTitle = rt.summarize(k, 'Revenue (€)'); out.rupeeTitle = rt.summarize(k, 'Sales (₹)'); out.plain = rt.summarize(k, 'Sales by region');
+      MS.locale.set({ country: 'Germany' });
+      out.de = [P('$1,234.50'), P('1.234,5 €'), P('1.234')];
+      MS.history.undo();
+      return out;
+    });
+    check('number check: reads 1,234.50 and 1.234,5 whatever the region', pr.us.join() === '1234.5,1234.5,1234567,162000000,1200000' && pr.de.join() === '1234.5,1234.5,1234', pr);
+    check('summaries: a chart that names its currency keeps it', /€/.test(pr.euroTitle) && !/\$/.test(pr.euroTitle) && /₹[\d.]+ Cr/.test(pr.rupeeTitle) && /\$/.test(pr.plain), pr);
+
     const dlg = await page.evaluate(() => {
       MS.locale.dialog();
       const w = document.querySelector('.dlg-wrap'), sel = w.querySelector('select');
@@ -120,9 +132,22 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     check('lock: asks for the password in the editor', /Locked for editing/.test(op.dialog) && /version 1\.0/.test(op.dialog), op.dialog.slice(0, 300));
     check('editor: no version badge while editing', op.badgeInEditor === false, op.badgeInEditor);
 
+    /* errors while the page first loads are caught too */
+    const early = await page.evaluate(async html => {
+      const bad = html.replace('<body', '<body data-x="1"').replace(/(<body[^>]*>)/, '$1<script>throw new Error("early boom");</script>');
+      await MS.api.run('open_html', { html: bad, name: 'bad.html', password: 'secret12' });
+      await new Promise(r => setTimeout(r, 400));
+      const t = await MS.api.run('publish_check', {});
+      const b64 = btoa(unescape(encodeURIComponent(html)));
+      const folder = await MS.api.run('open_folder_files', { files: [{ path: 'pub/p.html', name: 'p.html', b64 }], password: 'nope' }).then(() => 'opened', e => e.message);
+      return { item: t.items.find(x => /script errors/.test(x.title)), folder };
+    }, pub.html);
+    check('publish check: catches errors while the page loads', early.item && early.item.status === 'fail' && /early boom/.test(early.item.detail), early.item);
+    check('lock: a locked file in a folder needs the right password', /Wrong password/.test(early.folder), early.folder);
+
     /* the published file in a browser */
     if (target === 'mothership.html') {
-      const broken = pub.html.replace('</body>', '<script>setTimeout(function () { throw new Error("boom"); }, 300);</script></body>');
+      const broken = pub.html.replace(/(<body[^>]*>)/, '$1<script>throw new Error("boom");</script>');
       const file = path.join(TMP, 'published.html'); fs.writeFileSync(file, broken);
       const v = await browser.newPage();
       await v.goto('file://' + file); await wait(1800);
@@ -148,7 +173,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     check('help: FAQ covers locking', /lock/i.test(hp.faq) && /password/i.test(hp.faq), hp.faq.slice(0, 200));
 
     check('ribbon: Region & currency, Ready to publish? and Publish', ['Region & currency', 'Ready to publish?', 'Publish'].every(l => dlg.labels.some(t => String(t || '').trim() === l)), dlg.labels.filter(t => /Publish|Region/.test(t || '')));
-    check('editor: no script errors', errors.length === 0, errors);
+    check('editor: no script errors', errors.filter(m => !/early boom/.test(m)).length === 0, errors);
     await page.close();
   }
   await browser.close();

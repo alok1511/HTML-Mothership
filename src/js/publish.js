@@ -106,16 +106,18 @@
 
   /* ================================================================ ready to publish? */
   var Pf = MS.preflight = {};
-  MS.childErrors = [];
-  MS.on('child-loaded', function (c) {
-    MS.childErrors = [];
-    try { c.win.addEventListener('error', function (e) { MS.childErrors.push(String(e.message || 'Script error') + (e.filename ? ' (' + String(e.filename).split('/').pop() + (e.lineno ? ':' + e.lineno : '') + ')' : '')); }); } catch (e) {}
-  });
+  // script errors since the page started (recorded by the #ms-early script that opening adds to <head>)
+  function childErrors() {
+    var list = []; try { list = (MS.child && MS.child.win.__msErrs) || []; } catch (e) {}
+    return list.map(function (e) { return e.message + (e.file ? ' (' + e.file + (e.line ? ':' + e.line : '') + ')' : ''); });
+  }
+  Pf.errors = childErrors;
   Pf.run = function () {
     var r = rt(), d = MS.child.doc, out = [];
     var add = function (status, title, detail, fix) { out.push({ status: status, title: title, detail: detail || '', fix: fix || '' }); };
     // script errors
-    if (MS.childErrors.length) add('fail', 'The dashboard had script errors', MS.childErrors.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
+    var errs = childErrors();
+    if (errs.length) add('fail', 'The dashboard had script errors', errs.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
     else add('pass', 'No script errors');
     // charts that drew nothing
     var charts = r ? r.charts() : [], empty = charts.filter(function (c) { var x = r.chartData(c.key, true); return !x || !x.labels.length || !x.series.some(function (s) { return s.values.some(function (v) { return v != null; }); }); });
