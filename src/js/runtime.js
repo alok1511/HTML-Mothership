@@ -85,23 +85,58 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var n = Number(v);
     if (isNaN(n)) return String(v);
     var IN = function (x, d) { return x.toLocaleString('en-IN', { maximumFractionDigits: d == null ? 2 : d, minimumFractionDigits: 0 }); };
+    var L = locale(), LN = function (x, d) { return nf(x, { maximumFractionDigits: d == null ? 2 : d, minimumFractionDigits: 0 }); };
     switch (spec) {
+      case 'cur': return nf(n, { style: 'currency', currency: L.currency, maximumFractionDigits: Math.abs(n) < 10 ? 2 : 0, minimumFractionDigits: 0 });
+      case 'cur2': return nf(n, { style: 'currency', currency: L.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      case 'short': return shortNum(n, false);
+      case 'curshort': return shortNum(n, true);
+      case 'num': return LN(n, 2);
       case 'inr': return '₹' + IN(n, 0);
       case 'inr2': return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       case 'cr': return '₹' + IN(n / 1e7, 2) + ' Cr';
       case 'lakh': case 'l': return '₹' + IN(n / 1e5, 2) + ' L';
-      case 'k': return IN(n / 1e3, 1) + 'K';
-      case 'm': case 'mn': return IN(n / 1e6, 2) + 'M';
-      case 'bn': return IN(n / 1e9, 2) + 'B';
-      case 'pct': return IN(n, 1) + '%';
-      case 'pct100': return IN(n * 100, 1) + '%';
-      case 'int': return IN(n, 0);
+      case 'k': return LN(n / 1e3, 1) + 'K';
+      case 'm': case 'mn': return LN(n / 1e6, 2) + 'M';
+      case 'bn': return LN(n / 1e9, 2) + 'B';
+      case 'pct': return LN(n, 1) + '%';
+      case 'pct100': return LN(n * 100, 1) + '%';
+      case 'int': return LN(n, 0);
       case 'usd': return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
       case 'raw': return String(n);
       default:
-        if (spec && /^0(\.0+)?$/.test(spec)) { var d = spec.indexOf('.') < 0 ? 0 : spec.length - 2; return n.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d }); }
-        return IN(n, 2);
+        if (spec && /^0(\.0+)?$/.test(spec)) { var d = spec.indexOf('.') < 0 ? 0 : spec.length - 2; return nf(n, { minimumFractionDigits: d, maximumFractionDigits: d }); }
+        return LN(n, 2);
     }
+  }
+  /* Region and currency: state.locale = { country, locale: 'en-US', currency: 'USD', units: 'intl' | 'indian' }.
+     US English and the US dollar unless the dashboard says otherwise. */
+  function locale() {
+    var x = (rt.state && rt.state.locale) || {}, lc = x.locale || 'en-US', cur = (x.currency || 'USD').toUpperCase();
+    return { country: x.country || (lc.split('-')[1] || 'US'), locale: lc, currency: cur, indian: x.units ? x.units === 'indian' : (/-IN$/.test(lc) || cur === 'INR') };
+  }
+  rt.locale = locale;
+  var NF = {};
+  function nf(x, o) {
+    var L = locale(), k = L.locale + JSON.stringify(o);
+    try { if (!NF[k]) NF[k] = new Intl.NumberFormat(L.locale, o); return NF[k].format(x); }
+    catch (e) { try { return new Intl.NumberFormat('en-US', o).format(x); } catch (e2) { return String(x); } }
+  }
+  function curSymbol() {
+    var L = locale();
+    try { var p = new Intl.NumberFormat(L.locale, { style: 'currency', currency: L.currency }).formatToParts(1).filter(function (q) { return q.type === 'currency'; })[0]; return p ? p.value : L.currency; } catch (e) { return L.currency; }
+  }
+  rt.curSymbol = curSymbol;
+  // 1.2M / $1.2M (or 1.2 Cr / ₹1.2 Cr with Indian units)
+  function shortNum(n, money) {
+    var L = locale(), a = Math.abs(n), d2 = { maximumFractionDigits: 2, minimumFractionDigits: 0 };
+    if (L.indian) {
+      var u = a >= 1e7 ? [1e7, ' Cr'] : a >= 1e5 ? [1e5, ' L'] : a >= 1e3 ? [1e3, 'K'] : [1, ''];
+      return (money ? curSymbol() : '') + nf(n / u[0], d2) + u[1];
+    }
+    var o = a >= 1e3 ? { notation: 'compact', compactDisplay: 'short', maximumSignificantDigits: 3 } : { maximumFractionDigits: a < 10 ? 2 : 0 };
+    if (money) { o.style = 'currency'; o.currency = L.currency; }
+    return nf(n, o);
   }
   function fmt(tpl, ctx) {
     return String(tpl).replace(/\{([\w.$ -]+?)(?::([\w.]+))?\}/g, function (m, k, spec) {
@@ -819,15 +854,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   function sumFmt(st, hint) {
     var f = st && st.axisFormat;
     if (f) return function (v) { return fmtNum(v, f); };
-    var money = /₹|rs\.?\b|inr|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
+    var money = /[₹$€£¥]|rs\.?\b|inr|usd|eur|gbp|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
     var pct = /%|percent|ratio|rate|share|margin %/i.test(hint);
     return function (v) {
       if (v == null) return '–';
-      var a = Math.abs(v), IN = function (x, d) { return x.toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: 0 }); };
-      if (pct && a <= 100) return IN(v, 1) + '%';
-      if (a >= 1e7) return (money ? '₹' : '') + IN(v / 1e7, 2) + (money ? ' Cr' : ' crore');
-      if (a >= 1e5) return (money ? '₹' : '') + IN(v / 1e5, 2) + (money ? ' L' : ' lakh');
-      return (money ? '₹' : '') + IN(v, a < 10 ? 2 : 0);
+      var a = Math.abs(v);
+      if (pct && a <= 100) return fmtNum(v, 'pct');
+      if (a >= 1e4) return fmtNum(v, money ? 'curshort' : 'short');
+      return money ? fmtNum(v, 'cur') : fmtNum(v, a < 10 ? 'num' : 'int');
     };
   }
   function pctOf(v, t) { return t ? Math.round(v / t * 100) + '%' : ''; }
@@ -1388,6 +1422,10 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     '.ms-kpi-value{font-size:26px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}',
     '.ms-kpi-note{font-size:12px;color:var(--ms-muted)}',
     '.ms-summary{font-size:12.5px;line-height:1.45;color:var(--ms-muted);margin:6px 2px 0}',
+    '#ms-badge{position:fixed;right:10px;bottom:10px;z-index:9990;background:rgba(255,255,255,.94);color:#334155;border:1px solid #e2e8f0;border-radius:8px;padding:5px 9px;font:12px/1.4 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;max-width:360px}',
+    '#ms-badge .ms-badge-log{display:none;margin-top:6px;border-top:1px solid #e2e8f0;padding-top:6px;max-height:220px;overflow:auto}#ms-badge.open .ms-badge-log{display:block}#ms-badge .ms-badge-log>div{margin-bottom:6px}',
+    '#ms-errbar{position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:9991;background:#fffbeb;color:#78350f;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font:13px/1.4 system-ui,sans-serif;display:flex;gap:10px;align-items:center;max-width:90vw;box-shadow:0 4px 14px rgba(0,0,0,.1)}#ms-errbar button{border:0;background:none;cursor:pointer;color:inherit;font-size:14px}',
+    '@media print{#ms-badge,#ms-errbar{display:none}}',
     '.ms-kpi[data-ms-status=good]{border-top-color:#1a7f37}.ms-kpi[data-ms-status=warn]{border-top-color:#d4a106}.ms-kpi[data-ms-status=bad]{border-top-color:#c62828}',
     '.ms-kpi[data-ms-status] .ms-kpi-value::before{content:"";display:inline-block;width:.42em;height:.42em;border-radius:50%;margin-right:.3em;vertical-align:.18em}',
     '.ms-kpi[data-ms-status=good] .ms-kpi-value::before{background:#1a7f37}.ms-kpi[data-ms-status=warn] .ms-kpi-value::before{background:#d4a106}.ms-kpi[data-ms-status=bad] .ms-kpi-value::before{background:#c62828}',
@@ -1539,6 +1577,33 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   };
 
   /* ------------------------------------------------------------ refresh */
+  /* ------------------------------------------------------------ published files: version stamp, and a calm message if something fails */
+  function fmtDate(d) { try { return new Date(d).toLocaleDateString(locale().locale, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return String(d || ''); } }
+  function renderBadge() {
+    var P = rt.state.publish, b = D.getElementById('ms-badge');
+    if (EDITOR || !P || !P.version || P.badge === false) { if (b) b.remove(); return; }
+    if (!b) {
+      b = el('div', { id: 'ms-badge', role: 'note' });
+      b.addEventListener('click', function () { b.classList.toggle('open'); });
+      D.body.appendChild(b);
+    }
+    var bits = ['Version ' + P.version, 'Published ' + fmtDate(P.at)].concat(P.asOf ? ['Data as of ' + fmtDate(P.asOf)] : []);
+    b.innerHTML = '';
+    b.appendChild(el('div', { 'class': 'ms-badge-line', text: bits.join(' · ') }));
+    var log = el('div', { 'class': 'ms-badge-log' }, (P.log || []).slice().reverse().slice(0, 8).map(function (x) {
+      return el('div', {}, [el('b', { text: 'Version ' + x.version }), ' · ' + fmtDate(x.at) + (x.by ? ' · ' + x.by : ''), x.note ? el('div', { text: x.note }) : null]);
+    }));
+    b.appendChild(log);
+    b.title = 'Click for release notes';
+  }
+  var errShown = false;
+  if (!EDITOR) window.addEventListener('error', function (e) {
+    if (errShown || !D.body) return; errShown = true;
+    var bar = el('div', { id: 'ms-errbar', role: 'alert' }, [el('span', { text: 'Part of this dashboard didn\u2019t load' + (e && e.message ? ' (' + String(e.message).slice(0, 80) + ')' : '') + '. The rest works. If it persists, ask the owner for a fresh copy.' }),
+      el('button', { text: '\u2715', title: 'Hide', onclick: function () { bar.remove(); } })]);
+    D.body.appendChild(bar);
+  });
+
   rt.refresh = function (force) {
     ensureStyle('ms-base-css', BASE_CSS);
     ensureStyle('ms-theme-css', themeCss());
@@ -1557,6 +1622,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     renderNative();
     renderKpis();
     ensureStyle('ms-tip-css', tipCss());
+    renderBadge();
     bindTips();
     cloneCopies();
     rt.charts().forEach(function (c) { applyChart(c, force); });

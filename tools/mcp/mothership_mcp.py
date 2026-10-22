@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '2.2.0'
+VERSION = '2.3.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -415,7 +415,7 @@ def referenced(html_path):
     return [p for p in out if not os.path.relpath(p, folder).startswith('..')]
 
 
-def open_files(main, others):
+def open_files(main, others, password=None):
     folder = os.path.dirname(main)
     top = os.path.basename(folder) or 'dashboard'
     files = []
@@ -423,7 +423,10 @@ def open_files(main, others):
         with open(full, 'rb') as f:
             files.append({'name': os.path.basename(full), 'path': top + '/' + os.path.relpath(full, folder).replace('\\', '/'),
                           'b64': base64.b64encode(f.read()).decode()})
-    return B.api('open_folder_files', {'files': files})
+    args = {'files': files}
+    if password is not None:
+        args['password'] = password
+    return B.api('open_folder_files', args)
 
 
 # --------------------------------------------------------------------------- tools that need the file system
@@ -447,8 +450,11 @@ def t_open_file(a):
     refs = referenced(full)
     if not refs:
         with open(full, encoding='utf-8', errors='replace') as f:
-            return B.api('open_html', {'html': f.read(), 'name': os.path.basename(full)})
-    return open_files(full, refs)
+            args = {'html': f.read(), 'name': os.path.basename(full)}
+        if a.get('password') is not None:
+            args['password'] = a['password']
+        return B.api('open_html', args)
+    return open_files(full, refs, a.get('password'))
 
 
 def t_open_folder(a):
@@ -521,6 +527,15 @@ def read_text(p):
         return f.read()
 
 
+def t_publish_html(a):
+    args = {k: a[k] for k in ('version', 'note', 'by', 'as_of', 'password', 'unlock', 'badge', 'keep_comments') if k in a}
+    r = B.api('publish', args)
+    full = out_path(a.get('path'), r['name'])
+    with open(full, 'w', encoding='utf-8', newline='') as f:
+        f.write(r['html'])
+    return {'saved': full, 'version': r['version'], 'locked': r['locked'], 'sha256': r['sha256'], 'size': '%d KB' % round(r['bytes'] / 1024)}
+
+
 def t_compare_file(a):
     args = {'before_html': read_text(a.get('path'))}
     if a.get('after'):
@@ -532,8 +547,8 @@ def t_compare_file(a):
 
 LOCAL = {
     'status': ('Is Mothership running? Which browser, which editor file, and what is open.', {}, t_status),
-    'open_file': ('Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline.',
-                  {'path': ['string', 'Path to the .html file', True]}, t_open_file),
+    'open_file': ('Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline. A published file locked for editing needs its password.',
+                  {'path': ['string', 'Path to the .html file', True], 'password': ['string', 'Password, for a published file locked for editing']}, t_open_file),
     'open_folder': ('Open a dashboard folder (its HTML with scripts, styles, data and images).',
                     {'path': ['string', 'Folder path', True], 'main': ['string', 'Which .html file is the dashboard (default: index.html or the only one)']}, t_open_folder),
     'export_html': ('Save the edited dashboard as one standalone HTML file (opens anywhere, offline).',
@@ -557,6 +572,8 @@ LOCAL = {
                      'include_done': ['boolean', 'Include closed comments'], 'extra': ['string', 'Extra instruction']}, t_save_prompt),
     'save_tracker': ('Save every review comment as an Excel tracker (.xlsx) with tab, section, chart, comment, done-when, status, owner and due date.',
                      {'path': ['string', 'Where to save (default: <name> - review tracker.xlsx)']}, t_save_tracker),
+    'publish_html': ('Publish a view-only copy to disk: version number, date, release note and corner badge; optionally locked for editing with a password, and sealed so Mothership warns if it is changed later. Run publish_check first.',
+                     {'path': ['string', 'Where to save (default: <name> v<version>.html)'], 'version': ['string', 'e.g. 1.0 (default: next after the last publish)'], 'note': ['string', 'What changed'], 'by': ['string', 'Published by'], 'as_of': ['string', 'Data as of (YYYY-MM-DD)'], 'password': ['string', 'Lock editing with this password (6+ characters). Without one, an earlier lock is kept'], 'unlock': ['boolean', 'Remove an earlier lock'], 'badge': ['boolean', 'Show the version badge (default true)'], 'keep_comments': ['boolean', 'Keep review comments in the file']}, t_publish_html),
     'load_tracker': ('Update comments from an edited Excel tracker: status, priority, owner, due date, notes and wording (matched by the ID column).',
                      {'path': ['string', 'The .xlsx file', True]}, lambda a: B.api('apply_tracker', {'file': b64file(a.get('path'))})),
     'compare_file': ('What changed between a dashboard file on disk and what is open now (or a second file): tabs, text, chart settings, data, KPI cards, filters, colours, comments.',
@@ -564,7 +581,7 @@ LOCAL = {
     'chart_image': ('A PNG of one chart (shown to you, optionally saved).', {'chart': ['string', 'Chart name or key', True], 'path': ['string', 'Also save it here']},
                     lambda a: t_screenshot({'what': a.get('chart'), 'path': a.get('path')})),
 }
-HIDDEN = {'open_folder_files', 'insert_content_file', 'comments_tracker', 'apply_tracker'}
+HIDDEN = {'open_folder_files', 'insert_content_file', 'comments_tracker', 'apply_tracker', 'publish'}
 
 
 def schema_of(props):
@@ -614,7 +631,7 @@ def call_tool(name, args):
 # --------------------------------------------------------------------------- MCP over stdio (newline-delimited JSON-RPC)
 INSTRUCTIONS = ('Mothership edits HTML dashboards like PowerPoint edits slides. Start with open_file (or new_dashboard), then outline to see the tabs, charts, '
                 'datasets and comments. Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. '
-                'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers use Indian formats (₹, lakh, crore).')
+                'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default).')
 
 _out_lock = threading.Lock()
 

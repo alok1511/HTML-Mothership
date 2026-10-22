@@ -148,6 +148,10 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 
 **Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('₹16.2 Cr')` → `{v: 162000000, tol: 500000}`.
 
+**Region and currency** (`src/js/publish.js`): `MS.locale.get()`, `.set({country, currency, locale, units})` (one undo step, emits `locale`), `.describe()`, `.rule()` (the line AI prompts use), `.sample(o)`. In templates use `{value:cur}`, `{value:curshort}` or `{value:short}` to follow it.
+
+**Publishing:** `MS.preflight.run()` → `[{status: 'pass'|'warn'|'fail'|'info', title, detail, fix}]`. `MS.publish.build({version, note, by, asOf, password, keepLock, badge, keepComments})` → `Promise<{html, name, publish, sha256}>`; `MS.publish.verify(html)` → `{ok, version, by, at}` or `null`; `MS.publish.isLocked(html)`. API/MCP: `get_locale`, `set_locale`, `publish_check`, `publish` (MCP `publish_html` saves it), `open_html`/`open_file` with `password`.
+
 **Tracker:** `MS.tracker.rows()`, `.build()` (→ xlsx bytes, via SheetJS), `.apply(arrayBuffer)` (matches the ID column).
 
 **Compare:** `MS.compare.compare(htmlA, htmlB)` → `{changes, sections:[{title, items:[{op: '+'|'-'|'~', text, before, after}]}]}`. It reads `#ms-state`, the tabs and the visible text of each file; text uses a longest-common-subsequence diff.

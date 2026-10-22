@@ -81,13 +81,14 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     check('D3: SVG chart found and named', d3.libs.join() === 'd3' && d3.name === 'Premium by region', d3);
     check('D3: its numbers are read from the marks', d3.data && d3.data.labels.join() === 'West,North,South,East' && d3.data.series[0].name === 'Premium' && d3.data.series[0].values[0] === 52000000, d3.data);
     check('D3: category colour and pop-up', /192, 0, 0/.test(d3.color || '') && d3.tip === 'North: ₹3.8 Cr', { color: d3.color, tip: d3.tip });
-    check('D3: summary and image', /West is highest at ₹5\.2 Cr/.test(d3.summary || '') && d3.img === 'data:image/png;base64,', { s: d3.summary, img: d3.img });
+    check('D3: summary and image', /West is highest at \$52M/.test(d3.summary || '') && d3.img === 'data:image/png;base64,', { s: d3.summary, img: d3.img });
 
     /* summaries, number check, tracker, compare on the sales sample */
     await page.evaluate(() => { MS.dirty = false; MS.samples.open('sales'); });
     await wait(2500);
     const s = await page.evaluate(async () => {
       const out = {};
+      await MS.api.run('set_locale', { country: 'India' });
       const sums = await MS.api.run('chart_summaries', { show: 'caption' });
       out.sums = sums.map(x => x.summary);
       out.caps = MS.$$('.ms-summary', MS.child.doc).length;

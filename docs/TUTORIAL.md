@@ -212,6 +212,46 @@ Make Mothership itself easier on the eyes. Your dashboard is not affected.
 
 Press `Ctrl`+`K` (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.
 
+## Region and currency
+
+Mothership writes numbers in **US dollars, US style** ($1,234,567 and $1.23M) unless you choose otherwise. Change it in **Design › Region & currency**: pick a country (52 to choose from) and it fills in the currency and number style; then change the currency on its own if you need to (any currency, e.g. a UK dashboard in US $). **Big numbers** chooses K, M, B or lakh and crore. The preview shows what you will get.
+
+| Choice | 1234567 as currency | short |
+|---|---|---|
+| United States | $1,234,567 | $1.23M |
+| India | ₹12,34,567 | ₹12.35 L |
+| Germany | 1.234.567 € | 1,23 Mio. € |
+| United Kingdom | £1,234,567 | £1.23M |
+
+### Where it applies
+
+- Pop-ups and axes set to **Currency**, **Currency short** or **Short** (`{value:cur}`, `{value:curshort}`, `{value:short}`).
+- KPI cards, chart summaries, the number check and the AI prompt rules.
+- The setting is saved inside the dashboard, so viewers see the same thing. It is one undo step.
+
+Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbers the dashboard's own script writes are not changed. If a dashboard clearly shows ₹, € or £, Mothership tells you in the status bar but doesn't switch on its own.
+
+## Publishing and locking
+
+Your working copy is for editing; a **published copy** is what you share.
+
+### 🛡 File › Ready to publish?
+
+A checklist before you share: script errors, charts with no numbers, untitled charts, KPI cards that don't match their charts, open must-fix comments, files that need the internet, file size and page title. Red means fix first; amber means take a look.
+
+### 🚀 File › Publish
+
+- **Version and release note**: 1.0, 1.1… counts on by itself. Each publish adds to the release log.
+- **Corner badge**: “Version 1.1 · Published 22 Oct 2026 · Data as of 30 Sep 2026”. Click it for the release notes. It is hidden when printing.
+- **Comments left out** unless you tick Keep.
+- **Tamper check**: the file carries a fingerprint of itself (SHA-256). If someone changes it in Notepad or another tool and it is opened in Mothership again, you get a warning.
+- **Lock editing with a password**: Mothership asks for it before opening the file for editing. Viewers never need it. The password is not stored, only a salted key (PBKDF2).
+- If part of a published dashboard fails to load, viewers see a calm one-line message instead of a broken page.
+
+### What the lock can and can't do
+
+It is a **deterrent, not a vault**. An HTML file is text: anyone can open it in Notepad, and anything on screen can be copied or photographed. The lock stops casual edits in Mothership and the seal tells you if the file was changed. For real control use **SharePoint, OneDrive or Teams permissions** (view-only links, no download), your company's sensitivity labels, or a PDF. Keep confidential numbers out of files that leave the team.
+
 ## Use with AI assistants (MCP)
 
 **MCP** (Model Context Protocol) lets an AI assistant use Mothership for you: “open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it”. The assistant calls Mothership’s tools; nothing goes to the internet from Mothership.
@@ -335,6 +375,12 @@ Review › Number check. It flags KPI cards that don’t match their chart and c
 **Can I track comments in Excel?**  
 Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.
 
+**Can I change the currency from US $?**  
+Yes: Design › Region & currency. Pick any country and any currency; it is saved in the dashboard.
+
+**Can I lock the dashboard so no one else edits it?**  
+Partly. File › Publish can lock editing in Mothership with a password, and Mothership warns if the file was changed elsewhere. But no HTML file can be truly locked: it can always be opened in Notepad. Use SharePoint or Teams view-only permissions for real control. See Publishing and locking.
+
 **Will a KPI card turn red automatically?**  
 Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.
 
@@ -377,3 +423,5 @@ The browser blocks storage for local files (some Firefox or locked-down setups).
 
 **The page looks squashed**  
 View › Draw at › Auto, then ⤢ Fit.
+
+

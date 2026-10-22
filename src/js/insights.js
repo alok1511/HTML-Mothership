@@ -12,7 +12,7 @@
     fallback();
     function fallback() { var t = h('textarea', { style: 'position:fixed;left:-9999px' }); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { MS.toast('Select the text and press Ctrl+C.', 'warn'); } t.remove(); }
   }
-  var IN = function (x, d) { return Number(x).toLocaleString('en-IN', { maximumFractionDigits: d == null ? 2 : d }); };
+  var IN = function (x, d) { return Number(x).toLocaleString(MS.locale.get().locale, { maximumFractionDigits: d == null ? 2 : d }); };
 
   /* ================================================================ chart summaries */
   var S = MS.summaries = {};
@@ -64,9 +64,13 @@
   // "₹1.25 Cr" -> { v: 12500000, tol: 50000, pct: false }
   N.parse = function (text) {
     var t = String(text || '').replace(/ /g, ' ').trim();
-    var m = t.replace(/,/g, '').match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|k\b|mn\b|m\b|bn\b|b\b|%)?/i);
+    // regions that write 1.234,5 (Germany, France…): swap to 1234.5 first
+    var dot = (1.5).toLocaleString(MS.locale.get().locale).indexOf(',') >= 0;
+    var plain = dot ? t.replace(/[.\s\u202f]/g, '').replace(/,/g, '.') : t.replace(/,/g, '');
+    var m = plain.match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|thousand|k\b|millions?|mn\b|m\b|billions?|bn\b|b\b|%)?/i);
     if (!m) return null;
     var num = parseFloat(m[1]), unit = (m[2] || '').toLowerCase(), dec = (m[1].split('.')[1] || '').length;
+    if (/^million/.test(unit)) unit = 'm'; else if (/^billion/.test(unit)) unit = 'bn'; else if (unit === 'thousand') unit = 'k';
     var scale = /^cr/.test(unit) ? 1e7 : /^(lakh|lac|l$)/.test(unit) ? 1e5 : unit === 'k' ? 1e3 : /^(m|mn)$/.test(unit) ? 1e6 : /^(bn|b)$/.test(unit) ? 1e9 : 1;
     return { v: num * scale, tol: 0.5 * Math.pow(10, -dec) * scale, pct: unit === '%', unit: unit, text: t };
   };
@@ -92,9 +96,15 @@
     if (/^(lakh|lac|l$)/.test(s)) return '₹' + IN(v / 1e5) + ' L';
     if (s === 'k') return IN(v / 1e3, 1) + 'K';
     if (/^(m|mn)$/.test(s)) return IN(v / 1e6) + 'M';
-    return (/₹/.test(p.text) ? '₹' : '') + IN(v, 2);
+    if (/^(bn|b)$/.test(s)) return IN(v / 1e9) + 'B';
+    var sym = (p.text.match(/[₹$€£¥]/) || [''])[0];
+    return sym + IN(v, 2);
   }
-  function big(v) { var a = Math.abs(v); return a >= 1e7 ? IN(v / 1e7) + ' crore' : a >= 1e5 ? IN(v / 1e5) + ' lakh' : IN(v); }
+  function big(v) {
+    var a = Math.abs(v);
+    if (MS.locale.get().units === 'indian') return a >= 1e7 ? IN(v / 1e7) + ' crore' : a >= 1e5 ? IN(v / 1e5) + ' lakh' : IN(v);
+    return a >= 1e9 ? IN(v / 1e9) + ' billion' : a >= 1e6 ? IN(v / 1e6) + ' million' : IN(v);
+  }
   function seriesOf(r, key) {
     var d = r.chartData(key, true); if (!d) return [];
     return d.series.map(function (s) {

@@ -248,11 +248,11 @@
   /* ---------------------------------------------------------- the comment dialog */
   function editor(c, extra) {
     var f = MS.form([
-      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in ₹ crore, and add last year for comparison.' },
+      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in millions, and add last year for comparison.' },
       { key: 'type', label: 'Type', type: 'select', options: TYPES, value: c.type || 'change' },
       { key: 'prio', label: 'Priority', type: 'select', options: PRIOS, value: c.prio || 'should' }
     ]);
-    f.inputs.text.placeholder = 'e.g. Show values in ₹ crore, and add last year for comparison.';
+    f.inputs.text.placeholder = 'e.g. Show values in millions, and add last year for comparison.';
     var labels = f.querySelectorAll(':scope > label');
     f.appendChild(h('div', { 'class': 'row gap' }, [labels[1], labels[2]]));
     return { el: h('div', { 'class': 'cmt-ed' }, [extra, f]), f: f };
@@ -450,7 +450,7 @@
     L.push('2. Do not invent data. If a comment needs data the file does not have, say so and leave a clearly marked placeholder.');
     L.push('3. The file was saved by an editor called Mothership. Keep every `data-ms-*` attribute, the `<script id="ms-state" type="application/json">` block and the `<script id="ms-runtime">` block. If a change needs a setting stored in `ms-state` (tooltips, chart look, drill-down), you may edit that JSON carefully.');
     L.push('4. Each comment says where it is: a description, a selector you can search for (`[data-ms-id="…"]` or `[data-ms-ref="…"]`), and a fallback CSS path.');
-    L.push('5. Formats follow India: ₹, lakh and crore (e.g. ₹1,23,45,678 or ₹1.23 Cr), DD-MM-YYYY dates, and the April–March financial year, unless a comment says otherwise.');
+    L.push('5. ' + MS.locale.rule());
     L.push('6. Keep it accessible: readable contrast, text at least 12px, and charts that still make sense without colour.');
     if (o.extra) L.push('7. ' + o.extra.trim());
     L.push('');

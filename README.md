@@ -139,6 +139,18 @@ HTML-Mothership/
 | **Compare versions** | **File › Compare** | What changed between two saved versions, now, or a file: tabs, text (old crossed out, new in green), chart settings, data, KPI cards, filters, colours, comments. Side-by-side view too. |
 | **MCP tools** | Both servers | `chart_summaries`, `number_check`, `compare_versions`, `compare_file`, `save_tracker`, `load_tracker`. |
 
+### New in v3.2: US $ by default, and publishing
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Region & currency** | **Design › Region & currency** | Numbers are written in **US dollars, US style** by default ($1,234,567, $1.23M). Pick any of 52 countries and any currency; choose K/M/B or lakh/crore. Applies to pop-ups and axes set to Currency or Short, KPI cards, chart summaries, the number check and AI prompts. Saved in the dashboard. A ₹, € or £ dashboard gets a hint, not a silent change. |
+| **Ready to publish?** | **File › Ready to publish?** | One checklist: script errors, charts with no numbers, untitled charts, KPI totals that don't match, open must-fix comments, files that need the internet, size, title. |
+| **Publish** | **File › Publish** | A view-only copy for sharing: version number (1.0, 1.1…), release note, "published by", "data as of", and a small corner badge with the release log. Comments are left out. |
+| **Lock editing** | In Publish | Optional password: Mothership asks for it before editing the published copy. Only a salted key (PBKDF2) is stored. **A deterrent, not a vault** (see Limitations). |
+| **Tamper check** | Automatic | A published copy carries its own SHA-256 fingerprint. Reopened in Mothership, it says "unchanged since published" or warns that it was edited elsewhere. |
+| **Calm failure message** | Published files | If part of a dashboard fails to load, viewers see one line ("Part of this dashboard didn't load…") instead of a broken page. |
+| **MCP tools** | Both servers | `get_locale`, `set_locale`, `publish_check`, `publish_html`; `open_file` takes a `password`. |
+
 ---
 
 ## 3. How-to guide
@@ -333,6 +345,8 @@ Stated plainly so nothing surprises you:
 - **Turning tabs off** merges all tabs into one page. It can't be undone with Ctrl+Z, so a version is saved first automatically.
 - **Versions and plugins live in one browser profile.** If IT clears browser data, they go. Exports don't.
 - **PowerPoint import** keeps text, tables, pictures and notes, not exact slide layout or native PowerPoint charts. Use PDF import "as images" when you need it pixel-identical.
+- **The publish lock is a deterrent, not security.** An HTML file is text: anyone can open it in Notepad, change it, or copy what is on screen. The lock stops edits in Mothership and the seal reveals changes, but only when the file is opened in Mothership. For real control use SharePoint/OneDrive/Teams view-only permissions, sensitivity labels, or send a PDF.
+- **Region & currency changes Mothership's numbers only**: pop-ups and axes set to Currency/Short, KPI cards and summaries. Numbers the dashboard's own script writes (and formats picked by name, like ₹ crore) are not converted, and no exchange rates are applied.
 - **Very large datasets** (more than about 50k rows) embedded via *Load data* make exports large and drill-downs slower. Link to the page's own data where possible (*Find data*).
 
 ---
@@ -468,3 +482,6 @@ Not built yet, roughly in order of value:
 4. **Presenter notes from comments**: turn resolved comments into speaker notes for Present mode.
 5. **Accessibility pass**: alt text for images and a keyboard check of exports (chart summaries cover charts from v3.1).
 6. **Full D3 support**: redraw D3 charts from new data, which needs knowing how each chart was built.
+7. **Real access control and signing** (needs company systems, not a file): view-only SharePoint/Teams links, sensitivity labels, and signing published files with the company's certificate instead of a self-check.
+8. **Usage analytics** (who opened which tab): needs a server, so it is out of scope for an offline file.
+9. **Currency conversion** with a rate table you supply, for dashboards that mix currencies.

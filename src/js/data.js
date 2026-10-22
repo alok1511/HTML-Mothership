@@ -296,11 +296,13 @@
   var PRESETS = [
     ['', '(chart default)'],
     ['{label}: {value}', 'Label: value'],
+    ['{series}\n{label}: {value:cur}', 'Series + currency'],
+    ['{label}\n{value:curshort}', 'Currency short ($1.2M)'],
     ['{series}\n{label}: {value:inr}', 'Series + ₹ value'],
     ['{label}\n{value:cr}', '₹ crore'],
     ['{label}\n{value:lakh}', '₹ lakh'],
     ['{label}: {value} ({pct:pct} of total)', 'Value + share %'],
-    ['{label}\nValue: {value:inr}\nRecords: {count}', 'Value + record count (bound charts)']
+    ['{label}\nValue: {value:cur}\nRecords: {count}', 'Value + record count (bound charts)']
   ];
 
   C.settings = function (key, startTab) {
@@ -327,7 +329,7 @@
     var tipPane = MS.h('div', {}, [
       MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Start from' }), preset]),
       MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Tooltip template (new line = new line in the tooltip)' }), tplIn]), chips,
-      MS.h('small', { 'class': 'hint', html: 'Formats: <code>{value:inr}</code> ₹1,23,456 · <code>{value:cr}</code> ₹1.23 Cr · <code>{value:lakh}</code> · <code>{value:k}</code> · <code>{value:pct}</code> · <code>{value:0.0}</code> · <code>{value:usd}</code>' }),
+      MS.h('small', { 'class': 'hint', html: 'Formats (Design › Region & currency sets the currency): <code>{value:cur}</code> $1,234 · <code>{value:curshort}</code> $1.2M · <code>{value:short}</code> 1.2M · <code>{value:inr}</code> ₹1,23,456 · <code>{value:cr}</code> ₹1.23 Cr · <code>{value:lakh}</code> · <code>{value:k}</code> · <code>{value:pct}</code> · <code>{value:0.0}</code> · <code>{value:usd}</code>' }),
       MS.h('div', { 'class': 'field' }, [MS.h('span', { text: 'Preview' }), preview])
     ]);
 
@@ -531,7 +533,7 @@
     var legend = MS.h('select', { 'class': 'inp' }, [['', '(chart default)'], ['top', 'Top'], ['bottom', 'Bottom'], ['right', 'Right'], ['left', 'Left'], ['none', 'Hidden']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.legend || '')) op.selected = true; return op; }));
     var tipSize = MS.h('input', { 'class': 'inp', type: 'number', min: 8, max: 32, placeholder: 'auto', value: style.tipSize || '' });
     var tipRadius = MS.h('input', { 'class': 'inp', type: 'number', min: 0, max: 24, placeholder: 'auto', value: style.tipRadius != null ? style.tipRadius : '' });
-    var axisFmt = MS.h('select', { 'class': 'inp', title: 'How numbers on the value axis are written (Chart.js and ECharts charts)' }, [['', '(chart default)'], ['int', '1,23,456'], ['inr', '₹1,23,456'], ['cr', '₹ crore'], ['lakh', '₹ lakh'], ['k', 'Thousands (K)'], ['m', 'Millions (M)'], ['pct', 'Percent (%)']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.axisFormat || '')) op.selected = true; return op; }));
+    var axisFmt = MS.h('select', { 'class': 'inp', title: 'How numbers on the value axis are written (Chart.js and ECharts charts)' }, [['', '(chart default)'], ['cur', 'Currency ($1,234)'], ['curshort', 'Currency short ($1.2M)'], ['short', 'Short (1.2M)'], ['int', 'Whole number'], ['inr', '₹1,23,456'], ['cr', '₹ crore'], ['lakh', '₹ lakh'], ['k', 'Thousands (K)'], ['m', 'Millions (M)'], ['pct', 'Percent (%)']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.axisFormat || '')) op.selected = true; return op; }));
     var color = optColor(style.color, fire, compact), tipBg = optColor(style.tipBg, fire, compact), tipColor = optColor(style.tipColor, fire, compact), tipBorder = optColor(style.tipBorder, fire, compact);
     function val() {
       return clean({ font: font.value, size: size.value ? +size.value : '', color: color.value, legend: legend.value, axisFormat: axisFmt.value, tipBg: tipBg.value, tipColor: tipColor.value, tipBorder: tipBorder.value, tipSize: tipSize.value ? +tipSize.value : '', tipRadius: tipRadius.value === '' ? '' : +tipRadius.value });
