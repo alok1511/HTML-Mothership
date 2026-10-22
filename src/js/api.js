@@ -162,6 +162,31 @@
       MS.history.state('KPI status colours', function (s) { if (!s.kpis[id]) return; if (a.better) s.kpis[id].status = { better: a.better, good: a.good, bad: a.bad }; else delete s.kpis[id].status; });
       return settle(150).then(function () { return { ref: refOf(card), status: card.getAttribute('data-ms-status') || null, value: (card.querySelector('.ms-kpi-value') || {}).textContent }; });
     } };
+  A.chart_summaries = { d: 'Plain-language summaries of the charts ("West is highest at ₹4.2 Cr (38%)…"), written from the numbers on screen. Optionally add them as captions under the charts or for screen readers.', p: { chart: ['string', 'One chart (default: all)'], show: ['string', 'caption | aria (screen readers only) | off; leave out to just read them'] },
+    f: function (a) {
+      var keys = a.chart ? [chartKey(a.chart)] : rt().charts().map(function (c) { return c.key; });
+      if (a.show) MS.summaries.set(keys, a.show);
+      return settle(200).then(function () { return MS.summaries.list().filter(function (x) { return keys.indexOf(x.key) >= 0; }).map(function (x) { return { chart: x.name, kind: x.kind, summary: x.summary, shown: x.show }; }); });
+    } };
+  A.number_check = { d: 'Check that KPI cards match the totals of the charts that show the same measure, and that charts of the same measure add up alike. Returns differences first.', p: { add_comments: ['boolean', 'Add a review comment for each difference'] },
+    f: function (a) {
+      var res = MS.numcheck.run();
+      if (a.add_comments) res.filter(function (x) { return x.status === 'diff'; }).forEach(function (x) { A.add_comment.f({ ref: x.el ? refOf(x.el) : null, chart: x.el ? null : x.chart, text: 'Numbers don\'t add up: ' + x.what + ' shows ' + x.shown + ' but ' + x.against + ' adds up to ' + x.expected + '. ' + (x.note || ''), type: 'bug', priority: 'must' }); });
+      return res.map(function (x) { return { status: x.status, item: x.what, shows: x.shown, against: x.against || null, addsUpTo: x.expected || null, note: x.note || null }; });
+    } };
+  A.comments_tracker = { d: 'All review comments as an Excel tracker (tab, section, chart, comment, done-when, status, owner, due). Returns the .xlsx as base64; the save_tracker tool writes it to disk.', p: {},
+    f: function () { return MS.tracker.build().then(function (r) { var b = '', u = new Uint8Array(r.bytes); for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { name: r.name, rows: r.rows, b64: btoa(b) }; }); } };
+  A.apply_tracker = { d: 'Update comments from an edited tracker (.xlsx): status, priority, owner, due, notes and wording, matched by the ID column.', p: { file: ['object', '{name, b64}', true] },
+    f: function (a) { return MS.readFile(fileOf(a.file), 'buffer').then(function (b) { return MS.tracker.apply(b); }); } };
+  A.compare_versions = { d: 'What changed between two versions: tabs, text, chart settings, data, KPI cards, filters, colours and comments. Compares saved versions by name, the dashboard now ("now"), or HTML you pass.', p: { before: ['string', 'Saved version name, or "now"'], after: ['string', 'Saved version name, or "now" (default)'], before_html: ['string', 'Or the HTML of the earlier file'], after_html: ['string', 'Or the HTML of the later file'] },
+    f: function (a) {
+      return MS.compare.sources().then(function (src) {
+        var pick = function (n, html) { if (html) return html; n = n || 'now'; var x = src.filter(function (s) { return s.id === n || (n === 'now' && s.id === 'now') || s.name.split(' · ')[0].toLowerCase() === String(n).toLowerCase(); })[0]; if (!x) throw new Error('No version called "' + n + '". Versions: ' + src.map(function (s) { return s.name.split(' · ')[0]; }).join(', ')); return x.get(); };
+        if (!a.before && !a.before_html) throw new Error('Say what to compare from: before (a version name) or before_html.');
+        var r = MS.compare.compare(pick(a.before, a.before_html), pick(a.after, a.after_html));
+        return { changes: r.changes, sections: r.sections };
+      });
+    } };
   A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], sort: ['string', 'desc | asc | "" (by label)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
     f: function (a) {
       if (a.into) MS.edit.select(elOf(a.into)); else MS.edit.select(null);
@@ -365,6 +390,7 @@
     } };
 
   MS.api = {};
+  MS.api.refOf = refOf;
   Object.keys(A).forEach(function (k) { MS.api[k] = function (args) { return A[k].f(args || {}); }; });
   // tool descriptions with JSON Schemas, for MCP and docs
   MS.api.describe = function () {

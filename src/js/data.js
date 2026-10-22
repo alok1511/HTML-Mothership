@@ -413,7 +413,8 @@
     dsSel.addEventListener('change', function () { levels = []; drawData(); drawSuggest(); });
     drawData();
     drawSuggest();
-    var dataPane = MS.h('div', {}, [suggest, MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
+    var dataPane = c.a.basic ? MS.h('div', {}, [MS.h('p', { 'class': 'hint', html: 'This chart is drawn by the page\'s own script (D3 or similar), so Mothership can\'t redraw it from other data. You can still change its pop-up, colours, look and commentary, save it as an image, and comment on it. To drill down, rebuild it with <b>Insert › Chart</b> from the same data.' })])
+      : MS.h('div', {}, [suggest, MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
 
     /* -- layout & commentary pane -- */
     var head = block && block.querySelector('.ms-head');

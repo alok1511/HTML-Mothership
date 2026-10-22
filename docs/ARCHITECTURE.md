@@ -131,3 +131,13 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 **Prompt.** `buildPrompt` writes: role and how to work (by assistant), an "At a glance" table, the dashboard (file, libraries, tab/section/chart map, datasets), comments grouped by tab with *Where / On screen / Find it / The chart shows / Current settings / Comment / Done when*, rules adapted to the comment types, and what to send back (by assistant and output). "Done when" and tool hints come from simple keyword topics (colour, order, chart type, pop-up, drill, numbers, wording, filters, layout).
 
 **Python MCP server.** Same protocol, tools and env settings as the Node server. Requests are handled one at a time; a reader thread matches DevTools replies to waiting calls.
+
+## v3.1 additions
+
+**Highcharts** is a full adapter: it reads `Highcharts.charts`, keeps the original categories, series and tooltip formatter in `__msOrig`, and changes the chart with `chart.update`, `series.setData` and `axis.setCategories`. Mothership never ships Highcharts; it uses the copy inside the dashboard.
+
+**D3 and other SVG charts** are found by their marks: shapes inside an `<svg>` that carry a bound datum (`__data__`, which D3 sets). The first text field of a datum is its label and the first number its value (`d3.pie()` data is unwrapped). Pop-ups use Mothership's own hover tips (`data-ms-tip`), colours are inline `fill`, and the look sets fonts on the SVG's text. There is no `setData`, so order, binding and drill-down are skipped for them.
+
+**Summaries** live in the runtime so captions follow filters and survive export; they are generated elements (no `data-ms-own`) and rebuilt on load.
+
+**Checks and reports** (`insights.js`) are editor-only and read what is on screen: `rt.chartData(key, true)` for charts, the KPI cards' text for KPIs.

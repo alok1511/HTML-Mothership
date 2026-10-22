@@ -8,7 +8,7 @@
   function rt() { return MS.rt(); }
   function clip(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   function q(s) { return '“' + s + '”'; }
-  var LIB = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly' };
+  var LIB = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly', highcharts: 'Highcharts', d3: 'D3 (SVG)' };
 
   /* ---------------------------------------------------------- where is this element? */
   var CARDISH = /(^|[-_ ])(card|panel|tile|widget|box|kpi|metric|chart-?wrap|chart-?box|chart-?container|ms-block)([-_ ]|$)/i;
@@ -132,6 +132,8 @@
     }
     return { c: c, n: n, loc: loc || {}, alive: c.kind !== 'element' || !!el, topics: topicsOf(c.text) };
   }
+  R.resolveComment = resolve;
+
 
   /* ---------------------------------------------------------- the map of the dashboard */
   function mapOf(r, only) {

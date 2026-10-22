@@ -139,3 +139,15 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 **Search** (`src/js/palette.js`): `MS.palette('sales')` opens Ctrl+K with a query. It lists ribbon items, so a plugin's ribbon buttons are searchable without extra work.
 
 **KPI status** (runtime): `kpis[id].status = { better: 'high'|'low', good: n, bad: n }` sets `data-ms-status="good|warn|bad"` on the card on every refresh; `MS.api.run('kpi_status', { ref, better, good, bad })` sets it.
+
+## v3.1 building blocks
+
+**Chart adapters.** An adapter in `src/js/runtime.js` (`A.<lib>`) needs `list`, `info`, `setTooltip`, `setCatColors`, `setPalette`, `setData`, `setStyle`, `onDbl`, `image`, `clone`, `fill`, `resize`. Two optional methods keep library-specific code out of the shared functions: `data(inst, now)` returns `{labels, series:[{name, values}]}` (the original numbers, or what is drawn now when `now` is true) and `colors(inst, labels)` returns `{category: colour}`. `basic: true` marks an adapter that can't redraw from new data (the D3 one): the Data & drill-down pane then explains that instead. `rt.svgImage(svg)` turns any chart SVG into a PNG.
+
+**Summaries.** `rt.summarize(key, name)` (runtime, so captions work in exports) writes the sentences from `rt.chartData(key, true)`. `charts[key].summary = { show: 'caption' | 'aria', name }` turns on the caption (`p.ms-summary`, rebuilt on every refresh) and the `aria-label`. Editor side: `MS.summaries.list()`, `.set(keys, show)`, `.text()`.
+
+**Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('₹16.2 Cr')` → `{v: 162000000, tol: 500000}`.
+
+**Tracker:** `MS.tracker.rows()`, `.build()` (→ xlsx bytes, via SheetJS), `.apply(arrayBuffer)` (matches the ID column).
+
+**Compare:** `MS.compare.compare(htmlA, htmlB)` → `{changes, sections:[{title, items:[{op: '+'|'-'|'~', text, before, after}]}]}`. It reads `#ms-state`, the tabs and the visible text of each file; text uses a longest-common-subsequence diff.

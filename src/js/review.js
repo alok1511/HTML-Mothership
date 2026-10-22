@@ -89,6 +89,8 @@
       if (c.lib === 'chartjs') { var tt = c.inst.tooltip; if (tt && tt.opacity && tt.body) return clip([].concat(tt.title || []).join(' ') + ' ' + tt.body.map(function (b) { return b.lines.join(' '); }).join(' · '), 160); }
       if (c.lib === 'echarts') { var dv = Array.prototype.filter.call(c.el.querySelectorAll('div'), function (d) { return /z-index:\s*9999999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && d.style.opacity !== '0'; })[0]; if (dv) return clip(dv.textContent, 160); }
       if (c.lib === 'plotly') { var hl = c.el.querySelector('.hoverlayer'); if (hl && hl.textContent.trim()) return clip(hl.textContent, 160); }
+      if (c.lib === 'highcharts') { var ht = MS.$$('.highcharts-tooltip', c.el).map(function (x) { return x.textContent.trim(); }).filter(Boolean).join(' '); if (ht && c.inst.tooltip && !c.inst.tooltip.isHidden) return clip(ht, 160); }
+      if (c.lib === 'd3') { var tp = cdoc().querySelector('.ms-hovertip'); if (tp && tp.style.display !== 'none' && tp.textContent) return clip(tp.textContent, 160); }
     } catch (e) {}
     return '';
   }
@@ -96,6 +98,8 @@
     try {
       if (c.lib === 'chartjs') { var p = c.inst.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)[0]; if (p) return String(c.inst.data.labels[p.index]); }
       if (c.lib === 'plotly' && c.el._hoverdata && c.el._hoverdata[0]) { var q = c.el._hoverdata[0]; return String(q.label != null ? q.label : q.x); }
+      if (c.lib === 'highcharts' && c.inst.hoverPoint) { var hp = c.inst.hoverPoint; return String(hp.name != null ? hp.name : hp.category); }
+      if (c.lib === 'd3' && e && e.target && e.target.__data__) { var ms = c.a.marks(c.el), j = ms.indexOf(e.target); if (j >= 0) return c.a.labelOf(e.target.__data__, j); }
     } catch (x) {}
     return '';
   }
@@ -434,7 +438,7 @@
       var charts = r.charts();
       if (charts.length) {
         L.push('- Charts (' + charts.length + '):');
-        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly' }[c.lib];
+        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly', highcharts: 'Highcharts', d3: 'D3 (SVG)' }[c.lib];
           L.push('  - “' + MS.charts.nameOf(c.key) + '”: ' + MS.charts.kindName(info.type).toLowerCase() + ' drawn with ' + lib + (sec ? ', on the “' + sec.getAttribute('data-ms-title') + '” tab' : '') + (c.el.id ? ', element `#' + c.el.id + '`' : '') + '.'); });
       }
       var ds = Object.keys(r.state.datasets);

@@ -82,6 +82,17 @@ const call = async (name, args) => {
   const ex = await call('export_html', {});
   const html = ex.json && fs.existsSync(ex.json.saved) ? fs.readFileSync(ex.json.saved, 'utf8') : '';
   check('export_html saves a standalone file', /Risk review/.test(html) && /ms-runtime/.test(html) && /-edited\.html$/.test(ex.json.saved), ex.error || ex.json);
+  const sums = await call('chart_summaries', {});
+  check('chart_summaries reads every chart', sums.json && sums.json.length > 1 && sums.json.every(x => x.summary), sums.error || sums.json);
+  const nc = await call('number_check', {});
+  check('number_check returns results', Array.isArray(nc.json), nc.error || nc.json);
+  const tr = await call('save_tracker', {});
+  const xlsx = tr.json && fs.existsSync(tr.json.saved) ? fs.readFileSync(tr.json.saved) : Buffer.alloc(0);
+  check('save_tracker writes an Excel file', xlsx.slice(0, 2).toString() === 'PK' && tr.json.comments >= 1, tr.error || tr.json);
+  const lt = tr.json ? await call('load_tracker', { path: tr.json.saved }) : { error: 'no tracker' };
+  check('load_tracker reads it back', lt.json && lt.json.updated === 0 && lt.json.notFound === 0, lt.error || lt.json);
+  const cf = ex.json ? await call('compare_file', { path: ex.json.saved }) : { error: 'no export' };
+  check('compare_file: an export matches what is open', cf.json && cf.json.changes === 0, cf.error || cf.json);
   const bad = await call('no_such_tool', {});
   check('unknown tool is an error, not a crash', !!bad.error, bad);
 
