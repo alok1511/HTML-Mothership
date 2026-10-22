@@ -12,11 +12,13 @@
   <div class="logo"><span class="mark">◆</span> Mothership</div>
   <div id="doc-name" title="Open document">No dashboard open</div>
   <div class="spacer"></div>
+  <button class="cmdk-btn" id="btn-cmdk" title="Search every command, chart, tab and help topic (Ctrl+K)">🔍 <span class="lbl">Search commands…</span><kbd>Ctrl K</kbd></button>
   <div class="seg mode" role="group" aria-label="Mode">
     <button class="seg-btn on" data-mode="edit" title="Click to select, double-click to edit">✎ Edit</button>
     <button class="seg-btn" data-mode="interact" title="Use the dashboard normally: filters, tooltips, drill-down">☝ Interact</button>
   </div>
   <div id="cmt-bar" class="cmt-bar"></div>
+  <button class="icon-btn" id="btn-theme" title="Mothership theme: light, dark, accent colour, spacing">🎨</button>
   <button class="btn" id="btn-present" title="Present (F5)">▶ Present</button>
   <button class="btn primary" id="btn-export" title="Save the edited dashboard as an .html file (Ctrl+E)">⬇ Export HTML</button>
 </header>
@@ -35,16 +37,17 @@
         <div class="big-mark">◆</div>
         <h1>Mothership</h1>
         <p class="lead">Open an HTML dashboard and edit it like a PowerPoint deck: text, fonts, brand colours, chart tooltips, drill-downs, tabs and help pages. Then export it as one HTML file.</p>
-        <div class="row gap center">
-          <button class="btn primary lg" data-act="open">📂 Open dashboard…</button>
-          <button class="btn lg" data-act="openFolder" title="Use this when the dashboard loads its own .js/.css/.json files">🗂 Open folder…</button>
-          <button class="btn lg" data-act="newDoc" title="Build a dashboard from scratch">✨ New</button>
-          <button class="btn lg" data-act="sample">🧪 Try a sample</button>
+        <div class="start-grid">
+          <button class="start-card primary" data-act="open">📂<b>Open dashboard</b><small>An .html file, or a Mothership export</small></button>
+          <button class="start-card" data-act="openFolder" title="Use this when the dashboard loads its own .js/.css/.json files">🗂<b>Open folder</b><small>Dashboard plus its scripts, styles and data</small></button>
+          <button class="start-card" data-act="newDoc" title="Build a dashboard from scratch">✨<b>New dashboard</b><small>Start blank or with ready-made tabs</small></button>
+          <button class="start-card" data-act="sample">🧪<b>Try a sample</b><small>Sales, operations or risk</small></button>
         </div>
         <div class="row gap center learn">
           <button class="btn" data-act="tour">🧭 2-minute tour</button>
           <button class="btn" data-act="tutorial">🎓 Hands-on tutorial</button>
           <button class="btn" data-act="guide">📖 User guide</button>
+          <button class="btn" data-act="theme">🎨 Theme</button>
         </div>
         <p class="muted">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
         <ol class="steps">
@@ -66,6 +69,8 @@
 <div id="dropzone"><div>Drop to open or add</div></div>
 
 <script src="src/js/core.js"></script>
+<script src="src/js/icons.js"></script>
+<script src="src/js/uitheme.js"></script>
 <script src="src/js/history.js"></script>
 <script src="src/js/sanitize.js"></script>
 <script src="src/js/runtime.js"></script>
@@ -81,9 +86,11 @@
 <script src="src/js/versions.js"></script>
 <script src="src/js/present.js"></script>
 <script src="src/js/review.js"></script>
+<script src="src/js/prompt.js"></script>
 <script src="src/js/help.js"></script>
 <script src="src/js/panels.js"></script>
 <script src="src/js/ribbon.js"></script>
+<script src="src/js/palette.js"></script>
 <script src="src/js/app.js"></script>
 </body>
 </html>

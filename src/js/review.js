@@ -42,7 +42,8 @@
     if (el.classList.contains('ms-banner')) return { what: 'page header “' + txt + '”' };
     if (t === 'img') return { what: 'image' + (el.alt ? ' “' + clip(el.alt, 40) + '”' : '') };
     if (t === 'table') return { what: 'table (' + el.rows.length + ' rows)' + (txt ? ' starting “' + clip(txt, 40) + '”' : '') };
-    return { what: (names[t] || 'element <' + t + '>') + (txt ? ' “' + txt + '”' : '') };
+    var cn = typeof el.className === 'string' ? el.className : '', hint = /label|caption/i.test(cn) ? 'label' : /value|amount|number|figure|metric/i.test(cn) ? 'value' : /title|head/i.test(cn) ? 'title' : /legend/i.test(cn) ? 'legend' : /note|foot|source/i.test(cn) ? 'note' : /kpi|card|tile|stat/i.test(cn) ? 'card' : /chart|plot|graph/i.test(cn) ? 'chart area' : /badge|tag|pill|chip/i.test(cn) ? 'badge' : '';
+    return { what: (names[t] || hint || (t === 'span' ? 'text' : 'box')) + (txt ? ' “' + txt + '”' : '') };
   };
   // A CSS selector a developer (or an AI) can use to find the element in the file.
   function cssPath(el) {
@@ -66,6 +67,7 @@
     return '[data-ms-ref="' + ref + '"]';
   }
   function findRef(sel) { var d = cdoc(); try { return sel && d ? d.querySelector(sel) : null; } catch (e) { return null; } }
+  R.findRef = findRef; R.cssPath = cssPath; R.tabOf = tabOf; R.clip = clip;
 
   /* ---------------------------------------------------------- interaction log (Interact mode and presenting) */
   var log = [], lastHover = null, hoverT = 0;
@@ -254,7 +256,7 @@
   function ask(title, c, extra, isNew) {
     var ed = editor(c, extra);
     var btns = [{ label: 'Cancel', value: null }];
-    if (!isNew) btns.unshift({ label: 'Delete', danger: true, value: 'delete' }, { label: c.done ? 'Re-open' : 'Mark done', value: 'done' });
+    if (!isNew) btns.unshift({ label: 'Delete', danger: true, value: 'delete' }, { label: c.done ? 'Re-open' : 'Mark done', value: 'done' }, { label: '✨ Prompt for this one', value: 'prompt' });
     btns.push({ label: isNew ? 'Add comment' : 'Save', primary: true, value: function () { var v = ed.f.values(); if (!v.text.trim()) { ed.f.inputs.text.focus(); MS.toast('Type a comment first.', 'warn'); return false; } return v; } });
     return MS.dialog({ title: title, body: ed.el, enterSubmits: false, buttons: btns });
   }
@@ -272,8 +274,9 @@
   R.addElement = function (el, e) {
     var d = R.describe(el), c = base('element'), t = tabOf(el);
     c.tab = t; c.target = { what: d.what, ref: refOf(el), css: cssPath(el), section: sectionOf(el), chart: d.chart, html: clip(el.outerHTML, 300) };
+    if (R.locate) c.loc = R.locate(el);
     if (d.chart && e) { var cc = rt().chart(d.chart.key); var pl = cc && pointLabel(cc, e); if (pl) c.target.point = pl; }
-    var ctx = ctxBox(['<b>On:</b> ' + MS.esc(d.what), c.target.section ? '<b>In:</b> ' + MS.esc(c.target.section) : '', t ? '<b>Tab:</b> ' + MS.esc(t.title) : '']);
+    var ctx = ctxBox(['<b>On:</b> ' + MS.esc(d.what) + (c.target.point ? ' at “' + MS.esc(c.target.point) + '”' : ''), '<b>Where:</b> ' + MS.esc(c.loc ? R.trail(c.loc) : [t && 'Tab “' + t.title + '”', c.target.section].filter(Boolean).join(' › ') || 'the page')]);
     ask('Comment on this element', c, ctx, true).then(function (v) { if (!v || typeof v !== 'object') return; Object.assign(c, v); save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); });
   };
   R.addArea = function (r) {
@@ -288,6 +291,7 @@
       if (within(n.getBoundingClientRect())) { inside.push(R.describe(n).what); seen.push(n); }
     });
     c.inside = inside;
+    if (R.locateArea) c.loc = R.locateArea(r, seen);
     var ctx = ctxBox(['<b>Area:</b> ' + c.area.w + ' × ' + c.area.h + ' px' + (c.tab ? ' on the “' + MS.esc(c.tab.title) + '” tab' : ''),
       inside.length ? '<b>Inside it:</b><br>' + inside.slice(0, 8).map(function (x) { return '· ' + MS.esc(x); }).join('<br>') : '<i>Nothing recognisable inside the box (maybe empty space).</i>']);
     ask('Comment on this area', c, ctx, true).then(function (v) { if (!v || typeof v !== 'object') return; Object.assign(c, v); save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); });
@@ -318,6 +322,7 @@
       if (!v) return;
       if (v === 'delete') { MS.history.state('Delete comment', function (s) { s.comments = s.comments.filter(function (x) { return x.id !== id; }); }); return MS.emit('comments'); }
       if (v === 'done') { c.done = !c.done; return save(c, c.done ? 'Comment done' : 'Comment re-opened'); }
+      if (v === 'prompt') return R.prompt({ ids: [id] });
       Object.assign(c, v); save(c, 'Edit comment');
     });
   };

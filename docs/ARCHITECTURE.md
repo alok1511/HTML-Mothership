@@ -119,3 +119,15 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 **Finding a chart's data.** `rt.matchData(key)` compares the chart's labels with the distinct values of every column of every dataset (added, or discovered in the page's scripts). A column holding at least half the labels is a match; the best one is offered with the next-finer column as the second drill level.
 
 **MS.api and MCP.** `api.js` wraps features as dialog-free JSON functions; `tools/mcp/mothership-mcp.js` starts Edge/Chrome over the DevTools protocol and calls them. See `docs/EXTENDING.md`.
+
+## v3 additions
+
+**Editor look.** `mothership.css` is built on CSS variables with light, dark and high-contrast sets (`:root[data-ms-mode]`), plus `data-ms-bar` and `data-ms-density`. `uitheme.js` sets the accent family (`--accent`, `--accent-hover`, `--accent-weak`, `--accent-line`, `--accent-ink`) and the top-bar colours from the chosen preset, saves them in `localStorage` (`ms.ui`) and redraws the favicon. None of this touches the child.
+
+**Icons.** `icons.js` holds about 60 stroke icons as path data. A `MutationObserver` on the editor (not the iframe, inputs, code or the prompt preview) replaces mapped emoji in text nodes with `<svg class="ic">`, so every existing label, dialog and plugin gets icons without changes. Hover tips replace native `title` tooltips.
+
+**Where a comment is.** `prompt.js` walks up from the element: the tab (`rt.tabs()`), the section (`.ms-section h2`, else the nearest heading above that is not inside a card), the card (common card class names), the chart (`rt.charts()` contains the element, or is the nearest chart in the same card), and KPI position (`i of n` in its row). Areas use the elements found inside the box. The trail is stored on the comment (`c.loc`) and rebuilt when the prompt is made, so renamed charts and moved elements are reported correctly.
+
+**Prompt.** `buildPrompt` writes: role and how to work (by assistant), an "At a glance" table, the dashboard (file, libraries, tab/section/chart map, datasets), comments grouped by tab with *Where / On screen / Find it / The chart shows / Current settings / Comment / Done when*, rules adapted to the comment types, and what to send back (by assistant and output). "Done when" and tool hints come from simple keyword topics (colour, order, chart type, pop-up, drill, numbers, wording, filters, layout).
+
+**Python MCP server.** Same protocol, tools and env settings as the Node server. Requests are handled one at a time; a reader thread matches DevTools replies to waiting calls.

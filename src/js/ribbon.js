@@ -13,6 +13,7 @@
     exportAs: need(function () { MS.versions.exportFile(true); }),
     saveVersion: need(MS.versions.savePrompt),
     versions: MS.versions.list,
+    theme: function () { MS.ui.dialog(); }, palette: function () { MS.palette(); }, darkMode: function () { MS.ui.toggleDark(); },
     tour: function () { MS.help.tour(); }, tutorial: function () { MS.help.tutorial(); }, guide: function () { MS.help.guide(); }, newDoc: function () { MS.compose.newDoc(); },
     print: need(function () { MS.child.win.focus(); MS.child.win.print(); }),
     reload: need(function () { MS.reload(); }),
@@ -155,6 +156,10 @@
       { name: 'Panels', items: [
         { icon: '◧', label: 'Outline', run: function () { document.body.classList.toggle('no-left'); } },
         { icon: '◨', label: 'Inspector', run: function () { document.body.classList.toggle('no-right'); } }] },
+      { name: 'Mothership', items: [
+        { icon: '🎨', label: 'Theme', title: 'Mothership\'s own look: light or dark, accent colour, spacing and text size', run: MS.cmd.theme },
+        { icon: '🌙', label: 'Dark mode', title: 'Switch Mothership between light and dark', run: function () { MS.cmd.darkMode(); MS.ribbon.render(); }, toggle: function () { return MS.ui.isDark(); } },
+        { icon: '🔍', label: 'Search', title: 'Find any command, chart, tab or help topic (Ctrl+K)', run: MS.cmd.palette }] },
       { name: 'Safety', items: [
         { icon: '🛡', label: 'Safe mode', title: 'Open the dashboard with its scripts blocked (for files you don\'t trust)', run: MS.cmd.safe, toggle: function () { return MS.settings.safe; } },
         { icon: '🔒', label: 'Network lock', title: 'Block all internet access from the dashboard while editing', run: MS.cmd.netLock, toggle: function () { return MS.settings.netLock; } }] }
@@ -205,7 +210,7 @@
       var items = h('div', { 'class': 'rgroup-items' });
       g.items.forEach(function (it) {
         if (it.type === 'font') return items.appendChild(fontControls());
-        var b = h('button', { 'class': 'rbtn' + (it.toggle && it.toggle() ? ' on' : ''), title: it.title || it.label, 'data-id': it.id || '' }, [h('span', { 'class': 'ri', text: it.icon }), h('span', { 'class': 'rl', text: it.label })]);
+        var b = h('button', { 'class': 'rbtn' + (it.toggle && it.toggle() ? ' on' : ''), title: it.title || it.label, 'data-id': it.id || '' }, [h('span', { 'class': 'ri' }, [MS.icon.has(it.icon) ? MS.icon(it.icon, 'solo') : it.icon]), h('span', { 'class': 'rl', text: it.label })]);
         b.addEventListener('click', function (e) { it.run(e); });
         items.appendChild(b);
       });
@@ -252,6 +257,7 @@
     var t = e.target, typing = t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
     var mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
     if (MS.$('.dlg-wrap') && !fromChild) return;
+    if (mod && (k === 'k' || (k === 'p' && e.shiftKey))) { e.preventDefault(); return MS.palette(); }
     if (mod && k === 's') { e.preventDefault(); return MS.cmd.saveVersion(); }
     if (mod && k === 'e') { e.preventDefault(); return e.shiftKey ? MS.cmd.exportAs() : MS.cmd.export(); }
     if (mod && k === 'o') { e.preventDefault(); return MS.cmd.open(); }
