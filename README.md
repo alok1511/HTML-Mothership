@@ -25,6 +25,7 @@
 11. [Developing](#11-developing)
 12. [Connect an AI assistant (MCP): Python or Node](#12-connect-an-ai-assistant-mcp)
 13. [Roadmap ideas](#13-roadmap-ideas)
+14. [Licence](#14-licence)
 
 New to Mothership? Open it and click **Help › Guided tour** (2 minutes) or **Help › Tutorial** (7 short hands-on lessons). [`docs/TUTORIAL.md`](docs/TUTORIAL.md) has the same lessons on paper.
 
@@ -385,6 +386,7 @@ npm run serve          # optional: http://localhost:8080
 | `tools/mcp/mothership-mcp.js` | The MCP server (stdio, no dependencies) |
 | `src/js/panels.js` / `ribbon.js` / `app.js` | UI |
 | `vendor/` | marked, mammoth, SheetJS, JSZip, pdf.js, and chart libs for samples (see `THIRD_PARTY_NOTICES.md`) |
+| `licenses/` | The licence texts of the libraries in `vendor/` |
 
 After changing `src/`, run `npm run build` so `dist/mothership-standalone.html` stays in sync.
 
@@ -485,3 +487,22 @@ Not built yet, roughly in order of value:
 7. **Real access control and signing** (needs company systems, not a file): view-only SharePoint/Teams links, sensitivity labels, and signing published files with the company's certificate instead of a self-check.
 8. **Usage analytics** (who opened which tab): needs a server, so it is out of scope for an offline file.
 9. **Currency conversion** with a rate table you supply, for dashboards that mix currencies.
+
+---
+
+## 14. Licence
+
+Mothership is source-available under the **[PolyForm Noncommercial License 1.0.0](LICENSE)** (SPDX: `PolyForm-Noncommercial-1.0.0`).
+
+| You may | You may not, without a separate licence |
+|---|---|
+| Use, copy, change and share it for personal, hobby, research, study or other noncommercial purposes | Use it for commercial purposes, such as in a business, for paid client work, or in a product or service you sell |
+| Use it in a charity, school, public research body, public health or safety body, or government institution | Sublicense it or pass your licence on to someone else |
+
+When you share Mothership, or a dashboard exported from it, keep the `LICENSE` file (or its link) and this line with it:
+
+> Required Notice: Copyright (c) 2026 Alok (https://github.com/alok1511)
+
+For commercial use, contact the author on GitHub ([@alok1511](https://github.com/alok1511)).
+
+The libraries in `vendor/` keep their own licences (MIT, BSD-2-Clause, Apache-2.0); see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and the texts in [`licenses/`](licenses/).

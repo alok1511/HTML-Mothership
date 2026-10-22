@@ -4,7 +4,7 @@ A zero-install, offline, PowerPoint-style editor for HTML dashboards. The user r
 
 ## Hard rules
 - **No build step required to run.** `mothership.html` + `src/` + `vendor/` must work from `file://`. Use classic `<script>` files attached to the global `MS` namespace. No ES modules, no `fetch()` of local files, no CDNs.
-- **No network calls** anywhere. New libraries go in `vendor/` (pinned version, licence added to `THIRD_PARTY_NOTICES.md`) and load via `MS.lib(name)` in `src/js/importers.js`.
+- **No network calls** anywhere. New libraries go in `vendor/` (pinned version, licence added to `THIRD_PARTY_NOTICES.md` and its licence file to `licenses/`) and load via `MS.lib(name)` in `src/js/importers.js`.
 - **`src/js/runtime.js` is stringified and injected** into the child and every export. Inside `MS.RUNTIME_FN` you can't reference anything outside the function body.
 - Every editor mutation goes through `MS.history` (see `src/js/history.js`) so undo/redo keeps working.
 - Elements Mothership adds to the child need `data-ms-own`. Untagged elements are stripped on export (they're assumed script-generated).
