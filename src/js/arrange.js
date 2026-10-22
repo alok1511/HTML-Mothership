@@ -113,6 +113,17 @@
       Co.set(m, 'Category colours', true);
     });
   };
+  // one name's colour, from a click on a legend
+  Co.pick = function (name, key) {
+    var r = rt(); if (!r || !name) return;
+    var cur = r.lookColor(name) || (key ? r.chartColors(key)[name] : '') || '#999999';
+    var inp = h('input', { type: 'color', value: toHex(cur), style: { width: '64px', height: '36px' } });
+    MS.dialog({ title: 'Colour of “' + name + '”', body: h('div', {}, [h('div', { 'class': 'row gap' }, [inp, h('span', { text: 'Used for “' + name + '” on this chart, its legend, and every chart that shows it.' })])]),
+      buttons: [r.lookColor(name) ? { label: 'Back to original', value: 'reset' } : null, { label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: 'ok' }].filter(Boolean) }).then(function (v) {
+      var m = {}; if (v === 'reset') m[name] = ''; else if (v === 'ok') m[name] = inp.value; else return;
+      Co.set(m, 'Colour of “' + name + '”');
+    });
+  };
   function toHex(c) { var rgb = MS.brand.hexToRgb(c); return rgb ? MS.brand.toHex(rgb) : '#999999'; }
 
   /* ================================================================ format painter */

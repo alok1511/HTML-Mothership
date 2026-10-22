@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.3.0';
+var VERSION = '2.4.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -399,7 +399,8 @@ function callTool(name, args) {
 /* ------------------------------------------------------------------ MCP over stdio (newline-delimited JSON-RPC) */
 var INSTRUCTIONS = 'Mothership edits HTML dashboards like PowerPoint edits slides. Start with open_file (or new_dashboard), then outline to see the tabs, charts, datasets and comments. ' +
   'Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. Every change is undoable (undo). ' +
-  'Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default).';
+  'Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). ' +
+  'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout.';
 
 function reply(id, result) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, result: result }) + '\n'); }
 function fail(id, code, message) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, error: { code: code, message: message } }) + '\n'); }

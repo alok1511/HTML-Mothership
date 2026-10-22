@@ -84,7 +84,8 @@
     ] },
     { tab: 'Layout', groups: [
       { name: 'Tabs', items: [
-        { icon: '🗂', label: 'Tabbed layout', title: 'Turn the dashboard into tabs with a ribbon (or back to one page)', run: needRt(MS.tabs.toggleLayout) }] },
+        { icon: '＋', label: 'Add tab', title: 'Add a tab. If your dashboard already has its own tabs, the new tab joins them.', run: needRt(MS.tabs.addPrompt) },
+        { icon: '🗂', label: 'Tab ribbon', title: 'Mothership tab ribbon: split a one-page dashboard into tabs with a ribbon (or back to one page). Not needed if your dashboard already has its own tabs.', run: needRt(MS.tabs.toggleLayout) }] },
       { name: 'Dashboard ribbon', items: [
         { icon: '⬒', label: 'Top', title: 'Ribbon across the top', run: needRt(function () { MS.tabs.ensureLayout() && MS.history.state('Ribbon on top', function (s) { s.layout.ribbon.position = 'top'; s.layout.ribbon.height = 46; }); }) },
         { icon: '◧', label: 'Left', title: 'Ribbon down the left side', run: needRt(function () { MS.tabs.ensureLayout() && MS.history.state('Ribbon on left', function (s) { s.layout.ribbon.position = 'left'; s.layout.ribbon.height = 200; }); }) },
@@ -172,11 +173,11 @@
         { icon: '🔒', label: 'Network lock', title: 'Block all internet access from the dashboard while editing', run: MS.cmd.netLock, toggle: function () { return MS.settings.netLock; } }] }
     ] },
     { tab: 'Review', groups: [
-      { name: 'Comment on', items: [
-        { icon: '📍', label: 'Element', title: 'Click a part of the dashboard and write a comment', run: function () { MS.review.start('element'); } },
-        { icon: '▭', label: 'Area', title: 'Drag a box over the screen and write a comment', run: function () { MS.review.start('area'); } },
-        { icon: '⚡', label: 'Interaction', title: 'Comment on what you just did: a filter, a drill-down, a pop-up. Use Interact mode first.', run: function () { MS.review.start('interaction'); } }] },
+      { name: 'Comment', items: [
+        { icon: '💬', label: 'New comment', title: 'Comment mode: click anything to comment on it, or drag a box around an area. Tabs still switch. Esc to stop.', run: function () { MS.review.start('element'); } },
+        { icon: '⚡', label: 'What I did', title: 'Comment on what you just did: a filter, a drill-down, a pop-up. Use Interact mode first.', run: function () { MS.review.start('interaction'); } }] },
       { name: 'Comments', items: [
+        { icon: '🗨', label: 'Comments pane', title: 'Every comment in one list, like PowerPoint: go to it, reply, resolve', run: function () { MS.review.showPane(!MS.review.paneOn); }, toggle: function () { return !!MS.review.paneOn; } },
         { icon: '📌', label: 'Pins', title: 'Show or hide the numbered comment pins on the dashboard', run: function () { MS.review.togglePins(); }, toggle: function () { return MS.review.showPins; } },
         { icon: '🗑', label: 'Clear all', title: 'Delete all comments (Ctrl+Z to undo)', run: function () { MS.review.clear(); } }] },
       { name: 'Tracker', items: [

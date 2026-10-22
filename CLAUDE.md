@@ -13,6 +13,8 @@ A zero-install, offline, PowerPoint-style editor for HTML dashboards. The user r
 - Editor UI: use the CSS variables in `mothership.css` (they follow the theme from `src/js/uitheme.js`), `MS.icon(name)` from `src/js/icons.js` for icons (emoji in UI text are swapped automatically), and keep `MS.review.locate` / `buildPrompt` in `src/js/prompt.js` in step with new element kinds.
 - Chart libraries: each has an adapter in `runtime.js` (`A.chartjs`, `A.echarts`, `A.plotly`, `A.highcharts`, and the basic `A.d3`). Never vendor Highcharts (not free for commercial use); tests build Highcharts/D3 pages from `node_modules` via `tests/fixtures/pages.js`.
 - Checks and reports (summaries UI, number check, Excel tracker, compare versions) are in `src/js/insights.js`.
+- The dashboard's own tabs: runtime `rt.pageTabs` / `rt.showPageTab`, editor `MS.pageTabs` in `src/js/pagetabs.js`. When the page has tabs and the tab ribbon is off, inserts go to `MS.pageTabs.insertHost()`.
+- Comments (`src/js/review.js`): Comment mode (`MS.mode === 'comment'`), the Comments pane (`#cmt-pane`), area anchors and the fixed pin layer. Keep `R.addElement` / `R.addArea` and the API comment tools working.
 - Region and currency (`MS.locale`), "Ready to publish?" (`MS.preflight`) and publishing with lock and seal (`MS.publish`) are in `src/js/publish.js`. Normal exports must never carry `state.publish.seal`.
 - After changing `src/`, run `node tools/build.js` so `dist/mothership-standalone.html` and `samples/` stay in sync, then `npm test` (Playwright, from file://).
 

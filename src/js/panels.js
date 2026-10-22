@@ -65,7 +65,13 @@
         h('button', { 'class': 'btn sm', onclick: function () { MS.tabs.addPrompt('content'); } }, ['+ Text tab']),
         h('button', { 'class': 'btn sm', onclick: MS.insert.fileTab }, ['+ From file'])]));
     }
-    host.appendChild(tabsSec);
+    // the dashboard's own tabs come first; Mothership's tab ribbon is only offered for one-page dashboards
+    var pts = MS.pageTabs.outlineSection();
+    if (pts) {
+      host.appendChild(pts);
+      if (!rt.layoutEnabled()) tabsSec = null;
+    }
+    if (tabsSec) host.appendChild(tabsSec);
 
     /* charts */
     var charts = rt.charts();
@@ -73,6 +79,7 @@
       charts.length ? h('button', { 'class': 'icon-btn', title: 'Add title / subtitle / inference to every chart', onclick: MS.blocks.wrapAll }, ['✎']) : null])]);
     if (!charts.length) cSec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'No charts found. Pictures, tables and other visuals can still be selected, moved and resized by clicking them.' }));
     var tabsById = {}; if (rt.layoutEnabled()) rt.tabs().forEach(function (t) { tabsById[t.id] = t.title; });
+    var ptOf = function (el) { var t = MS.pageTabs.of(el); return t ? t.title : ''; };
     charts.forEach(function (c) {
       var b = c.el.closest('.ms-block'), info = rt.chartInfo(c.key) || {};
       var title = MS.charts.nameOf(c.key);
@@ -83,7 +90,7 @@
         h('span', { 'class': 'grow name', text: title }),
         cs.binding ? h('span', { title: 'Linked to data: drill-down and filters work', text: '⛁' }) : null,
         cs.tooltip || cs.style ? h('span', { title: 'Custom pop-up or look', text: '💬' }) : null,
-        sec ? h('small', { 'class': 'muted', text: tabsById[sec.getAttribute('data-ms-tab')] || '' }) : null
+        sec ? h('small', { 'class': 'muted', text: tabsById[sec.getAttribute('data-ms-tab')] || '' }) : ptOf(c.el) ? h('small', { 'class': 'muted', text: ptOf(c.el) }) : null
       ]);
       row.addEventListener('click', function () { MS.edit.reveal(b || MS.edit.chartUnit(c.el), true); });
       row.addEventListener('dblclick', function () { MS.charts.settings(c.key); });
@@ -118,7 +125,7 @@
     if (!el || !el.isConnected) {
       return host.appendChild(h('div', { 'class': 'pad' }, [
         h('h3', { text: MS.doc.name }),
-        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top right) to make changes.' }),
+        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : MS.mode === 'comment' ? 'Comment mode: click anything to comment on it, or drag a box around an area. The Comments tab (above) lists every comment.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top right) to make changes.' }),
         h('h4', { text: 'Shortcuts' }),
         h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
       ]));
@@ -184,6 +191,21 @@
         h('button', { 'class': 'btn sm', title: 'Copy this chart\'s look, colours and order to other charts', onclick: function () { MS.painter.copy(chartKey); } }, ['🖌 Painter']),
         h('button', { 'class': 'btn sm', title: 'Use this chart\'s category order on every chart', onclick: function () { MS.order.fromChart(chartKey); } }, ['⇅ Order everywhere']),
         h('button', { 'class': 'btn sm', onclick: function () { MS.chartOut.image(chartKey); } }, ['🖼 Image'])])]));
+    }
+
+    /* colours of the chart's categories / series: the chart and the dashboard's own legend change together */
+    if (chartKey && rt) {
+      var cinfo = rt.chartInfo(chartKey) || {}, ccols = rt.chartColors(chartKey), cnames = Object.keys(ccols).slice(0, 16);
+      if (cnames.length) host.appendChild(group('Colours', [h('div', { 'class': 'cat-list' }, cnames.map(function (n) {
+        return h('label', { 'class': 'cat-row' }, [colorField(toHex(rt.lookColor(n) || ccols[n]), function (v) { var m = {}; m[n] = v; MS.catColors.set(m, 'Colour of “' + n + '”'); }), h('span', { 'class': 'grow', text: n }),
+          rt.lookColor(n) ? h('button', { 'class': 'icon-btn', title: 'Back to the chart\'s own colour', onclick: function () { var m = {}; m[n] = ''; MS.catColors.set(m, 'Reset colour of “' + n + '”'); } }, ['↺']) : null]);
+      })), h('small', { 'class': 'hint', text: 'Changes this chart, its legend (also a legend written in the page), and every other chart that shows the same name.' })]));
+    }
+    var leg = rt && !chartKey && rt.legendOf ? rt.legendOf(el) : null;
+    if (leg) {
+      var lc = rt.chartColors(leg.key)[leg.name];
+      host.appendChild(group('Legend colour', [h('label', { 'class': 'cat-row' }, [colorField(toHex(rt.lookColor(leg.name) || lc || '#999999'), function (v) { var m = {}; m[leg.name] = v; MS.catColors.set(m, 'Colour of “' + leg.name + '”'); }), h('span', { 'class': 'grow', text: leg.name })]),
+        h('small', { 'class': 'hint', text: 'This is the legend of “' + MS.charts.nameOf(leg.key) + '”. Changing the colour here changes the chart too.' })]));
     }
 
     /* text */

@@ -7,10 +7,11 @@
 
   Pr.start = function (withPresenterView) {
     var rt = MS.rt(); if (!rt) return MS.toast('Open a dashboard first.', 'warn');
-    if (!rt.layoutEnabled()) MS.toast('Tip: turn on tabbed layout so you can step through tabs like slides.', 'warn');
+    if (!rt.layoutEnabled() && !MS.pageTabs.has()) MS.toast('Tip: turn on the tab ribbon (Layout tab) so you can step through tabs like slides.', 'warn');
     Pr.on = true; prevMode = MS.mode;
     var first = rt.tabs().filter(function (t) { return !t.hidden; })[0];
     if (first) rt.showTab(first.id);
+    else if (MS.pageTabs.has()) rt.showPageTab(0);
     MS.setMode('interact');
     document.body.classList.add('presenting');
     if (MS.view) MS.view.layout();
@@ -47,7 +48,7 @@
     switch (e.key) {
       case 'ArrowRight': case 'PageDown': case ' ': rt.step(1); break;
       case 'ArrowLeft': case 'PageUp': rt.step(-1); break;
-      case 'Home': rt.showTab(rt.tabs().filter(function (t) { return !t.hidden; })[0].id); break;
+      case 'Home': if (rt.layoutEnabled()) rt.showTab(rt.tabs().filter(function (t) { return !t.hidden; })[0].id); else rt.showPageTab(0); break;
       case 'Escape': Pr.stop(); break;
       case 'l': case 'L': laser.style.display = laser.style.display === 'none' ? 'block' : 'none'; break;
       case 'b': case 'B': document.body.classList.toggle('blank'); break;
@@ -57,7 +58,12 @@
     return true;
   };
   function info() {
-    var rt = MS.rt(), vis = rt.tabs().filter(function (t) { return !t.hidden; });
+    var rt = MS.rt();
+    if (!rt.layoutEnabled() && MS.pageTabs.has()) {
+      var pts = MS.pageTabs.list(), k = 0; pts.forEach(function (t, j) { if (t.active) k = j; });
+      return { i: k, n: pts.length, cur: pts[k], next: pts[k + 1] };
+    }
+    var vis = rt.tabs().filter(function (t) { return !t.hidden; });
     var i = vis.findIndex(function (t) { return t.id === rt.activeTab; });
     return { i: i, n: vis.length, cur: vis[i], next: vis[i + 1] };
   }

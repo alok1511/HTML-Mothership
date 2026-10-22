@@ -137,10 +137,11 @@
 
   /* ---------------------------------------------------------- the map of the dashboard */
   function mapOf(r, only) {
-    var L = [], tabs = r.layoutEnabled() ? r.tabs() : [{ id: null, title: '' }];
+    var g = !r.layoutEnabled() && MS.pageTabs.group();
+    var L = [], tabs = r.layoutEnabled() ? r.tabs() : g ? g.tabs.map(function (t) { return { id: null, title: t.title, root: t.panel }; }) : [{ id: null, title: '' }];
     tabs.forEach(function (t) {
       if (only && t.title && only.indexOf(t.title) < 0) return;
-      var root = t.id ? MS.child.doc.querySelector('section.ms-tab[data-ms-tab="' + t.id + '"]') : MS.child.doc.body;
+      var root = t.root || (t.id ? MS.child.doc.querySelector('section.ms-tab[data-ms-tab="' + t.id + '"]') : MS.child.doc.body);
       if (!root) return;
       var lines = [];
       var secs = {};
@@ -317,6 +318,7 @@
     }
     L.push('- **Comment:**');
     c.text.split('\n').forEach(function (line) { L.push('  > ' + line); });
+    if (c.replies && c.replies.length) { L.push('- **Replies:**'); c.replies.forEach(function (rp) { L.push('  > ' + (rp.by || 'Reviewer') + ': ' + String(rp.text).replace(/\n/g, ' ')); }); }
     if (!brief && c.type !== 'question') {
       var done = x.topics.map(function (t) { return t.done; });
       if (c.type === 'bug') done.unshift('the steps above no longer show the problem');

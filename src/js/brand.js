@@ -103,31 +103,45 @@
       applyToPage: j.applyToPage !== false,
       force: !!j.force,
       chartsFollowTheme: j.chartsFollowTheme !== false,
+      forceFonts: !!j.forceFonts,
       css: j.css || ''
     };
+    if (j.map) t.map = j.map;
+    if (j.sources) t.sources = j.sources;
     Object.keys(t.colors).forEach(function (k) { t.colors[k] = norm(t.colors[k]); });
     if (!t.palette.length) t.palette = [t.colors.primary, t.colors.secondary, t.colors.accent].filter(Boolean);
     return t;
   };
 
-  Br.loadFile = function (file) {
-    var ext = MS.ext(file.name);
-    if (ext === 'json') return MS.readFile(file).then(function (s) { return Br.apply(Br.normalize(JSON.parse(s), file.name)); });
-    if (ext === 'md' || ext === 'markdown' || ext === 'txt') return MS.readFile(file).then(function (s) { return Br.apply(Br.parseMarkdown(s, file.name)); });
-    if (ext === 'skill' || ext === 'zip' || ext === 'skills') return MS.readFile(file, 'buffer').then(function (buf) { return Br.fromZip(buf, file.name); }).then(Br.apply);
+  // direct: apply at once (assistant / API); otherwise show what will change first
+  Br.loadFile = function (file, direct) {
+    var ext = MS.ext(file.name), go = direct ? Br.apply : Br.preview;
+    if (ext === 'json') return MS.readFile(file).then(function (s) { return go(Br.normalize(JSON.parse(s), file.name)); });
+    if (ext === 'md' || ext === 'markdown' || ext === 'txt') return MS.readFile(file).then(function (s) { return go(Br.parseMarkdown(s, file.name)); });
+    if (ext === 'skill' || ext === 'zip' || ext === 'skills') return MS.readFile(file, 'buffer').then(function (buf) { return Br.fromZip(buf, file.name); }).then(go);
     if (/^(woff2?|ttf|otf)$/.test(ext)) return Br.addFontFiles([file]);
     MS.toast('Unsupported brand file: ' + file.name, 'error');
   };
   Br.fromZip = function (buf, name) {
     return MS.lib('jszip').then(function (J) { return J.loadAsync(buf); }).then(function (zip) {
       var files = Object.keys(zip.files).filter(function (p) { return !zip.files[p].dir && p.indexOf('__MACOSX') < 0; });
-      var skill = files.filter(function (p) { return /(^|\/)SKILL\.md$/i.test(p); })[0] || files.filter(function (p) { return /\.md$/i.test(p); })[0];
-      var json = files.filter(function (p) { return /(theme|brand)[^/]*\.json$/i.test(p); })[0];
+      files.sort();
+      var texts = files.filter(function (p) { return /\.(md|markdown|txt|css|scss|json)$/i.test(p) && !/package(-lock)?\.json$/i.test(p); });
+      texts.sort(function (a, b) { var sa = /(^|\/)SKILL\.md$/i.test(a) ? 0 : /\.md$/i.test(a) ? 1 : 2, sb = /(^|\/)SKILL\.md$/i.test(b) ? 0 : /\.md$/i.test(b) ? 1 : 2; return sa - sb || (a < b ? -1 : 1); });
+      var json = files.filter(function (p) { return /(theme|brand|tokens?)[^/]*\.json$/i.test(p); })[0];
       var fonts = files.filter(function (p) { return /\.(woff2?|ttf|otf)$/i.test(p); });
       var logo = files.filter(function (p) { return /(^|\/)logo[^/]*\.(png|svg|jpe?g|webp)$/i.test(p); })[0];
       return Promise.all([
-        json ? zip.file(json).async('string').then(function (s) { return Br.normalize(JSON.parse(s), name); }) :
-          skill ? zip.file(skill).async('string').then(function (s) { return Br.parseMarkdown(s, name); }) : Br.normalize({}, name),
+        Promise.all(texts.map(function (p) { return zip.file(p).async('string').then(function (s) { return { p: p, s: s }; }); })).then(function (all) {
+          var j = null;
+          if (json) { try { var js = JSON.parse(all.filter(function (x) { return x.p === json; })[0].s); if (js.colors || js.palette || js.fonts) j = Br.normalize(js, name); } catch (e) {} }
+          if (j) return j;
+          // one document: the skill first, then the other guides and style sheets (CSS variables count as colour roles)
+          var md = all.map(function (x) { return /\.(css|scss)$/i.test(x.p) ? '```css\n' + x.s + '\n```' : /\.json$/i.test(x.p) ? '' : x.s; }).join('\n\n');
+          var t = Br.parseMarkdown(md, name);
+          t.sources = all.map(function (x) { return x.p; });
+          return t;
+        }),
         Promise.all(fonts.map(function (p) { return zip.file(p).async('base64').then(function (b) { return fontEntry(p, b); }); })),
         logo ? zip.file(logo).async('base64').then(function (b) { return 'data:' + mime(logo) + ';base64,' + b; }) : null
       ]).then(function (r) {
@@ -159,6 +173,7 @@
 
   Br.apply = function (theme) {
     if (!MS.rt()) { MS.toast('Open a dashboard first (scripts must be on).', 'warn'); return; }
+    if (theme.map === undefined && theme.applyToPage !== false) { var plan = Br.plan(theme); theme.map = plan.map; if (plan.fontsElsewhere && theme.forceFonts === false) theme.forceFonts = true; }
     MS.history.state('Apply brand "' + theme.name + '"', function (s) { s.theme = theme; });
     Br.remember(theme);
     var c = Object.keys(theme.colors).length, p = theme.palette.length, f = Object.keys(theme.fonts).length;
@@ -183,6 +198,116 @@
         ]);
       }));
       MS.dialog({ title: 'Brand library (saved in this browser)', body: body, buttons: [{ label: 'Close', value: null }] });
+    });
+  };
+
+  /* ---------------------------------------------------------- what the dashboard uses now, and how the brand maps onto it */
+  // Every colour the page's own CSS and inline styles use, with how much it is used for text, fills and borders.
+  Br.pageColors = function () {
+    var c = MS.child, rt = MS.rt(); if (!c || !rt) return { colors: [], fontsElsewhere: false };
+    var d = c.doc, w = c.win, acc = {}, fontsElsewhere = false;
+    var KIND = { color: 'text', 'background-color': 'fill', 'background-image': 'fill', fill: 'fill', 'border-top-color': 'border', 'border-right-color': 'border', 'border-bottom-color': 'border', 'border-left-color': 'border', 'outline-color': 'border', stroke: 'border' };
+    var STATUS = /(^|[\s._#-])(up|down|pos|neg|positive|negative|good|bad|success|danger|error|warn|warning|alert|ok|risk|red|green|amber|gain|loss|delta|trend)([\s._#:-]|$)/i;
+    function add(v, kind, n, sel) {
+      String(v).replace(/#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)/ig, function (x) {
+        var hx = rt.colHex(x); if (!hx || /rgba?\([^)]*[,/]\s*0(\.0+)?\s*\)$/.test(x)) return x;
+        var a = acc[hx] = acc[hx] || { hex: hx, text: 0, fill: 0, border: 0, n: 0, status: 0, where: [] };
+        a[kind] += n; a.n += n;
+        if (sel && STATUS.test(sel)) a.status += n;
+        if (sel && a.where.length < 4 && a.where.indexOf(sel) < 0) a.where.push(sel);
+        return x;
+      });
+    }
+    rt.eachRule(function (r) {
+      var sel = r.selectorText || '', clean = sel.replace(/::?(before|after|hover|focus|focus-within|focus-visible|active|visited|placeholder|first-line|first-letter|selection|marker|-webkit-[\w-]+)(\([^)]*\))?/g, '');
+      var n = 0; try { n = Math.min(40, d.querySelectorAll(clean || '*').length); } catch (e) { n = 0; }
+      if (!n && /:root|^html|^body/.test(sel)) n = 1;
+      if (!n) n = 0.25; // states like :hover still count a little
+      for (var j = 0; j < r.style.length; j++) {
+        var p = r.style[j], v = r.style.getPropertyValue(p);
+        if (p === 'font-family' && !/^(html|body|:root|\*)$/i.test(sel.trim())) fontsElsewhere = true;
+        if (p.indexOf('--') === 0) { if (/#[0-9a-f]{3,6}\b|rgba?\(/i.test(v)) add(v, /text|ink|fg|font/i.test(p) ? 'text' : /border|line|rule|grid/i.test(p) ? 'border' : 'fill', 3, p); continue; }
+        if (KIND[p]) add(v, KIND[p], n, sel);
+      }
+    });
+    MS.$$('[style]', d).forEach(function (e) {
+      if (e.closest('[data-ms-editor],#ms-ribbon,#ms-filter-pane') || e.tagName === 'CANVAS') return;
+      var saved = {}; try { saved = JSON.parse(e.getAttribute('data-ms-colmap') || '{}'); } catch (x) {}
+      for (var j = 0; j < e.style.length; j++) { var p = e.style[j]; if (KIND[p]) add(saved[p] ? saved[p].from : e.style.getPropertyValue(p), KIND[p], 1, e.className && typeof e.className === 'string' ? '.' + e.className.split(/\s+/)[0] : e.tagName.toLowerCase()); }
+    });
+    var bodyBg = rt.colHex(w.getComputedStyle(d.body).backgroundColor) || rt.colHex(w.getComputedStyle(d.documentElement).backgroundColor) || '#ffffff';
+    if (acc[bodyBg]) acc[bodyBg].page = true;
+    var list = Object.keys(acc).map(function (k) { return acc[k]; }).filter(function (a) { return a.n >= 0.5 || a.page; });
+    list.sort(function (a, b) { return b.n - a.n || (a.hex < b.hex ? -1 : 1); });
+    return { colors: list, bodyBg: bodyBg, fontsElsewhere: fontsElsewhere };
+  };
+  function sat(rgb) { return Math.max.apply(null, rgb) - Math.min.apply(null, rgb); }
+  function kindOf(a) { return a.fill >= a.text && a.fill >= a.border ? 'fill' : a.text >= a.border ? 'text' : 'border'; }
+  function usesOf(a) { return ['text', 'fill', 'border'].filter(function (k) { return a[k] >= 0.5; }).map(function (k) { return { text: 'text', fill: 'backgrounds', border: 'borders' }[k]; }).join(', '); }
+  // A plan that is the same for the same page and the same brand: page colour → brand role.
+  Br.plan = function (theme) {
+    var pc = Br.pageColors(), c = theme.colors || {}, map = [];
+    var targets = [['primary', c.primary], ['secondary', c.secondary], ['accent', c.accent]].filter(function (x) { return x[1]; });
+    (theme.palette || []).forEach(function (p, i) { if (!targets.some(function (t) { return t[1] === p; })) targets.push(['chart colour ' + (i + 1), p]); });
+    var families = [];
+    pc.colors.forEach(function (a) {
+      var rgb = hexToRgb(a.hex), l = lum(rgb), chroma = sat(rgb) >= 40 && l > 0.01 && l < 0.92;
+      var e = { from: a.hex, uses: usesOf(a), where: a.where.slice(0, 3), n: Math.round(a.n), on: true };
+      if (chroma) {
+        if (a.status > a.n / 2) { e.role = 'status colour (kept)'; e.to = a.hex; e.on = false; map.push(e); return; }
+        // shades of one colour go to the same brand colour
+        var fam = families.filter(function (f) { return dist(hexToRgb(f.hex), rgb) < 32; })[0];
+        if (!fam) { fam = { hex: a.hex, t: targets[families.length] }; families.push(fam); }
+        if (!fam.t) { e.role = 'no brand colour left'; e.to = a.hex; e.on = false; } else { e.role = fam.t[0]; e.to = fam.t[1]; }
+        map.push(e); return;
+      }
+      var k = kindOf(a), role = null;
+      if (a.hex === pc.bodyBg || (a.page)) role = 'background';
+      else if (l > 0.8) role = k === 'border' ? 'border' : k === 'text' ? null : 'surface';
+      else if (l < 0.12) role = k === 'fill' ? (c.ribbonBg ? 'ribbonBg' : null) : 'text';
+      else role = k === 'border' ? 'border' : k === 'text' ? 'muted' : null;
+      if (role && c[role] && c[role].toLowerCase() !== a.hex) { e.role = role; e.to = c[role]; map.push(e); }
+    });
+    return { map: map.filter(function (x) { return x.to && x.to.toLowerCase() !== x.from; }).concat(map.filter(function (x) { return !x.on && x.to === x.from; })), fontsElsewhere: pc.fontsElsewhere, colors: pc.colors };
+  };
+
+  // Show what the brand will change on this dashboard, live, before applying it.
+  Br.preview = function (theme) {
+    var rt = MS.rt(); if (!rt) { MS.toast('Open a dashboard first (scripts must be on).', 'warn'); return; }
+    var plan = Br.plan(theme), t = JSON.parse(JSON.stringify(theme)), start = JSON.stringify(rt.state);
+    t.map = plan.map; if (theme.forceFonts === undefined || !theme.forceFonts) t.forceFonts = plan.fontsElsewhere && !!(t.fonts.body || t.fonts.heading);
+    var h = MS.h, ROLES = ['primary', 'secondary', 'accent', 'background', 'surface', 'text', 'muted', 'border', 'ribbonBg'].filter(function (r) { return t.colors[r]; });
+    var options = ROLES.map(function (r) { return { v: t.colors[r], l: r + ' ' + t.colors[r] }; }).concat((t.palette || []).map(function (p, i) { return { v: p, l: 'chart colour ' + (i + 1) + ' ' + p }; })).filter(function (o, i, a) { return a.map(function (x) { return x.v; }).indexOf(o.v) === i; });
+    var live = MS.debounce(function () { rt.state.theme = JSON.parse(JSON.stringify(t)); rt.refresh(true); }, 80);
+    var rows = t.map.map(function (m) {
+      var cb = h('input', { type: 'checkbox', checked: m.on !== false });
+      var to = h('select', { 'class': 'inp' }, (m.on === false && m.to === m.from ? [{ v: m.from, l: 'keep ' + m.from }] : []).concat(options).map(function (o) { return h('option', { value: o.v, text: o.l, selected: o.v === m.to }); }));
+      var toSw = h('i', { 'class': 'sw', style: { background: m.to } });
+      cb.addEventListener('change', function () { m.on = cb.checked; live(); });
+      to.addEventListener('change', function () { m.to = to.value; m.on = true; cb.checked = true; toSw.style.background = to.value; live(); });
+      return h('label', { 'class': 'map-row' }, [cb, h('i', { 'class': 'sw', style: { background: m.from }, title: m.from }), h('span', { 'class': 'arrow', text: '→' }), toSw, to,
+        h('small', { 'class': 'muted grow', text: (m.uses || '') + (m.where && m.where.length ? ' · ' + m.where.join(', ') : '') + (m.role && /kept|left/.test(m.role) ? ' · ' + m.role : '') })]);
+    });
+    var opt = function (label, key, hint) { var cb = h('input', { type: 'checkbox', checked: !!t[key] }); cb.addEventListener('change', function () { t[key] = cb.checked; live(); }); return h('label', { 'class': 'opt-check', title: hint || '' }, [cb, ' ' + label]); };
+    var fonts = [t.fonts.heading && 'Headings: ' + t.fonts.heading.split(',')[0].replace(/"/g, ''), t.fonts.body && 'Text: ' + t.fonts.body.split(',')[0].replace(/"/g, '')].filter(Boolean).join(' · ');
+    var body = h('div', { 'class': 'brand-preview' }, [
+      h('div', { 'class': 'row gap' }, [h('div', { 'class': 'swatches big' }, ROLES.map(function (r) { return h('i', { style: { background: t.colors[r] }, title: r + ' ' + t.colors[r] }); }).concat((t.palette || []).map(function (p) { return h('i', { style: { background: p }, title: p }); }))),
+        h('small', { 'class': 'muted', text: fonts || 'No fonts in this brand' })]),
+      t.sources && t.sources.length ? h('small', { 'class': 'muted', text: 'Read from: ' + t.sources.join(', ') }) : null,
+      h('h4', { text: 'Colours on this dashboard (' + rows.length + ')' }),
+      h('p', { 'class': 'muted small', text: 'Each colour the dashboard uses is matched to a brand colour by what it is used for: the main colour and its shades → primary, light backgrounds → background / card, dark text → text, lines → border. The same brand and dashboard always give the same result. Untick anything you want to keep; the dashboard behind updates as you go.' }),
+      rows.length ? h('div', { 'class': 'map-list' }, rows) : h('p', { 'class': 'muted', text: 'Nothing to swap: the dashboard\'s colours already match, or it has none of its own.' }),
+      h('h4', { text: 'Also' }),
+      opt('Recolour the charts with the brand palette', 'chartsFollowTheme'),
+      opt('Use the brand fonts everywhere (overrides fonts the dashboard sets on its own parts)', 'forceFonts', 'Icons and code keep their fonts'),
+      opt('Apply page background, text colour and fonts', 'applyToPage')
+    ]);
+    live();
+    return MS.dialog({ title: 'Apply brand “' + t.name + '”', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply brand', primary: true, value: 'ok' }] }).then(function (v) {
+      rt.setState(JSON.parse(start)); rt.refresh(true);
+      if (v !== 'ok') return false;
+      t.map = t.map.filter(function (m) { return m.on !== false && m.to !== m.from; }).map(function (m) { return { from: m.from, to: m.to, role: m.role }; });
+      Br.apply(t); return true;
     });
   };
 

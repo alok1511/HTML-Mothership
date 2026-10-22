@@ -337,6 +337,40 @@ body.presenting.blank #stage-frame-host { visibility: hidden; }
 .cmt-ctx { background: var(--warn-weak); border: 1px solid #fde68a; border-radius: 10px; padding: 9px 11px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
 :root[data-ms-mode="dark"] .cmt-ctx, :root[data-ms-mode="dark"] .recover, :root[data-ms-mode="dark"] .warn-box { border-color: #5c4614; }
 .cmt-n { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 9px 9px 9px 2px; background: var(--note); color: #111; font-size: 11px; font-weight: 700; padding: 0 4px; }
+/* right panel: Format | Comments */
+.rtabs { display: flex; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 2; }
+.rtabs button { border: 0; background: none; padding: 6px 12px; border-radius: 7px 7px 0 0; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; }
+.rtabs button:hover { color: var(--text); background: var(--hover); }
+.rtabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+.rtabs .count { display: inline-block; min-width: 16px; padding: 0 5px; border-radius: 9px; background: var(--note); color: #111; font-size: 10.5px; line-height: 16px; text-align: center; }
+#appbar .seg.mode .seg-btn[data-mode="comment"].on { background: var(--note); color: #111; }
+/* comments pane */
+#cmt-pane { padding: 8px 10px 20px; }
+.cmt-head { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+.cmt-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 7px 9px; border-radius: 9px; background: var(--panel-3); margin-bottom: 8px; font-size: 12px; }
+.cmt-hint.on { background: var(--warn-weak); border: 1px solid #fde68a; }
+.linklike { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; font-size: inherit; }
+.cmt-filter { display: flex; flex-wrap: wrap; margin-bottom: 6px; }
+.cmt-group { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 10px 2px 4px; }
+.cmt-card { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; background: var(--panel); cursor: pointer; }
+.cmt-card:hover { border-color: var(--line-strong); }
+.cmt-card.cur { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-weak); cursor: default; }
+.cmt-card.new { border-color: var(--accent); cursor: default; }
+.cmt-card.done .cmt-text { color: var(--muted); }
+.cmt-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.cmt-what { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmt-text { white-space: pre-wrap; word-break: break-word; }
+.cmt-meta { margin-top: 3px; font-size: 11px; }
+.cmt-reply { margin: 6px 0 0 10px; padding-left: 8px; border-left: 2px solid var(--line); }
+.cmt-replybox { margin-top: 6px; }
+.cmt-replybox textarea { flex: 1; min-height: 30px; resize: vertical; }
+.cmt-acts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.cmt-draft { display: flex; flex-direction: column; gap: 6px; }
+.cmt-draft .cmt-ctx { margin-bottom: 0; font-size: 12px; }
+.cmt-draft .row > select { flex: 1; min-width: 0; }
+.cmt-draft textarea { width: 100%; resize: vertical; }
+.cmt-n.done { background: var(--faint); }
+.tag.ok { background: var(--ok-weak); color: var(--ok); }
 .prompt-out { width: 100%; min-height: 300px; font: 12px/1.55 "Cascadia Mono", Consolas, ui-monospace, monospace; background: var(--panel-2); }
 .prompt-dlg .row { flex-wrap: wrap; }
 /* chart look editor */
@@ -386,6 +420,15 @@ body.presenting.blank #stage-frame-host { visibility: hidden; }
 .order-list { list-style: none; counter-reset: o; padding: 0; margin: 8px 0; max-height: 46vh; overflow: auto; }
 .order-list li { counter-increment: o; display: flex; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; margin: 4px 0; background: var(--panel); cursor: grab; }
 .order-list li::before { content: counter(o); min-width: 18px; color: var(--muted); font-size: 12px; text-align: right; }
+.brand-preview h4 { margin: 14px 0 4px; }
+.map-list { max-height: 42vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.map-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.map-row:last-child { border-bottom: 0; }
+.map-row .sw { display: inline-block; width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--line-strong); flex: none; }
+.map-row select { width: 190px; flex: none; }
+.map-row .arrow { color: var(--muted); }
+.map-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-preview .opt-check { display: flex; align-items: center; gap: 4px; padding: 3px 0; }
 .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 12px; max-height: 50vh; overflow: auto; }
 .cat-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
 .cat-row input[type=color] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--line); }
@@ -521,6 +564,7 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
   <button class="cmdk-btn" id="btn-cmdk" title="Search every command, chart, tab and help topic (Ctrl+K)">🔍 <span class="lbl">Search commands…</span><kbd>Ctrl K</kbd></button>
   <div class="seg mode" role="group" aria-label="Mode">
     <button class="seg-btn on" data-mode="edit" title="Click to select, double-click to edit">✎ Edit</button>
+    <button class="seg-btn" data-mode="comment" title="Click anything (or drag a box) to leave a review comment. Tabs still switch.">💬 Comment</button>
     <button class="seg-btn" data-mode="interact" title="Use the dashboard normally: filters, tooltips, drill-down">☝ Interact</button>
   </div>
   <div id="cmt-bar" class="cmt-bar"></div>
@@ -558,16 +602,16 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
         <p class="muted">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
         <ol class="steps">
           <li><b>Open</b> a dashboard. Click anything to select it. Double-click text to type.</li>
-          <li><b>Layout › Tabbed layout</b> adds a ribbon of tabs. Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
+          <li><b>Layout › Add tab</b> adds a tab (it joins your dashboard's own tabs if it has them; otherwise Layout › Tab ribbon splits the page into tabs). Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
           <li><b>Design › Load brand</b> applies your colours and fonts from a skill file.</li>
           <li><b>Double-click a chart</b> to set its commentary, look, pop-up and drill-down levels.</li>
-          <li><b>💬 Comment</b> on anything, then <b>✨ Prompt</b> turns your comments into instructions for an AI assistant.</li>
+          <li><b>💬 Comment</b>: click anything or drag a box; every comment is listed in the Comments pane. Then <b>✨ Prompt</b> turns your comments into instructions for an AI assistant.</li>
           <li><b>Export HTML</b> saves one file you can share, or reopen here later.</li>
         </ol>
       </div>
     </div>
   </main>
-  <aside id="right"><div id="inspector"></div></aside>
+  <aside id="right"><div id="right-tabs" class="rtabs"></div><div id="inspector"></div><div id="cmt-pane" hidden></div></aside>
 </div>
 
 <footer id="statusbar"><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span><span id="zoomctl"></span></footer>
@@ -1395,6 +1439,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   function fontOf(st, size) { var f = {}; if (st.font) f.family = st.font; if (size) f.size = +size; return f; }
 
   var A = {};
+  // Chart.js 4 keeps the old colours on screen after update('none'); a full update with animation off redraws them at once
+  function cjsStill(i) { var o = i.options, a = o ? o.animation : undefined; if (o) o.animation = false; i.update(); if (o) o.animation = a; }
   A.chartjs = {
     list: function () {
       var C = window.Chart;
@@ -1442,7 +1488,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         d.backgroundColor = labels.map(function (l, j) { return map[l] || (Array.isArray(base) ? base[j % base.length] : base); });
         if (!radial) d.borderColor = d.backgroundColor;
       });
-      i.update('none');
+      cjsStill(i);
     },
     image: function (i) {
       var cv = i.canvas, out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height;
@@ -1461,7 +1507,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
           d.borderColor = c; d.backgroundColor = line ? c + '33' : c;
         }
       });
-      i.update('none');
+      cjsStill(i);
     },
     setData: function (i, labels, series) {
       this.snapshot(i);
@@ -1512,7 +1558,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         if (st.tipSize || st.font) { t.bodyFont = fontOf(st, st.tipSize); t.titleFont = Object.assign(fontOf(st, st.tipSize), { weight: 'bold' }); }
         if (st.tipRadius !== undefined && st.tipRadius !== '') t.cornerRadius = +st.tipRadius;
       }
-      i.update('none');
+      cjsStill(i);
     },
     onDbl: function (elm, i, cb) {
       elm.addEventListener('dblclick', function (e) {
@@ -2399,6 +2445,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         c.inst.__msPal = pal ? String(pal) : null;
         if (cat) c.a.setCatColors(c.inst, cat);
         c.inst.__msCat = !!cat; c.inst.__msColKey = ck;
+        syncLegend(c, !!(pal || cat));
       }
       var tpl = cs && cs.tooltip;
       if (tpl || c.inst.__msTip) {
@@ -2469,6 +2516,60 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     (info.labels || []).concat(info.series || []).forEach(function (l) { var col = lookColor(l); if (col) { out[l] = col; n++; } });
     return n ? out : null;
   }
+
+  /* ------------------------------------------------------------ the page's own HTML legends follow the chart colours */
+  // A legend item is a small element whose text is a category or series name, with a little coloured swatch in it or next to it.
+  function swatchOf(p, skip) {
+    var ks = p.querySelectorAll('*');
+    for (var i = 0; i < ks.length && i < 6; i++) {
+      var k = ks[i]; if (k === skip || k.contains(skip) || (k.textContent || '').trim()) continue;
+      var r = k.getBoundingClientRect(), st = getComputedStyle(k), w = r.width || parseFloat(st.width), hh = r.height || parseFloat(st.height);
+      if (!(w > 0) || w > 30 || hh > 30) continue;
+      var bg = st.backgroundColor;
+      if (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) return k;
+    }
+    return null;
+  }
+  rt.legendItems = function (c) {
+    if (!c || !c.inst) return [];
+    var info = c.a.info(c.inst), names = (info.labels || []).concat(info.series || []).map(String), L = names.map(low);
+    if (!names.length) return [];
+    var host = c.el.parentElement;
+    for (var up = 0; up < 4 && host && host !== D.body; up++, host = host.parentElement) {
+      var found = [], seen = [];
+      Array.prototype.forEach.call(host.querySelectorAll('li,span,div,label,td,p'), function (n) {
+        if (c.el.contains(n) || n.childElementCount > 3 || n.closest('[data-ms-editor],.ms-crumbs,.ms-summary')) return;
+        var i = L.indexOf(low(n.textContent)); if (i < 0) return;
+        var sw = swatchOf(n) || (n.parentElement && n.parentElement !== host && n.parentElement.childElementCount <= 3 ? swatchOf(n.parentElement, n) : null);
+        if (!sw || seen.indexOf(sw) >= 0) return;
+        seen.push(sw); found.push({ name: names[i], item: sw.parentElement.contains(n) ? sw.parentElement : n, sw: sw });
+      });
+      // another chart in the same box means the legend could belong to either: stop
+      if (up > 0 && rt.charts().some(function (o) { return o.el !== c.el && host.contains(o.el); })) return [];
+      if (found.length >= Math.min(2, names.length)) return found;
+    }
+    return [];
+  };
+  function syncLegend(c, on) {
+    var items = rt.legendItems(c); if (!items.length) return;
+    var cols = on ? rt.chartColors(c.key) : {};
+    items.forEach(function (it) {
+      var sw = it.sw, col = cols[it.name];
+      if (on && col) {
+        if (!sw.hasAttribute('data-ms-legend-orig')) sw.setAttribute('data-ms-legend-orig', sw.style.background || '');
+        sw.style.background = col;
+      } else if (sw.hasAttribute('data-ms-legend-orig')) { sw.style.background = sw.getAttribute('data-ms-legend-orig'); sw.removeAttribute('data-ms-legend-orig'); }
+    });
+  }
+  // the chart and category an HTML legend item belongs to
+  rt.legendOf = function (node) {
+    var cs = rt.charts();
+    for (var i = 0; i < cs.length; i++) {
+      var its = rt.legendItems(cs[i]);
+      for (var j = 0; j < its.length; j++) if (its[j].sw === node || its[j].item === node || its[j].item.contains(node)) return { key: cs[i].key, name: its[j].name };
+    }
+    return null;
+  };
 
   /* ------------------------------------------------------------ charts built in Mothership (Chart.js + a dataset) */
   var NATIVE_PAL = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
@@ -2713,8 +2814,82 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       if (f.heading) out.push('h1,h2,h3,h4,h5,h6,.ms-title{font-family:' + f.heading + '!important}');
       if (c.text) out.push('body *:not(svg *):not(#ms-ribbon *):not(.ms-tabbtn){color:' + c.text + '}');
     }
+    if (T.forceFonts && (f.body || f.heading)) {
+      var keep = ':not(svg):not(svg *):not(code):not(pre):not(i):not([class*="icon"]):not([class*="fa-"]):not(.material-icons):not(.material-symbols-outlined)';
+      if (f.body) out.push('body *' + keep + '{font-family:' + f.body + '!important}');
+      if (f.heading) out.push('h1,h2,h3,h4,h5,h6,.ms-title{font-family:' + f.heading + '!important}');
+    }
+    if (T.map && T.map.length) out.push(mapCss(T.map));
     if (T.css) out.push(T.css);
     return out.join('\n');
+  }
+
+  /* ------------------------------------------------------------ brand colour mapping: the page's own colours → brand colours */
+  var MAP_PROPS = ['color', 'background-color', 'background-image', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'fill', 'stroke', 'box-shadow', 'text-decoration-color', 'caret-color', 'column-rule-color'];
+  function colHex(v) {
+    var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(v).trim());
+    if (m) { var x = m[1].toLowerCase(); return '#' + (x.length === 3 ? x.replace(/./g, '$&$&') : x); }
+    m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,/]+([\d.]+)(%)?)?\s*\)$/i.exec(String(v).trim());
+    if (!m) return null;
+    return '#' + [m[1], m[2], m[3]].map(function (n) { return ('0' + Math.round(+n).toString(16)).slice(-2); }).join('');
+  }
+  function colMap(list) { var m = {}; (list || []).forEach(function (x) { if (x && x.on !== false && x.from && x.to) m[String(x.from).toLowerCase()] = x.to; }); return m; }
+  function swapCols(text, m) {
+    return String(text).replace(/#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)/ig, function (x) {
+      var hx = colHex(x), to = hx && m[hx]; if (!to) return x;
+      var a = /^rgba?\(\s*[\d.]+[ ,]+[\d.]+[ ,]+[\d.]+\s*[,/]\s*([\d.]+%?)\s*\)$/i.exec(x), al = a ? a[1] : null;
+      if (al && al !== '1') { var t = colHex(to); if (t) return 'rgba(' + parseInt(t.slice(1, 3), 16) + ',' + parseInt(t.slice(3, 5), 16) + ',' + parseInt(t.slice(5, 7), 16) + ',' + (/%$/.test(al) ? parseFloat(al) / 100 : al) + ')'; }
+      return to;
+    });
+  }
+  rt.colHex = colHex;
+  function ownSheet(sh) { var n = sh.ownerNode; return !!(n && ((n.id && /^ms-/.test(n.id)) || (n.hasAttribute && (n.hasAttribute('data-ms-editor') || n.hasAttribute('data-ms-own'))))); }
+  // every style rule in the page's own style sheets: fn(rule, media)
+  rt.eachRule = function (fn) {
+    function walk(rs, media) {
+      for (var i = 0; i < rs.length; i++) {
+        var r = rs[i];
+        if (r.type === 1) fn(r, media);
+        else if (r.type === 4 && r.cssRules) walk(r.cssRules, r.media.mediaText);
+        else if (r.type === 12 && r.cssRules) walk(r.cssRules, media);
+      }
+    }
+    Array.prototype.forEach.call(D.styleSheets, function (sh) { if (ownSheet(sh)) return; var rs; try { rs = sh.cssRules; } catch (e) { return; } if (rs) walk(rs, ''); });
+  };
+  var mapCache = { k: '', css: '' };
+  function mapCss(list) {
+    var m = colMap(list), key = JSON.stringify(m) + '|' + D.styleSheets.length;
+    if (key === mapCache.k) return mapCache.css;
+    var out = [];
+    if (Object.keys(m).length) rt.eachRule(function (r, media) {
+      var decl = [];
+      for (var j = 0; j < r.style.length; j++) {
+        var p = r.style[j]; if (MAP_PROPS.indexOf(p) < 0 && p.indexOf('--') !== 0) continue;
+        var v = r.style.getPropertyValue(p), nv = swapCols(v, m);
+        if (nv !== v) decl.push(p + ':' + nv + (r.style.getPropertyPriority(p) ? ' !important' : ''));
+      }
+      if (decl.length) out.push((media ? '@media ' + media + '{' : '') + r.selectorText + '{' + decl.join(';') + '}' + (media ? '}' : ''));
+    });
+    mapCache = { k: key, css: out.join('\n') };
+    return mapCache.css;
+  }
+  // colours written straight on elements (style="…"): swapped in place, and put back when the mapping goes
+  function mapInline() {
+    var T = rt.state.theme, m = colMap(T && T.map), on = Object.keys(m).length > 0;
+    if (!on && !D.querySelector('[data-ms-colmap]')) return;
+    Array.prototype.forEach.call(D.querySelectorAll(on ? '[style],[data-ms-colmap]' : '[data-ms-colmap]'), function (e) {
+      if (e.closest('[data-ms-editor],#ms-ribbon,#ms-filter-pane') || /^(CANVAS)$/.test(e.tagName)) return;
+      var saved = {}; try { saved = JSON.parse(e.getAttribute('data-ms-colmap') || '{}'); } catch (x) {}
+      Object.keys(saved).forEach(function (p) { if (e.style.getPropertyValue(p) === saved[p].to) e.style.setProperty(p, saved[p].from); });
+      var now = {}, props = [];
+      if (on) for (var j = 0; j < e.style.length; j++) props.push(e.style[j]);
+      props.forEach(function (p) {
+        if (MAP_PROPS.indexOf(p) < 0 && p.indexOf('--') !== 0) return;
+        var v = e.style.getPropertyValue(p), nv = swapCols(v, m);
+        if (nv !== v) { e.style.setProperty(p, nv); now[p] = { from: v, to: e.style.getPropertyValue(p) }; }
+      });
+      if (Object.keys(now).length) e.setAttribute('data-ms-colmap', JSON.stringify(now)); else if (e.hasAttribute('data-ms-colmap')) e.removeAttribute('data-ms-colmap');
+    });
   }
   function ensureStyle(id, css) {
     var s = D.getElementById(id);
@@ -2793,6 +2968,13 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     try { window.dispatchEvent(new CustomEvent('ms:tab', { detail: { id: t.id, title: t.title } })); } catch (e) {}
   };
   rt.step = function (dir) {
+    if (!rt.layoutEnabled()) {
+      // no tab ribbon: step through the page's own tabs
+      var g = rt.pageTabs(); if (!g) return -1;
+      var cur = 0; g.tabs.forEach(function (t, k) { if (t.active) cur = k; });
+      var nx = Math.max(0, Math.min(g.tabs.length - 1, cur + dir));
+      rt.showPageTab(nx); return nx;
+    }
     var vis = rt.tabs().filter(function (x) { return !x.hidden; });
     var i = vis.findIndex(function (x) { return x.id === rt.activeTab; });
     var n = vis[Math.max(0, Math.min(vis.length - 1, i + dir))];
@@ -2818,6 +3000,130 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       rib.appendChild(b);
     });
   };
+
+  /* ------------------------------------------------------------ the page's own tabs */
+  /* Many dashboards already have tabs (buttons that show one panel at a time). Mothership finds
+     them so it can switch, add, rename and reorder them. Tabs the page's script doesn't know about
+     (added in Mothership) are switched by the same rules the page uses, learnt from its own tabs. */
+  var PT_BTN = '[role="tab"],[data-tab],[data-target],[data-tab-target],[data-bs-target],[aria-controls],.tab,.tab-btn,.tab-button,.tablinks,.tablink,.nav-link,.tabs>button,.tabs>a,.tab-bar>*,.tabbar>*,.tab-nav>*,.tabs-nav>*';
+  var PT_PANEL = '[role="tabpanel"],.tab-panel,.tab-pane,.tabcontent,.tab-content>*,.tabpanel,.tab-page,.tab-section';
+  var PT_ATTRS = ['aria-controls', 'data-tab', 'data-target', 'data-tab-target', 'data-bs-target', 'href'];
+  var PT_ACTIVE = ['active', 'is-active', 'selected', 'current', 'show', 'open', 'on'];
+  function ptSkip(n) { return n.closest('#ms-ribbon,#ms-filter-pane,[data-ms-editor],.ms-modal-wrap,#ms-cmt-layer'); }
+  function cssEsc(v) { try { return CSS.escape(v); } catch (e) { return String(v).replace(/["\\]/g, '\\$&'); } }
+  function ptTarget(b) {
+    var tries = [];
+    PT_ATTRS.forEach(function (a) {
+      var v = b.getAttribute(a); if (!v) return;
+      if (a === 'href') { if (v.indexOf('#') < 0) return; v = v.slice(v.indexOf('#')); }
+      var raw = v.replace(/^#/, ''); if (!raw) return;
+      tries.push({ id: raw, via: a, raw: v });
+      ['tab-' + raw, raw + '-tab', raw + '-panel', 'panel-' + raw, raw + 'Tab', raw + 'Panel'].forEach(function (x) { tries.push({ id: x, via: a, raw: v }); });
+      tries.push({ sel: '[data-panel="' + cssEsc(raw) + '"],[data-tab-panel="' + cssEsc(raw) + '"],[data-tab-content="' + cssEsc(raw) + '"],[data-tabpanel="' + cssEsc(raw) + '"]', via: a, raw: v });
+    });
+    var oc = b.getAttribute('onclick') || '';
+    (oc.match(/(['"])([^'"]+)\1/g) || []).forEach(function (q) { tries.push({ id: q.slice(1, -1), via: 'onclick', raw: q.slice(1, -1) }); });
+    for (var i = 0; i < tries.length; i++) {
+      var t = tries[i], e = null;
+      try { e = t.id ? D.getElementById(t.id) : D.querySelector(t.sel); } catch (x) {}
+      if (e && e !== b && !e.contains(b) && !b.contains(e) && !ptSkip(e) && !/^(SCRIPT|STYLE|TEMPLATE|HEAD)$/.test(e.tagName)) return { el: e, via: t.via, raw: t.raw };
+    }
+    return null;
+  }
+  function ptShown(e) { if (!e || e.hidden) return false; var cs = getComputedStyle(e); return cs.display !== 'none' && cs.visibility !== 'hidden'; }
+  function ptTitle(b) { return (b.textContent || b.getAttribute('aria-label') || b.title || '').replace(/\s+/g, ' ').trim(); }
+  function ptGroup(btns) {
+    var tabs = btns.map(function (b) { var t = ptTarget(b); return { btn: b, panel: t && t.el, via: t ? t.via : '', raw: t ? t.raw : '' }; });
+    var panels = tabs.map(function (t) { return t.panel; });
+    var distinct = panels.every(function (p, i) { return p && panels.indexOf(p) === i; });
+    if (!distinct) {
+      // no links between buttons and panels: match them by order when the counts agree
+      var hosts = [], lists = [];
+      Array.prototype.forEach.call(D.querySelectorAll(PT_PANEL), function (p) {
+        if (ptSkip(p) || btns.some(function (b) { return p.contains(b) || b.contains(p); })) return;
+        var k = hosts.indexOf(p.parentNode); if (k < 0) { hosts.push(p.parentNode); lists.push([]); k = hosts.length - 1; }
+        lists[k].push(p);
+      });
+      var list = lists.filter(function (l) { return l.length === btns.length; })[0];
+      if (!list) return null;
+      tabs.forEach(function (t, i) { t.panel = list[i]; t.via = 'order'; t.raw = ''; });
+    }
+    tabs.forEach(function (t, i) { t.index = i; t.title = ptTitle(t.btn) || ('Tab ' + (i + 1)); t.active = ptShown(t.panel); });
+    var g = { tabs: tabs, btnActive: '', panelActive: '' };
+    // learn how the page marks the active tab
+    var on = tabs.filter(function (t) { return t.active; })[0];
+    if (on) {
+      var only = function (list, el) { return Array.prototype.filter.call(el.classList, function (c) { return list.every(function (x) { return x === el || !x.classList.contains(c); }); }); };
+      var bc = only(tabs.map(function (t) { return t.btn; }), on.btn), pc = only(tabs.map(function (t) { return t.panel; }), on.panel);
+      g.btnActive = bc.filter(function (c) { return PT_ACTIVE.indexOf(c) >= 0; })[0] || bc.filter(function (c) { return !/^ms-/.test(c); })[0] || '';
+      g.panelActive = pc.filter(function (c) { return PT_ACTIVE.indexOf(c) >= 0; })[0] || pc.filter(function (c) { return !/^ms-/.test(c); })[0] || '';
+    }
+    return g;
+  }
+  var ptCache = null;
+  rt.pageTabs = function (fresh) {
+    if (ptCache && !fresh && ptCache.tabs.every(function (t) { return t.btn.isConnected && t.panel.isConnected; }) && ptCache.n === D.querySelectorAll(PT_BTN).length) {
+      ptCache.tabs.forEach(function (t) { t.active = ptShown(t.panel); t.title = ptTitle(t.btn) || t.title; });
+      return ptCache;
+    }
+    var all = Array.prototype.filter.call(D.querySelectorAll(PT_BTN), function (b) { return !ptSkip(b) && !/^(SECTION|MAIN|BODY|NAV|HEADER|UL|OL|FORM|TABLE)$/.test(b.tagName); });
+    var parents = [];
+    all.forEach(function (b) { if (parents.indexOf(b.parentNode) < 0) parents.push(b.parentNode); });
+    var best = null;
+    parents.forEach(function (p) {
+      var btns = all.filter(function (b) { return b.parentNode === p; });
+      if (btns.length < 2) return;
+      var g = ptGroup(btns);
+      if (g && (!best || g.tabs.length > best.tabs.length)) best = g;
+    });
+    if (best) best.n = D.querySelectorAll(PT_BTN).length;
+    ptCache = best;
+    return best;
+  };
+  rt.pageTabOf = function (node) {
+    var g = rt.pageTabs(); if (!g || !node) return null;
+    return g.tabs.filter(function (t) { return t.btn === node || t.btn.contains(node) || t.panel === node || t.panel.contains(node); })[0] || null;
+  };
+  function ptApply(g, t) {
+    g.tabs.forEach(function (x) {
+      var on = x === t;
+      if (g.btnActive) x.btn.classList.toggle(g.btnActive, on);
+      if (x.btn.hasAttribute('aria-selected')) x.btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (g.panelActive) x.panel.classList.toggle(g.panelActive, on);
+      if (x.panel.hasAttribute('hidden') || !on && x.panel.hidden) x.panel.hidden = !on;
+      if (!on) { if (ptShown(x.panel)) x.panel.style.display = 'none'; }
+      else { if (x.panel.style.display === 'none') x.panel.style.display = ''; if (!ptShown(x.panel)) x.panel.style.display = 'block'; }
+    });
+  }
+  rt.ptClicking = false;
+  function ptAfter(t) {
+    requestAnimationFrame(function () {
+      cloneCopies();
+      rt.charts().forEach(function (c) { if (t.panel.contains(c.el)) { c.a.resize(c.inst); applyChart(c); } });
+    });
+    try { window.dispatchEvent(new CustomEvent('ms:pagetab', { detail: { index: t.index, title: t.title } })); } catch (e) {}
+  }
+  rt.showPageTab = function (i) {
+    var g = rt.pageTabs(); if (!g) return false;
+    var t = typeof i === 'number' ? g.tabs[i] : g.tabs.filter(function (x) { return x.title === i; })[0];
+    if (!t) return false;
+    rt.ptClicking = true;
+    try { t.btn.click(); } catch (e) {}
+    rt.ptClicking = false;
+    // the page's own script handles its own tabs; tabs it doesn't know get the same treatment
+    if (!ptShown(t.panel) || g.tabs.some(function (x) { return x !== t && ptShown(x.panel) && !x.panel.contains(t.panel); })) ptApply(g, t);
+    ptAfter(t);
+    return true;
+  };
+  D.addEventListener('click', function (e) {
+    if (rt.ptClicking || (EDITOR && window.__MS_EDIT_MODE)) return;
+    var g = rt.pageTabs(), t = g && e.target.closest && g.tabs.filter(function (x) { return x.btn === e.target || x.btn.contains(e.target); })[0];
+    if (!t) return;
+    setTimeout(function () {
+      if (!ptShown(t.panel) || g.tabs.some(function (x) { return x !== t && ptShown(x.panel) && !x.panel.contains(t.panel); })) ptApply(g, t);
+      ptAfter(t);
+    }, 0);
+  });
 
   /* ------------------------------------------------------------ refresh */
   /* ------------------------------------------------------------ published files: version stamp, and a calm message if something fails */
@@ -2855,6 +3161,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   rt.refresh = function (force) {
     ensureStyle('ms-base-css', BASE_CSS);
     ensureStyle('ms-theme-css', themeCss());
+    try { mapInline(); } catch (e) {}
     if (rt.layoutEnabled()) {
       rt.renderRibbon();
       var tabs = rt.tabs();
@@ -2883,7 +3190,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     // charts are often created after load or after a fetch: re-apply a few times.
     [250, 800, 2000, 4000].forEach(function (t) { setTimeout(function () { rt.refresh(); }, t); });
     if (!EDITOR) D.addEventListener('keydown', function (e) {
-      if (!rt.layoutEnabled() || /input|select|textarea/i.test(e.target.tagName) || e.target.isContentEditable) return;
+      if ((!rt.layoutEnabled() && !rt.pageTabs()) || /input|select|textarea/i.test(e.target.tagName) || e.target.isContentEditable) return;
       if (e.altKey && e.key === 'ArrowRight') rt.step(1);
       if (e.altKey && e.key === 'ArrowLeft') rt.step(-1);
     });
@@ -3296,14 +3603,24 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   function onClick(e) {
     if (MS.mode !== 'edit') return;
-    var t = e.target;
+    var t = e.target, r = MS.rt();
     if (t.closest && t.closest('[contenteditable="true"]')) return;
+    if (r && r.ptClicking) return;
+    // the dashboard's own tabs switch in Edit mode too (and get selected, so they can be renamed or styled)
+    var pt = r && r.pageTabOf && t.nodeType === 1 ? r.pageTabOf(t) : null;
+    if (pt && (pt.btn === t || pt.btn.contains(t))) { e.preventDefault(); e.stopPropagation(); r.showPageTab(pt.index); E.select(pt.btn); MS.emit('structure'); return; }
     if (t.closest && (t.closest('#ms-ribbon .ms-tabbtn') || t.closest('#ms-filter-pane select') || t.closest('.ms-crumbs button') || t.closest('.ms-modal-wrap') || t.closest('.ms-pane-reset'))) {
       if (t.closest('#ms-ribbon .ms-tabbtn')) setTimeout(function () { MS.emit('structure'); }, 0);
       return;
     }
     e.preventDefault(); e.stopPropagation();
     E.select(pick(t));
+    // a click on a Chart.js legend entry: change that colour (chart and legend together)
+    var ch = r && t.tagName === 'CANVAS' ? r.chartOf(t) : null, lg = ch && ch.lib === 'chartjs' && ch.inst.legend;
+    if (lg && lg.legendHitBoxes && lg.options && lg.options.display !== false) {
+      var bx = t.getBoundingClientRect(), x = e.clientX - bx.left, y = e.clientY - bx.top;
+      lg.legendHitBoxes.forEach(function (hb, i) { var it = lg.legendItems[i]; if (it && x >= hb.left && x <= hb.left + hb.width && y >= hb.top && y <= hb.top + hb.height) MS.catColors.pick(it.text, ch.key); });
+    }
   }
   function onDbl(e) {
     if (MS.mode !== 'edit') return;
@@ -3311,6 +3628,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (t.closest && t.closest('[contenteditable="true"]')) return;
     e.preventDefault(); e.stopPropagation();
     if (t.closest && t.closest('#ms-ribbon .ms-tabbtn')) { var id = t.closest('.ms-tabbtn').getAttribute('data-ms-tabbtn'); return MS.tabs.rename(id); }
+    var ptb = MS.rt() && t.nodeType === 1 && MS.rt().pageTabOf ? MS.rt().pageTabOf(t) : null;
+    if (ptb && (ptb.btn === t || ptb.btn.contains(t))) return MS.pageTabs.rename(ptb.index);
     var kp = t.closest && t.closest('.ms-kpi');
     if (kp && t.closest('.ms-kpi-value')) { E.select(kp); return kp.hasAttribute('data-ms-kpi') ? MS.compose.kpiSettings(kp) : E.startText(t.closest('.ms-kpi-value')); }
     var p = pick(t);
@@ -3332,6 +3651,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var rt = MS.rt();
     var sec = el.closest && el.closest('section.ms-tab');
     if (sec && rt && !sec.classList.contains('ms-active')) { rt.showTab(sec.getAttribute('data-ms-tab')); MS.emit('structure'); }
+    var pt = MS.pageTabs && MS.pageTabs.of(el);
+    if (pt && !pt.active) { rt.showPageTab(pt.index); MS.emit('structure'); }
     setTimeout(function () {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
       if (flash) { el.classList.remove('ms-flash'); void el.offsetWidth; el.classList.add('ms-flash'); setTimeout(function () { el.classList.remove('ms-flash'); }, 1600); }
@@ -3418,6 +3739,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   };
   E.style = function (el, props, label) {
     if (!el) return;
+    // a legend swatch written in the page: recolour the chart instead, and the swatch follows
+    var bgv = props.backgroundColor || props.background, lg = bgv && MS.rt() && MS.rt().legendOf ? MS.rt().legendOf(el) : null;
+    if (lg) { var m = {}; m[lg.name] = bgv; return MS.catColors.set(m, 'Colour of “' + lg.name + '”'); }
     if (E.isGenerated(el)) MS.toast('This element is drawn by the dashboard\'s script, so style changes may not survive a reload.', 'warn', 5000);
     MS.history.attrs(label || 'Style', el, ['style'], function (x) {
       Object.keys(props).forEach(function (k) {
@@ -3851,31 +4175,45 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       applyToPage: j.applyToPage !== false,
       force: !!j.force,
       chartsFollowTheme: j.chartsFollowTheme !== false,
+      forceFonts: !!j.forceFonts,
       css: j.css || ''
     };
+    if (j.map) t.map = j.map;
+    if (j.sources) t.sources = j.sources;
     Object.keys(t.colors).forEach(function (k) { t.colors[k] = norm(t.colors[k]); });
     if (!t.palette.length) t.palette = [t.colors.primary, t.colors.secondary, t.colors.accent].filter(Boolean);
     return t;
   };
 
-  Br.loadFile = function (file) {
-    var ext = MS.ext(file.name);
-    if (ext === 'json') return MS.readFile(file).then(function (s) { return Br.apply(Br.normalize(JSON.parse(s), file.name)); });
-    if (ext === 'md' || ext === 'markdown' || ext === 'txt') return MS.readFile(file).then(function (s) { return Br.apply(Br.parseMarkdown(s, file.name)); });
-    if (ext === 'skill' || ext === 'zip' || ext === 'skills') return MS.readFile(file, 'buffer').then(function (buf) { return Br.fromZip(buf, file.name); }).then(Br.apply);
+  // direct: apply at once (assistant / API); otherwise show what will change first
+  Br.loadFile = function (file, direct) {
+    var ext = MS.ext(file.name), go = direct ? Br.apply : Br.preview;
+    if (ext === 'json') return MS.readFile(file).then(function (s) { return go(Br.normalize(JSON.parse(s), file.name)); });
+    if (ext === 'md' || ext === 'markdown' || ext === 'txt') return MS.readFile(file).then(function (s) { return go(Br.parseMarkdown(s, file.name)); });
+    if (ext === 'skill' || ext === 'zip' || ext === 'skills') return MS.readFile(file, 'buffer').then(function (buf) { return Br.fromZip(buf, file.name); }).then(go);
     if (/^(woff2?|ttf|otf)$/.test(ext)) return Br.addFontFiles([file]);
     MS.toast('Unsupported brand file: ' + file.name, 'error');
   };
   Br.fromZip = function (buf, name) {
     return MS.lib('jszip').then(function (J) { return J.loadAsync(buf); }).then(function (zip) {
       var files = Object.keys(zip.files).filter(function (p) { return !zip.files[p].dir && p.indexOf('__MACOSX') < 0; });
-      var skill = files.filter(function (p) { return /(^|\/)SKILL\.md$/i.test(p); })[0] || files.filter(function (p) { return /\.md$/i.test(p); })[0];
-      var json = files.filter(function (p) { return /(theme|brand)[^/]*\.json$/i.test(p); })[0];
+      files.sort();
+      var texts = files.filter(function (p) { return /\.(md|markdown|txt|css|scss|json)$/i.test(p) && !/package(-lock)?\.json$/i.test(p); });
+      texts.sort(function (a, b) { var sa = /(^|\/)SKILL\.md$/i.test(a) ? 0 : /\.md$/i.test(a) ? 1 : 2, sb = /(^|\/)SKILL\.md$/i.test(b) ? 0 : /\.md$/i.test(b) ? 1 : 2; return sa - sb || (a < b ? -1 : 1); });
+      var json = files.filter(function (p) { return /(theme|brand|tokens?)[^/]*\.json$/i.test(p); })[0];
       var fonts = files.filter(function (p) { return /\.(woff2?|ttf|otf)$/i.test(p); });
       var logo = files.filter(function (p) { return /(^|\/)logo[^/]*\.(png|svg|jpe?g|webp)$/i.test(p); })[0];
       return Promise.all([
-        json ? zip.file(json).async('string').then(function (s) { return Br.normalize(JSON.parse(s), name); }) :
-          skill ? zip.file(skill).async('string').then(function (s) { return Br.parseMarkdown(s, name); }) : Br.normalize({}, name),
+        Promise.all(texts.map(function (p) { return zip.file(p).async('string').then(function (s) { return { p: p, s: s }; }); })).then(function (all) {
+          var j = null;
+          if (json) { try { var js = JSON.parse(all.filter(function (x) { return x.p === json; })[0].s); if (js.colors || js.palette || js.fonts) j = Br.normalize(js, name); } catch (e) {} }
+          if (j) return j;
+          // one document: the skill first, then the other guides and style sheets (CSS variables count as colour roles)
+          var md = all.map(function (x) { return /\.(css|scss)$/i.test(x.p) ? '```css\n' + x.s + '\n```' : /\.json$/i.test(x.p) ? '' : x.s; }).join('\n\n');
+          var t = Br.parseMarkdown(md, name);
+          t.sources = all.map(function (x) { return x.p; });
+          return t;
+        }),
         Promise.all(fonts.map(function (p) { return zip.file(p).async('base64').then(function (b) { return fontEntry(p, b); }); })),
         logo ? zip.file(logo).async('base64').then(function (b) { return 'data:' + mime(logo) + ';base64,' + b; }) : null
       ]).then(function (r) {
@@ -3907,6 +4245,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   Br.apply = function (theme) {
     if (!MS.rt()) { MS.toast('Open a dashboard first (scripts must be on).', 'warn'); return; }
+    if (theme.map === undefined && theme.applyToPage !== false) { var plan = Br.plan(theme); theme.map = plan.map; if (plan.fontsElsewhere && theme.forceFonts === false) theme.forceFonts = true; }
     MS.history.state('Apply brand "' + theme.name + '"', function (s) { s.theme = theme; });
     Br.remember(theme);
     var c = Object.keys(theme.colors).length, p = theme.palette.length, f = Object.keys(theme.fonts).length;
@@ -3931,6 +4270,116 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         ]);
       }));
       MS.dialog({ title: 'Brand library (saved in this browser)', body: body, buttons: [{ label: 'Close', value: null }] });
+    });
+  };
+
+  /* ---------------------------------------------------------- what the dashboard uses now, and how the brand maps onto it */
+  // Every colour the page's own CSS and inline styles use, with how much it is used for text, fills and borders.
+  Br.pageColors = function () {
+    var c = MS.child, rt = MS.rt(); if (!c || !rt) return { colors: [], fontsElsewhere: false };
+    var d = c.doc, w = c.win, acc = {}, fontsElsewhere = false;
+    var KIND = { color: 'text', 'background-color': 'fill', 'background-image': 'fill', fill: 'fill', 'border-top-color': 'border', 'border-right-color': 'border', 'border-bottom-color': 'border', 'border-left-color': 'border', 'outline-color': 'border', stroke: 'border' };
+    var STATUS = /(^|[\s._#-])(up|down|pos|neg|positive|negative|good|bad|success|danger|error|warn|warning|alert|ok|risk|red|green|amber|gain|loss|delta|trend)([\s._#:-]|$)/i;
+    function add(v, kind, n, sel) {
+      String(v).replace(/#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)/ig, function (x) {
+        var hx = rt.colHex(x); if (!hx || /rgba?\([^)]*[,/]\s*0(\.0+)?\s*\)$/.test(x)) return x;
+        var a = acc[hx] = acc[hx] || { hex: hx, text: 0, fill: 0, border: 0, n: 0, status: 0, where: [] };
+        a[kind] += n; a.n += n;
+        if (sel && STATUS.test(sel)) a.status += n;
+        if (sel && a.where.length < 4 && a.where.indexOf(sel) < 0) a.where.push(sel);
+        return x;
+      });
+    }
+    rt.eachRule(function (r) {
+      var sel = r.selectorText || '', clean = sel.replace(/::?(before|after|hover|focus|focus-within|focus-visible|active|visited|placeholder|first-line|first-letter|selection|marker|-webkit-[\w-]+)(\([^)]*\))?/g, '');
+      var n = 0; try { n = Math.min(40, d.querySelectorAll(clean || '*').length); } catch (e) { n = 0; }
+      if (!n && /:root|^html|^body/.test(sel)) n = 1;
+      if (!n) n = 0.25; // states like :hover still count a little
+      for (var j = 0; j < r.style.length; j++) {
+        var p = r.style[j], v = r.style.getPropertyValue(p);
+        if (p === 'font-family' && !/^(html|body|:root|\*)$/i.test(sel.trim())) fontsElsewhere = true;
+        if (p.indexOf('--') === 0) { if (/#[0-9a-f]{3,6}\b|rgba?\(/i.test(v)) add(v, /text|ink|fg|font/i.test(p) ? 'text' : /border|line|rule|grid/i.test(p) ? 'border' : 'fill', 3, p); continue; }
+        if (KIND[p]) add(v, KIND[p], n, sel);
+      }
+    });
+    MS.$$('[style]', d).forEach(function (e) {
+      if (e.closest('[data-ms-editor],#ms-ribbon,#ms-filter-pane') || e.tagName === 'CANVAS') return;
+      var saved = {}; try { saved = JSON.parse(e.getAttribute('data-ms-colmap') || '{}'); } catch (x) {}
+      for (var j = 0; j < e.style.length; j++) { var p = e.style[j]; if (KIND[p]) add(saved[p] ? saved[p].from : e.style.getPropertyValue(p), KIND[p], 1, e.className && typeof e.className === 'string' ? '.' + e.className.split(/\s+/)[0] : e.tagName.toLowerCase()); }
+    });
+    var bodyBg = rt.colHex(w.getComputedStyle(d.body).backgroundColor) || rt.colHex(w.getComputedStyle(d.documentElement).backgroundColor) || '#ffffff';
+    if (acc[bodyBg]) acc[bodyBg].page = true;
+    var list = Object.keys(acc).map(function (k) { return acc[k]; }).filter(function (a) { return a.n >= 0.5 || a.page; });
+    list.sort(function (a, b) { return b.n - a.n || (a.hex < b.hex ? -1 : 1); });
+    return { colors: list, bodyBg: bodyBg, fontsElsewhere: fontsElsewhere };
+  };
+  function sat(rgb) { return Math.max.apply(null, rgb) - Math.min.apply(null, rgb); }
+  function kindOf(a) { return a.fill >= a.text && a.fill >= a.border ? 'fill' : a.text >= a.border ? 'text' : 'border'; }
+  function usesOf(a) { return ['text', 'fill', 'border'].filter(function (k) { return a[k] >= 0.5; }).map(function (k) { return { text: 'text', fill: 'backgrounds', border: 'borders' }[k]; }).join(', '); }
+  // A plan that is the same for the same page and the same brand: page colour → brand role.
+  Br.plan = function (theme) {
+    var pc = Br.pageColors(), c = theme.colors || {}, map = [];
+    var targets = [['primary', c.primary], ['secondary', c.secondary], ['accent', c.accent]].filter(function (x) { return x[1]; });
+    (theme.palette || []).forEach(function (p, i) { if (!targets.some(function (t) { return t[1] === p; })) targets.push(['chart colour ' + (i + 1), p]); });
+    var families = [];
+    pc.colors.forEach(function (a) {
+      var rgb = hexToRgb(a.hex), l = lum(rgb), chroma = sat(rgb) >= 40 && l > 0.01 && l < 0.92;
+      var e = { from: a.hex, uses: usesOf(a), where: a.where.slice(0, 3), n: Math.round(a.n), on: true };
+      if (chroma) {
+        if (a.status > a.n / 2) { e.role = 'status colour (kept)'; e.to = a.hex; e.on = false; map.push(e); return; }
+        // shades of one colour go to the same brand colour
+        var fam = families.filter(function (f) { return dist(hexToRgb(f.hex), rgb) < 32; })[0];
+        if (!fam) { fam = { hex: a.hex, t: targets[families.length] }; families.push(fam); }
+        if (!fam.t) { e.role = 'no brand colour left'; e.to = a.hex; e.on = false; } else { e.role = fam.t[0]; e.to = fam.t[1]; }
+        map.push(e); return;
+      }
+      var k = kindOf(a), role = null;
+      if (a.hex === pc.bodyBg || (a.page)) role = 'background';
+      else if (l > 0.8) role = k === 'border' ? 'border' : k === 'text' ? null : 'surface';
+      else if (l < 0.12) role = k === 'fill' ? (c.ribbonBg ? 'ribbonBg' : null) : 'text';
+      else role = k === 'border' ? 'border' : k === 'text' ? 'muted' : null;
+      if (role && c[role] && c[role].toLowerCase() !== a.hex) { e.role = role; e.to = c[role]; map.push(e); }
+    });
+    return { map: map.filter(function (x) { return x.to && x.to.toLowerCase() !== x.from; }).concat(map.filter(function (x) { return !x.on && x.to === x.from; })), fontsElsewhere: pc.fontsElsewhere, colors: pc.colors };
+  };
+
+  // Show what the brand will change on this dashboard, live, before applying it.
+  Br.preview = function (theme) {
+    var rt = MS.rt(); if (!rt) { MS.toast('Open a dashboard first (scripts must be on).', 'warn'); return; }
+    var plan = Br.plan(theme), t = JSON.parse(JSON.stringify(theme)), start = JSON.stringify(rt.state);
+    t.map = plan.map; if (theme.forceFonts === undefined || !theme.forceFonts) t.forceFonts = plan.fontsElsewhere && !!(t.fonts.body || t.fonts.heading);
+    var h = MS.h, ROLES = ['primary', 'secondary', 'accent', 'background', 'surface', 'text', 'muted', 'border', 'ribbonBg'].filter(function (r) { return t.colors[r]; });
+    var options = ROLES.map(function (r) { return { v: t.colors[r], l: r + ' ' + t.colors[r] }; }).concat((t.palette || []).map(function (p, i) { return { v: p, l: 'chart colour ' + (i + 1) + ' ' + p }; })).filter(function (o, i, a) { return a.map(function (x) { return x.v; }).indexOf(o.v) === i; });
+    var live = MS.debounce(function () { rt.state.theme = JSON.parse(JSON.stringify(t)); rt.refresh(true); }, 80);
+    var rows = t.map.map(function (m) {
+      var cb = h('input', { type: 'checkbox', checked: m.on !== false });
+      var to = h('select', { 'class': 'inp' }, (m.on === false && m.to === m.from ? [{ v: m.from, l: 'keep ' + m.from }] : []).concat(options).map(function (o) { return h('option', { value: o.v, text: o.l, selected: o.v === m.to }); }));
+      var toSw = h('i', { 'class': 'sw', style: { background: m.to } });
+      cb.addEventListener('change', function () { m.on = cb.checked; live(); });
+      to.addEventListener('change', function () { m.to = to.value; m.on = true; cb.checked = true; toSw.style.background = to.value; live(); });
+      return h('label', { 'class': 'map-row' }, [cb, h('i', { 'class': 'sw', style: { background: m.from }, title: m.from }), h('span', { 'class': 'arrow', text: '→' }), toSw, to,
+        h('small', { 'class': 'muted grow', text: (m.uses || '') + (m.where && m.where.length ? ' · ' + m.where.join(', ') : '') + (m.role && /kept|left/.test(m.role) ? ' · ' + m.role : '') })]);
+    });
+    var opt = function (label, key, hint) { var cb = h('input', { type: 'checkbox', checked: !!t[key] }); cb.addEventListener('change', function () { t[key] = cb.checked; live(); }); return h('label', { 'class': 'opt-check', title: hint || '' }, [cb, ' ' + label]); };
+    var fonts = [t.fonts.heading && 'Headings: ' + t.fonts.heading.split(',')[0].replace(/"/g, ''), t.fonts.body && 'Text: ' + t.fonts.body.split(',')[0].replace(/"/g, '')].filter(Boolean).join(' · ');
+    var body = h('div', { 'class': 'brand-preview' }, [
+      h('div', { 'class': 'row gap' }, [h('div', { 'class': 'swatches big' }, ROLES.map(function (r) { return h('i', { style: { background: t.colors[r] }, title: r + ' ' + t.colors[r] }); }).concat((t.palette || []).map(function (p) { return h('i', { style: { background: p }, title: p }); }))),
+        h('small', { 'class': 'muted', text: fonts || 'No fonts in this brand' })]),
+      t.sources && t.sources.length ? h('small', { 'class': 'muted', text: 'Read from: ' + t.sources.join(', ') }) : null,
+      h('h4', { text: 'Colours on this dashboard (' + rows.length + ')' }),
+      h('p', { 'class': 'muted small', text: 'Each colour the dashboard uses is matched to a brand colour by what it is used for: the main colour and its shades → primary, light backgrounds → background / card, dark text → text, lines → border. The same brand and dashboard always give the same result. Untick anything you want to keep; the dashboard behind updates as you go.' }),
+      rows.length ? h('div', { 'class': 'map-list' }, rows) : h('p', { 'class': 'muted', text: 'Nothing to swap: the dashboard\'s colours already match, or it has none of its own.' }),
+      h('h4', { text: 'Also' }),
+      opt('Recolour the charts with the brand palette', 'chartsFollowTheme'),
+      opt('Use the brand fonts everywhere (overrides fonts the dashboard sets on its own parts)', 'forceFonts', 'Icons and code keep their fonts'),
+      opt('Apply page background, text colour and fonts', 'applyToPage')
+    ]);
+    live();
+    return MS.dialog({ title: 'Apply brand “' + t.name + '”', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply brand', primary: true, value: 'ok' }] }).then(function (v) {
+      rt.setState(JSON.parse(start)); rt.refresh(true);
+      if (v !== 'ok') return false;
+      t.map = t.map.filter(function (m) { return m.on !== false && m.to !== m.from; }).map(function (m) { return { from: m.from, to: m.to, role: m.role }; });
+      Br.apply(t); return true;
     });
   };
 
@@ -4406,7 +4855,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   };
   T.toggleLayout = function () {
     var rt = MS.rt(); if (!rt) return;
-    if (!rt.layoutEnabled()) return T.ensureLayout() && MS.toast('Tabbed layout on. Your original page is the "Dashboard" tab. Add tabs from the left panel or the Insert menu.', 'ok', 6000);
+    if (!rt.layoutEnabled() && MS.pageTabs.has()) {
+      var names = MS.pageTabs.list().map(function (t) { return '“' + t.title + '”'; }).join(', ');
+      return MS.confirm('Your dashboard already has tabs', 'It has its own tabs (' + names + '). To add, rename or reorder those, use the "Your tabs" list on the left or Layout › Add tab.\n\nThe tab ribbon wraps the whole page, tabs included, in one more set of tabs. Most dashboards with tabs don\'t need it.', 'Add the ribbon anyway').then(function (ok) {
+        if (ok) T.ensureLayout() && MS.toast('Tab ribbon on. Your page (with its own tabs) is the "Dashboard" tab.', 'ok', 6000);
+      });
+    }
+    if (!rt.layoutEnabled()) return T.ensureLayout() && MS.toast('Tab ribbon on. Your original page is the "Dashboard" tab. Add tabs from the left panel or the Insert menu.', 'ok', 6000);
     var others = rt.tabs().length - 1;
     MS.confirm('Turn off tabbed layout?', 'The content of all ' + (others + 1) + ' tabs will be placed one after another on a single page. A version is saved first, so you can go back from File › Versions.', 'Turn off').then(function (ok) {
       if (!ok) return;
@@ -4420,6 +4875,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     });
   };
   T.add = function (title, kind, html) {
+    // a dashboard with its own tabs gets a new tab of its own kind, not Mothership's tab ribbon
+    var r0 = MS.rt();
+    if (r0 && !r0.layoutEnabled() && MS.pageTabs.has()) { var i = MS.pageTabs.add(title, kind === 'content' && html ? '<div class="ms-doc">' + html + '</div>' : null); return i == null ? null : 'page:' + i; }
     if (!T.ensureLayout()) return null;
     var rt = MS.rt();
     var id = rt.addTab(title, kind || 'grid', html || '');
@@ -4428,6 +4886,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     return id;
   };
   T.addPrompt = function (kind) {
+    var r0 = MS.rt();
+    if (r0 && !r0.layoutEnabled() && MS.pageTabs.has()) return MS.pageTabs.addPrompt();
     MS.prompt(kind === 'content' ? 'New text tab' : 'New chart tab', kind === 'content' ? 'Notes' : 'New tab', 'Tab title').then(function (t) {
       if (!t) return;
       var id = T.add(t, kind, kind === 'content' ? '<h1>' + MS.esc(t) + '</h1><p>Double-click to write here, or use Insert › Into this tab to load a file.</p>' : '');
@@ -4492,7 +4952,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     else if (rt && rt.layoutEnabled()) {
       var sec = rt.tabEl(rt.activeTab);
       host = sec.getAttribute('data-ms-kind') === 'content' ? sec.querySelector('.ms-doc') : MS.blocks.ensureGrid(sec);
-    } else { host = MS.child.doc.body; b.classList.add('ms-inline'); }
+    } else if (MS.pageTabs.insertHost()) { host = MS.pageTabs.insertHost(); b.classList.add('ms-inline'); }
+    else { host = MS.child.doc.body; b.classList.add('ms-inline'); }
     MS.history.move('Insert', b, function () { if (sel) host.insertBefore(b, sel.nextSibling); else if (host === MS.child.doc.body) host.insertBefore(b, MS.child.doc.getElementById('ms-state')); else host.appendChild(b); });
     MS.decorate();
     setTimeout(function () { MS.edit.reveal(b); }, 50);
@@ -4978,6 +5439,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       if (sec.getAttribute('data-ms-kind') === 'grid') return MS.blocks.ensureGrid(sec);
       return sec;
     }
+    // the dashboard's own tabs: the tab on screen
+    var ph = MS.pageTabs && MS.pageTabs.insertHost(); if (ph) return ph;
     return d.body;
   }
   function place(node, label, where) {
@@ -5345,6 +5808,17 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       Co.set(m, 'Category colours', true);
     });
   };
+  // one name's colour, from a click on a legend
+  Co.pick = function (name, key) {
+    var r = rt(); if (!r || !name) return;
+    var cur = r.lookColor(name) || (key ? r.chartColors(key)[name] : '') || '#999999';
+    var inp = h('input', { type: 'color', value: toHex(cur), style: { width: '64px', height: '36px' } });
+    MS.dialog({ title: 'Colour of “' + name + '”', body: h('div', {}, [h('div', { 'class': 'row gap' }, [inp, h('span', { text: 'Used for “' + name + '” on this chart, its legend, and every chart that shows it.' })])]),
+      buttons: [r.lookColor(name) ? { label: 'Back to original', value: 'reset' } : null, { label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: 'ok' }].filter(Boolean) }).then(function (v) {
+      var m = {}; if (v === 'reset') m[name] = ''; else if (v === 'ok') m[name] = inp.value; else return;
+      Co.set(m, 'Colour of “' + name + '”');
+    });
+  };
   function toHex(c) { var rgb = MS.brand.hexToRgb(c); return rgb ? MS.brand.toHex(rgb) : '#999999'; }
 
   /* ================================================================ format painter */
@@ -5607,6 +6081,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         kpis: r.state.kpis, filters: r.state.filters, filterPane: r.state.layout.pane, ribbon: r.state.layout.ribbon,
         categoryOrders: r.state.layout.orders, categoryColors: r.state.layout.colors, popupStyle: r.state.layout.tip,
         theme: r.state.theme ? { name: r.state.theme.name, colors: r.state.theme.colors, fonts: r.state.theme.fonts, palette: r.state.theme.palette } : null,
+        pageTabs: !r.layoutEnabled() && MS.pageTabs.has() ? MS.pageTabs.list().map(function (t) { return { index: t.index, title: t.title, active: t.active }; }) : [],
         comments: (r.state.comments || []).length, zoom: { scale: MS.view.scale, drawnAt: MS.view.renderWidth }
       };
     } };
@@ -5615,7 +6090,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   A.save_version = { d: 'Keep a named version in the browser (restore from File › Versions).', p: { name: ['string', 'Version name'] }, f: function (a) { return MS.versions.save(a.name || 'Saved by assistant', true).then(function () { return { ok: true }; }); } };
   A.undo = { d: 'Undo the last change.', p: {}, f: function () { MS.history.undo(); return { ok: true, canUndo: MS.history.canUndo() }; } };
   A.redo = { d: 'Redo.', p: {}, f: function () { MS.history.redo(); return { ok: true, canRedo: MS.history.canRedo() }; } };
-  A.set_mode = { d: 'Edit or interact mode.', p: { mode: ['string', 'edit | interact', true] }, f: function (a) { MS.setMode(a.mode === 'interact' ? 'interact' : 'edit'); return done(); } };
+  A.set_mode = { d: 'Edit, comment or interact mode.', p: { mode: ['string', 'edit | comment | interact', true] }, f: function (a) { MS.setMode(/^(interact|comment)$/.test(a.mode) ? a.mode : 'edit'); return done(); } };
   A.zoom = { d: 'Zoom the view and the width the dashboard is drawn at.', p: { zoom: ['string', '"fit" or a number like 1.25'], width: ['string', '"auto", "panel", or pixels like 1366'] },
     f: function (a) { if (a.width != null) MS.view.setWidth(a.width === 'auto' || a.width === 'panel' ? a.width : +a.width); if (a.zoom != null) MS.view.setZoom(a.zoom === 'fit' ? 'fit' : +a.zoom); return { scale: MS.view.scale, drawnAt: MS.view.renderWidth }; } };
 
@@ -5772,6 +6247,21 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       if (a.position || a.size || a.title != null) MS.history.state('Ribbon', function (s) { var R = s.layout.ribbon; if (a.position) { R.position = a.position; R.height = a.position === 'left' ? 200 : 46; } if (a.size) R.height = a.size; if (a.title != null) R.brand = a.title; });
       return { tabs: r.tabs().map(function (t) { return t.title; }) };
     } };
+  A.page_tabs = { d: 'The dashboard\'s own tabs (tab buttons already in the page, not the Mothership tab ribbon): list, show, add, rename, move or delete them. Undoable.', p: { action: ['string', 'list (default) | show | add | rename | move | delete', true], tab: ['string', 'Tab title or 0-based index'], title: ['string', 'Title for add / new title for rename'], html: ['string', 'Content HTML for add'], markdown: ['string', 'Content as Markdown for add'], index: ['number', 'New position for move; for add, put it after this index'] },
+    f: function (a) {
+      var P = MS.pageTabs, act = a.action || 'list', which = a.tab != null && /^\d+$/.test(String(a.tab)) ? +a.tab : a.tab;
+      if (!P.has()) throw new Error('This dashboard has no tabs of its own. Use add_tab (Mothership tab ribbon) instead.');
+      if (act !== 'list' && act !== 'add' && !P.find(which)) throw new Error('No tab called ' + a.tab);
+      if (act === 'show') P.show(which);
+      else if (act === 'add') return (a.markdown ? MS.lib('marked').then(function (m) { return m.parse(a.markdown); }) : Promise.resolve(a.html)).then(function (h) {
+        P.add(a.title || 'New tab', h ? MS.sanitize(h) : null, a.index);
+        return settle(300).then(function () { return { tabs: P.list().map(function (t) { return { index: t.index, title: t.title, active: t.active }; }) }; });
+      });
+      else if (act === 'rename') P.rename(which, a.title);
+      else if (act === 'move') P.move(which, a.index);
+      else if (act === 'delete') P.remove(which, true);
+      return settle(300).then(function () { return { tabs: P.list().map(function (t) { return { index: t.index, title: t.title, active: t.active }; }) }; });
+    } };
   A.add_tab = { d: 'Add a tab: grid (for charts), or content (text/HTML/Markdown, e.g. How-to, FAQ, Methodology).', p: { title: ['string', 'Tab title', true], kind: ['string', 'grid | content'], html: ['string', 'Content HTML'], markdown: ['string', 'Content as Markdown'], index: ['number', 'Position'] },
     f: function (a) {
       var go = function (html) { var id = MS.tabs.add(a.title, a.kind || (html ? 'content' : 'grid'), html ? MS.sanitize(html) : ''); if (a.index != null) MS.tabs.move(id, a.index); return { tab: id }; };
@@ -5895,21 +6385,23 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     f: function (a) { var r = rt(), fv = r.filterValues[a.dataset] = r.filterValues[a.dataset] || {}; if (a.value) fv[a.field] = a.value; else delete fv[a.field]; r.refresh(); return { filters: r.filterValues }; } };
 
   /* ---------------------------------------------------------- brand */
-  A.apply_theme = { d: 'Apply brand colours and fonts: a theme object, or the text of a brand SKILL.md.', p: { theme: ['object', '{name, colors:{primary, secondary, accent, background, surface, text, muted, border, ribbonBg, ribbonText}, fonts:{heading, body}, palette:[...], logo}'], markdown: ['string', 'Brand guidelines Markdown'], file: ['object', '{name, b64}: brand JSON, SKILL.md, .skill/.zip or a font file (the MCP load_brand tool fills this in)'] },
+  A.apply_theme = { d: 'Apply brand colours and fonts: a theme object, or the text of a brand SKILL.md. The dashboard\'s own colours are matched to brand roles (returned as swapped); pass theme.map: [] to keep them.', p: { theme: ['object', '{name, colors:{primary, secondary, accent, background, surface, text, muted, border, ribbonBg, ribbonText}, fonts:{heading, body}, palette:[...], logo}'], markdown: ['string', 'Brand guidelines Markdown'], file: ['object', '{name, b64}: brand JSON, SKILL.md, .skill/.zip or a font file (the MCP load_brand tool fills this in)'] },
     f: function (a) {
-      if (a.file) return Promise.resolve(MS.brand.loadFile(fileOf(a.file))).then(function () { var th = rt().state.theme; return th ? { theme: th.name, colors: th.colors } : { ok: true }; });
-      var t = a.markdown ? MS.brand.parseMarkdown(a.markdown, 'brand') : MS.brand.normalize(a.theme || {}, 'api'); MS.brand.apply(t); return { theme: rt().state.theme.name, colors: rt().state.theme.colors }; } };
+      if (a.file) return Promise.resolve(MS.brand.loadFile(fileOf(a.file), true)).then(function () { var th = rt().state.theme; return th ? { theme: th.name, colors: th.colors, swapped: (th.map || []).map(function (m) { return m.from + ' → ' + m.to + ' (' + m.role + ')'; }) } : { ok: true }; });
+      var t = a.markdown ? MS.brand.parseMarkdown(a.markdown, 'brand') : MS.brand.normalize(a.theme || {}, 'api'); MS.brand.apply(t); var th = rt().state.theme; return { theme: th.name, colors: th.colors, swapped: (th.map || []).map(function (m) { return m.from + ' → ' + m.to + ' (' + m.role + ')'; }) }; } };
   A.brand_check = { d: 'Run the brand check (off-brand colours, contrast, charts without commentary) and return the findings.', p: {},
     f: function () { MS.brand.check(); var dlg = document.querySelector('.dlg'); var txt = dlg ? dlg.querySelector('.dlg-body').innerText : ''; if (dlg) dlg.closest('.dlg-wrap').remove(); return { report: txt }; } };
 
   /* ---------------------------------------------------------- review */
-  A.add_comment = { d: 'Add a review comment on an element, an area, or an interaction.', p: { text: ['string', 'The comment', true], ref: ['string', 'Element ref/selector (element comment)'], chart: ['string', 'Or a chart name'], area: ['object', '{x, y, w, h} in page px (area comment)'], steps: ['array', 'What was done (interaction comment)'], type: ['string', 'change | bug | question | idea'], priority: ['string', 'must | should | nice'] },
+  A.add_comment = { d: 'Add a review comment on an element, an area, or an interaction.', p: { text: ['string', 'The comment', true], ref: ['string', 'Element ref/selector (element comment)'], chart: ['string', 'Or a chart name'], area: ['object', '{x, y, w, h} in page px (area comment)'], steps: ['array', 'What was done (interaction comment)'], type: ['string', 'change | bug | question | idea'], priority: ['string', 'must | should | nice'], by: ['string', 'Author name'] },
     f: function (a) {
       var r = rt(), c = { id: r.uid('m'), created: new Date().toISOString(), text: a.text, type: a.type || 'change', prio: a.priority || 'should' };
       var t = r.layoutEnabled() ? r.tabs().filter(function (x) { return x.id === r.activeTab; })[0] : null;
+      if (!t && MS.pageTabs.has()) { var pa = MS.pageTabs.active(); if (pa) t = { id: 'page:' + pa.index, title: pa.title }; }
+      c.by = a.by || ''; c.replies = [];
       if (a.ref || a.chart) {
         var el = a.chart ? (MS.blocks.of(r.chart(chartKey(a.chart)).el) || r.chart(chartKey(a.chart)).el) : elOf(a.ref), d = MS.review.describe(el), sec = el.closest('section.ms-tab');
-        c.kind = 'element'; c.tab = sec ? { id: sec.getAttribute('data-ms-tab'), title: sec.getAttribute('data-ms-title') } : null;
+        c.kind = 'element'; c.tab = MS.review.tabOf(el) || (sec ? { id: sec.getAttribute('data-ms-tab'), title: sec.getAttribute('data-ms-title') } : null);
         c.target = { what: d.what, ref: '[data-ms-' + (el.getAttribute('data-ms-id') ? 'id' : 'ref') + '="' + refOf(el) + '"]', css: '', chart: d.chart };
         c.target.css = MS.review.cssPath(el); c.loc = MS.review.locate(el); c.target.section = c.loc.section;
       } else if (a.area) { c.kind = 'area'; c.tab = t ? { id: t.id, title: t.title } : null; c.area = { x: a.area.x, y: a.area.y, w: a.area.w, h: a.area.h, vw: MS.child.win.innerWidth, vh: MS.child.win.innerHeight, tab: t && t.id }; c.inside = []; }
@@ -5917,9 +6409,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       MS.history.state('Add comment', function (s) { s.comments.push(c); }); MS.emit('comments');
       return { id: c.id, number: r.state.comments.length };
     } };
-  A.list_comments = { d: 'All review comments.', p: {}, f: function () { return MS.review.list().map(function (c, i) { return { number: i + 1, id: c.id, kind: c.kind, text: c.text, type: c.type, priority: c.prio, done: !!c.done, on: c.target ? c.target.what : c.inside || c.steps, where: c.loc ? MS.review.trail(c.loc) : (c.tab && c.tab.title), tab: c.tab && c.tab.title }; }); } };
-  A.update_comment = { d: 'Edit, close or delete a comment.', p: { id: ['string', 'Comment id', true], text: ['string', 'New text'], done: ['boolean', 'Mark done / re-open'], delete: ['boolean', 'Delete it'] },
-    f: function (a) { MS.history.state('Comment', function (s) { if (a.delete) { s.comments = s.comments.filter(function (c) { return c.id !== a.id; }); return; } s.comments.forEach(function (c) { if (c.id !== a.id) return; if (a.text != null) c.text = a.text; if (a.done != null) c.done = a.done; }); }); MS.emit('comments'); return done(); } };
+  A.list_comments = { d: 'All review comments.', p: {}, f: function () { return MS.review.list().map(function (c, i) { return { number: i + 1, id: c.id, kind: c.kind, text: c.text, type: c.type, priority: c.prio, done: !!c.done, by: c.by || '', on: c.target ? c.target.what : c.inside || c.steps, where: c.loc ? MS.review.trail(c.loc) : (c.tab && c.tab.title), tab: c.tab && c.tab.title, replies: (c.replies || []).map(function (y) { return { by: y.by || '', text: y.text, at: y.at }; }) }; }); } };
+  A.update_comment = { d: 'Edit, resolve (done), reply to or delete a comment.', p: { id: ['string', 'Comment id', true], text: ['string', 'New text'], done: ['boolean', 'Resolve / re-open'], reply: ['string', 'Add a reply'], by: ['string', 'Reply author'], delete: ['boolean', 'Delete it'] },
+    f: function (a) { MS.history.state('Comment', function (s) { if (a.delete) { s.comments = s.comments.filter(function (c) { return c.id !== a.id; }); return; } s.comments.forEach(function (c) { if (c.id !== a.id) return; if (a.text != null) c.text = a.text; if (a.done != null) c.done = a.done; if (a.reply) (c.replies = c.replies || []).push({ id: rt().uid('y'), text: a.reply, by: a.by || '', at: new Date().toISOString() }); }); }); MS.emit('comments'); return done(); } };
   A.comments_prompt = { d: 'Turn the review comments into one prompt for an AI assistant. Each comment is located by tab › section › card/chart › item.', p: { goal: ['string', 'apply (default) | polish | review | explain'], assistant: ['string', 'chat (default) | agent | mcp: who will carry it out'], scope: ['string', 'all (default) | tab | must'], tab: ['string', 'Tab title when scope is tab'], ids: ['array', 'Only these comment ids'], group: ['string', 'where | priority | order'], detail: ['string', 'full | brief'], output: ['string', 'file (complete updated HTML) | changes | plan | tickets'], include_done: ['boolean', 'Include closed comments'], extra: ['string', 'Extra instruction'], embed_html: ['boolean', 'Paste the dashboard source into the prompt'] },
     f: function (a) { return { prompt: MS.review.buildPrompt({ goal: a.goal, assistant: a.assistant, scope: a.scope, tab: a.tab, ids: a.ids, group: a.group, detail: a.detail, output: a.output, structure: true, includeDone: !!a.include_done, extra: a.extra, embed: a.embed_html ? MS.exportHtml({ dropComments: true }) : '', fileName: MS.exportName() }) }; } };
 
@@ -6204,10 +6696,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   Pr.start = function (withPresenterView) {
     var rt = MS.rt(); if (!rt) return MS.toast('Open a dashboard first.', 'warn');
-    if (!rt.layoutEnabled()) MS.toast('Tip: turn on tabbed layout so you can step through tabs like slides.', 'warn');
+    if (!rt.layoutEnabled() && !MS.pageTabs.has()) MS.toast('Tip: turn on the tab ribbon (Layout tab) so you can step through tabs like slides.', 'warn');
     Pr.on = true; prevMode = MS.mode;
     var first = rt.tabs().filter(function (t) { return !t.hidden; })[0];
     if (first) rt.showTab(first.id);
+    else if (MS.pageTabs.has()) rt.showPageTab(0);
     MS.setMode('interact');
     document.body.classList.add('presenting');
     if (MS.view) MS.view.layout();
@@ -6244,7 +6737,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     switch (e.key) {
       case 'ArrowRight': case 'PageDown': case ' ': rt.step(1); break;
       case 'ArrowLeft': case 'PageUp': rt.step(-1); break;
-      case 'Home': rt.showTab(rt.tabs().filter(function (t) { return !t.hidden; })[0].id); break;
+      case 'Home': if (rt.layoutEnabled()) rt.showTab(rt.tabs().filter(function (t) { return !t.hidden; })[0].id); else rt.showPageTab(0); break;
       case 'Escape': Pr.stop(); break;
       case 'l': case 'L': laser.style.display = laser.style.display === 'none' ? 'block' : 'none'; break;
       case 'b': case 'B': document.body.classList.toggle('blank'); break;
@@ -6254,7 +6747,12 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     return true;
   };
   function info() {
-    var rt = MS.rt(), vis = rt.tabs().filter(function (t) { return !t.hidden; });
+    var rt = MS.rt();
+    if (!rt.layoutEnabled() && MS.pageTabs.has()) {
+      var pts = MS.pageTabs.list(), k = 0; pts.forEach(function (t, j) { if (t.active) k = j; });
+      return { i: k, n: pts.length, cur: pts[k], next: pts[k + 1] };
+    }
+    var vis = rt.tabs().filter(function (t) { return !t.hidden; });
     var i = vis.findIndex(function (t) { return t.id === rt.activeTab; });
     return { i: i, n: vis.length, cur: vis[i], next: vis[i + 1] };
   }
@@ -6287,6 +6785,181 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 })(window.MS);
 
 </script>
+<script>/* src/js/pagetabs.js */
+/* The dashboard's own tabs: many dashboards already have tab buttons that show one panel at a
+   time. The runtime finds them (rt.pageTabs); this adds, renames, reorders and removes them in the
+   page itself, so the exported file keeps the page's own design. */
+(function (MS) {
+  'use strict';
+  var PT = MS.pageTabs = {};
+  function rt() { return MS.rt(); }
+
+  // { tabs: [{index, title, btn, panel, active, via}], btnActive, panelActive } or null
+  PT.group = function (fresh) { var r = rt(); return r && r.pageTabs ? r.pageTabs(fresh) : null; };
+  PT.has = function () { var g = PT.group(); return !!(g && g.tabs.length > 1); };
+  PT.list = function () {
+    var g = PT.group(true); if (!g) return [];
+    return g.tabs.map(function (t) { return { index: t.index, title: t.title, active: t.active }; });
+  };
+  PT.active = function () { var g = PT.group(); return g ? g.tabs.filter(function (t) { return t.active; })[0] || null : null; };
+  PT.find = function (which) {
+    var g = PT.group(true); if (!g) return null;
+    if (typeof which === 'number') return g.tabs[which] || null;
+    var w = String(which || '').trim().toLowerCase();
+    return g.tabs.filter(function (t) { return t.title.toLowerCase() === w; })[0] || null;
+  };
+  PT.show = function (which) {
+    var t = PT.find(which); if (!t) return false;
+    rt().showPageTab(t.index);
+    MS.emit('structure');
+    return true;
+  };
+  // the page tab an element sits in (for comments, prompts and "reveal")
+  PT.of = function (el) { var r = rt(); var t = r && r.pageTabOf ? r.pageTabOf(el) : null; return t && t.panel.contains(el) ? t : null; };
+
+  function stamp(root) {
+    [root].concat(Array.prototype.slice.call(root.querySelectorAll('*'))).forEach(function (n) {
+      n.removeAttribute('data-ms-own'); n.setAttribute('data-ms-id', MS.nextId());
+    });
+  }
+  function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tab'; }
+  function freeId(base) { var d = MS.child.doc, id = base, i = 2; while (d.getElementById(id)) id = base + '-' + (i++); return id; }
+  function setText(btn, title) {
+    var nodes = [], walk = function (n) { Array.prototype.forEach.call(n.childNodes, function (c) { if (c.nodeType === 3 && c.textContent.trim()) nodes.push(c); else if (c.nodeType === 1) walk(c); }); };
+    walk(btn);
+    if (!nodes.length) { btn.appendChild(btn.ownerDocument.createTextNode(title)); return; }
+    // the last piece of text is the name (an icon or count before it stays)
+    nodes[nodes.length - 1].textContent = nodes[nodes.length - 1].textContent.replace(/\S[\s\S]*\S|\S/, title);
+  }
+  // record a change to an element's inner HTML as one undo step
+  function htmlOp(label, el, fn) {
+    var before = el.innerHTML; fn(); var after = el.innerHTML;
+    if (before === after) return;
+    MS.history.push({ label: label, undo: function () { el.innerHTML = before; MS.afterDomChange(el); }, redo: function () { el.innerHTML = after; MS.afterDomChange(el); } }, true);
+    MS.afterDomChange(el);
+  }
+
+  // Add a tab after the last one (or after `after`), shaped exactly like the page's own tabs.
+  PT.add = function (title, html, after) {
+    var g = PT.group(true); if (!g) { MS.toast('This dashboard has no tabs of its own.', 'warn'); return null; }
+    title = String(title || 'New tab').trim();
+    var src = after != null ? (PT.find(after) || g.tabs[g.tabs.length - 1]) : g.tabs[g.tabs.length - 1];
+    var model = g.tabs.filter(function (t) { return !t.active; })[0] || src;
+    var id = freeId(slug(title));
+    var nb = model.btn.cloneNode(true), np = model.panel.cloneNode(false);
+    if (g.btnActive) nb.classList.remove(g.btnActive);
+    if (g.panelActive) np.classList.remove(g.panelActive);
+    ['ms-sel', 'ms-hover', 'ms-flash'].forEach(function (c) { nb.classList.remove(c); np.classList.remove(c); });
+    nb.removeAttribute('id'); np.removeAttribute('id');
+    setText(nb, title);
+    // point the new button at the new panel the same way the page's buttons do
+    var oldTarget = model.panel.id;
+    ['aria-controls', 'data-tab', 'data-target', 'data-tab-target', 'data-bs-target'].forEach(function (a) {
+      var v = nb.getAttribute(a); if (v == null) return;
+      nb.setAttribute(a, /^#/.test(v) ? '#' + id : id);
+    });
+    var href = nb.getAttribute('href'); if (href && href.indexOf('#') >= 0) nb.setAttribute('href', '#' + id);
+    var oc = nb.getAttribute('onclick');
+    if (oc && oldTarget) nb.setAttribute('onclick', oc.split("'" + oldTarget + "'").join("'" + id + "'").split('"' + oldTarget + '"').join('"' + id + '"'));
+    ['data-panel', 'data-tab-panel', 'data-tab-content', 'data-tabpanel'].forEach(function (a) { if (np.hasAttribute(a)) np.setAttribute(a, id); });
+    if (model.panel.id || model.via !== 'order') np.id = id;
+    if (model.btn.id) nb.id = freeId(id + '-tab');
+    if (np.hasAttribute('aria-labelledby') && nb.id) np.setAttribute('aria-labelledby', nb.id);
+    if (np.style.display === 'block' || np.style.display === '') np.style.display = 'none';
+    np.innerHTML = html != null ? html : '<h2>' + MS.esc(title) + '</h2><p>New tab. Double-click this text to write, or use Insert to add a chart, KPI cards or text here.</p>';
+    stamp(nb); stamp(np);
+    var lastBtn = src.btn, lastPanel = src.panel;
+    MS.history.group('Add tab "' + title + '"', function () {
+      MS.history.move('Add tab button', nb, function () { lastBtn.parentNode.insertBefore(nb, lastBtn.nextSibling); });
+      MS.history.move('Add tab panel', np, function () { lastPanel.parentNode.insertBefore(np, lastPanel.nextSibling); });
+    });
+    var t = PT.find(title) || PT.group(true).tabs.filter(function (x) { return x.btn === nb; })[0];
+    if (t) rt().showPageTab(t.index);
+    MS.emit('structure');
+    return t ? t.index : null;
+  };
+  PT.addPrompt = function () {
+    MS.prompt('Add a tab to your dashboard', 'New tab', 'Tab name').then(function (v) { if (v) PT.add(v); });
+  };
+  PT.rename = function (which, title) {
+    var t = PT.find(which); if (!t) return false;
+    if (title == null) return MS.prompt('Rename tab', t.title).then(function (v) { if (v) PT.rename(t.index, v); });
+    htmlOp('Rename tab', t.btn, function () { setText(t.btn, String(title).trim()); });
+    MS.emit('structure');
+    return true;
+  };
+  // move tab `which` so that it ends up at position `to`
+  PT.move = function (which, to) {
+    var g = PT.group(true), t = PT.find(which); if (!t) return false;
+    var rest = g.tabs.filter(function (x) { return x !== t; }), ref = rest[to];
+    to = Math.max(0, Math.min(rest.length, to));
+    MS.history.group('Reorder tabs', function () {
+      MS.history.move('Move tab button', t.btn, function () { if (ref) ref.btn.parentNode.insertBefore(t.btn, ref.btn); else { var last = rest[rest.length - 1].btn; last.parentNode.insertBefore(t.btn, last.nextSibling); } });
+      MS.history.move('Move tab panel', t.panel, function () { if (ref) ref.panel.parentNode.insertBefore(t.panel, ref.panel); else { var last = rest[rest.length - 1].panel; last.parentNode.insertBefore(t.panel, last.nextSibling); } });
+    });
+    MS.emit('structure');
+    return true;
+  };
+  PT.remove = function (which, confirmed) {
+    var g = PT.group(true), t = PT.find(which); if (!t) return Promise.resolve(false);
+    if (g.tabs.length < 2) { MS.toast('A dashboard needs at least one tab.', 'warn'); return Promise.resolve(false); }
+    var go = function () {
+      var wasActive = t.active, other = g.tabs.filter(function (x) { return x !== t; })[0];
+      MS.history.group('Delete tab "' + t.title + '"', function () {
+        MS.history.move('Remove tab button', t.btn, function () { t.btn.remove(); });
+        MS.history.move('Remove tab panel', t.panel, function () { t.panel.remove(); });
+      });
+      if (wasActive && other) rt().showPageTab(PT.group(true).tabs.indexOf(PT.group().tabs.filter(function (x) { return x.btn === other.btn; })[0]));
+      MS.emit('structure');
+      return true;
+    };
+    if (confirmed) return Promise.resolve(go());
+    return MS.confirm('Delete the "' + t.title + '" tab?', 'Its button and everything on it are removed. You can undo with Ctrl+Z.', 'Delete', true).then(function (ok) { return ok ? go() : false; });
+  };
+  // where "Insert" puts new things when the page has its own tabs: the panel on screen
+  PT.insertHost = function () { var t = PT.active(); return t ? t.panel : null; };
+
+  /* ---------------------------------------------------------- left panel section */
+  PT.outlineSection = function () {
+    var h = MS.h, g = PT.group(true);
+    if (!g) return null;
+    var sec = h('section', { 'class': 'ol-sec' }, [h('div', { 'class': 'ol-head' }, [h('span', { text: 'Your tabs (' + g.tabs.length + ')' }),
+      h('button', { 'class': 'icon-btn', title: 'Add a tab to your dashboard', onclick: PT.addPrompt }, ['＋'])])]);
+    sec.appendChild(h('p', { 'class': 'muted pad-sm small', text: 'Your dashboard\'s own tabs. Click to switch (in Edit mode too). Double-click to rename, drag to reorder.' }));
+    var list = h('div', { 'class': 'ol-list' });
+    g.tabs.forEach(function (t, i) {
+      var row = h('div', { 'class': 'ol-row tab' + (t.active ? ' active' : ''), draggable: 'true', title: 'Click to show. Double-click to rename. Drag to reorder.' }, [
+        h('span', { 'class': 'grip', text: '⠿' }),
+        h('span', { 'class': 'grow name', text: t.title }),
+        h('button', { 'class': 'icon-btn', title: 'More', onclick: function (e) { e.stopPropagation(); MS.menu(e.currentTarget, [
+          { label: 'Rename…', run: function () { PT.rename(i); } },
+          { label: 'Add a tab after this one…', run: function () { MS.prompt('Add a tab', 'New tab', 'Tab name').then(function (v) { if (v) PT.add(v, null, i); }); } },
+          { label: 'Load a file into a new tab…', run: function () { MS.pickFiles(MS.importers.accept, { multiple: true }).then(function (fs) { if (fs.length) MS.importers.newTabs(fs); }); } },
+          i > 0 ? { label: 'Move left / up', run: function () { PT.move(i, i - 1); } } : null,
+          i < g.tabs.length - 1 ? { label: 'Move right / down', run: function () { PT.move(i, i + 1); } } : null,
+          '-',
+          { label: 'Delete tab', danger: true, run: function () { PT.remove(i); } }]); } }, ['⋯'])]);
+      row.addEventListener('click', function () { PT.show(i); });
+      row.addEventListener('dblclick', function () { PT.rename(i); });
+      row.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/ms-ptab', String(i)); row.classList.add('dragging'); });
+      row.addEventListener('dragend', function () { row.classList.remove('dragging'); });
+      row.addEventListener('dragover', function (e) { if (e.dataTransfer.types.indexOf('text/ms-ptab') >= 0) { e.preventDefault(); row.classList.add('drop'); } });
+      row.addEventListener('dragleave', function () { row.classList.remove('drop'); });
+      row.addEventListener('drop', function (e) { e.preventDefault(); row.classList.remove('drop'); var from = +e.dataTransfer.getData('text/ms-ptab'); if (from !== i) PT.move(from, i); });
+      list.appendChild(row);
+    });
+    sec.appendChild(list);
+    sec.appendChild(h('div', { 'class': 'row gap pad-sm' }, [
+      h('button', { 'class': 'btn sm', onclick: PT.addPrompt }, ['+ Add tab']),
+      h('button', { 'class': 'btn sm', onclick: MS.insert.fileTab }, ['+ From file'])]));
+    return sec;
+  };
+  MS.on('child-loaded', function (c) {
+    c.win.addEventListener('ms:pagetab', function (e) { MS.emit('tab-shown', e.detail); MS.emit('structure'); });
+  });
+})(window.MS);
+
+</script>
 <script>/* src/js/review.js */
 /* Review comments: pin a comment on an element, a screen area, or something you just did
    (an interaction), then turn all of them into one ready-to-paste prompt for an AI assistant. */
@@ -6307,6 +6980,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- describing things in plain English */
   function tabOf(el) {
     var r = rt(), sec = el && el.closest && el.closest('section.ms-tab');
+    // the dashboard's own tabs are the more specific answer
+    if (MS.pageTabs) {
+      var pt = el ? MS.pageTabs.of(el) : (!r || !r.layoutEnabled() ? MS.pageTabs.active() : null);
+      if (pt) return { id: 'page:' + pt.index, title: pt.title, page: true };
+    }
     if (sec) return { id: sec.getAttribute('data-ms-tab'), title: sec.getAttribute('data-ms-title') };
     if (r && r.layoutEnabled()) { var t = r.tabs().filter(function (x) { return x.id === r.activeTab; })[0]; if (t && !(el && el.closest && el.closest('.ms-page-footer'))) return { id: t.id, title: t.title }; }
     return null;
@@ -6323,7 +7001,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (el.closest('.ms-page-footer')) return { what: 'page footer “' + clip(el.textContent, 60) + '”' };
     if (el.closest('#ms-filter-pane')) return { what: 'filter pane' + (el.tagName === 'SELECT' || el.closest('.ms-filter') ? ' › filter “' + clip((el.closest('.ms-filter') || el).querySelector('span') && (el.closest('.ms-filter') || el).querySelector('span').textContent, 30) + '”' : '') };
     if (el.closest('#ms-ribbon')) return { what: 'tab bar (ribbon)' + (el.closest('.ms-tabbtn') ? ' › tab “' + clip(el.textContent, 30) + '”' : '') };
-    var t = el.tagName.toLowerCase(), txt = clip(el.textContent, 70);
+    var t = el.tagName.toLowerCase(), txt = clip(el.innerText || el.textContent, 70);
     var names = { h1: 'main heading', h2: 'heading', h3: 'heading', h4: 'heading', p: 'paragraph', button: 'button', a: 'link', img: 'image', table: 'table', select: 'drop-down', input: 'input box', li: 'list item', ul: 'list', ol: 'list', header: 'header', footer: 'footer', nav: 'navigation bar', svg: 'graphic' };
     if (el.classList.contains('ms-block')) return { what: 'block “' + clip(el.querySelector('.ms-title') && el.querySelector('.ms-title').textContent, 50) + '”' };
     if (el.classList.contains('ms-title')) return { what: 'chart/block title “' + txt + '”' };
@@ -6368,7 +7046,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (log.length > 40) log.shift();
   }
   R.log = function () { return log.slice(); };
-  function recording() { return MS.mode !== 'edit' || (MS.present && MS.present.on); }
+  function recording() { return MS.mode === 'interact' || (MS.present && MS.present.on); }
   function labelFor(el) {
     var l = el.closest('label'); if (l) { var sp = l.querySelector('span'); return clip((sp || l).textContent, 40); }
     if (el.id) { var lb = cdoc().querySelector('label[for="' + el.id + '"]'); if (lb) return clip(lb.textContent, 40); }
@@ -6452,28 +7130,30 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     return out;
   }
 
-  /* ---------------------------------------------------------- picking an element or an area in the dashboard */
-  var PICK_CSS = '.ms-cmt-hover{outline:2px solid #f59e0b!important;outline-offset:2px;cursor:crosshair!important}' +
-    'body.ms-cmt-picking,body.ms-cmt-picking *{cursor:crosshair!important}' +
-    '#ms-cmt-layer{position:absolute;left:0;top:0;width:0;height:0;z-index:99990}' +
-    '.ms-cmt-pin{position:absolute;min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;border-radius:11px 11px 11px 2px;background:#f59e0b;color:#111;font:700 12px/22px system-ui,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer;transform:translate(-4px,-18px)}' +
+  /* ---------------------------------------------------------- Comment mode: click to comment on a thing, drag to comment on an area */
+  var PICK_CSS = 'body.ms-comment-mode,body.ms-comment-mode *{cursor:crosshair!important}' +
+    'body.ms-comment-mode .ms-cmt-pass,body.ms-comment-mode .ms-cmt-pass *{cursor:pointer!important}' +
+    '.ms-cmt-hover{outline:2px solid #f59e0b!important;outline-offset:2px}' +
+    '#ms-cmt-layer{position:fixed;left:0;top:0;width:0;height:0;z-index:99990;pointer-events:none}' +
+    '#ms-cmt-layer>*{position:fixed;box-sizing:border-box}' +
+    '.ms-cmt-pin{min-width:22px;height:22px;padding:0 5px;border-radius:11px 11px 11px 2px;background:#f59e0b;color:#111;font:700 12px/22px system-ui,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer!important;pointer-events:auto;transform:translate(-4px,-18px)}' +
     '.ms-cmt-pin.done{background:#9ca3af}' +
-    '.ms-cmt-area{position:absolute;border:2px dashed #f59e0b;background:rgba(245,158,11,.08);border-radius:4px;pointer-events:none}' +
+    '.ms-cmt-pin.cur{background:#2563eb;color:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.35),0 2px 6px rgba(0,0,0,.3)}' +
+    '.ms-cmt-area{border:2px dashed #f59e0b;background:rgba(245,158,11,.08);border-radius:4px}' +
     '.ms-cmt-area.done{border-color:#9ca3af;background:none}' +
-    '.ms-cmt-area .ms-cmt-pin{pointer-events:auto;left:-2px;top:-2px}' +
-    '#ms-cmt-shield{position:fixed;inset:0;z-index:99999;cursor:crosshair;background:rgba(15,23,42,.06)}' +
-    '#ms-cmt-rect{position:fixed;border:2px dashed #f59e0b;background:rgba(245,158,11,.12);pointer-events:none}';
+    '.ms-cmt-area.cur,.ms-cmt-box.cur{border:2px solid #2563eb;background:rgba(37,99,235,.08);border-radius:4px}' +
+    '.ms-cmt-area.pending,.ms-cmt-box.pending{border:2px dashed #2563eb;background:rgba(37,99,235,.10);border-radius:4px}' +
+    '#ms-cmt-rect{position:fixed;border:2px dashed #2563eb;background:rgba(37,99,235,.10);pointer-events:none;z-index:99999}';
   function ensureCss() {
     var d = cdoc(); if (!d || d.getElementById('ms-cmt-css')) return;
     var st = d.createElement('style'); st.id = 'ms-cmt-css'; st.setAttribute('data-ms-editor', ''); st.textContent = PICK_CSS; d.head.appendChild(st);
   }
+  function commenting() { return MS.mode === 'comment' && !(MS.present && MS.present.on); }
   R.cancel = function () {
     var d = cdoc(); R.picking = null;
     if (!d) return;
-    d.body.classList.remove('ms-cmt-picking');
     MS.$$('.ms-cmt-hover', d).forEach(function (n) { n.classList.remove('ms-cmt-hover'); });
-    ['ms-cmt-shield', 'ms-cmt-rect'].forEach(function (id) { var n = d.getElementById(id); if (n) n.remove(); });
-    MS.$$('.cmt-tool').forEach(function (b) { b.classList.remove('on'); });
+    var n = d.getElementById('ms-cmt-rect'); if (n) n.remove();
   };
   function pickTarget(t) {
     if (!t || t.nodeType !== 1 || /^(HTML|BODY)$/.test(t.tagName) || t.closest('#ms-cmt-layer')) return null;
@@ -6481,79 +7161,172 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (p.id === 'ms-app' || p.id === 'ms-main' || p.id === 'ms-body' || p.classList.contains('ms-tab')) return null;
     return p;
   }
+  // things that keep working in Comment mode: the dashboard's tabs, the tab ribbon, breadcrumbs, pop-up tables and the pins themselves
+  function passThrough(t) {
+    if (!t || t.nodeType !== 1) return false;
+    if (t.closest('#ms-cmt-layer,#ms-ribbon .ms-tabbtn,.ms-crumbs button,.ms-modal-wrap,.ms-pane-reset')) return true;
+    var r = rt(), pt = r && r.pageTabOf ? r.pageTabOf(t) : null;
+    return !!(pt && (pt.btn === t || pt.btn.contains(t)));
+  }
   R.start = function (kind) {
     if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
     if (!rt()) return MS.toast('Comments need the dashboard\'s scripts. Turn off Safe mode (View tab).', 'warn');
     R.cancel();
     if (kind === 'interaction') return R.addInteraction();
-    ensureCss();
-    R.picking = kind;
-    MS.$$('.cmt-tool[data-kind="' + kind + '"]').forEach(function (b) { b.classList.add('on'); });
-    var d = cdoc();
-    if (kind === 'element') {
-      d.body.classList.add('ms-cmt-picking');
-      if (MS.mode === 'edit' && MS.sel) { var s = MS.sel; R.cancel(); return R.addElement(s); }
-      MS.toast('Click the part of the dashboard you want to comment on. Esc to cancel.', '', 4000);
-    } else {
-      var shield = d.createElement('div'); shield.id = 'ms-cmt-shield'; shield.setAttribute('data-ms-editor', ''); d.body.appendChild(shield);
-      MS.toast('Drag a box around the area you want to comment on. Esc to cancel.', '', 4000);
-    }
+    if (kind === 'element' && MS.mode === 'edit' && MS.sel) return R.addElement(MS.sel);
+    MS.setMode('comment');
+    MS.toast(kind === 'area' ? 'Drag a box around the area you want to comment on.' : 'Click the part you want to comment on, or drag a box around an area.', '', 4000);
   };
   function attachPicker(c) {
-    var d = c.doc, w = c.win, hov = null, start = null, rect = null;
+    var d = c.doc, w = c.win, hov = null, start = null, rect = null, eat = false;
+    var unhover = function () { if (hov) hov.classList.remove('ms-cmt-hover'); hov = null; };
     w.addEventListener('mouseover', function (e) {
-      if (R.picking !== 'element') return;
-      if (hov) hov.classList.remove('ms-cmt-hover');
+      if (!commenting() || start) return;
+      unhover();
+      if (passThrough(e.target)) return;
       hov = pickTarget(e.target); if (hov) hov.classList.add('ms-cmt-hover');
     }, true);
-    w.addEventListener('click', function (e) {
-      if (R.picking !== 'element') return;
-      e.preventDefault(); e.stopImmediatePropagation();
-      var t = pickTarget(e.target); R.cancel(); if (t) R.addElement(t, e);
-    }, true);
-    ['mousedown', 'mouseup', 'dblclick'].forEach(function (ev) { w.addEventListener(ev, function (e) { if (R.picking === 'element') { e.preventDefault(); e.stopImmediatePropagation(); } }, true); });
     w.addEventListener('mousedown', function (e) {
-      if (R.picking !== 'area' || e.target.id !== 'ms-cmt-shield') return;
+      if (!commenting() || e.button !== 0 || passThrough(e.target)) return;
       e.preventDefault(); e.stopImmediatePropagation();
-      start = { x: e.clientX, y: e.clientY };
-      rect = d.createElement('div'); rect.id = 'ms-cmt-rect'; rect.setAttribute('data-ms-editor', ''); d.body.appendChild(rect);
+      start = { x: e.clientX, y: e.clientY, t: e.target };
     }, true);
     w.addEventListener('mousemove', function (e) {
-      if (!start || !rect) return;
+      if (!start) return;
+      if (!rect && Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) < 8) return;
+      if (!rect) { unhover(); ensureCss(); rect = d.createElement('div'); rect.id = 'ms-cmt-rect'; rect.setAttribute('data-ms-editor', ''); d.body.appendChild(rect); }
       rect.style.left = Math.min(start.x, e.clientX) + 'px'; rect.style.top = Math.min(start.y, e.clientY) + 'px';
       rect.style.width = Math.abs(e.clientX - start.x) + 'px'; rect.style.height = Math.abs(e.clientY - start.y) + 'px';
     }, true);
     w.addEventListener('mouseup', function (e) {
       if (!start) return;
-      var r = { left: Math.min(start.x, e.clientX), top: Math.min(start.y, e.clientY), w: Math.abs(e.clientX - start.x), h: Math.abs(e.clientY - start.y) };
-      start = null; R.cancel();
-      if (r.w < 8 || r.h < 8) return MS.toast('That box was too small. Try again and drag a bigger box.', 'warn');
+      var s = start; start = null;
+      if (!rect) return;
+      e.preventDefault(); e.stopImmediatePropagation(); eat = true; setTimeout(function () { eat = false; }, 0);
+      var r = { left: Math.min(s.x, e.clientX), top: Math.min(s.y, e.clientY), w: Math.abs(e.clientX - s.x), h: Math.abs(e.clientY - s.y) };
+      rect.remove(); rect = null;
+      if (r.w < 12 || r.h < 12) return MS.toast('That box was too small. Drag a bigger box, or just click an item.', 'warn');
       R.addArea(r);
     }, true);
-    d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && R.picking) { e.stopPropagation(); R.cancel(); } }, true);
-    w.addEventListener('scroll', MS.debounce(R.renderPins, 50));
-    w.addEventListener('resize', MS.debounce(R.renderPins, 80));
+    w.addEventListener('click', function (e) {
+      if (!commenting() || passThrough(e.target)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (eat) return;
+      var t = pickTarget(e.target); unhover(); if (t) R.addElement(t, e);
+    }, true);
+    w.addEventListener('dblclick', function (e) { if (commenting() && !passThrough(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+    d.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !commenting()) return;
+      e.stopPropagation();
+      if (R.draft) R.discard(); else MS.setMode('edit');
+    }, true);
+    // pins follow the content however it scrolls: the window, or a panel with its own scroll bar
+    d.addEventListener('scroll', pinsNow, true);
+    w.addEventListener('resize', pinsNow);
   }
 
-  /* ---------------------------------------------------------- the comment dialog */
-  function editor(c, extra) {
-    var f = MS.form([
-      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in millions, and add last year for comparison.' },
-      { key: 'type', label: 'Type', type: 'select', options: TYPES, value: c.type || 'change' },
-      { key: 'prio', label: 'Priority', type: 'select', options: PRIOS, value: c.prio || 'should' }
-    ]);
-    f.inputs.text.placeholder = 'e.g. Show values in millions, and add last year for comparison.';
-    var labels = f.querySelectorAll(':scope > label');
-    f.appendChild(h('div', { 'class': 'row gap' }, [labels[1], labels[2]]));
-    return { el: h('div', { 'class': 'cmt-ed' }, [extra, f]), f: f };
+  /* ---------------------------------------------------------- anchoring an area to the content under it */
+  function isScroller(n) {
+    if (!n || n.nodeType !== 1 || n === cdoc().documentElement || n === cdoc().body) return false;
+    var cs = MS.child.win.getComputedStyle(n);
+    return /(auto|scroll|overlay)/.test(cs.overflowY + ' ' + cs.overflowX) && (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1);
   }
-  function ask(title, c, extra, isNew) {
-    var ed = editor(c, extra);
-    var btns = [{ label: 'Cancel', value: null }];
-    if (!isNew) btns.unshift({ label: 'Delete', danger: true, value: 'delete' }, { label: c.done ? 'Re-open' : 'Mark done', value: 'done' }, { label: '✨ Prompt for this one', value: 'prompt' });
-    btns.push({ label: isNew ? 'Add comment' : 'Save', primary: true, value: function () { var v = ed.f.values(); if (!v.text.trim()) { ed.f.inputs.text.focus(); MS.toast('Type a comment first.', 'warn'); return false; } return v; } });
-    return MS.dialog({ title: title, body: ed.el, enterSubmits: false, buttons: btns });
+  // where (0,0) of an element's content is on screen now
+  function originOf(n) {
+    var b = n.getBoundingClientRect(), sc = isScroller(n);
+    return { x: b.left - (sc ? n.scrollLeft : 0), y: b.top - (sc ? n.scrollTop : 0) };
   }
+  function shown(n) { return n === cdoc().documentElement || (n.isConnected && n.getClientRects().length > 0); }
+  // the visible window onto an element: the screen, cut down by every scrolling or clipping box around it
+  function clipOf(n, self) {
+    var w = MS.child.win, c = { l: 0, t: 0, r: w.innerWidth, b: w.innerHeight };
+    for (var p = self ? n : n.parentElement; p && p.nodeType === 1 && p !== cdoc().body && p !== cdoc().documentElement; p = p.parentElement) {
+      var cs = w.getComputedStyle(p);
+      if (!/(auto|scroll|hidden|clip|overlay)/.test(cs.overflowX + ' ' + cs.overflowY)) continue;
+      var b = p.getBoundingClientRect();
+      c = { l: Math.max(c.l, b.left), t: Math.max(c.t, b.top), r: Math.min(c.r, b.right), b: Math.min(c.b, b.bottom) };
+    }
+    return c;
+  }
+  function anchorFor(r) {
+    var d = cdoc(), layer = d.getElementById('ms-cmt-layer'), x2 = r.left + r.w, y2 = r.top + r.h;
+    if (layer) layer.style.display = 'none';
+    var pts = [[r.left + 3, r.top + 3], [x2 - 3, r.top + 3], [r.left + 3, y2 - 3], [x2 - 3, y2 - 3], [r.left + r.w / 2, r.top + r.h / 2]];
+    var els = pts.map(function (p) { return d.elementFromPoint(p[0], p[1]); }).filter(Boolean);
+    if (layer) layer.style.display = '';
+    var a = els[0] || d.documentElement;
+    els.forEach(function (e) { while (a && !a.contains(e)) a = a.parentElement; });
+    if (!a || a === d.body || a.closest('[data-ms-editor]')) a = d.documentElement;
+    var o = originOf(a);
+    return { el: a, ref: a === d.documentElement ? 'html' : refOf(a), dx: Math.round(r.left - o.x), dy: Math.round(r.top - o.y) };
+  }
+  function onTab(c) {
+    var t = c.tab, r = rt(); if (!t || !t.id) return true;
+    if (String(t.id).indexOf('page:') === 0) { var a = MS.pageTabs.active(); return !a || a.title === t.title; }
+    return !r.layoutEnabled() || t.id === r.activeTab;
+  }
+  // where a comment is on screen now: {box:{l,t,w,h}, clip} or null when it is out of sight
+  R.placeOf = function (c) {
+    var w = MS.child.win, el, b, clip;
+    if (c.kind === 'element' && c.target) {
+      el = findRef(c.target.ref); if (!el || !shown(el)) return null;
+      var rr = el.getBoundingClientRect(); b = { l: rr.left, t: rr.top, w: rr.width, h: rr.height }; clip = clipOf(el);
+    } else if (c.kind === 'area' && c.area) {
+      var an = c.area.anchor;
+      if (an) {
+        el = findRef(an.ref); if (!el || !shown(el)) return null;
+        if (el === cdoc().documentElement && !onTab(c)) return null;
+        var o = originOf(el); b = { l: o.x + an.dx, t: o.y + an.dy, w: c.area.w, h: c.area.h }; clip = clipOf(el, true);
+      } else {
+        if (!onTab(c)) return null;
+        b = { l: c.area.x - w.scrollX, t: c.area.y - w.scrollY, w: c.area.w, h: c.area.h }; clip = clipOf(cdoc().body);
+      }
+    } else return null;
+    if (b.l + b.w < clip.l || b.l > clip.r || b.t + b.h < clip.t || b.t > clip.b) return null;
+    return { box: b, clip: clip };
+  };
+
+  /* ---------------------------------------------------------- pins in the dashboard (a fixed layer, redrawn as you scroll) */
+  R.renderPins = function () {
+    var d = cdoc(), r = rt(); if (!d || !d.body) return;
+    ensureCss();
+    var layer = d.getElementById('ms-cmt-layer');
+    if (!layer) { layer = d.createElement('div'); layer.id = 'ms-cmt-layer'; layer.setAttribute('data-ms-editor', ''); d.body.appendChild(layer); }
+    layer.innerHTML = '';
+    if (!r) return;
+    var draw = function (c, label, cls, withBox) {
+      var p = R.placeOf(c); if (!p) return;
+      var b = p.box, k = p.clip;
+      if (withBox) {
+        var box = d.createElement('div'); box.className = cls;
+        box.style.left = b.l + 'px'; box.style.top = b.t + 'px'; box.style.width = b.w + 'px'; box.style.height = b.h + 'px';
+        var it = Math.max(0, k.t - b.t), ir = Math.max(0, b.l + b.w - k.r), ib = Math.max(0, b.t + b.h - k.b), il = Math.max(0, k.l - b.l);
+        if (it || ir || ib || il) box.style.clipPath = 'inset(' + it + 'px ' + ir + 'px ' + ib + 'px ' + il + 'px)';
+        layer.appendChild(box);
+      }
+      if (label == null) return;
+      var px = c.kind === 'element' ? Math.min(b.l + b.w, k.r) - 12 : Math.max(b.l, k.l) + 2, py = Math.max(b.t, k.t) + (c.kind === 'element' ? 4 : 2);
+      if (py > k.b - 4 || px < k.l - 4 || px > k.r) return;
+      var pin = d.createElement('div'); pin.className = 'ms-cmt-pin' + (c.done ? ' done' : '') + (c.id === R.current ? ' cur' : '');
+      pin.textContent = label; pin.title = clip(c.text, 140) + (c.replies && c.replies.length ? ' (' + c.replies.length + ' repl' + (c.replies.length === 1 ? 'y' : 'ies') + ')' : '');
+      pin.style.left = px + 'px'; pin.style.top = py + 'px';
+      pin.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); R.select(c.id, false); });
+      pin.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      layer.appendChild(pin);
+    };
+    if (R.showPins) list().forEach(function (c, i) {
+      if (c.done && R.filter === 'open' && c.id !== R.current) return;
+      var cur = c.id === R.current;
+      draw(c, String(i + 1), c.kind === 'area' ? 'ms-cmt-area' + (c.done ? ' done' : '') + (cur ? ' cur' : '') : 'ms-cmt-box' + (cur ? ' cur' : ''), c.kind === 'area' || cur);
+    });
+    if (R.draft) draw(R.draft.c, null, c0kind(R.draft.c) + ' pending', true);
+  };
+  function c0kind(c) { return c.kind === 'area' ? 'ms-cmt-area' : 'ms-cmt-box'; }
+  var raf = 0;
+  function pinsNow() { if (raf) return; raf = (MS.child.win.requestAnimationFrame || setTimeout)(function () { raf = 0; R.renderPins(); }); }
+  R.togglePins = function () { R.showPins = !R.showPins; MS.prefs.set('showPins', R.showPins); R.renderPins(); MS.ribbon.render(); };
+
+  /* ---------------------------------------------------------- making a comment (the composer lives in the Comments pane) */
   function save(c, label) {
     MS.history.state(label || 'Comment', function (s) {
       s.comments = s.comments || [];
@@ -6562,21 +7335,31 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     });
     MS.emit('comments');
   }
-  function base(kind) { var t = tabOf(null); return { id: rt().uid('m'), kind: kind, created: new Date().toISOString(), tab: t, type: 'change', prio: 'should' }; }
+  function patch(id, label, fn) {
+    MS.history.state(label, function (s) { (s.comments || []).forEach(function (c) { if (c.id === id) fn(c); }); });
+    MS.emit('comments');
+  }
+  function author() { return MS.prefs.get('author', '') || ''; }
+  function base(kind) { var t = tabOf(null); return { id: rt().uid('m'), kind: kind, created: new Date().toISOString(), by: author(), tab: t, type: 'change', prio: 'should', replies: [] }; }
   function ctxBox(lines) { return h('div', { 'class': 'cmt-ctx' }, lines.filter(Boolean).map(function (l) { return h('div', { html: l }); })); }
+  R.compose = function (c, ctx, extra, done) {
+    R.draft = { c: c, ctx: ctx, extra: extra, done: done };
+    R.showPane(true); R.renderPane(); R.renderPins();
+    setTimeout(function () { var t = MS.$('#cmt-pane .cmt-draft textarea'); if (t) t.focus(); }, 30);
+  };
+  R.discard = function () { R.draft = null; R.renderPane(); R.renderPins(); };
 
   R.addElement = function (el, e) {
     var d = R.describe(el), c = base('element'), t = tabOf(el);
     c.tab = t; c.target = { what: d.what, ref: refOf(el), css: cssPath(el), section: sectionOf(el), chart: d.chart, html: clip(el.outerHTML, 300) };
     if (R.locate) c.loc = R.locate(el);
     if (d.chart && e) { var cc = rt().chart(d.chart.key); var pl = cc && pointLabel(cc, e); if (pl) c.target.point = pl; }
-    var ctx = ctxBox(['<b>On:</b> ' + MS.esc(d.what) + (c.target.point ? ' at “' + MS.esc(c.target.point) + '”' : ''), '<b>Where:</b> ' + MS.esc(c.loc ? R.trail(c.loc) : [t && 'Tab “' + t.title + '”', c.target.section].filter(Boolean).join(' › ') || 'the page')]);
-    ask('Comment on this element', c, ctx, true).then(function (v) { if (!v || typeof v !== 'object') return; Object.assign(c, v); save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); });
+    R.compose(c, ['<b>On:</b> ' + MS.esc(d.what) + (c.target.point ? ' at “' + MS.esc(c.target.point) + '”' : ''), '<b>Where:</b> ' + MS.esc(c.loc ? R.trail(c.loc) : [t && 'Tab “' + t.title + '”', c.target.section].filter(Boolean).join(' › ') || 'the page')]);
   };
   R.addArea = function (r) {
     var w = MS.child.win, d = cdoc(), c = base('area');
-    c.area = { x: Math.round(r.left + w.scrollX), y: Math.round(r.top + w.scrollY), w: Math.round(r.w), h: Math.round(r.h), vw: w.innerWidth, vh: w.innerHeight, tab: c.tab && c.tab.id };
-    // what is inside the box
+    var an = anchorFor(r);
+    c.area = { x: Math.round(r.left + w.scrollX), y: Math.round(r.top + w.scrollY), w: Math.round(r.w), h: Math.round(r.h), vw: w.innerWidth, vh: w.innerHeight, tab: c.tab && c.tab.id, anchor: { ref: an.ref, dx: an.dx, dy: an.dy } };
     var inside = [], seen = [];
     var within = function (b) { var ix = Math.max(0, Math.min(b.right, r.left + r.w) - Math.max(b.left, r.left)), iy = Math.max(0, Math.min(b.bottom, r.top + r.h) - Math.max(b.top, r.top)); return b.width * b.height > 0 && ix * iy / (b.width * b.height) > 0.6; };
     (rt().charts() || []).forEach(function (ch) { if (ch.el.offsetParent !== null && within(ch.el.getBoundingClientRect())) { inside.push(R.describe(ch.el).what); seen.push(ch.el); } });
@@ -6585,111 +7368,199 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       if (within(n.getBoundingClientRect())) { inside.push(R.describe(n).what); seen.push(n); }
     });
     c.inside = inside;
+    var at = an.el !== d.documentElement ? tabOf(an.el) : null; if (at) { c.tab = at; c.area.tab = at.id; }
     if (R.locateArea) c.loc = R.locateArea(r, seen);
-    var ctx = ctxBox(['<b>Area:</b> ' + c.area.w + ' × ' + c.area.h + ' px' + (c.tab ? ' on the “' + MS.esc(c.tab.title) + '” tab' : ''),
-      inside.length ? '<b>Inside it:</b><br>' + inside.slice(0, 8).map(function (x) { return '· ' + MS.esc(x); }).join('<br>') : '<i>Nothing recognisable inside the box (maybe empty space).</i>']);
-    ask('Comment on this area', c, ctx, true).then(function (v) { if (!v || typeof v !== 'object') return; Object.assign(c, v); save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); });
+    R.compose(c, ['<b>Area:</b> ' + c.area.w + ' × ' + c.area.h + ' px' + (c.tab ? ' on the “' + MS.esc(c.tab.title) + '” tab' : ''),
+      inside.length ? '<b>Inside it:</b> ' + inside.slice(0, 6).map(function (x) { return MS.esc(x); }).join('; ') : '<i>Nothing recognisable inside the box (maybe empty space).</i>']);
   };
   R.addInteraction = function () {
+    if (!MS.child || !rt()) return MS.toast('Open a dashboard first.', 'warn');
     var steps = log.slice(-10), snap = snapshot(), c = base('interaction');
     var checks = steps.map(function (s, i) { return { s: s, cb: h('input', { type: 'checkbox', checked: i >= steps.length - 4 }) }; });
-    var ago = function (t) { var x = Math.round((Date.now() - t) / 1000); return x < 60 ? x + 's ago' : Math.round(x / 60) + ' min ago'; };
     var stepsBox = checks.length ? h('div', { 'class': 'list' }, checks.map(function (k) { return h('label', { 'class': 'list-row' }, [k.cb, h('span', { 'class': 'grow', text: k.s.text }), h('small', { 'class': 'muted', text: ago(k.s.t) })]); }))
-      : h('p', { 'class': 'muted', text: 'Nothing recorded yet. Switch to Interact mode (top right), use the dashboard (tabs, filters, hovering, double-clicking), then come back here.' });
+      : h('p', { 'class': 'muted small', text: 'Nothing recorded yet. Switch to Interact mode (top), use the dashboard (tabs, filters, hovering, double-clicking), then come back here.' });
     var stateLines = [snap.tab ? '<b>Tab:</b> ' + MS.esc(snap.tab) : '', snap.filters ? '<b>Filters:</b> ' + MS.esc(snap.filters.join(', ')) : '', snap.drill ? '<b>Drill-down:</b> ' + MS.esc(snap.drill.join('; ')) : '',
       snap.hover ? '<b>Last pop-up:</b> ' + MS.esc(snap.hover.name) + (snap.hover.tip ? ' showed “' + MS.esc(snap.hover.tip) + '”' : '') : ''];
-    var extra = h('div', {}, [h('h4', { text: 'What you did (tick the steps that matter)' }), stepsBox, h('h4', { text: 'Where things are now' }), ctxBox(stateLines.some(Boolean) ? stateLines : ['<i>Default view: no filters or drill-down.</i>'])]);
-    ask('Comment on an interaction', c, extra, true).then(function (v) {
-      if (!v || typeof v !== 'object') return;
-      Object.assign(c, v);
+    var extra = h('div', {}, [h('div', { 'class': 'small strong', text: 'What you did (tick the steps that matter)' }), stepsBox]);
+    R.compose(c, stateLines.some(Boolean) ? stateLines : ['<i>Default view: no filters or drill-down.</i>'], extra, function (c) {
       c.steps = checks.filter(function (k) { return k.cb.checked; }).map(function (k) { return k.s.text; });
       c.state = { tab: snap.tab, filters: snap.filters, drill: snap.drill, popup: snap.hover ? { chart: snap.hover.name, at: snap.hover.label, text: snap.hover.tip } : undefined };
-      save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok');
     });
   };
-  R.edit = function (id) {
-    var c = list().filter(function (x) { return x.id === id; })[0]; if (!c) return;
-    c = JSON.parse(JSON.stringify(c));
-    var n = list().map(function (x) { return x.id; }).indexOf(id) + 1;
-    var ctx = ctxBox([KIND_ICON[c.kind] + ' <b>' + (c.kind === 'element' ? MS.esc(c.target.what) : c.kind === 'area' ? 'Area with ' + (c.inside || []).length + ' item(s)' : 'Interaction: ' + MS.esc((c.steps || []).slice(-1)[0] || 'current view')) + '</b>', c.tab ? 'Tab: ' + MS.esc(c.tab.title) : '']);
-    ask('Comment ' + n, c, ctx, false).then(function (v) {
-      if (!v) return;
-      if (v === 'delete') { MS.history.state('Delete comment', function (s) { s.comments = s.comments.filter(function (x) { return x.id !== id; }); }); return MS.emit('comments'); }
-      if (v === 'done') { c.done = !c.done; return save(c, c.done ? 'Comment done' : 'Comment re-opened'); }
-      if (v === 'prompt') return R.prompt({ ids: [id] });
-      Object.assign(c, v); save(c, 'Edit comment');
-    });
-  };
+  function byId(id) { return list().filter(function (x) { return x.id === id; })[0]; }
+  R.edit = function (id) { if (!byId(id)) return; R.editing = id; R.select(id, true); };
   R.goTo = function (id) {
-    var c = list().filter(function (x) { return x.id === id; })[0]; if (!c) return;
-    var r = rt();
-    if (c.kind === 'element') { var el = findRef(c.target.ref); if (el) return MS.edit.reveal(el, true); return MS.toast('That element is no longer in the dashboard.', 'warn'); }
-    if (c.kind === 'area') {
-      if (c.area.tab && r.layoutEnabled()) r.showTab(c.area.tab);
-      setTimeout(function () { MS.child.win.scrollTo({ top: Math.max(0, c.area.y - 80), behavior: 'smooth' }); R.renderPins(); }, 60);
-      return;
+    var c = byId(id); if (!c) return;
+    var r = rt(), t = c.tab;
+    if (t && t.id) {
+      if (String(t.id).indexOf('page:') === 0) { if (!onTab(c)) MS.pageTabs.show(t.title); }
+      else if (r.layoutEnabled() && r.activeTab !== t.id) r.showTab(t.id);
     }
-    if (c.tab && r.layoutEnabled()) r.showTab(c.tab.id);
+    setTimeout(function () {
+      var el = c.kind === 'element' ? findRef(c.target.ref) : c.kind === 'area' && c.area.anchor ? findRef(c.area.anchor.ref) : null;
+      if (c.kind === 'element') { if (!el) return MS.toast('That item is no longer in the dashboard.', 'warn'); MS.edit.reveal(el, false); }
+      else if (c.kind === 'area') {
+        if (el && el !== cdoc().documentElement) {
+          MS.edit.reveal(el, false);
+          // bring the box itself into view inside whatever scrolls
+          setTimeout(function () { var p = R.placeOf(c); if (!p) { var s = el; while (s && !isScroller(s)) s = s.parentElement; var y = originOf(el).y + c.area.anchor.dy; if (s) s.scrollTop += y - s.getBoundingClientRect().top - 60; else MS.child.win.scrollBy(0, y - 80); } R.renderPins(); }, 80);
+        } else if (el) MS.child.win.scrollTo({ top: Math.max(0, c.area.anchor.dy - 80) });
+        else MS.child.win.scrollTo({ top: Math.max(0, c.area.y - 80), behavior: 'smooth' });
+      }
+      R.renderPins();
+    }, 60);
   };
+  // pick a comment: highlight its pin, show its card, and (from the pane) go to it in the dashboard
+  R.select = function (id, go) {
+    R.current = id; R.showPane(true); R.renderPane(); R.renderPins();
+    if (go) R.goTo(id);
+    setTimeout(function () { var card = MS.$('#cmt-pane .cmt-card.cur'); if (card && card.scrollIntoView) card.scrollIntoView({ block: 'nearest' }); }, 20);
+  };
+  R.resolve = function (id) { var c = byId(id); if (c) patch(id, c.done ? 'Re-open comment' : 'Resolve comment', function (x) { x.done = !x.done; x.doneAt = x.done ? new Date().toISOString() : undefined; }); };
+  R.remove = function (id) { MS.history.state('Delete comment', function (s) { s.comments = s.comments.filter(function (x) { return x.id !== id; }); }); if (R.current === id) R.current = null; MS.emit('comments'); };
+  R.reply = function (id, text) { if (!String(text || '').trim()) return; patch(id, 'Reply to comment', function (x) { (x.replies = x.replies || []).push({ id: rt().uid('y'), text: String(text).trim(), by: author(), at: new Date().toISOString() }); }); };
   R.clear = function () {
     if (!list().length) return;
     MS.confirm('Delete all ' + list().length + ' comments?', 'You can undo this with Ctrl+Z.', 'Delete all', true).then(function (ok) {
-      if (ok) { MS.history.state('Delete all comments', function (s) { s.comments = []; }); MS.emit('comments'); }
+      if (ok) { MS.history.state('Delete all comments', function (s) { s.comments = []; }); R.current = null; MS.emit('comments'); }
     });
   };
-  R.togglePins = function () { R.showPins = !R.showPins; MS.prefs.set('showPins', R.showPins); R.renderPins(); MS.ribbon.render(); };
 
-  /* ---------------------------------------------------------- pins in the dashboard */
-  R.renderPins = function () {
-    var d = cdoc(), r = rt(); if (!d || !d.body) return;
-    var layer = d.getElementById('ms-cmt-layer');
-    if (!layer) { ensureCss(); layer = d.createElement('div'); layer.id = 'ms-cmt-layer'; layer.setAttribute('data-ms-editor', ''); d.body.appendChild(layer); }
-    layer.innerHTML = '';
-    if (!R.showPins || !r) return;
-    var w = MS.child.win;
-    list().forEach(function (c, i) {
-      var pin = d.createElement('div'); pin.className = 'ms-cmt-pin' + (c.done ? ' done' : ''); pin.textContent = i + 1; pin.title = clip(c.text, 140);
-      pin.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); R.edit(c.id); });
-      pin.addEventListener('mousedown', function (e) { e.stopPropagation(); });
-      if (c.kind === 'element') {
-        var el = findRef(c.target.ref); if (!el || el.offsetParent === null) return;
-        var b = el.getBoundingClientRect();
-        pin.style.left = Math.round(b.right + w.scrollX - 12) + 'px'; pin.style.top = Math.round(b.top + w.scrollY + 4) + 'px';
-        layer.appendChild(pin);
-      } else if (c.kind === 'area') {
-        if (c.area.tab && r.layoutEnabled() && c.area.tab !== r.activeTab) return;
-        var box = d.createElement('div'); box.className = 'ms-cmt-area' + (c.done ? ' done' : '');
-        box.style.left = c.area.x + 'px'; box.style.top = c.area.y + 'px'; box.style.width = c.area.w + 'px'; box.style.height = c.area.h + 'px';
-        box.appendChild(pin); layer.appendChild(box);
-      }
-    });
+  /* ---------------------------------------------------------- the Comments pane (right side, like PowerPoint) */
+  function ago(t) {
+    var x = Math.round((Date.now() - (typeof t === 'number' ? t : Date.parse(t))) / 1000);
+    if (!(x >= 0)) return '';
+    return x < 45 ? 'just now' : x < 3600 ? Math.round(x / 60) + ' min ago' : x < 86400 ? Math.round(x / 3600) + ' h ago' : new Date(Date.now() - x * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+  R.filter = MS.prefs.get('cmtFilter', 'open');
+  R.showPane = function (on) {
+    var host = MS.$('#cmt-pane'), ins = MS.$('#inspector'); if (!host || !ins) return;
+    if (on && document.body.classList.contains('no-right')) document.body.classList.remove('no-right');
+    host.hidden = !on; ins.hidden = !!on; R.paneOn = !!on;
+    MS.$$('#right-tabs button').forEach(function (b) { b.classList.toggle('on', (b.getAttribute('data-pane') === 'comments') === !!on); });
+    if (on) R.renderPane();
   };
+  function where(c) { return c.loc && R.trail ? R.trail(c.loc) : c.tab ? 'Tab “' + c.tab.title + '”' : ''; }
+  function what(c) { return c.kind === 'element' ? (c.target.point ? c.target.what + ' at “' + c.target.point + '”' : c.target.what) : c.kind === 'area' ? 'Area' + (c.inside && c.inside.length ? ' with ' + clip(c.inside.slice(0, 2).join(', '), 60) : '') : 'Interaction: ' + ((c.steps || []).slice(-1)[0] || 'current view'); }
+  function composer(c, isNew, ctx, extra, onSave, onCancel) {
+    var ta = h('textarea', { 'class': 'inp', rows: 3, placeholder: isNew ? 'Type your comment… (Ctrl+Enter to add)' : 'Comment' });
+    ta.value = c.text || '';
+    var ty = h('select', { 'class': 'inp' }, TYPES.map(function (o) { return h('option', { value: o.value, text: o.label, selected: o.value === (c.type || 'change') }); }));
+    var pr = h('select', { 'class': 'inp' }, PRIOS.map(function (o) { return h('option', { value: o.value, text: o.label, selected: o.value === (c.prio || 'should') }); }));
+    var nm = isNew ? h('input', { 'class': 'inp', placeholder: 'Your name (optional)', value: author() }) : null;
+    var go = function () {
+      if (!ta.value.trim()) { ta.focus(); return MS.toast('Type a comment first.', 'warn'); }
+      if (nm) { MS.prefs.set('author', nm.value.trim()); c.by = nm.value.trim(); }
+      c.text = ta.value.trim(); c.type = ty.value; c.prio = pr.value; onSave(c);
+    };
+    ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); go(); } if (e.key === 'Escape') { e.preventDefault(); onCancel(); } });
+    return h('div', { 'class': 'cmt-draft' }, [ctx ? ctxBox(ctx) : null, extra || null, ta,
+      h('div', { 'class': 'row gap' }, [ty, pr]), nm,
+      h('div', { 'class': 'row gap' }, [h('span', { 'class': 'grow' }), h('button', { 'class': 'btn sm', onclick: onCancel }, ['Cancel']), h('button', { 'class': 'btn sm primary', onclick: go }, [isNew ? 'Add comment' : 'Save'])])]);
+  }
+  function card(c, n) {
+    var cur = c.id === R.current, editing = R.editing === c.id;
+    var el = h('div', { 'class': 'cmt-card' + (cur ? ' cur' : '') + (c.done ? ' done' : ''), 'data-id': c.id });
+    el.appendChild(h('div', { 'class': 'cmt-top' }, [h('span', { 'class': 'cmt-n' + (c.done ? ' done' : ''), text: String(n) }), h('span', { 'class': 'kind', text: KIND_ICON[c.kind] || '' }),
+      h('span', { 'class': 'grow cmt-what', text: clip(what(c), 70), title: where(c) }),
+      c.prio === 'must' && !c.done ? h('span', { 'class': 'tag warn', text: 'must' }) : null, c.done ? h('span', { 'class': 'tag ok', text: '✓ resolved' }) : null]));
+    if (editing) el.appendChild(composer(JSON.parse(JSON.stringify(c)), false, null, null, function (v) { R.editing = null; patch(c.id, 'Edit comment', function (x) { x.text = v.text; x.type = v.type; x.prio = v.prio; }); }, function () { R.editing = null; R.renderPane(); }));
+    else el.appendChild(h('div', { 'class': 'cmt-text', text: c.text }));
+    el.appendChild(h('div', { 'class': 'cmt-meta muted small', text: [c.by || 'Reviewer', ago(c.created), (TYPES.filter(function (t) { return t.value === c.type; })[0] || {}).label].filter(Boolean).join(' · ') }));
+    (c.replies || []).forEach(function (rp) {
+      el.appendChild(h('div', { 'class': 'cmt-reply' }, [h('div', { 'class': 'cmt-meta muted small', text: (rp.by || 'Reviewer') + ' · ' + ago(rp.at) }), h('div', { 'class': 'cmt-text', text: rp.text })]));
+    });
+    if (cur && !editing) {
+      var rta = h('textarea', { 'class': 'inp', rows: 1, placeholder: 'Reply… (Ctrl+Enter)' });
+      var send = function () { var v = rta.value; rta.value = ''; R.reply(c.id, v); };
+      rta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } });
+      rta.addEventListener('click', function (e) { e.stopPropagation(); });
+      el.appendChild(h('div', { 'class': 'cmt-replybox row gap' }, [rta, h('button', { 'class': 'btn sm', onclick: function (e) { e.stopPropagation(); send(); } }, ['Reply'])]));
+      el.appendChild(h('div', { 'class': 'cmt-acts' }, [
+        h('button', { 'class': 'btn sm' + (c.done ? '' : ' primary'), onclick: function (e) { e.stopPropagation(); R.resolve(c.id); } }, [c.done ? '↺ Re-open' : '✓ Resolve']),
+        h('button', { 'class': 'btn sm', onclick: function (e) { e.stopPropagation(); R.edit(c.id); } }, ['✎ Edit']),
+        h('button', { 'class': 'btn sm', title: 'A prompt for an AI assistant from this comment only', onclick: function (e) { e.stopPropagation(); R.prompt({ ids: [c.id] }); } }, ['✨']),
+        h('button', { 'class': 'btn sm danger', title: 'Delete (Ctrl+Z to undo)', onclick: function (e) { e.stopPropagation(); R.remove(c.id); } }, ['🗑'])]));
+    }
+    el.addEventListener('click', function (e) { if (e.target.closest('textarea,select,input,button')) return; R.select(c.id, true); });
+    return el;
+  }
+  R.renderPane = function () {
+    var host = MS.$('#cmt-pane'); if (!host || host.hidden) return;
+    var keep = host.scrollTop; host.innerHTML = '';
+    var cs = list(), open = cs.filter(function (c) { return !c.done; }).length;
+    host.appendChild(h('div', { 'class': 'cmt-head' }, [h('strong', { 'class': 'grow', text: 'Comments' }),
+      h('button', { 'class': 'icon-btn', title: 'Comment on what you just did in Interact mode (filters, drill-down, pop-ups)', onclick: function () { R.addInteraction(); } }, ['⚡']),
+      h('button', { 'class': 'icon-btn', title: 'Turn the comments into a prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨']),
+      h('button', { 'class': 'icon-btn', title: 'More', onclick: function (e) { MS.menu(e.currentTarget, [
+        { label: (R.showPins ? 'Hide' : 'Show') + ' pins on the dashboard', run: R.togglePins },
+        { label: 'Excel tracker…', run: function () { MS.tracker.exportFile(); } },
+        { label: 'Update from tracker…', run: function () { MS.tracker.importFile(); } },
+        { label: 'Change my name…', run: function () { MS.prompt('Your name on comments and replies', author()).then(function (v) { if (v !== null) { MS.prefs.set('author', v.trim()); R.renderPane(); } }); } },
+        '-', { label: 'Delete all comments', danger: true, run: R.clear }]); } }, ['⋯'])]));
+    if (!MS.child) { host.appendChild(h('p', { 'class': 'muted pad-sm', text: 'Open a dashboard to comment on it.' })); return; }
+    host.appendChild(commenting()
+      ? h('div', { 'class': 'cmt-hint on' }, [h('b', { text: 'Commenting. ' }), 'Click anything to comment on it, or drag a box around an area. Tabs still switch. ', h('button', { 'class': 'linklike', onclick: function () { MS.setMode('edit'); } }, ['Stop (Esc)'])])
+      : h('div', { 'class': 'cmt-hint' }, [h('button', { 'class': 'btn sm primary', onclick: function () { MS.setMode('comment'); } }, ['💬 New comment']), h('span', { 'class': 'muted small', text: ' Then click a part of the dashboard or drag a box.' })]));
+    if (R.draft) {
+      var dr = R.draft;
+      host.appendChild(h('div', { 'class': 'cmt-card new' }, [h('div', { 'class': 'cmt-top' }, [h('span', { 'class': 'cmt-n', text: String(cs.length + 1) }), h('strong', { text: 'New comment' })]),
+        composer(dr.c, true, dr.ctx, dr.extra, function (c) { if (dr.done) dr.done(c); R.draft = null; R.current = c.id; save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); }, R.discard)]));
+    }
+    var chips = [['open', 'Open (' + open + ')'], ['all', 'All (' + cs.length + ')'], ['must', 'Must fix'], ['done', 'Resolved']];
+    host.appendChild(h('div', { 'class': 'seg small cmt-filter' }, chips.map(function (x) {
+      return h('button', { 'class': 'seg-btn' + (R.filter === x[0] ? ' on' : ''), onclick: function () { R.filter = x[0]; MS.prefs.set('cmtFilter', x[0]); R.renderPane(); R.renderPins(); } }, [x[1]]);
+    })));
+    var show = cs.filter(function (c) { return R.filter === 'all' || (R.filter === 'open' && !c.done) || (R.filter === 'done' && c.done) || (R.filter === 'must' && c.prio === 'must' && !c.done) || c.id === R.current; });
+    if (!cs.length) host.appendChild(h('p', { 'class': 'muted pad-sm small', text: 'No comments yet. Press 💬 Comment at the top (or here), then click anything on the dashboard, or drag a box around an area. Every comment gets a numbered pin that stays on the content as you scroll.' }));
+    else if (!show.length) host.appendChild(h('p', { 'class': 'muted pad-sm small', text: R.filter === 'open' ? 'Everything is resolved. 🎉' : 'Nothing here.' }));
+    var groups = [], byTab = {};
+    show.forEach(function (c) { var k = c.tab ? c.tab.title : 'Whole page'; if (!byTab[k]) { byTab[k] = []; groups.push(k); } byTab[k].push(c); });
+    groups.forEach(function (g) {
+      if (groups.length > 1 || g !== 'Whole page') host.appendChild(h('div', { 'class': 'cmt-group', text: g }));
+      byTab[g].forEach(function (c) { host.appendChild(card(c, cs.indexOf(c) + 1)); });
+    });
+    host.scrollTop = keep;
+  };
+  var paneSoon = MS.debounce(function () { R.renderPane(); }, 60);
   var pinsSoon = MS.debounce(function () { R.renderPins(); }, 120);
   ['comments', 'changed', 'structure', 'tab-shown', 'history'].forEach(function (ev) { MS.on(ev, pinsSoon); });
+  ['comments', 'history', 'child-loaded'].forEach(function (ev) { MS.on(ev, paneSoon); });
   MS.on('comments', function () { R.syncBar(); });
   MS.on('history', function () { R.syncBar(); });
   MS.on('child-loaded', function (c) {
-    log = []; lastHover = null; R.picking = null;
+    log = []; lastHover = null; R.picking = null; R.draft = null; R.current = null; R.editing = null;
     attachPicker(c); attachLog(c);
     c.win.addEventListener('ms:refresh', pinsSoon);
-    setTimeout(function () { R.renderPins(); R.syncBar(); }, 300);
+    if (MS.mode === 'comment') c.doc.body.classList.add('ms-comment-mode');
+    setTimeout(function () { ensureCss(); markPass(); R.renderPins(); R.syncBar(); }, 300);
   });
-  MS.on('mode', function (m) { if (m === 'interact') note('Switched to Interact mode'); });
+  // the dashboard's own tab buttons keep a pointer cursor in Comment mode
+  function markPass() { var g = MS.pageTabs && MS.pageTabs.group(); if (g) g.tabs.forEach(function (t) { t.btn.classList.add('ms-cmt-pass'); }); }
+  MS.on('structure', function () { if (MS.child && rt()) markPass(); });
+  MS.on('mode', function (m) {
+    if (m === 'interact') note('Switched to Interact mode');
+    var d = cdoc(); if (d && d.body) { d.body.classList.toggle('ms-comment-mode', m === 'comment'); if (m === 'comment') { ensureCss(); markPass(); } }
+    if (m !== 'comment') R.cancel();
+    if (m === 'comment') R.showPane(true); else R.renderPane();
+  });
+  // selecting something in Edit mode brings the Format pane back
+  MS.on('selection', function (el) { if (el && MS.mode === 'edit' && R.paneOn) R.showPane(false); });
 
-  /* ---------------------------------------------------------- comment buttons in the top bar */
+  /* ---------------------------------------------------------- top bar: open the pane, make a prompt */
   R.syncBar = function () {
-    var n = list().filter(function (c) { return !c.done; }).length, b = MS.$('#cmt-count');
-    if (b) { b.textContent = n ? String(n) : ''; b.style.display = n ? '' : 'none'; }
+    var n = list().filter(function (c) { return !c.done; }).length;
+    MS.$$('#cmt-count, #rtab-count').forEach(function (b) { b.textContent = n ? String(n) : ''; b.style.display = n ? '' : 'none'; });
   };
   R.bar = function () {
     var host = MS.$('#cmt-bar'); if (!host) return;
-    var tool = function (kind, icon, label, title) { return h('button', { 'class': 'seg-btn cmt-tool', 'data-kind': kind, title: title, onclick: function () { R.start(kind); } }, [icon + ' ', h('span', { 'class': 'lbl', text: label })]); };
-    host.appendChild(h('span', { 'class': 'cmt-label', text: '💬' }));
-    host.appendChild(h('div', { 'class': 'seg', role: 'group', 'aria-label': 'Comment' }, [
-      tool('element', '📍', 'Element', 'Comment on one part of the dashboard: click it'),
-      tool('area', '▭', 'Area', 'Comment on an area of the screen: drag a box'),
-      tool('interaction', '⚡', 'Interaction', 'Comment on what you just did: a filter, a drill-down, a pop-up…')]));
-    host.appendChild(h('button', { 'class': 'btn', id: 'btn-prompt', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ Prompt ', h('span', { 'class': 'count', id: 'cmt-count' })]));
+    host.appendChild(h('button', { 'class': 'btn', id: 'btn-cmts', title: 'Show all comments (like PowerPoint\'s Comments pane)', onclick: function () { R.showPane(!R.paneOn); } }, ['🗨 Comments ', h('span', { 'class': 'count', id: 'cmt-count' })]));
+    host.appendChild(h('button', { 'class': 'btn', id: 'btn-prompt', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ Prompt']));
+    var rt0 = MS.$('#right-tabs');
+    if (rt0 && !rt0.firstChild) {
+      rt0.appendChild(h('button', { 'data-pane': 'format', 'class': 'on', onclick: function () { R.showPane(false); } }, ['Format']));
+      rt0.appendChild(h('button', { 'data-pane': 'comments', onclick: function () { R.showPane(true); } }, ['Comments ', h('span', { 'class': 'count', id: 'rtab-count' })]));
+    }
     R.syncBar();
   };
 
@@ -6697,15 +7568,16 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   R.outlineSection = function () {
     var cs = list();
     var sec = h('section', { 'class': 'ol-sec' }, [h('div', { 'class': 'ol-head' }, [h('span', { text: 'Comments (' + cs.length + ')' }),
-      h('button', { 'class': 'icon-btn', title: 'Comment on an element', onclick: function () { R.start('element'); } }, ['📍']),
+      h('button', { 'class': 'icon-btn', title: 'New comment: click or drag on the dashboard', onclick: function () { MS.setMode('comment'); } }, ['💬']),
       cs.length ? h('button', { 'class': 'icon-btn', title: 'Make a prompt from the comments', onclick: function () { R.prompt(); } }, ['✨']) : null])]);
-    if (!cs.length) sec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'Use 💬 at the top to comment on an element, an area or an interaction. Then press ✨ Prompt to turn them into instructions for an AI assistant.' }));
+    if (!cs.length) sec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'Press 💬 Comment at the top, then click anything or drag a box. ✨ Prompt turns comments into instructions for an AI assistant.' }));
     cs.forEach(function (c, i) {
-      var row = h('div', { 'class': 'ol-row' + (c.done ? ' hidden' : ''), title: c.text }, [
+      var row = h('div', { 'class': 'ol-row' + (c.done ? ' hidden' : '') + (c.id === R.current ? ' active' : ''), title: c.text }, [
         h('span', { 'class': 'cmt-n', text: String(i + 1) }), h('span', { 'class': 'kind', text: KIND_ICON[c.kind] }),
         h('span', { 'class': 'grow name', text: clip(c.text, 60) }),
+        c.replies && c.replies.length ? h('span', { 'class': 'tag', text: '↩ ' + c.replies.length }) : null,
         c.prio === 'must' ? h('span', { 'class': 'tag warn', text: 'must' }) : null]);
-      row.addEventListener('click', function () { R.goTo(c.id); });
+      row.addEventListener('click', function () { R.select(c.id, true); });
       row.addEventListener('dblclick', function () { R.edit(c.id); });
       sec.appendChild(row);
     });
@@ -6717,7 +7589,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   R.buildPrompt = function (o) {
     var r = rt(), cs = list().filter(function (c) { return o.includeDone || !c.done; });
     var file = o.fileName || MS.exportName(), L = [];
-    var tabs = r && r.layoutEnabled() ? r.tabs().filter(function (t) { return !t.hidden; }).map(function (t) { return t.title; }) : [];
+    var tabs = r && r.layoutEnabled() ? r.tabs().filter(function (t) { return !t.hidden; }).map(function (t) { return t.title; }) : MS.pageTabs.list().map(function (t) { return t.title; });
     L.push('# Update an HTML dashboard from review comments', '');
     L.push('You are an expert front-end developer and data-visualisation designer. I reviewed an HTML dashboard and left ' + cs.length + ' numbered comment' + (cs.length === 1 ? '' : 's') + '. Please make the changes they ask for.', '');
     L.push('## The dashboard', '');
@@ -6954,10 +7826,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   /* ---------------------------------------------------------- the map of the dashboard */
   function mapOf(r, only) {
-    var L = [], tabs = r.layoutEnabled() ? r.tabs() : [{ id: null, title: '' }];
+    var g = !r.layoutEnabled() && MS.pageTabs.group();
+    var L = [], tabs = r.layoutEnabled() ? r.tabs() : g ? g.tabs.map(function (t) { return { id: null, title: t.title, root: t.panel }; }) : [{ id: null, title: '' }];
     tabs.forEach(function (t) {
       if (only && t.title && only.indexOf(t.title) < 0) return;
-      var root = t.id ? MS.child.doc.querySelector('section.ms-tab[data-ms-tab="' + t.id + '"]') : MS.child.doc.body;
+      var root = t.root || (t.id ? MS.child.doc.querySelector('section.ms-tab[data-ms-tab="' + t.id + '"]') : MS.child.doc.body);
       if (!root) return;
       var lines = [];
       var secs = {};
@@ -7134,6 +8007,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     }
     L.push('- **Comment:**');
     c.text.split('\n').forEach(function (line) { L.push('  > ' + line); });
+    if (c.replies && c.replies.length) { L.push('- **Replies:**'); c.replies.forEach(function (rp) { L.push('  > ' + (rp.by || 'Reviewer') + ': ' + String(rp.text).replace(/\n/g, ' ')); }); }
     if (!brief && c.type !== 'question') {
       var done = x.topics.map(function (t) { return t.done; });
       if (c.type === 'bug') done.unshift('the steps above no longer show the problem');
@@ -7745,7 +8619,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   MS.on('child-loaded', function () {
     setTimeout(function () {
       var r = rt(); if (!r || r.state.locale || !MS.child) return;
-      var t = (MS.child.doc.body && MS.child.doc.body.textContent || '').slice(0, 200000);
+      // only what people see: script and style text (and our own runtime) would give false alarms
+      var b = MS.child.doc.body, t = b ? (b.innerText || '').slice(0, 200000) : '';
       var hits = { INR: (t.match(/₹|\bcrores?\b|\blakhs?\b|\bRs\.?\s?\d/gi) || []).length, EUR: (t.match(/€/g) || []).length, GBP: (t.match(/£/g) || []).length };
       var best = Object.keys(hits).sort(function (a, b) { return hits[b] - hits[a]; })[0];
       if (hits[best] >= 3) MS.status('This dashboard shows ' + { INR: '₹ (India)', EUR: '€', GBP: '£' }[best] + ' amounts. Mothership writes numbers in US $ until you change Design › Region & currency.');
@@ -7961,7 +8836,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   var TOUR = [
     { sel: '#ribbon-tabs', title: 'The ribbon', text: 'Works like PowerPoint. <b>Insert</b> adds tabs, sections, KPI cards, charts and footers. <b>Design</b> loads your brand. <b>Charts</b> sets pop-ups and drill-down. <b>Review</b> collects comments. <b>Help</b> has the tutorial.' },
     { sel: '#appbar .seg.mode', title: 'Edit or Interact', text: '<b>Edit</b>: click anything to select it, double-click text to type. <b>Interact</b>: use the dashboard like your audience will (filters, pop-ups, drill-down).' },
-    { sel: '#cmt-bar', title: 'Comments → AI prompt', text: 'Pin comments on an <b>element</b>, a screen <b>area</b>, or an <b>interaction</b> you just did. <b>✨ Prompt</b> turns them all into one set of instructions for an AI assistant.' },
+    { sel: '#cmt-bar', title: 'Comments → AI prompt', text: 'Press <b>💬 Comment</b> (next to Edit), then click anything or drag a box. <b>🗨 Comments</b> lists them all, like PowerPoint: go to one, reply, resolve. <b>✨ Prompt</b> turns them into instructions for an AI assistant.' },
     { sel: '#left', title: 'Outline', text: 'Every tab, chart, dataset and comment. Click a chart to jump to it. Drag tabs to reorder them.' },
     { sel: '#stage', title: 'Your dashboard', text: 'This is the real page, drawn at desktop width and scaled to fit. Double-click a chart for its settings: commentary, look, pop-up and drill-down.' },
     { sel: '#right', title: 'Format panel', text: 'Shows options for whatever you selected: font, size, colour, spacing, box, hover pop-up and (for charts) the chart\'s look.' },
@@ -8001,7 +8876,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       { text: 'Undo it with Ctrl+Z (or Home › Undo), then redo with Ctrl+Y.', point: ['Home', 'Undo'], check: function () { return MS.history.canRedo() || did.redone; } },
       { text: 'Zoom: press + in the bottom-right corner, then ⤢ Fit.', check: function () { return MS.view.zoom === 'fit' && did.zoomed; } }] },
     { title: 'Tabs and pages', steps: [
-      { text: 'Turn the dashboard into tabs: Layout › Tabbed layout.', point: ['Layout', 'Tabbed layout'], check: function () { return rt() && rt().layoutEnabled(); }, doIt: function () { MS.tabs.ensureLayout(); } },
+      { text: 'Turn the dashboard into tabs: Layout › Tab ribbon. (If your dashboard already has its own tabs, use Layout › Add tab instead.)', point: ['Layout', 'Tab ribbon'], check: function () { return rt() && rt().layoutEnabled(); }, doIt: function () { MS.tabs.ensureLayout(); } },
       { text: 'Add a text tab for a How-to page: Insert › Text tab.', point: ['Insert', 'Text tab'], check: function () { return rt() && rt().tabs().length >= 2; } },
       { text: 'Add a page header to it: Insert › Header. Double-click its text to edit.', point: ['Insert', 'Header'], check: function () { return inDoc('.ms-banner'); } },
       { text: 'Add a footer that shows under every tab: Insert › Footer.', point: ['Insert', 'Footer'], check: function () { return inDoc('.ms-page-footer'); } },
@@ -8020,9 +8895,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       { text: 'Add a section with its own title: Insert › Section. Select its title, then insert a chart into it.', point: ['Insert', 'Section'], check: function () { return inDoc('.ms-section'); } },
       { text: 'Click any text and give it a hover pop-up in the right panel (Hover pop-up).', check: function () { return inDoc('[data-ms-tip]'); } }] },
     { title: 'Review and AI prompt', steps: [
-      { text: 'Press 📍 Element at the top, click something, and write a comment.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'element'; }); } },
-      { text: 'Press ▭ Area and drag a box around part of the screen. Write a comment.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'area'; }); } },
-      { text: 'Switch to Interact, use a filter or drill down, then press ⚡ Interaction and describe what should change.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'interaction'; }); } },
+      { text: 'Press 💬 Comment at the top, click something, and write your comment in the Comments pane on the right.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'element'; }); } },
+      { text: 'Still in Comment mode, drag a box around part of the screen. Write a comment. Scroll: the box stays on the content.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'area'; }); } },
+      { text: 'Switch to Interact, use a filter or drill down, then press ⚡ in the Comments pane (or Review › What I did) and describe what should change.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'interaction'; }); } },
       { text: 'Press ✨ Prompt and copy the result into your AI assistant, with the exported file attached.', check: function () { return did.prompt; } }] },
     { title: 'Brand and share', steps: [
       { text: 'Design › Edit theme: change the primary colour and fonts. (Or Load brand to use a SKILL.md brand file.)', point: ['Design', 'Edit theme'], check: function () { return rt() && !!rt().state.theme; } },
@@ -8085,9 +8960,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     { id: 'drill', title: 'Drill-down and data', html: '<p>Open Chart settings › <b>Data &amp; drill-down</b>. Mothership looks inside the dashboard for the table the chart was made from (it matches the chart\'s labels to the columns). Press <b>Use this data</b>.</p><ul><li><b>Show by / Drill to</b>: the levels, e.g. Region › State › City.</li><li><b>Double-click does</b>: drill to the next level, show the underlying records, filter every chart, or nothing.</li><li>No table found? <b>Use the numbers drawn in this chart</b> gives you sorting, top N and rich pop-ups, or load a CSV/Excel/JSON file from the Data tab.</li><li>The breadcrumb above a drilled chart takes viewers back up.</li></ul>' },
     { id: 'filters', title: 'Filter pane', html: '<p>Layout › <b>Filter pane</b>: choose the fields to filter by, the order, and whether the pane sits on the left or across the top. Every chart, KPI card and table linked to that dataset follows it. Drag its right edge to resize it.</p>' },
     { id: 'build', title: 'Building pages from scratch', html: '<p>The <b>Insert</b> tab has page parts. They go after whatever you have selected, or at the end of the current tab.</p><ul><li><b>Header</b>: a coloured title banner. <b>Section</b>: a titled area with its own grid; select its title, then insert charts or KPI cards into it.</li><li><b>Columns</b>, <b>Heading</b>, <b>Paragraph</b>, <b>Callout</b>, and from More: divider, spacer, button link.</li><li><b>Footer</b>: source, owner, date and confidentiality, shown under every tab.</li><li><b>Chart</b>: a new bar, line, area, pie or doughnut chart from a dataset. It follows filters and can drill down.</li><li><b>KPI cards</b>: headline numbers. Linked to a dataset they recalculate with the filters; double-click a number to change what it shows.</li><li><b>Text tab</b>, <b>Chart tab</b>, <b>Tab from file</b>: new tabs, including How-to, FAQ and Methodology pages from Word, PowerPoint, Excel, PDF, Markdown or images.</li></ul>' },
-    { id: 'tabs', title: 'Tabs and moving charts', html: '<ul><li>Layout › <b>Tabbed layout</b> turns the page into tabs with a ribbon across the top (or down the left).</li><li>Drag tabs in the left panel to reorder; use ⋯ to rename, hide, duplicate, add speaker notes or delete.</li><li>Move a chart to another tab: drag its ⠿ handle onto the tab name in the dashboard\'s ribbon (hold ' + K('Ctrl') + ' to copy), or use <b>Send to tab</b> in the right panel.</li><li>Resize a chart block with its corner handle.</li></ul>' },
-    { id: 'brand', title: 'Brand and theme', html: '<p>Design › <b>Load brand</b> reads colours, fonts and a logo from a brand skill file (SKILL.md, .skill or .zip) or a theme .json. <b>Edit theme</b> changes them by hand. <b>Brand check</b> finds off-brand colours, low contrast and charts without commentary.</p>' },
-    { id: 'review', title: 'Comments and AI prompts', html: "<p>Use the 💬 buttons at the top (or the Review tab) to leave comments:</p><ul><li><b>📍 Element</b>: click a part of the dashboard. In Edit mode, the selected element is used.</li><li><b>▭ Area</b>: drag a box over the screen. Mothership notes the charts and text inside it.</li><li><b>⚡ Interaction</b>: comment on something you just did in Interact mode. Mothership remembers your recent steps (tabs, filters, drill-downs, pop-ups) and the current view.</li></ul><p>Every comment records exactly <b>where</b> it is: tab › section › card or chart › item, plus the data point you clicked and where it sits on the page. Numbered pins mark each one; click a pin to edit, close or delete it.</p><h3>✨ Prompt builder</h3><p>Press <b>✨ Prompt</b>. Pick, and the prompt rewrites itself as you go:</p><ol><li><b>Which comments</b>: all open ones, only this tab, only must-fix, or pick by hand. A single comment also has <b>✨ Prompt for this one</b>.</li><li><b>What you want</b>: make the changes, polish for leadership, check the numbers first, or just a plan and questions.</li><li><b>Who will do it</b>: a <b>chat assistant</b> (you attach the file), a <b>coding agent</b> that has the file open, or an assistant connected to <b>Mothership over MCP</b>, which then uses Mothership’s own tools.</li><li><b>Answer as</b>: the whole updated file, only the changes, a plan, or a task list for a developer.</li></ol><p>Each comment in the prompt has its location, how to find it in the code, what the chart currently shows, and a <b>Done when</b> line so the assistant knows what success looks like. Copy it, save it as .md, or export the file to attach.</p>" },
+    { id: 'tabs', title: 'Tabs and moving charts', html: '<p><b>Your dashboard already has tabs?</b> Mothership finds them and lists them under <b>Your tabs</b> in the left panel. Click a tab (in the dashboard or the list) to switch, even in Edit mode. Double-click to rename, drag to reorder, ⋯ for more. <b>Layout › Add tab</b> (or + Add tab) adds a new tab that looks and works like the others; Insert then puts things on the tab you are looking at. You do not need the tab ribbon.</p><p><b>One long page?</b> Layout › <b>Tab ribbon</b> splits it into tabs with a ribbon across the top (or down the left). It is Mothership\'s own ribbon, so only use it on dashboards without tabs.</p><ul><li>Drag tabs in the left panel to reorder; use ⋯ to rename, hide, duplicate, add speaker notes or delete.</li><li>Move a chart to another tab: drag its ⠿ handle onto the tab name in the dashboard\'s ribbon (hold ' + K('Ctrl') + ' to copy), or use <b>Send to tab</b> in the right panel.</li><li>Resize a chart block with its corner handle.</li></ul>' },
+    { id: 'brand', title: 'Brand and theme', html: '<p>Design › <b>Load brand</b> reads colours, fonts and a logo from a brand skill file (SKILL.md, .skill or .zip) or a theme .json. A .zip is read in full and always the same way: SKILL.md first, then the other guides and style sheets in name order.</p><p>Before anything changes you see a <b>preview</b>: every colour your dashboard uses, and the brand colour it will become (its main colour and shades → primary, light backgrounds → background or card, dark text → text, lines → border). Status colours such as red and green for up and down are kept. Untick or change any row; the dashboard updates behind the dialog. The same brand on the same dashboard always gives the same result.</p><p><b>Edit theme</b> changes the brand by hand. <b>Brand check</b> finds off-brand colours, low contrast and charts without commentary.</p>' },
+    { id: 'review', title: 'Comments and AI prompts', html: "<p>Mothership has three modes at the top: <b>Edit</b> (change things), <b>💬 Comment</b> (review) and <b>Interact</b> (use the dashboard as a viewer).</p><ul><li>In <b>Comment</b> mode, <b>click</b> anything to comment on it, or <b>drag a box</b> around an area. Tabs still switch, so you can move around. Esc stops.</li><li>You write the comment in the <b>Comments pane</b> on the right, not a pop-up. Ctrl+Enter adds it.</li><li><b>⚡ What I did</b>: comment on something you just did in Interact mode. Mothership remembers your recent steps (tabs, filters, drill-downs, pop-ups) and the current view.</li></ul><p>Every comment gets a numbered pin that stays on the content when you scroll, even inside a panel with its own scroll bar, and hides when its tab is not showing. The <b>Comments pane</b> (🗨 Comments at the top) lists them all by tab, like PowerPoint: click one to go to it, then <b>Reply</b>, <b>Resolve</b>, <b>Edit</b> or delete. Filter by Open, All, Must fix or Resolved. Your name (optional) goes on comments and replies.</p><p>Every comment records exactly <b>where</b> it is: tab › section › card or chart › item, plus the data point you clicked.</p><h3>✨ Prompt builder</h3><p>Press <b>✨ Prompt</b>. Pick, and the prompt rewrites itself as you go:</p><ol><li><b>Which comments</b>: all open ones, only this tab, only must-fix, or pick by hand. A single comment also has <b>✨ Prompt for this one</b>.</li><li><b>What you want</b>: make the changes, polish for leadership, check the numbers first, or just a plan and questions.</li><li><b>Who will do it</b>: a <b>chat assistant</b> (you attach the file), a <b>coding agent</b> that has the file open, or an assistant connected to <b>Mothership over MCP</b>, which then uses Mothership’s own tools.</li><li><b>Answer as</b>: the whole updated file, only the changes, a plan, or a task list for a developer.</li></ol><p>Each comment in the prompt has its location, how to find it in the code, what the chart currently shows, and a <b>Done when</b> line so the assistant knows what success looks like. Copy it, save it as .md, or export the file to attach.</p>" },
     { id: 'present', title: 'Presenting', html: '<p>▶ <b>Present</b> (' + K('F5') + ') shows the dashboard full screen, one tab at a time. ' + K('→') + ' / ' + K('←') + ' change tabs, ' + K('L') + ' laser pointer, ' + K('B') + ' blank screen, ' + K('Esc') + ' ends. View › Presenter view opens a second window with notes, a timer and the next tab.</p>' },
     { id: 'save', title: 'Saving, versions and export', html: '<ul><li><b>Export HTML</b> (' + K('Ctrl') + '+' + K('E') + ') saves one standalone file. In Chrome/Edge later exports overwrite the same file.</li><li><b>Save version</b> (' + K('Ctrl') + '+' + K('S') + ') keeps a named copy in this browser. <b>Versions</b> restores one. Mothership also autosaves.</li><li>Print / PDF prints each tab on its own page.</li></ul>' },
     { id: 'extend', title: 'Plugins, recipes and brand skills', html: '<p>Plugins (.js) add buttons to the Plugins tab. Recipes (.json) replay a list of edits (tabs, theme, tooltips, filters) on any dashboard, which is handy for a monthly refresh. See docs/EXTENDING.md in the Mothership folder.</p>' },
@@ -8210,7 +9085,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         h('button', { 'class': 'btn sm', onclick: function () { MS.tabs.addPrompt('content'); } }, ['+ Text tab']),
         h('button', { 'class': 'btn sm', onclick: MS.insert.fileTab }, ['+ From file'])]));
     }
-    host.appendChild(tabsSec);
+    // the dashboard's own tabs come first; Mothership's tab ribbon is only offered for one-page dashboards
+    var pts = MS.pageTabs.outlineSection();
+    if (pts) {
+      host.appendChild(pts);
+      if (!rt.layoutEnabled()) tabsSec = null;
+    }
+    if (tabsSec) host.appendChild(tabsSec);
 
     /* charts */
     var charts = rt.charts();
@@ -8218,6 +9099,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       charts.length ? h('button', { 'class': 'icon-btn', title: 'Add title / subtitle / inference to every chart', onclick: MS.blocks.wrapAll }, ['✎']) : null])]);
     if (!charts.length) cSec.appendChild(h('p', { 'class': 'muted pad-sm', text: 'No charts found. Pictures, tables and other visuals can still be selected, moved and resized by clicking them.' }));
     var tabsById = {}; if (rt.layoutEnabled()) rt.tabs().forEach(function (t) { tabsById[t.id] = t.title; });
+    var ptOf = function (el) { var t = MS.pageTabs.of(el); return t ? t.title : ''; };
     charts.forEach(function (c) {
       var b = c.el.closest('.ms-block'), info = rt.chartInfo(c.key) || {};
       var title = MS.charts.nameOf(c.key);
@@ -8228,7 +9110,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         h('span', { 'class': 'grow name', text: title }),
         cs.binding ? h('span', { title: 'Linked to data: drill-down and filters work', text: '⛁' }) : null,
         cs.tooltip || cs.style ? h('span', { title: 'Custom pop-up or look', text: '💬' }) : null,
-        sec ? h('small', { 'class': 'muted', text: tabsById[sec.getAttribute('data-ms-tab')] || '' }) : null
+        sec ? h('small', { 'class': 'muted', text: tabsById[sec.getAttribute('data-ms-tab')] || '' }) : ptOf(c.el) ? h('small', { 'class': 'muted', text: ptOf(c.el) }) : null
       ]);
       row.addEventListener('click', function () { MS.edit.reveal(b || MS.edit.chartUnit(c.el), true); });
       row.addEventListener('dblclick', function () { MS.charts.settings(c.key); });
@@ -8263,7 +9145,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (!el || !el.isConnected) {
       return host.appendChild(h('div', { 'class': 'pad' }, [
         h('h3', { text: MS.doc.name }),
-        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top right) to make changes.' }),
+        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : MS.mode === 'comment' ? 'Comment mode: click anything to comment on it, or drag a box around an area. The Comments tab (above) lists every comment.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top right) to make changes.' }),
         h('h4', { text: 'Shortcuts' }),
         h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
       ]));
@@ -8329,6 +9211,21 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         h('button', { 'class': 'btn sm', title: 'Copy this chart\'s look, colours and order to other charts', onclick: function () { MS.painter.copy(chartKey); } }, ['🖌 Painter']),
         h('button', { 'class': 'btn sm', title: 'Use this chart\'s category order on every chart', onclick: function () { MS.order.fromChart(chartKey); } }, ['⇅ Order everywhere']),
         h('button', { 'class': 'btn sm', onclick: function () { MS.chartOut.image(chartKey); } }, ['🖼 Image'])])]));
+    }
+
+    /* colours of the chart's categories / series: the chart and the dashboard's own legend change together */
+    if (chartKey && rt) {
+      var cinfo = rt.chartInfo(chartKey) || {}, ccols = rt.chartColors(chartKey), cnames = Object.keys(ccols).slice(0, 16);
+      if (cnames.length) host.appendChild(group('Colours', [h('div', { 'class': 'cat-list' }, cnames.map(function (n) {
+        return h('label', { 'class': 'cat-row' }, [colorField(toHex(rt.lookColor(n) || ccols[n]), function (v) { var m = {}; m[n] = v; MS.catColors.set(m, 'Colour of “' + n + '”'); }), h('span', { 'class': 'grow', text: n }),
+          rt.lookColor(n) ? h('button', { 'class': 'icon-btn', title: 'Back to the chart\'s own colour', onclick: function () { var m = {}; m[n] = ''; MS.catColors.set(m, 'Reset colour of “' + n + '”'); } }, ['↺']) : null]);
+      })), h('small', { 'class': 'hint', text: 'Changes this chart, its legend (also a legend written in the page), and every other chart that shows the same name.' })]));
+    }
+    var leg = rt && !chartKey && rt.legendOf ? rt.legendOf(el) : null;
+    if (leg) {
+      var lc = rt.chartColors(leg.key)[leg.name];
+      host.appendChild(group('Legend colour', [h('label', { 'class': 'cat-row' }, [colorField(toHex(rt.lookColor(leg.name) || lc || '#999999'), function (v) { var m = {}; m[leg.name] = v; MS.catColors.set(m, 'Colour of “' + leg.name + '”'); }), h('span', { 'class': 'grow', text: leg.name })]),
+        h('small', { 'class': 'hint', text: 'This is the legend of “' + MS.charts.nameOf(leg.key) + '”. Changing the colour here changes the chart too.' })]));
     }
 
     /* text */
@@ -8524,7 +9421,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     ] },
     { tab: 'Layout', groups: [
       { name: 'Tabs', items: [
-        { icon: '🗂', label: 'Tabbed layout', title: 'Turn the dashboard into tabs with a ribbon (or back to one page)', run: needRt(MS.tabs.toggleLayout) }] },
+        { icon: '＋', label: 'Add tab', title: 'Add a tab. If your dashboard already has its own tabs, the new tab joins them.', run: needRt(MS.tabs.addPrompt) },
+        { icon: '🗂', label: 'Tab ribbon', title: 'Mothership tab ribbon: split a one-page dashboard into tabs with a ribbon (or back to one page). Not needed if your dashboard already has its own tabs.', run: needRt(MS.tabs.toggleLayout) }] },
       { name: 'Dashboard ribbon', items: [
         { icon: '⬒', label: 'Top', title: 'Ribbon across the top', run: needRt(function () { MS.tabs.ensureLayout() && MS.history.state('Ribbon on top', function (s) { s.layout.ribbon.position = 'top'; s.layout.ribbon.height = 46; }); }) },
         { icon: '◧', label: 'Left', title: 'Ribbon down the left side', run: needRt(function () { MS.tabs.ensureLayout() && MS.history.state('Ribbon on left', function (s) { s.layout.ribbon.position = 'left'; s.layout.ribbon.height = 200; }); }) },
@@ -8612,11 +9510,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '🔒', label: 'Network lock', title: 'Block all internet access from the dashboard while editing', run: MS.cmd.netLock, toggle: function () { return MS.settings.netLock; } }] }
     ] },
     { tab: 'Review', groups: [
-      { name: 'Comment on', items: [
-        { icon: '📍', label: 'Element', title: 'Click a part of the dashboard and write a comment', run: function () { MS.review.start('element'); } },
-        { icon: '▭', label: 'Area', title: 'Drag a box over the screen and write a comment', run: function () { MS.review.start('area'); } },
-        { icon: '⚡', label: 'Interaction', title: 'Comment on what you just did: a filter, a drill-down, a pop-up. Use Interact mode first.', run: function () { MS.review.start('interaction'); } }] },
+      { name: 'Comment', items: [
+        { icon: '💬', label: 'New comment', title: 'Comment mode: click anything to comment on it, or drag a box around an area. Tabs still switch. Esc to stop.', run: function () { MS.review.start('element'); } },
+        { icon: '⚡', label: 'What I did', title: 'Comment on what you just did: a filter, a drill-down, a pop-up. Use Interact mode first.', run: function () { MS.review.start('interaction'); } }] },
       { name: 'Comments', items: [
+        { icon: '🗨', label: 'Comments pane', title: 'Every comment in one list, like PowerPoint: go to it, reply, resolve', run: function () { MS.review.showPane(!MS.review.paneOn); }, toggle: function () { return !!MS.review.paneOn; } },
         { icon: '📌', label: 'Pins', title: 'Show or hide the numbered comment pins on the dashboard', run: function () { MS.review.togglePins(); }, toggle: function () { return MS.review.showPins; } },
         { icon: '🗑', label: 'Clear all', title: 'Delete all comments (Ctrl+Z to undo)', run: function () { MS.review.clear(); } }] },
       { name: 'Tracker', items: [

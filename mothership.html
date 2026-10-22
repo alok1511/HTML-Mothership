@@ -21,6 +21,7 @@
   <button class="cmdk-btn" id="btn-cmdk" title="Search every command, chart, tab and help topic (Ctrl+K)">🔍 <span class="lbl">Search commands…</span><kbd>Ctrl K</kbd></button>
   <div class="seg mode" role="group" aria-label="Mode">
     <button class="seg-btn on" data-mode="edit" title="Click to select, double-click to edit">✎ Edit</button>
+    <button class="seg-btn" data-mode="comment" title="Click anything (or drag a box) to leave a review comment. Tabs still switch.">💬 Comment</button>
     <button class="seg-btn" data-mode="interact" title="Use the dashboard normally: filters, tooltips, drill-down">☝ Interact</button>
   </div>
   <div id="cmt-bar" class="cmt-bar"></div>
@@ -58,16 +59,16 @@
         <p class="muted">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
         <ol class="steps">
           <li><b>Open</b> a dashboard. Click anything to select it. Double-click text to type.</li>
-          <li><b>Layout › Tabbed layout</b> adds a ribbon of tabs. Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
+          <li><b>Layout › Add tab</b> adds a tab (it joins your dashboard's own tabs if it has them; otherwise Layout › Tab ribbon splits the page into tabs). Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
           <li><b>Design › Load brand</b> applies your colours and fonts from a skill file.</li>
           <li><b>Double-click a chart</b> to set its commentary, look, pop-up and drill-down levels.</li>
-          <li><b>💬 Comment</b> on anything, then <b>✨ Prompt</b> turns your comments into instructions for an AI assistant.</li>
+          <li><b>💬 Comment</b>: click anything or drag a box; every comment is listed in the Comments pane. Then <b>✨ Prompt</b> turns your comments into instructions for an AI assistant.</li>
           <li><b>Export HTML</b> saves one file you can share, or reopen here later.</li>
         </ol>
       </div>
     </div>
   </main>
-  <aside id="right"><div id="inspector"></div></aside>
+  <aside id="right"><div id="right-tabs" class="rtabs"></div><div id="inspector"></div><div id="cmt-pane" hidden></div></aside>
 </div>
 
 <footer id="statusbar"><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span><span id="zoomctl"></span></footer>
@@ -91,6 +92,7 @@
 <script src="src/js/plugins.js"></script>
 <script src="src/js/versions.js"></script>
 <script src="src/js/present.js"></script>
+<script src="src/js/pagetabs.js"></script>
 <script src="src/js/review.js"></script>
 <script src="src/js/prompt.js"></script>
 <script src="src/js/insights.js"></script>

@@ -78,6 +78,7 @@
         kpis: r.state.kpis, filters: r.state.filters, filterPane: r.state.layout.pane, ribbon: r.state.layout.ribbon,
         categoryOrders: r.state.layout.orders, categoryColors: r.state.layout.colors, popupStyle: r.state.layout.tip,
         theme: r.state.theme ? { name: r.state.theme.name, colors: r.state.theme.colors, fonts: r.state.theme.fonts, palette: r.state.theme.palette } : null,
+        pageTabs: !r.layoutEnabled() && MS.pageTabs.has() ? MS.pageTabs.list().map(function (t) { return { index: t.index, title: t.title, active: t.active }; }) : [],
         comments: (r.state.comments || []).length, zoom: { scale: MS.view.scale, drawnAt: MS.view.renderWidth }
       };
     } };
@@ -86,7 +87,7 @@
   A.save_version = { d: 'Keep a named version in the browser (restore from File › Versions).', p: { name: ['string', 'Version name'] }, f: function (a) { return MS.versions.save(a.name || 'Saved by assistant', true).then(function () { return { ok: true }; }); } };
   A.undo = { d: 'Undo the last change.', p: {}, f: function () { MS.history.undo(); return { ok: true, canUndo: MS.history.canUndo() }; } };
   A.redo = { d: 'Redo.', p: {}, f: function () { MS.history.redo(); return { ok: true, canRedo: MS.history.canRedo() }; } };
-  A.set_mode = { d: 'Edit or interact mode.', p: { mode: ['string', 'edit | interact', true] }, f: function (a) { MS.setMode(a.mode === 'interact' ? 'interact' : 'edit'); return done(); } };
+  A.set_mode = { d: 'Edit, comment or interact mode.', p: { mode: ['string', 'edit | comment | interact', true] }, f: function (a) { MS.setMode(/^(interact|comment)$/.test(a.mode) ? a.mode : 'edit'); return done(); } };
   A.zoom = { d: 'Zoom the view and the width the dashboard is drawn at.', p: { zoom: ['string', '"fit" or a number like 1.25'], width: ['string', '"auto", "panel", or pixels like 1366'] },
     f: function (a) { if (a.width != null) MS.view.setWidth(a.width === 'auto' || a.width === 'panel' ? a.width : +a.width); if (a.zoom != null) MS.view.setZoom(a.zoom === 'fit' ? 'fit' : +a.zoom); return { scale: MS.view.scale, drawnAt: MS.view.renderWidth }; } };
 
@@ -243,6 +244,21 @@
       if (a.position || a.size || a.title != null) MS.history.state('Ribbon', function (s) { var R = s.layout.ribbon; if (a.position) { R.position = a.position; R.height = a.position === 'left' ? 200 : 46; } if (a.size) R.height = a.size; if (a.title != null) R.brand = a.title; });
       return { tabs: r.tabs().map(function (t) { return t.title; }) };
     } };
+  A.page_tabs = { d: 'The dashboard\'s own tabs (tab buttons already in the page, not the Mothership tab ribbon): list, show, add, rename, move or delete them. Undoable.', p: { action: ['string', 'list (default) | show | add | rename | move | delete', true], tab: ['string', 'Tab title or 0-based index'], title: ['string', 'Title for add / new title for rename'], html: ['string', 'Content HTML for add'], markdown: ['string', 'Content as Markdown for add'], index: ['number', 'New position for move; for add, put it after this index'] },
+    f: function (a) {
+      var P = MS.pageTabs, act = a.action || 'list', which = a.tab != null && /^\d+$/.test(String(a.tab)) ? +a.tab : a.tab;
+      if (!P.has()) throw new Error('This dashboard has no tabs of its own. Use add_tab (Mothership tab ribbon) instead.');
+      if (act !== 'list' && act !== 'add' && !P.find(which)) throw new Error('No tab called ' + a.tab);
+      if (act === 'show') P.show(which);
+      else if (act === 'add') return (a.markdown ? MS.lib('marked').then(function (m) { return m.parse(a.markdown); }) : Promise.resolve(a.html)).then(function (h) {
+        P.add(a.title || 'New tab', h ? MS.sanitize(h) : null, a.index);
+        return settle(300).then(function () { return { tabs: P.list().map(function (t) { return { index: t.index, title: t.title, active: t.active }; }) }; });
+      });
+      else if (act === 'rename') P.rename(which, a.title);
+      else if (act === 'move') P.move(which, a.index);
+      else if (act === 'delete') P.remove(which, true);
+      return settle(300).then(function () { return { tabs: P.list().map(function (t) { return { index: t.index, title: t.title, active: t.active }; }) }; });
+    } };
   A.add_tab = { d: 'Add a tab: grid (for charts), or content (text/HTML/Markdown, e.g. How-to, FAQ, Methodology).', p: { title: ['string', 'Tab title', true], kind: ['string', 'grid | content'], html: ['string', 'Content HTML'], markdown: ['string', 'Content as Markdown'], index: ['number', 'Position'] },
     f: function (a) {
       var go = function (html) { var id = MS.tabs.add(a.title, a.kind || (html ? 'content' : 'grid'), html ? MS.sanitize(html) : ''); if (a.index != null) MS.tabs.move(id, a.index); return { tab: id }; };
@@ -366,21 +382,23 @@
     f: function (a) { var r = rt(), fv = r.filterValues[a.dataset] = r.filterValues[a.dataset] || {}; if (a.value) fv[a.field] = a.value; else delete fv[a.field]; r.refresh(); return { filters: r.filterValues }; } };
 
   /* ---------------------------------------------------------- brand */
-  A.apply_theme = { d: 'Apply brand colours and fonts: a theme object, or the text of a brand SKILL.md.', p: { theme: ['object', '{name, colors:{primary, secondary, accent, background, surface, text, muted, border, ribbonBg, ribbonText}, fonts:{heading, body}, palette:[...], logo}'], markdown: ['string', 'Brand guidelines Markdown'], file: ['object', '{name, b64}: brand JSON, SKILL.md, .skill/.zip or a font file (the MCP load_brand tool fills this in)'] },
+  A.apply_theme = { d: 'Apply brand colours and fonts: a theme object, or the text of a brand SKILL.md. The dashboard\'s own colours are matched to brand roles (returned as swapped); pass theme.map: [] to keep them.', p: { theme: ['object', '{name, colors:{primary, secondary, accent, background, surface, text, muted, border, ribbonBg, ribbonText}, fonts:{heading, body}, palette:[...], logo}'], markdown: ['string', 'Brand guidelines Markdown'], file: ['object', '{name, b64}: brand JSON, SKILL.md, .skill/.zip or a font file (the MCP load_brand tool fills this in)'] },
     f: function (a) {
-      if (a.file) return Promise.resolve(MS.brand.loadFile(fileOf(a.file))).then(function () { var th = rt().state.theme; return th ? { theme: th.name, colors: th.colors } : { ok: true }; });
-      var t = a.markdown ? MS.brand.parseMarkdown(a.markdown, 'brand') : MS.brand.normalize(a.theme || {}, 'api'); MS.brand.apply(t); return { theme: rt().state.theme.name, colors: rt().state.theme.colors }; } };
+      if (a.file) return Promise.resolve(MS.brand.loadFile(fileOf(a.file), true)).then(function () { var th = rt().state.theme; return th ? { theme: th.name, colors: th.colors, swapped: (th.map || []).map(function (m) { return m.from + ' → ' + m.to + ' (' + m.role + ')'; }) } : { ok: true }; });
+      var t = a.markdown ? MS.brand.parseMarkdown(a.markdown, 'brand') : MS.brand.normalize(a.theme || {}, 'api'); MS.brand.apply(t); var th = rt().state.theme; return { theme: th.name, colors: th.colors, swapped: (th.map || []).map(function (m) { return m.from + ' → ' + m.to + ' (' + m.role + ')'; }) }; } };
   A.brand_check = { d: 'Run the brand check (off-brand colours, contrast, charts without commentary) and return the findings.', p: {},
     f: function () { MS.brand.check(); var dlg = document.querySelector('.dlg'); var txt = dlg ? dlg.querySelector('.dlg-body').innerText : ''; if (dlg) dlg.closest('.dlg-wrap').remove(); return { report: txt }; } };
 
   /* ---------------------------------------------------------- review */
-  A.add_comment = { d: 'Add a review comment on an element, an area, or an interaction.', p: { text: ['string', 'The comment', true], ref: ['string', 'Element ref/selector (element comment)'], chart: ['string', 'Or a chart name'], area: ['object', '{x, y, w, h} in page px (area comment)'], steps: ['array', 'What was done (interaction comment)'], type: ['string', 'change | bug | question | idea'], priority: ['string', 'must | should | nice'] },
+  A.add_comment = { d: 'Add a review comment on an element, an area, or an interaction.', p: { text: ['string', 'The comment', true], ref: ['string', 'Element ref/selector (element comment)'], chart: ['string', 'Or a chart name'], area: ['object', '{x, y, w, h} in page px (area comment)'], steps: ['array', 'What was done (interaction comment)'], type: ['string', 'change | bug | question | idea'], priority: ['string', 'must | should | nice'], by: ['string', 'Author name'] },
     f: function (a) {
       var r = rt(), c = { id: r.uid('m'), created: new Date().toISOString(), text: a.text, type: a.type || 'change', prio: a.priority || 'should' };
       var t = r.layoutEnabled() ? r.tabs().filter(function (x) { return x.id === r.activeTab; })[0] : null;
+      if (!t && MS.pageTabs.has()) { var pa = MS.pageTabs.active(); if (pa) t = { id: 'page:' + pa.index, title: pa.title }; }
+      c.by = a.by || ''; c.replies = [];
       if (a.ref || a.chart) {
         var el = a.chart ? (MS.blocks.of(r.chart(chartKey(a.chart)).el) || r.chart(chartKey(a.chart)).el) : elOf(a.ref), d = MS.review.describe(el), sec = el.closest('section.ms-tab');
-        c.kind = 'element'; c.tab = sec ? { id: sec.getAttribute('data-ms-tab'), title: sec.getAttribute('data-ms-title') } : null;
+        c.kind = 'element'; c.tab = MS.review.tabOf(el) || (sec ? { id: sec.getAttribute('data-ms-tab'), title: sec.getAttribute('data-ms-title') } : null);
         c.target = { what: d.what, ref: '[data-ms-' + (el.getAttribute('data-ms-id') ? 'id' : 'ref') + '="' + refOf(el) + '"]', css: '', chart: d.chart };
         c.target.css = MS.review.cssPath(el); c.loc = MS.review.locate(el); c.target.section = c.loc.section;
       } else if (a.area) { c.kind = 'area'; c.tab = t ? { id: t.id, title: t.title } : null; c.area = { x: a.area.x, y: a.area.y, w: a.area.w, h: a.area.h, vw: MS.child.win.innerWidth, vh: MS.child.win.innerHeight, tab: t && t.id }; c.inside = []; }
@@ -388,9 +406,9 @@
       MS.history.state('Add comment', function (s) { s.comments.push(c); }); MS.emit('comments');
       return { id: c.id, number: r.state.comments.length };
     } };
-  A.list_comments = { d: 'All review comments.', p: {}, f: function () { return MS.review.list().map(function (c, i) { return { number: i + 1, id: c.id, kind: c.kind, text: c.text, type: c.type, priority: c.prio, done: !!c.done, on: c.target ? c.target.what : c.inside || c.steps, where: c.loc ? MS.review.trail(c.loc) : (c.tab && c.tab.title), tab: c.tab && c.tab.title }; }); } };
-  A.update_comment = { d: 'Edit, close or delete a comment.', p: { id: ['string', 'Comment id', true], text: ['string', 'New text'], done: ['boolean', 'Mark done / re-open'], delete: ['boolean', 'Delete it'] },
-    f: function (a) { MS.history.state('Comment', function (s) { if (a.delete) { s.comments = s.comments.filter(function (c) { return c.id !== a.id; }); return; } s.comments.forEach(function (c) { if (c.id !== a.id) return; if (a.text != null) c.text = a.text; if (a.done != null) c.done = a.done; }); }); MS.emit('comments'); return done(); } };
+  A.list_comments = { d: 'All review comments.', p: {}, f: function () { return MS.review.list().map(function (c, i) { return { number: i + 1, id: c.id, kind: c.kind, text: c.text, type: c.type, priority: c.prio, done: !!c.done, by: c.by || '', on: c.target ? c.target.what : c.inside || c.steps, where: c.loc ? MS.review.trail(c.loc) : (c.tab && c.tab.title), tab: c.tab && c.tab.title, replies: (c.replies || []).map(function (y) { return { by: y.by || '', text: y.text, at: y.at }; }) }; }); } };
+  A.update_comment = { d: 'Edit, resolve (done), reply to or delete a comment.', p: { id: ['string', 'Comment id', true], text: ['string', 'New text'], done: ['boolean', 'Resolve / re-open'], reply: ['string', 'Add a reply'], by: ['string', 'Reply author'], delete: ['boolean', 'Delete it'] },
+    f: function (a) { MS.history.state('Comment', function (s) { if (a.delete) { s.comments = s.comments.filter(function (c) { return c.id !== a.id; }); return; } s.comments.forEach(function (c) { if (c.id !== a.id) return; if (a.text != null) c.text = a.text; if (a.done != null) c.done = a.done; if (a.reply) (c.replies = c.replies || []).push({ id: rt().uid('y'), text: a.reply, by: a.by || '', at: new Date().toISOString() }); }); }); MS.emit('comments'); return done(); } };
   A.comments_prompt = { d: 'Turn the review comments into one prompt for an AI assistant. Each comment is located by tab › section › card/chart › item.', p: { goal: ['string', 'apply (default) | polish | review | explain'], assistant: ['string', 'chat (default) | agent | mcp: who will carry it out'], scope: ['string', 'all (default) | tab | must'], tab: ['string', 'Tab title when scope is tab'], ids: ['array', 'Only these comment ids'], group: ['string', 'where | priority | order'], detail: ['string', 'full | brief'], output: ['string', 'file (complete updated HTML) | changes | plan | tickets'], include_done: ['boolean', 'Include closed comments'], extra: ['string', 'Extra instruction'], embed_html: ['boolean', 'Paste the dashboard source into the prompt'] },
     f: function (a) { return { prompt: MS.review.buildPrompt({ goal: a.goal, assistant: a.assistant, scope: a.scope, tab: a.tab, ids: a.ids, group: a.group, detail: a.detail, output: a.output, structure: true, includeDone: !!a.include_done, extra: a.extra, embed: a.embed_html ? MS.exportHtml({ dropComments: true }) : '', fileName: MS.exportName() }) }; } };
 

@@ -157,6 +157,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   function fontOf(st, size) { var f = {}; if (st.font) f.family = st.font; if (size) f.size = +size; return f; }
 
   var A = {};
+  // Chart.js 4 keeps the old colours on screen after update('none'); a full update with animation off redraws them at once
+  function cjsStill(i) { var o = i.options, a = o ? o.animation : undefined; if (o) o.animation = false; i.update(); if (o) o.animation = a; }
   A.chartjs = {
     list: function () {
       var C = window.Chart;
@@ -204,7 +206,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         d.backgroundColor = labels.map(function (l, j) { return map[l] || (Array.isArray(base) ? base[j % base.length] : base); });
         if (!radial) d.borderColor = d.backgroundColor;
       });
-      i.update('none');
+      cjsStill(i);
     },
     image: function (i) {
       var cv = i.canvas, out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height;
@@ -223,7 +225,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
           d.borderColor = c; d.backgroundColor = line ? c + '33' : c;
         }
       });
-      i.update('none');
+      cjsStill(i);
     },
     setData: function (i, labels, series) {
       this.snapshot(i);
@@ -274,7 +276,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         if (st.tipSize || st.font) { t.bodyFont = fontOf(st, st.tipSize); t.titleFont = Object.assign(fontOf(st, st.tipSize), { weight: 'bold' }); }
         if (st.tipRadius !== undefined && st.tipRadius !== '') t.cornerRadius = +st.tipRadius;
       }
-      i.update('none');
+      cjsStill(i);
     },
     onDbl: function (elm, i, cb) {
       elm.addEventListener('dblclick', function (e) {
@@ -1161,6 +1163,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         c.inst.__msPal = pal ? String(pal) : null;
         if (cat) c.a.setCatColors(c.inst, cat);
         c.inst.__msCat = !!cat; c.inst.__msColKey = ck;
+        syncLegend(c, !!(pal || cat));
       }
       var tpl = cs && cs.tooltip;
       if (tpl || c.inst.__msTip) {
@@ -1231,6 +1234,60 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     (info.labels || []).concat(info.series || []).forEach(function (l) { var col = lookColor(l); if (col) { out[l] = col; n++; } });
     return n ? out : null;
   }
+
+  /* ------------------------------------------------------------ the page's own HTML legends follow the chart colours */
+  // A legend item is a small element whose text is a category or series name, with a little coloured swatch in it or next to it.
+  function swatchOf(p, skip) {
+    var ks = p.querySelectorAll('*');
+    for (var i = 0; i < ks.length && i < 6; i++) {
+      var k = ks[i]; if (k === skip || k.contains(skip) || (k.textContent || '').trim()) continue;
+      var r = k.getBoundingClientRect(), st = getComputedStyle(k), w = r.width || parseFloat(st.width), hh = r.height || parseFloat(st.height);
+      if (!(w > 0) || w > 30 || hh > 30) continue;
+      var bg = st.backgroundColor;
+      if (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) return k;
+    }
+    return null;
+  }
+  rt.legendItems = function (c) {
+    if (!c || !c.inst) return [];
+    var info = c.a.info(c.inst), names = (info.labels || []).concat(info.series || []).map(String), L = names.map(low);
+    if (!names.length) return [];
+    var host = c.el.parentElement;
+    for (var up = 0; up < 4 && host && host !== D.body; up++, host = host.parentElement) {
+      var found = [], seen = [];
+      Array.prototype.forEach.call(host.querySelectorAll('li,span,div,label,td,p'), function (n) {
+        if (c.el.contains(n) || n.childElementCount > 3 || n.closest('[data-ms-editor],.ms-crumbs,.ms-summary')) return;
+        var i = L.indexOf(low(n.textContent)); if (i < 0) return;
+        var sw = swatchOf(n) || (n.parentElement && n.parentElement !== host && n.parentElement.childElementCount <= 3 ? swatchOf(n.parentElement, n) : null);
+        if (!sw || seen.indexOf(sw) >= 0) return;
+        seen.push(sw); found.push({ name: names[i], item: sw.parentElement.contains(n) ? sw.parentElement : n, sw: sw });
+      });
+      // another chart in the same box means the legend could belong to either: stop
+      if (up > 0 && rt.charts().some(function (o) { return o.el !== c.el && host.contains(o.el); })) return [];
+      if (found.length >= Math.min(2, names.length)) return found;
+    }
+    return [];
+  };
+  function syncLegend(c, on) {
+    var items = rt.legendItems(c); if (!items.length) return;
+    var cols = on ? rt.chartColors(c.key) : {};
+    items.forEach(function (it) {
+      var sw = it.sw, col = cols[it.name];
+      if (on && col) {
+        if (!sw.hasAttribute('data-ms-legend-orig')) sw.setAttribute('data-ms-legend-orig', sw.style.background || '');
+        sw.style.background = col;
+      } else if (sw.hasAttribute('data-ms-legend-orig')) { sw.style.background = sw.getAttribute('data-ms-legend-orig'); sw.removeAttribute('data-ms-legend-orig'); }
+    });
+  }
+  // the chart and category an HTML legend item belongs to
+  rt.legendOf = function (node) {
+    var cs = rt.charts();
+    for (var i = 0; i < cs.length; i++) {
+      var its = rt.legendItems(cs[i]);
+      for (var j = 0; j < its.length; j++) if (its[j].sw === node || its[j].item === node || its[j].item.contains(node)) return { key: cs[i].key, name: its[j].name };
+    }
+    return null;
+  };
 
   /* ------------------------------------------------------------ charts built in Mothership (Chart.js + a dataset) */
   var NATIVE_PAL = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
@@ -1475,8 +1532,82 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       if (f.heading) out.push('h1,h2,h3,h4,h5,h6,.ms-title{font-family:' + f.heading + '!important}');
       if (c.text) out.push('body *:not(svg *):not(#ms-ribbon *):not(.ms-tabbtn){color:' + c.text + '}');
     }
+    if (T.forceFonts && (f.body || f.heading)) {
+      var keep = ':not(svg):not(svg *):not(code):not(pre):not(i):not([class*="icon"]):not([class*="fa-"]):not(.material-icons):not(.material-symbols-outlined)';
+      if (f.body) out.push('body *' + keep + '{font-family:' + f.body + '!important}');
+      if (f.heading) out.push('h1,h2,h3,h4,h5,h6,.ms-title{font-family:' + f.heading + '!important}');
+    }
+    if (T.map && T.map.length) out.push(mapCss(T.map));
     if (T.css) out.push(T.css);
     return out.join('\n');
+  }
+
+  /* ------------------------------------------------------------ brand colour mapping: the page's own colours → brand colours */
+  var MAP_PROPS = ['color', 'background-color', 'background-image', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'fill', 'stroke', 'box-shadow', 'text-decoration-color', 'caret-color', 'column-rule-color'];
+  function colHex(v) {
+    var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(v).trim());
+    if (m) { var x = m[1].toLowerCase(); return '#' + (x.length === 3 ? x.replace(/./g, '$&$&') : x); }
+    m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,/]+([\d.]+)(%)?)?\s*\)$/i.exec(String(v).trim());
+    if (!m) return null;
+    return '#' + [m[1], m[2], m[3]].map(function (n) { return ('0' + Math.round(+n).toString(16)).slice(-2); }).join('');
+  }
+  function colMap(list) { var m = {}; (list || []).forEach(function (x) { if (x && x.on !== false && x.from && x.to) m[String(x.from).toLowerCase()] = x.to; }); return m; }
+  function swapCols(text, m) {
+    return String(text).replace(/#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)/ig, function (x) {
+      var hx = colHex(x), to = hx && m[hx]; if (!to) return x;
+      var a = /^rgba?\(\s*[\d.]+[ ,]+[\d.]+[ ,]+[\d.]+\s*[,/]\s*([\d.]+%?)\s*\)$/i.exec(x), al = a ? a[1] : null;
+      if (al && al !== '1') { var t = colHex(to); if (t) return 'rgba(' + parseInt(t.slice(1, 3), 16) + ',' + parseInt(t.slice(3, 5), 16) + ',' + parseInt(t.slice(5, 7), 16) + ',' + (/%$/.test(al) ? parseFloat(al) / 100 : al) + ')'; }
+      return to;
+    });
+  }
+  rt.colHex = colHex;
+  function ownSheet(sh) { var n = sh.ownerNode; return !!(n && ((n.id && /^ms-/.test(n.id)) || (n.hasAttribute && (n.hasAttribute('data-ms-editor') || n.hasAttribute('data-ms-own'))))); }
+  // every style rule in the page's own style sheets: fn(rule, media)
+  rt.eachRule = function (fn) {
+    function walk(rs, media) {
+      for (var i = 0; i < rs.length; i++) {
+        var r = rs[i];
+        if (r.type === 1) fn(r, media);
+        else if (r.type === 4 && r.cssRules) walk(r.cssRules, r.media.mediaText);
+        else if (r.type === 12 && r.cssRules) walk(r.cssRules, media);
+      }
+    }
+    Array.prototype.forEach.call(D.styleSheets, function (sh) { if (ownSheet(sh)) return; var rs; try { rs = sh.cssRules; } catch (e) { return; } if (rs) walk(rs, ''); });
+  };
+  var mapCache = { k: '', css: '' };
+  function mapCss(list) {
+    var m = colMap(list), key = JSON.stringify(m) + '|' + D.styleSheets.length;
+    if (key === mapCache.k) return mapCache.css;
+    var out = [];
+    if (Object.keys(m).length) rt.eachRule(function (r, media) {
+      var decl = [];
+      for (var j = 0; j < r.style.length; j++) {
+        var p = r.style[j]; if (MAP_PROPS.indexOf(p) < 0 && p.indexOf('--') !== 0) continue;
+        var v = r.style.getPropertyValue(p), nv = swapCols(v, m);
+        if (nv !== v) decl.push(p + ':' + nv + (r.style.getPropertyPriority(p) ? ' !important' : ''));
+      }
+      if (decl.length) out.push((media ? '@media ' + media + '{' : '') + r.selectorText + '{' + decl.join(';') + '}' + (media ? '}' : ''));
+    });
+    mapCache = { k: key, css: out.join('\n') };
+    return mapCache.css;
+  }
+  // colours written straight on elements (style="…"): swapped in place, and put back when the mapping goes
+  function mapInline() {
+    var T = rt.state.theme, m = colMap(T && T.map), on = Object.keys(m).length > 0;
+    if (!on && !D.querySelector('[data-ms-colmap]')) return;
+    Array.prototype.forEach.call(D.querySelectorAll(on ? '[style],[data-ms-colmap]' : '[data-ms-colmap]'), function (e) {
+      if (e.closest('[data-ms-editor],#ms-ribbon,#ms-filter-pane') || /^(CANVAS)$/.test(e.tagName)) return;
+      var saved = {}; try { saved = JSON.parse(e.getAttribute('data-ms-colmap') || '{}'); } catch (x) {}
+      Object.keys(saved).forEach(function (p) { if (e.style.getPropertyValue(p) === saved[p].to) e.style.setProperty(p, saved[p].from); });
+      var now = {}, props = [];
+      if (on) for (var j = 0; j < e.style.length; j++) props.push(e.style[j]);
+      props.forEach(function (p) {
+        if (MAP_PROPS.indexOf(p) < 0 && p.indexOf('--') !== 0) return;
+        var v = e.style.getPropertyValue(p), nv = swapCols(v, m);
+        if (nv !== v) { e.style.setProperty(p, nv); now[p] = { from: v, to: e.style.getPropertyValue(p) }; }
+      });
+      if (Object.keys(now).length) e.setAttribute('data-ms-colmap', JSON.stringify(now)); else if (e.hasAttribute('data-ms-colmap')) e.removeAttribute('data-ms-colmap');
+    });
   }
   function ensureStyle(id, css) {
     var s = D.getElementById(id);
@@ -1555,6 +1686,13 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     try { window.dispatchEvent(new CustomEvent('ms:tab', { detail: { id: t.id, title: t.title } })); } catch (e) {}
   };
   rt.step = function (dir) {
+    if (!rt.layoutEnabled()) {
+      // no tab ribbon: step through the page's own tabs
+      var g = rt.pageTabs(); if (!g) return -1;
+      var cur = 0; g.tabs.forEach(function (t, k) { if (t.active) cur = k; });
+      var nx = Math.max(0, Math.min(g.tabs.length - 1, cur + dir));
+      rt.showPageTab(nx); return nx;
+    }
     var vis = rt.tabs().filter(function (x) { return !x.hidden; });
     var i = vis.findIndex(function (x) { return x.id === rt.activeTab; });
     var n = vis[Math.max(0, Math.min(vis.length - 1, i + dir))];
@@ -1580,6 +1718,130 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       rib.appendChild(b);
     });
   };
+
+  /* ------------------------------------------------------------ the page's own tabs */
+  /* Many dashboards already have tabs (buttons that show one panel at a time). Mothership finds
+     them so it can switch, add, rename and reorder them. Tabs the page's script doesn't know about
+     (added in Mothership) are switched by the same rules the page uses, learnt from its own tabs. */
+  var PT_BTN = '[role="tab"],[data-tab],[data-target],[data-tab-target],[data-bs-target],[aria-controls],.tab,.tab-btn,.tab-button,.tablinks,.tablink,.nav-link,.tabs>button,.tabs>a,.tab-bar>*,.tabbar>*,.tab-nav>*,.tabs-nav>*';
+  var PT_PANEL = '[role="tabpanel"],.tab-panel,.tab-pane,.tabcontent,.tab-content>*,.tabpanel,.tab-page,.tab-section';
+  var PT_ATTRS = ['aria-controls', 'data-tab', 'data-target', 'data-tab-target', 'data-bs-target', 'href'];
+  var PT_ACTIVE = ['active', 'is-active', 'selected', 'current', 'show', 'open', 'on'];
+  function ptSkip(n) { return n.closest('#ms-ribbon,#ms-filter-pane,[data-ms-editor],.ms-modal-wrap,#ms-cmt-layer'); }
+  function cssEsc(v) { try { return CSS.escape(v); } catch (e) { return String(v).replace(/["\\]/g, '\\$&'); } }
+  function ptTarget(b) {
+    var tries = [];
+    PT_ATTRS.forEach(function (a) {
+      var v = b.getAttribute(a); if (!v) return;
+      if (a === 'href') { if (v.indexOf('#') < 0) return; v = v.slice(v.indexOf('#')); }
+      var raw = v.replace(/^#/, ''); if (!raw) return;
+      tries.push({ id: raw, via: a, raw: v });
+      ['tab-' + raw, raw + '-tab', raw + '-panel', 'panel-' + raw, raw + 'Tab', raw + 'Panel'].forEach(function (x) { tries.push({ id: x, via: a, raw: v }); });
+      tries.push({ sel: '[data-panel="' + cssEsc(raw) + '"],[data-tab-panel="' + cssEsc(raw) + '"],[data-tab-content="' + cssEsc(raw) + '"],[data-tabpanel="' + cssEsc(raw) + '"]', via: a, raw: v });
+    });
+    var oc = b.getAttribute('onclick') || '';
+    (oc.match(/(['"])([^'"]+)\1/g) || []).forEach(function (q) { tries.push({ id: q.slice(1, -1), via: 'onclick', raw: q.slice(1, -1) }); });
+    for (var i = 0; i < tries.length; i++) {
+      var t = tries[i], e = null;
+      try { e = t.id ? D.getElementById(t.id) : D.querySelector(t.sel); } catch (x) {}
+      if (e && e !== b && !e.contains(b) && !b.contains(e) && !ptSkip(e) && !/^(SCRIPT|STYLE|TEMPLATE|HEAD)$/.test(e.tagName)) return { el: e, via: t.via, raw: t.raw };
+    }
+    return null;
+  }
+  function ptShown(e) { if (!e || e.hidden) return false; var cs = getComputedStyle(e); return cs.display !== 'none' && cs.visibility !== 'hidden'; }
+  function ptTitle(b) { return (b.textContent || b.getAttribute('aria-label') || b.title || '').replace(/\s+/g, ' ').trim(); }
+  function ptGroup(btns) {
+    var tabs = btns.map(function (b) { var t = ptTarget(b); return { btn: b, panel: t && t.el, via: t ? t.via : '', raw: t ? t.raw : '' }; });
+    var panels = tabs.map(function (t) { return t.panel; });
+    var distinct = panels.every(function (p, i) { return p && panels.indexOf(p) === i; });
+    if (!distinct) {
+      // no links between buttons and panels: match them by order when the counts agree
+      var hosts = [], lists = [];
+      Array.prototype.forEach.call(D.querySelectorAll(PT_PANEL), function (p) {
+        if (ptSkip(p) || btns.some(function (b) { return p.contains(b) || b.contains(p); })) return;
+        var k = hosts.indexOf(p.parentNode); if (k < 0) { hosts.push(p.parentNode); lists.push([]); k = hosts.length - 1; }
+        lists[k].push(p);
+      });
+      var list = lists.filter(function (l) { return l.length === btns.length; })[0];
+      if (!list) return null;
+      tabs.forEach(function (t, i) { t.panel = list[i]; t.via = 'order'; t.raw = ''; });
+    }
+    tabs.forEach(function (t, i) { t.index = i; t.title = ptTitle(t.btn) || ('Tab ' + (i + 1)); t.active = ptShown(t.panel); });
+    var g = { tabs: tabs, btnActive: '', panelActive: '' };
+    // learn how the page marks the active tab
+    var on = tabs.filter(function (t) { return t.active; })[0];
+    if (on) {
+      var only = function (list, el) { return Array.prototype.filter.call(el.classList, function (c) { return list.every(function (x) { return x === el || !x.classList.contains(c); }); }); };
+      var bc = only(tabs.map(function (t) { return t.btn; }), on.btn), pc = only(tabs.map(function (t) { return t.panel; }), on.panel);
+      g.btnActive = bc.filter(function (c) { return PT_ACTIVE.indexOf(c) >= 0; })[0] || bc.filter(function (c) { return !/^ms-/.test(c); })[0] || '';
+      g.panelActive = pc.filter(function (c) { return PT_ACTIVE.indexOf(c) >= 0; })[0] || pc.filter(function (c) { return !/^ms-/.test(c); })[0] || '';
+    }
+    return g;
+  }
+  var ptCache = null;
+  rt.pageTabs = function (fresh) {
+    if (ptCache && !fresh && ptCache.tabs.every(function (t) { return t.btn.isConnected && t.panel.isConnected; }) && ptCache.n === D.querySelectorAll(PT_BTN).length) {
+      ptCache.tabs.forEach(function (t) { t.active = ptShown(t.panel); t.title = ptTitle(t.btn) || t.title; });
+      return ptCache;
+    }
+    var all = Array.prototype.filter.call(D.querySelectorAll(PT_BTN), function (b) { return !ptSkip(b) && !/^(SECTION|MAIN|BODY|NAV|HEADER|UL|OL|FORM|TABLE)$/.test(b.tagName); });
+    var parents = [];
+    all.forEach(function (b) { if (parents.indexOf(b.parentNode) < 0) parents.push(b.parentNode); });
+    var best = null;
+    parents.forEach(function (p) {
+      var btns = all.filter(function (b) { return b.parentNode === p; });
+      if (btns.length < 2) return;
+      var g = ptGroup(btns);
+      if (g && (!best || g.tabs.length > best.tabs.length)) best = g;
+    });
+    if (best) best.n = D.querySelectorAll(PT_BTN).length;
+    ptCache = best;
+    return best;
+  };
+  rt.pageTabOf = function (node) {
+    var g = rt.pageTabs(); if (!g || !node) return null;
+    return g.tabs.filter(function (t) { return t.btn === node || t.btn.contains(node) || t.panel === node || t.panel.contains(node); })[0] || null;
+  };
+  function ptApply(g, t) {
+    g.tabs.forEach(function (x) {
+      var on = x === t;
+      if (g.btnActive) x.btn.classList.toggle(g.btnActive, on);
+      if (x.btn.hasAttribute('aria-selected')) x.btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (g.panelActive) x.panel.classList.toggle(g.panelActive, on);
+      if (x.panel.hasAttribute('hidden') || !on && x.panel.hidden) x.panel.hidden = !on;
+      if (!on) { if (ptShown(x.panel)) x.panel.style.display = 'none'; }
+      else { if (x.panel.style.display === 'none') x.panel.style.display = ''; if (!ptShown(x.panel)) x.panel.style.display = 'block'; }
+    });
+  }
+  rt.ptClicking = false;
+  function ptAfter(t) {
+    requestAnimationFrame(function () {
+      cloneCopies();
+      rt.charts().forEach(function (c) { if (t.panel.contains(c.el)) { c.a.resize(c.inst); applyChart(c); } });
+    });
+    try { window.dispatchEvent(new CustomEvent('ms:pagetab', { detail: { index: t.index, title: t.title } })); } catch (e) {}
+  }
+  rt.showPageTab = function (i) {
+    var g = rt.pageTabs(); if (!g) return false;
+    var t = typeof i === 'number' ? g.tabs[i] : g.tabs.filter(function (x) { return x.title === i; })[0];
+    if (!t) return false;
+    rt.ptClicking = true;
+    try { t.btn.click(); } catch (e) {}
+    rt.ptClicking = false;
+    // the page's own script handles its own tabs; tabs it doesn't know get the same treatment
+    if (!ptShown(t.panel) || g.tabs.some(function (x) { return x !== t && ptShown(x.panel) && !x.panel.contains(t.panel); })) ptApply(g, t);
+    ptAfter(t);
+    return true;
+  };
+  D.addEventListener('click', function (e) {
+    if (rt.ptClicking || (EDITOR && window.__MS_EDIT_MODE)) return;
+    var g = rt.pageTabs(), t = g && e.target.closest && g.tabs.filter(function (x) { return x.btn === e.target || x.btn.contains(e.target); })[0];
+    if (!t) return;
+    setTimeout(function () {
+      if (!ptShown(t.panel) || g.tabs.some(function (x) { return x !== t && ptShown(x.panel) && !x.panel.contains(t.panel); })) ptApply(g, t);
+      ptAfter(t);
+    }, 0);
+  });
 
   /* ------------------------------------------------------------ refresh */
   /* ------------------------------------------------------------ published files: version stamp, and a calm message if something fails */
@@ -1617,6 +1879,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   rt.refresh = function (force) {
     ensureStyle('ms-base-css', BASE_CSS);
     ensureStyle('ms-theme-css', themeCss());
+    try { mapInline(); } catch (e) {}
     if (rt.layoutEnabled()) {
       rt.renderRibbon();
       var tabs = rt.tabs();
@@ -1645,7 +1908,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     // charts are often created after load or after a fetch: re-apply a few times.
     [250, 800, 2000, 4000].forEach(function (t) { setTimeout(function () { rt.refresh(); }, t); });
     if (!EDITOR) D.addEventListener('keydown', function (e) {
-      if (!rt.layoutEnabled() || /input|select|textarea/i.test(e.target.tagName) || e.target.isContentEditable) return;
+      if ((!rt.layoutEnabled() && !rt.pageTabs()) || /input|select|textarea/i.test(e.target.tagName) || e.target.isContentEditable) return;
       if (e.altKey && e.key === 'ArrowRight') rt.step(1);
       if (e.altKey && e.key === 'ArrowLeft') rt.step(-1);
     });
