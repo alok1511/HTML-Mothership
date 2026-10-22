@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.1.0';
+var VERSION = '2.3.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -278,12 +278,12 @@ function referenced(htmlPath) {
   scan(htmlPath, html, /url\(\s*['"]?([^'")]+)['"]?\s*\)/g);
   return out.filter(function (f) { return path.relative(dir, f).indexOf('..') !== 0; });
 }
-function openFiles(main, others) {
+function openFiles(main, others, password) {
   var dir = path.dirname(main), top = path.basename(dir) || 'dashboard';
   var files = [{ full: main }].concat(others.map(function (f) { return { full: f }; })).map(function (f) {
     return { name: path.basename(f.full), path: top + '/' + path.relative(dir, f.full).replace(/\\/g, '/'), b64: fs.readFileSync(f.full).toString('base64') };
   });
-  return api('open_folder_files', { files: files });
+  return api('open_folder_files', { files: files, password: password });
 }
 
 /* ------------------------------------------------------------------ tools that need the file system */
@@ -293,12 +293,12 @@ var LOCAL = {
       var s = { editor: EDITOR, browser: B.exe || (process.env.MOTHERSHIP_ATTACH ? 'attached on port ' + process.env.MOTHERSHIP_ATTACH : findBrowser()), mode: B.mode, connected: !!(B.ws && B.ws.open && B.session), headless: HEADLESS && B.mode !== 'attached', saveFolder: OUT, lastError: B.error };
       return ensure().then(function () { return api('outline', {}); }).then(function (o) { s.dashboard = o.open ? { name: o.name, charts: o.charts.length, tabs: o.tabs.length, unsavedChanges: o.unsavedChanges } : null; return s; }, function (e) { s.lastError = e.message; return s; });
     } },
-  open_file: { description: 'Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline.', props: { path: ['string', 'Path to the .html file', true] },
+  open_file: { description: 'Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline. A published file locked for editing needs its password.', props: { path: ['string', 'Path to the .html file', true], password: ['string', 'Password, for a published file locked for editing'] },
     run: function (a) {
       var full = resolvePath(a.path); if (!/\.html?$/i.test(full)) throw new Error('Give an .html file. For a folder use open_folder.');
       var refs = referenced(full);
-      if (!refs.length) return api('open_html', { html: fs.readFileSync(full, 'utf8'), name: path.basename(full) });
-      return openFiles(full, refs);
+      if (!refs.length) return api('open_html', { html: fs.readFileSync(full, 'utf8'), name: path.basename(full), password: a.password });
+      return openFiles(full, refs, a.password);
     } },
   open_folder: { description: 'Open a dashboard folder (its HTML with scripts, styles, data and images).', props: { path: ['string', 'Folder path', true], main: ['string', 'Which .html file is the dashboard (default: index.html or the only one)'] },
     run: function (a) {
@@ -344,11 +344,24 @@ var LOCAL = {
         fs.writeFileSync(file, r[0].prompt, 'utf8'); return { saved: file, comments: r[1].comments, characters: r[0].prompt.length };
       });
     } },
+  save_tracker: { description: 'Save every review comment as an Excel tracker (.xlsx) with tab, section, chart, comment, done-when, status, owner and due date.', props: { path: ['string', 'Where to save (default: <name> - review tracker.xlsx)'] },
+    run: function (a) {
+      return api('comments_tracker', {}).then(function (r) { var file = outPath(a.path, r.name); fs.writeFileSync(file, Buffer.from(r.b64, 'base64')); return { saved: file, comments: r.rows }; });
+    } },
+  load_tracker: { description: 'Update comments from an edited Excel tracker: status, priority, owner, due date, notes and wording (matched by the ID column).', props: { path: ['string', 'The .xlsx file', true] },
+    run: function (a) { return api('apply_tracker', { file: b64file(a.path) }); } },
+  compare_file: { description: 'What changed between a dashboard file on disk and what is open now (or a second file): tabs, text, chart settings, data, KPI cards, filters, colours, comments.', props: { path: ['string', 'The earlier .html file', true], after: ['string', 'A later .html file (default: the dashboard open now)'] },
+    run: function (a) { return api('compare_versions', { before_html: fs.readFileSync(resolvePath(a.path), 'utf8'), after_html: a.after ? fs.readFileSync(resolvePath(a.after), 'utf8') : undefined, after: a.after ? undefined : 'now' }); } },
+  publish_html: { description: 'Publish a view-only copy to disk: version number, date, release note and corner badge; optionally locked for editing with a password, and sealed so Mothership warns if it is changed later. Run publish_check first.', props: { path: ['string', 'Where to save (default: <name> v<version>.html)'], version: ['string', 'e.g. 1.0 (default: next after the last publish)'], note: ['string', 'What changed'], by: ['string', 'Published by'], as_of: ['string', 'Data as of (YYYY-MM-DD)'], password: ['string', 'Lock editing with this password (6+ characters). Without one, an earlier lock is kept'], unlock: ['boolean', 'Remove an earlier lock'], badge: ['boolean', 'Show the version badge (default true)'], keep_comments: ['boolean', 'Keep review comments in the file'] },
+    run: function (a) {
+      var args = {}; ['version', 'note', 'by', 'as_of', 'password', 'unlock', 'badge', 'keep_comments'].forEach(function (k) { if (a[k] !== undefined) args[k] = a[k]; });
+      return api('publish', args).then(function (r) { var file = outPath(a.path, r.name); fs.writeFileSync(file, r.html, 'utf8'); return { saved: file, version: r.version, locked: r.locked, sha256: r.sha256, size: Math.round(r.bytes / 1024) + ' KB' }; });
+    } },
   chart_image: { description: 'A PNG of one chart (shown to you, optionally saved).', props: { chart: ['string', 'Chart name or key', true], path: ['string', 'Also save it here'] },
     run: function (a) { return LOCAL.screenshot.run({ what: a.chart, path: a.path }); } }
 };
 // in-page tools that the file-system versions above replace
-var HIDDEN = { open_folder_files: 1, insert_content_file: 1 };
+var HIDDEN = { open_folder_files: 1, insert_content_file: 1, comments_tracker: 1, apply_tracker: 1, publish: 1 };
 
 function schemaOf(props) {
   var p = {}, req = [];
@@ -386,7 +399,7 @@ function callTool(name, args) {
 /* ------------------------------------------------------------------ MCP over stdio (newline-delimited JSON-RPC) */
 var INSTRUCTIONS = 'Mothership edits HTML dashboards like PowerPoint edits slides. Start with open_file (or new_dashboard), then outline to see the tabs, charts, datasets and comments. ' +
   'Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. Every change is undoable (undo). ' +
-  'Use screenshot to look at the result and export_html to save. Numbers use Indian formats (₹, lakh, crore).';
+  'Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default).';
 
 function reply(id, result) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, result: result }) + '\n'); }
 function fail(id, code, message) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, error: { code: code, message: message } }) + '\n'); }

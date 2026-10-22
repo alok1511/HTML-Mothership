@@ -50,6 +50,12 @@
     lineChart: 'M4 20h16 M4 16l5-5 4 3 7-8',
     pieChart: 'M12 3a9 9 0 1 0 9 9h-9z M15 3.5A9 9 0 0 1 20.5 9H15z',
     gauge: 'M12 14l4-4 M3.5 18a9 9 0 1 1 17 0',
+    calc: ['M8 7h8 M8 11h.01 M12 11h.01 M16 11h.01 M8 15h.01 M12 15h.01 M16 15v3 M8 18h.01 M12 18h.01', '<rect x="5" y="3" width="14" height="18" rx="2"/>'],
+    sheet: ['M4 9h16 M4 14h16 M10 9v11 M14 4l-3 3', '<rect x="4" y="4" width="16" height="16" rx="2"/>'],
+    compare: 'M12 3v18 M5 7h4 M15 7h4 M3 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M17 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M8 21h8',
+    globe: ['M3 12h18 M12 3a14 14 0 0 1 0 18 M12 3a14 14 0 0 0 0 18', '<circle cx="12" cy="12" r="9"/>'],
+    send: 'M22 2L11 13 M22 2l-7 20-4-9-9-4z',
+    captions: ['M7 11h4 M13 11h4 M7 15h7 M16 15h1', '<rect x="3" y="5" width="18" height="14" rx="2"/>'],
     tabs: 'M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M3 8V5a1 1 0 0 1 1-1h5l2 4 M11 8V5a1 1 0 0 1 1-1h4l2 4',
     panelTop: ['M3 9h18', '<rect x="3" y="3" width="18" height="18" rx="2"/>'],
     panelLeft: ['M9 3v18', '<rect x="3" y="3" width="18" height="18" rx="2"/>'],
@@ -130,7 +136,7 @@
     '📱': 'phone', '🛡': 'shield', '🔒': 'lock', '－': 'minus', '＋': 'plus', '⤢': 'fit', '▶': 'play', '🧩': 'puzzle', '📜': 'scroll', '📖': 'book',
     '🧭': 'compass', '🎓': 'graduation', '❓': 'help', 'ℹ': 'info', '⌨': 'keyboard', '📍': 'pin', '📌': 'pushpin', '⚡': 'zap', '☝': 'pointer',
     '✕': 'close', '✓': 'check', '🔗': 'link', '🗒': 'note', '👁': 'eye', '⚠': 'warning', '―': 'divider', '1:1': 'ruler', '▥': 'columns', '◆': 'diamond',
-    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '−': 'minus', '+': 'plus'
+    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '🌍': 'globe', '🚀': 'send', '−': 'minus', '+': 'plus'
   };
   // symbols that are also ordinary characters: only swapped when they are the whole label
   var WHOLE_ONLY = { 'H': 1, '¶': 1, '≡': 1, '―': 1, '1:1': 1, '↕': 1, '⋯': 1, '－': 1, '＋': 1, '✓': 1, '✕': 1, '◆': 1, '⠿': 1, '▁': 1, '−': 1, '+': 1 };

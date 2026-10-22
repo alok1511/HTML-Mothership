@@ -89,6 +89,8 @@
       if (c.lib === 'chartjs') { var tt = c.inst.tooltip; if (tt && tt.opacity && tt.body) return clip([].concat(tt.title || []).join(' ') + ' ' + tt.body.map(function (b) { return b.lines.join(' '); }).join(' · '), 160); }
       if (c.lib === 'echarts') { var dv = Array.prototype.filter.call(c.el.querySelectorAll('div'), function (d) { return /z-index:\s*9999999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && d.style.opacity !== '0'; })[0]; if (dv) return clip(dv.textContent, 160); }
       if (c.lib === 'plotly') { var hl = c.el.querySelector('.hoverlayer'); if (hl && hl.textContent.trim()) return clip(hl.textContent, 160); }
+      if (c.lib === 'highcharts') { var ht = MS.$$('.highcharts-tooltip', c.el).map(function (x) { return x.textContent.trim(); }).filter(Boolean).join(' '); if (ht && c.inst.tooltip && !c.inst.tooltip.isHidden) return clip(ht, 160); }
+      if (c.lib === 'd3') { var tp = cdoc().querySelector('.ms-hovertip'); if (tp && tp.style.display !== 'none' && tp.textContent) return clip(tp.textContent, 160); }
     } catch (e) {}
     return '';
   }
@@ -96,6 +98,8 @@
     try {
       if (c.lib === 'chartjs') { var p = c.inst.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)[0]; if (p) return String(c.inst.data.labels[p.index]); }
       if (c.lib === 'plotly' && c.el._hoverdata && c.el._hoverdata[0]) { var q = c.el._hoverdata[0]; return String(q.label != null ? q.label : q.x); }
+      if (c.lib === 'highcharts' && c.inst.hoverPoint) { var hp = c.inst.hoverPoint; return String(hp.name != null ? hp.name : hp.category); }
+      if (c.lib === 'd3' && e && e.target && e.target.__data__) { var ms = c.a.marks(c.el), j = ms.indexOf(e.target); if (j >= 0) return c.a.labelOf(e.target.__data__, j); }
     } catch (x) {}
     return '';
   }
@@ -244,11 +248,11 @@
   /* ---------------------------------------------------------- the comment dialog */
   function editor(c, extra) {
     var f = MS.form([
-      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in ₹ crore, and add last year for comparison.' },
+      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in millions, and add last year for comparison.' },
       { key: 'type', label: 'Type', type: 'select', options: TYPES, value: c.type || 'change' },
       { key: 'prio', label: 'Priority', type: 'select', options: PRIOS, value: c.prio || 'should' }
     ]);
-    f.inputs.text.placeholder = 'e.g. Show values in ₹ crore, and add last year for comparison.';
+    f.inputs.text.placeholder = 'e.g. Show values in millions, and add last year for comparison.';
     var labels = f.querySelectorAll(':scope > label');
     f.appendChild(h('div', { 'class': 'row gap' }, [labels[1], labels[2]]));
     return { el: h('div', { 'class': 'cmt-ed' }, [extra, f]), f: f };
@@ -434,7 +438,7 @@
       var charts = r.charts();
       if (charts.length) {
         L.push('- Charts (' + charts.length + '):');
-        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly' }[c.lib];
+        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly', highcharts: 'Highcharts', d3: 'D3 (SVG)' }[c.lib];
           L.push('  - “' + MS.charts.nameOf(c.key) + '”: ' + MS.charts.kindName(info.type).toLowerCase() + ' drawn with ' + lib + (sec ? ', on the “' + sec.getAttribute('data-ms-title') + '” tab' : '') + (c.el.id ? ', element `#' + c.el.id + '`' : '') + '.'); });
       }
       var ds = Object.keys(r.state.datasets);
@@ -446,7 +450,7 @@
     L.push('2. Do not invent data. If a comment needs data the file does not have, say so and leave a clearly marked placeholder.');
     L.push('3. The file was saved by an editor called Mothership. Keep every `data-ms-*` attribute, the `<script id="ms-state" type="application/json">` block and the `<script id="ms-runtime">` block. If a change needs a setting stored in `ms-state` (tooltips, chart look, drill-down), you may edit that JSON carefully.');
     L.push('4. Each comment says where it is: a description, a selector you can search for (`[data-ms-id="…"]` or `[data-ms-ref="…"]`), and a fallback CSS path.');
-    L.push('5. Formats follow India: ₹, lakh and crore (e.g. ₹1,23,45,678 or ₹1.23 Cr), DD-MM-YYYY dates, and the April–March financial year, unless a comment says otherwise.');
+    L.push('5. ' + MS.locale.rule());
     L.push('6. Keep it accessible: readable contrast, text at least 12px, and charts that still make sense without colour.');
     if (o.extra) L.push('7. ' + o.extra.trim());
     L.push('');

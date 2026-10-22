@@ -24,7 +24,7 @@
     find: need(MS.edit.findReplace),
     present: needRt(function () { MS.present.start(false); }),
     presenter: needRt(function () { MS.present.start(true); }),
-    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state }); MS.ribbon.render(); },
+    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state, unlocked: true }); MS.ribbon.render(); },
     netLock: function () { MS.settings.netLock = !MS.settings.netLock; MS.prefs.set('netLock', MS.settings.netLock); MS.toast(MS.settings.netLock ? 'Network lock on: the dashboard can\'t load or send anything over the internet while editing. Online-only libraries (CDN) will not load.' : 'Network lock off.', 'ok', 7000); if (MS.child) MS.reload(); MS.ribbon.render(); }
   };
 
@@ -39,7 +39,11 @@
         { icon: '⬇', label: 'Export HTML', title: 'Save the edited dashboard as one standalone .html file on this laptop (Ctrl+E)', run: MS.cmd.export },
         { icon: '📝', label: 'Save as…', title: 'Choose a new file name and location', run: MS.cmd.exportAs },
         { icon: '🕘', label: 'Save version', title: 'Keep a named version in this browser (Ctrl+S)', run: MS.cmd.saveVersion },
-        { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions }] },
+        { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions },
+        { icon: '⚖', label: 'Compare', title: 'What changed between two versions (or a file): tabs, text, charts, data. Side by side too.', run: function () { MS.compare.dialog(); } }] },
+      { name: 'Publish', items: [
+        { icon: '🛡', label: 'Ready to publish?', title: 'Check before sharing: script errors, empty charts, numbers that don\'t add up, open comments, internet files, size', run: need(function () { MS.preflight.dialog(); }) },
+        { icon: '🚀', label: 'Publish', title: 'Save a view-only copy with a version number, date and release note. Optionally lock editing with a password; Mothership warns if it is changed afterwards.', run: needRt(function () { MS.publish.dialog(); }) }] },
       { name: 'Output', items: [
         { icon: '🖨', label: 'Print / PDF', title: 'Print the dashboard, or choose "Save as PDF" in the print dialog. Each tab prints on its own page.', run: MS.cmd.print },
         { icon: '↻', label: 'Reload', title: 'Re-run the dashboard as it will look when exported', run: MS.cmd.reload }] }
@@ -103,6 +107,8 @@
         { icon: '🖌', label: 'Edit theme', title: 'Colours, chart palette, fonts, logo', run: needRt(MS.brand.edit) },
         { icon: '📚', label: 'Library', title: 'Brands you have used before', run: needRt(MS.brand.library) },
         { icon: '🔤', label: 'Fonts', title: 'Upload brand font files (.woff2/.woff/.ttf/.otf). They are embedded, so they work offline.', run: needRt(function () { MS.pickFiles('.woff,.woff2,.ttf,.otf', { multiple: true }).then(function (fs) { if (fs.length) MS.brand.addFontFiles(fs); }); }) }] },
+      { name: 'Numbers', items: [
+        { icon: '🌍', label: 'Region & currency', title: 'Country, currency and number style (US $ by default) for pop-ups, axes, KPI cards and summaries', run: needRt(function () { MS.locale.dialog(); }) }] },
       { name: 'Check', items: [
         { icon: '✅', label: 'Brand check', title: 'Find off-brand colours and fonts, low contrast, and charts missing commentary', run: need(MS.brand.check) }] }
     ] },
@@ -119,7 +125,8 @@
         { icon: '🎨', label: 'Category colours', title: 'Give each category or series one colour on every chart', run: needRt(MS.catColors.dialog) }] },
       { name: 'Share', items: [
         { icon: '🖼', label: 'As image', title: 'Save the selected chart as a PNG for PowerPoint, Word or email', run: needRt(function () { MS.chartOut.image(); }) },
-        { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) }] },
+        { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) },
+        { icon: '📰', label: 'Summaries', title: 'A plain-English summary of every chart: for emails, captions and screen readers', run: needRt(function () { MS.summaries.dialog(); }) }] },
       { name: 'All charts', items: [
         { icon: '💬', label: 'Tooltips', title: 'Set one tooltip format for every chart', run: needRt(MS.charts.tooltipAll) },
         { icon: '🎨', label: 'Look', title: 'One font, legend and pop-up style for every chart', run: needRt(function () {
@@ -172,6 +179,11 @@
       { name: 'Comments', items: [
         { icon: '📌', label: 'Pins', title: 'Show or hide the numbered comment pins on the dashboard', run: function () { MS.review.togglePins(); }, toggle: function () { return MS.review.showPins; } },
         { icon: '🗑', label: 'Clear all', title: 'Delete all comments (Ctrl+Z to undo)', run: function () { MS.review.clear(); } }] },
+      { name: 'Tracker', items: [
+        { icon: '📗', label: 'Excel tracker', title: 'Save every comment as an Excel sheet with tab, chart, status, owner and due date, for review meetings', run: function () { MS.tracker.exportFile(); } },
+        { icon: '⬆', label: 'Update from tracker', title: 'Load the edited Excel tracker back: status, priority, owner, due date and notes', run: function () { MS.tracker.importFile(); } }] },
+      { name: 'Check', items: [
+        { icon: '🧮', label: 'Number check', title: 'Do the KPI cards match the chart totals? Do charts of the same measure add up alike?', run: function () { MS.numcheck.dialog(); } }] },
       { name: 'AI prompt', items: [
         { icon: '✨', label: 'Make prompt', title: 'Turn every comment into one prompt you can paste into an AI assistant', run: function () { MS.review.prompt(); } }] }
     ] },

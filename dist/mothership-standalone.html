@@ -453,6 +453,58 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
 .rag-row { display: grid; grid-template-columns: 1fr 90px 90px 110px; gap: 8px; align-items: center; margin: 6px 0; }
 .rag-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
 
+/* ---------- chart summaries, number check, compare versions */
+.sum-list { display: flex; flex-direction: column; gap: 8px; max-height: 58vh; overflow: auto; padding-right: 4px; }
+.sum-row { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.sum-head { display: flex; align-items: center; gap: 8px; }
+.sum-head small { font-size: 11.5px; }
+.sum-text { margin: 6px 0 0; line-height: 1.5; color: var(--text-2); }
+.nc-sum { margin: 0 0 4px; font-size: 14px; }
+.nc-wrap { max-height: 56vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.nc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.nc-table th { position: sticky; top: 0; background: var(--panel-2, var(--panel)); text-align: left; font-weight: 600; padding: 7px 9px; border-bottom: 1px solid var(--line); }
+.nc-table td { padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.nc-table tr:last-child td { border-bottom: 0; }
+.nc-table tr.nc-diff td { background: var(--warn-weak); }
+.nc-table tr.nc-diff td:first-child { color: var(--warn); }
+.nc-table tr.nc-ok td:first-child { color: var(--ok); }
+.nc-table tr.nc-skip td { color: var(--muted); }
+.cmp-pick { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.cmp-pick .field { min-width: 220px; margin: 0; }
+.cmp-arrow { padding-bottom: 8px; color: var(--muted); }
+.cmp-list { max-height: 60vh; overflow: auto; padding-right: 4px; }
+.cmp-list h4 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.cmp-list h4:first-child { margin-top: 0; }
+.cmp-item { display: flex; gap: 10px; padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; border-left: 3px solid transparent; background: var(--panel); line-height: 1.45; }
+.cmp-add { border-left-color: var(--ok); background: var(--ok-weak); }
+.cmp-del { border-left-color: var(--danger); background: var(--danger-weak); }
+.cmp-chg { border-left-color: var(--warn); background: var(--warn-weak); }
+.cmp-op { font-weight: 700; width: 12px; flex: none; }
+.cmp-ba { font-size: 12px; margin-top: 2px; color: var(--text-2); word-break: break-word; }
+.cmp-ba del { color: var(--danger); } .cmp-ba ins { color: var(--ok); text-decoration: none; }
+.cmp-none { color: var(--muted); padding: 18px 4px; }
+.cmp-sbs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cmp-cap { font-size: 12px; margin-bottom: 4px; color: var(--text-2); }
+.cmp-frame { height: 58vh; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; position: relative; }
+.cmp-frame iframe { width: 200%; height: 200%; border: 0; transform: scale(.5); transform-origin: 0 0; }
+
+/* region and currency, publish check, publish */
+.loc-prev { margin: 10px 0 4px; padding: 9px 11px; border: 1px dashed var(--accent-line); border-radius: var(--radius); background: var(--accent-weak); font-variant-numeric: tabular-nums; }
+.pf-sum { margin: 0 0 10px; font-size: 14px; }
+.pf-list { display: flex; flex-direction: column; gap: 6px; max-height: 58vh; overflow: auto; }
+.pf-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); }
+.pf-ic { width: 18px; flex: none; text-align: center; }
+.pf-ic svg.ic { width: 16px; height: 16px; }
+.pf-pass .pf-ic { color: var(--ok); }
+.pf-warn { background: var(--warn-weak); } .pf-warn .pf-ic { color: var(--warn); }
+.pf-fail { background: var(--danger-weak); } .pf-fail .pf-ic { color: var(--danger); }
+.pf-info .pf-ic { color: var(--muted); }
+.pf-title { font-weight: 600; }
+.pf-detail { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.pf-fix { font-size: 12.5px; margin-top: 3px; }
+.pub-note { margin-top: 10px; padding: 9px 11px; border-radius: var(--radius); background: var(--warn-weak); font-size: 12.5px; line-height: 1.45; }
+.pub-pre { margin-bottom: 10px; padding: 8px 11px; border-radius: var(--radius); background: var(--accent-weak); font-size: 12.5px; }
+
 </style>
 </head>
 <body>
@@ -758,6 +810,12 @@ window.MS = window.MS || {};
     lineChart: 'M4 20h16 M4 16l5-5 4 3 7-8',
     pieChart: 'M12 3a9 9 0 1 0 9 9h-9z M15 3.5A9 9 0 0 1 20.5 9H15z',
     gauge: 'M12 14l4-4 M3.5 18a9 9 0 1 1 17 0',
+    calc: ['M8 7h8 M8 11h.01 M12 11h.01 M16 11h.01 M8 15h.01 M12 15h.01 M16 15v3 M8 18h.01 M12 18h.01', '<rect x="5" y="3" width="14" height="18" rx="2"/>'],
+    sheet: ['M4 9h16 M4 14h16 M10 9v11 M14 4l-3 3', '<rect x="4" y="4" width="16" height="16" rx="2"/>'],
+    compare: 'M12 3v18 M5 7h4 M15 7h4 M3 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M17 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M8 21h8',
+    globe: ['M3 12h18 M12 3a14 14 0 0 1 0 18 M12 3a14 14 0 0 0 0 18', '<circle cx="12" cy="12" r="9"/>'],
+    send: 'M22 2L11 13 M22 2l-7 20-4-9-9-4z',
+    captions: ['M7 11h4 M13 11h4 M7 15h7 M16 15h1', '<rect x="3" y="5" width="18" height="14" rx="2"/>'],
     tabs: 'M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M3 8V5a1 1 0 0 1 1-1h5l2 4 M11 8V5a1 1 0 0 1 1-1h4l2 4',
     panelTop: ['M3 9h18', '<rect x="3" y="3" width="18" height="18" rx="2"/>'],
     panelLeft: ['M9 3v18', '<rect x="3" y="3" width="18" height="18" rx="2"/>'],
@@ -838,7 +896,7 @@ window.MS = window.MS || {};
     '📱': 'phone', '🛡': 'shield', '🔒': 'lock', '－': 'minus', '＋': 'plus', '⤢': 'fit', '▶': 'play', '🧩': 'puzzle', '📜': 'scroll', '📖': 'book',
     '🧭': 'compass', '🎓': 'graduation', '❓': 'help', 'ℹ': 'info', '⌨': 'keyboard', '📍': 'pin', '📌': 'pushpin', '⚡': 'zap', '☝': 'pointer',
     '✕': 'close', '✓': 'check', '🔗': 'link', '🗒': 'note', '👁': 'eye', '⚠': 'warning', '―': 'divider', '1:1': 'ruler', '▥': 'columns', '◆': 'diamond',
-    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '−': 'minus', '+': 'plus'
+    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '🌍': 'globe', '🚀': 'send', '−': 'minus', '+': 'plus'
   };
   // symbols that are also ordinary characters: only swapped when they are the whole label
   var WHOLE_ONLY = { 'H': 1, '¶': 1, '≡': 1, '―': 1, '1:1': 1, '↕': 1, '⋯': 1, '－': 1, '＋': 1, '✓': 1, '✕': 1, '◆': 1, '⠿': 1, '▁': 1, '−': 1, '+': 1 };
@@ -1259,23 +1317,59 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var n = Number(v);
     if (isNaN(n)) return String(v);
     var IN = function (x, d) { return x.toLocaleString('en-IN', { maximumFractionDigits: d == null ? 2 : d, minimumFractionDigits: 0 }); };
+    var L = locale(), LN = function (x, d) { return nf(x, { maximumFractionDigits: d == null ? 2 : d, minimumFractionDigits: 0 }); };
     switch (spec) {
+      case 'cur': return nf(n, { style: 'currency', currency: L.currency, maximumFractionDigits: Math.abs(n) < 10 ? 2 : 0, minimumFractionDigits: 0 });
+      case 'cur2': return nf(n, { style: 'currency', currency: L.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      case 'short': return shortNum(n, false);
+      case 'curshort': return shortNum(n, true);
+      case 'num': return LN(n, 2);
       case 'inr': return '₹' + IN(n, 0);
       case 'inr2': return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       case 'cr': return '₹' + IN(n / 1e7, 2) + ' Cr';
       case 'lakh': case 'l': return '₹' + IN(n / 1e5, 2) + ' L';
-      case 'k': return IN(n / 1e3, 1) + 'K';
-      case 'm': case 'mn': return IN(n / 1e6, 2) + 'M';
-      case 'bn': return IN(n / 1e9, 2) + 'B';
-      case 'pct': return IN(n, 1) + '%';
-      case 'pct100': return IN(n * 100, 1) + '%';
-      case 'int': return IN(n, 0);
+      case 'k': return LN(n / 1e3, 1) + 'K';
+      case 'm': case 'mn': return LN(n / 1e6, 2) + 'M';
+      case 'bn': return LN(n / 1e9, 2) + 'B';
+      case 'pct': return LN(n, 1) + '%';
+      case 'pct100': return LN(n * 100, 1) + '%';
+      case 'int': return LN(n, 0);
       case 'usd': return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
       case 'raw': return String(n);
       default:
-        if (spec && /^0(\.0+)?$/.test(spec)) { var d = spec.indexOf('.') < 0 ? 0 : spec.length - 2; return n.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d }); }
-        return IN(n, 2);
+        if (spec && /^0(\.0+)?$/.test(spec)) { var d = spec.indexOf('.') < 0 ? 0 : spec.length - 2; return nf(n, { minimumFractionDigits: d, maximumFractionDigits: d }); }
+        return LN(n, 2);
     }
+  }
+  /* Region and currency: state.locale = { country, locale: 'en-US', currency: 'USD', units: 'intl' | 'indian' }.
+     US English and the US dollar unless the dashboard says otherwise. */
+  function locale() {
+    var x = (rt.state && rt.state.locale) || {}, lc = x.locale || 'en-US', cur = (x.currency || 'USD').toUpperCase();
+    return { country: x.country || (lc.split('-')[1] || 'US'), locale: lc, currency: cur, indian: x.units ? x.units === 'indian' : (/-IN$/.test(lc) || cur === 'INR') };
+  }
+  rt.locale = locale;
+  var NF = {};
+  function nf(x, o) {
+    var L = locale(), k = L.locale + JSON.stringify(o);
+    try { if (!NF[k]) NF[k] = new Intl.NumberFormat(L.locale, o); return NF[k].format(x); }
+    catch (e) { try { return new Intl.NumberFormat('en-US', o).format(x); } catch (e2) { return String(x); } }
+  }
+  function curSymbol(code) {
+    var L = locale(); code = code || L.currency;
+    try { var p = new Intl.NumberFormat(L.locale, { style: 'currency', currency: code }).formatToParts(1).filter(function (q) { return q.type === 'currency'; })[0]; return p ? p.value : code; } catch (e) { return code; }
+  }
+  rt.curSymbol = curSymbol;
+  // 1.2M / $1.2M (or 1.2 Cr / ₹1.2 Cr with Indian units)
+  // code: a currency the chart itself names (₹, €…), which wins over the region's
+  function shortNum(n, money, code) {
+    var L = locale(), a = Math.abs(n), d2 = { maximumFractionDigits: 2, minimumFractionDigits: 0 };
+    if (code ? code === 'INR' : L.indian) {
+      var u = a >= 1e7 ? [1e7, ' Cr'] : a >= 1e5 ? [1e5, ' L'] : a >= 1e3 ? [1e3, 'K'] : [1, ''];
+      return (money ? curSymbol(code) : '') + nf(n / u[0], d2) + u[1];
+    }
+    var o = a >= 1e3 ? { notation: 'compact', compactDisplay: 'short', maximumSignificantDigits: 3 } : { maximumFractionDigits: a < 10 ? 2 : 0 };
+    if (money) { o.style = 'currency'; o.currency = code || L.currency; }
+    return nf(n, o);
   }
   function fmt(tpl, ctx) {
     return String(tpl).replace(/\{([\w.$ -]+?)(?::([\w.]+))?\}/g, function (m, k, spec) {
@@ -1641,6 +1735,244 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     fill: function (e) { window.Plotly.relayout(e, { autosize: true }); },
     resize: function (e) { try { window.Plotly.Plots.resize(e); } catch (x) {} }
   };
+  // An <svg> drawn onto a white canvas, as a PNG (Highcharts and D3 charts).
+  function svgImage(svg, scale) {
+    return new Promise(function (res, rej) {
+      var r = svg.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+      var c = svg.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', w); c.setAttribute('height', h);
+      if (!c.getAttribute('viewBox') && !svg.getAttribute('viewBox')) c.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      var cs = getComputedStyle(svg); c.style.fontFamily = cs.fontFamily; c.style.fontSize = cs.fontSize;
+      var img = new Image(), s = scale || 2;
+      img.onload = function () {
+        var out = document.createElement('canvas'); out.width = w * s; out.height = h * s;
+        var x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.drawImage(img, 0, 0, out.width, out.height);
+        res(out.toDataURL('image/png'));
+      };
+      img.onerror = function () { rej(new Error('The chart could not be drawn as an image.')); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
+    });
+  }
+  rt.svgImage = svgImage;
+
+  A.highcharts = {
+    list: function () {
+      var H = window.Highcharts;
+      if (!H || !H.charts) return [];
+      return H.charts.filter(function (c) { return c && c.renderTo && c.renderTo.isConnected; }).map(function (c) { return { el: c.renderTo, inst: c }; });
+    },
+    pie: function (c) { var s = c.series[0]; return !!s && /pie|funnel|pyramid|variablepie/.test(s.type); },
+    labelsOf: function (c) {
+      var ax = c.xAxis && c.xAxis[0], s = c.series[0];
+      if (!this.pie(c) && ax && ax.categories && ax.categories.length) return ax.categories.slice();
+      return s ? (s.options.data || []).map(function (d, j) { var p = s.points && s.points[j]; return String(p && p.name != null ? p.name : (d && d.name != null ? d.name : (Array.isArray(d) && typeof d[0] === 'string' ? d[0] : (p && p.category != null ? p.category : j + 1)))); }) : [];
+    },
+    info: function (c) {
+      var o = c.options || {}, t = o.title && o.title.text;
+      return { type: (o.chart && o.chart.type) || (c.series[0] && c.series[0].type) || 'line', title: t || '', labels: this.labelsOf(c).slice(0, 200), series: c.series.map(function (s) { return s.name || ''; }) };
+    },
+    data: function (c, now) {
+      var O = !now && c.__msOrig, labels = O ? O.labels : this.labelsOf(c);
+      var src = O ? O.series : c.series.map(function (s) { return { name: s.name, data: s.options.data || [] }; });
+      return { labels: labels, series: src.map(function (s, k) { return { name: s.name || ('Series ' + (k + 1)), values: (s.data || []).map(function (d) { return num(Array.isArray(d) ? d[d.length - 1] : d); }) }; }) };
+    },
+    colors: function (c, labels) {
+      var out = {};
+      if (c.series.length > 1 && !this.pie(c)) c.series.forEach(function (s) { if (s.name && typeof s.color === 'string') out[s.name] = s.color; });
+      else if (c.series[0]) (c.series[0].points || []).forEach(function (p, j) { if (typeof p.color === 'string') out[labels[j]] = p.color; });
+      return out;
+    },
+    snapshot: function (c) {
+      if (c.__msOrig) return;
+      var tt = c.options.tooltip || {};
+      c.__msOrig = { labels: this.labelsOf(c), series: c.series.map(function (s) { return { name: s.name, data: deepClone(s.options.data || []), color: s.options.color, colors: deepClone(s.options.colors) }; }), formatter: tt.formatter, useHTML: tt.useHTML, colors: deepClone(c.options.colors) };
+    },
+    setTooltip: function (c, fn) {
+      this.snapshot(c);
+      var O = c.__msOrig;
+      if (!fn) { c.update({ tooltip: { formatter: O.formatter || function () { return this.defaultFormatter.call(this, this.series.chart.tooltip); }, useHTML: !!O.useHTML } }, true, false, false); return; }
+      c.update({ tooltip: { useHTML: true, formatter: function () {
+        var p = this.point || {}, s = this.series || p.series || {};
+        var vals = (s.points || []).map(function (q) { return q.y; });
+        var label = p.name != null ? p.name : (this.key != null ? this.key : p.category);
+        return esc(fn({ label: label, series: s.name, value: this.y, index: p.index, total: this.total != null && !/pie/.test(s.type) ? this.total : sum(vals) })).replace(/\n/g, '<br>');
+      } } }, true, false, false);
+    },
+    setCatColors: function (c, map) {
+      var labels = this.labelsOf(c);
+      if (c.series.length > 1 && !this.pie(c)) c.series.forEach(function (s) { var col = map[s.name]; if (col) s.update({ color: col }, false); });
+      else if (c.series[0]) (c.series[0].points || []).forEach(function (p, j) { var col = map[labels[j]]; if (col) p.update({ color: col }, false, false); });
+      c.redraw(false);
+    },
+    image: function (c) { return svgImage(c.container.querySelector('svg')); },
+    setPalette: function (c, colors) {
+      this.snapshot(c);
+      var O = c.__msOrig, pie = this.pie(c);
+      c.update({ colors: colors || O.colors || window.Highcharts.getOptions().colors }, false);
+      c.series.forEach(function (s, k) {
+        var o = O.series[k] || {};
+        if (pie) { s.update({ colors: colors || o.colors || undefined }, false); (s.points || []).forEach(function (p, j) { var pal = colors || o.colors || window.Highcharts.getOptions().colors; p.update({ color: pal[j % pal.length] }, false, false); }); }
+        else s.update({ color: colors ? colors[k % colors.length] : (o.color || (O.colors || window.Highcharts.getOptions().colors)[k % 10]) }, false);
+      });
+      c.redraw(false);
+    },
+    setData: function (c, labels, series) {
+      this.snapshot(c);
+      var O = c.__msOrig, pie = this.pie(c), ax = c.xAxis && c.xAxis[0];
+      if (!labels) {
+        if (ax && !pie && O.labels.length) ax.setCategories(O.labels.slice(), false);
+        O.series.forEach(function (o, k) { var s = c.series[k]; if (s) { s.setData(deepClone(o.data), false); s.update({ name: o.name }, false); } });
+        while (c.series.length > O.series.length) c.series[c.series.length - 1].remove(false);
+        c.redraw(); return;
+      }
+      if (ax && !pie) ax.setCategories(labels.slice(), false);
+      series.forEach(function (sr, k) {
+        var data = pie ? labels.map(function (l, j) { return { name: l, y: sr.values[j] }; }) : sr.values.slice();
+        var s = c.series[k];
+        if (s) { s.setData(data, false); if (sr.name) s.update({ name: sr.name }, false); }
+        else c.addSeries({ name: sr.name, data: data, type: c.series[0] && c.series[0].type }, false);
+      });
+      while (c.series.length > series.length) c.series[c.series.length - 1].remove(false);
+      c.redraw();
+    },
+    setStyle: function (c, st) {
+      var o = c.options;
+      var grab = function (x) { return x ? deepClone(x) : {}; };
+      if (!c.__msStyleOrig) {
+        var tt = o.tooltip || {};
+        c.__msStyleOrig = { style: grab(o.chart && o.chart.style), title: grab(o.title && o.title.style), legend: { enabled: o.legend ? o.legend.enabled !== false : true, align: (o.legend || {}).align || 'center', verticalAlign: (o.legend || {}).verticalAlign || 'bottom', layout: (o.legend || {}).layout || 'horizontal', itemStyle: grab((o.legend || {}).itemStyle) },
+          tip: { backgroundColor: tt.backgroundColor, borderColor: tt.borderColor, borderRadius: tt.borderRadius, style: grab(tt.style) },
+          x: (c.xAxis || []).map(function (a) { return { labels: { style: grab(a.options.labels && a.options.labels.style), formatter: a.options.labels && a.options.labels.formatter } }; }),
+          y: (c.yAxis || []).map(function (a) { return { labels: { style: grab(a.options.labels && a.options.labels.style), formatter: a.options.labels && a.options.labels.formatter } }; }) };
+      }
+      var B = deepClone(c.__msStyleOrig), u = { chart: { style: B.style }, title: { style: B.title }, legend: B.legend, tooltip: B.tip };
+      var axes = function (list, isY) { return list.map(function (a) { a = deepClone(a); if (!a.labels.formatter) a.labels.formatter = function () { return this.axis.defaultLabelFormatter.call(this); }; if (st) { if (st.size) a.labels.style.fontSize = st.size + 'px'; if (st.color) a.labels.style.color = st.color; if (isY && st.axisFormat) a.labels.formatter = function () { return fmtNum(this.value, st.axisFormat); }; } return a; }); };
+      if (st) {
+        if (st.font) u.chart.style.fontFamily = st.font;
+        if (st.color) { u.title.style.color = st.color; u.legend.itemStyle.color = st.color; }
+        if (st.size) u.legend.itemStyle.fontSize = st.size + 'px';
+        if (st.legend === 'none') u.legend.enabled = false;
+        else if (st.legend) {
+          u.legend.enabled = true;
+          var side = st.legend === 'left' || st.legend === 'right';
+          u.legend.layout = side ? 'vertical' : 'horizontal'; u.legend.align = side ? st.legend : 'center'; u.legend.verticalAlign = side ? 'middle' : st.legend;
+        }
+        if (st.tipBg) u.tooltip.backgroundColor = st.tipBg;
+        if (st.tipBorder) u.tooltip.borderColor = st.tipBorder;
+        if (st.tipColor) u.tooltip.style.color = st.tipColor;
+        if (st.tipSize) u.tooltip.style.fontSize = st.tipSize + 'px';
+        if (st.tipRadius !== undefined && st.tipRadius !== '') u.tooltip.borderRadius = +st.tipRadius;
+      }
+      if (B.x.length) u.xAxis = axes(B.x, false);
+      if (B.y.length) u.yAxis = axes(B.y, true);
+      c.update(u, true, false, false);
+    },
+    onDbl: function (elm, c, cb) {
+      elm.addEventListener('dblclick', function () {
+        var p = c.hoverPoint; if (!p) return;
+        cb({ label: p.name != null ? p.name : p.category, index: p.index, series: p.series.index });
+      });
+    },
+    clone: function (c, target) { var H = window.Highcharts; return H.chart(target, H.merge(c.userOptions, { chart: { renderTo: target } })); },
+    fill: function (c) { try { c.update({ chart: { height: null } }, false); c.reflow(); } catch (e) {} },
+    resize: function (c) { try { c.reflow(); } catch (e) {} }
+  };
+
+  /* D3 (or any script) drawing an SVG whose marks carry their data. Basic support:
+     names, pop-ups, colours, look, summaries, image and comments; the data itself is the page's own. */
+  A.d3 = {
+    basic: true,
+    marks: function (svg) {
+      return Array.prototype.filter.call(svg.querySelectorAll('rect,path,circle,ellipse,polygon'), function (m) {
+        var d = m.__data__; if (d == null || typeof d !== 'object') return false;
+        if (m.closest('.domain,.tick,[class*=axis],[class*=legend]')) return false;
+        return A.d3.valueOf(d) != null;
+      });
+    },
+    pick: function (d, want) { // first string (label) / number (value) field of a datum
+      if (d && d.data && typeof d.data === 'object' && d.startAngle != null) d = d.data; // d3.pie()
+      if (Array.isArray(d)) return want === 'str' ? (typeof d[0] === 'string' ? d[0] : null) : (typeof d[1] === 'number' ? d[1] : null);
+      var pref = want === 'str' ? ['label', 'name', 'category', 'key', 'region', 'x'] : ['value', 'y', 'amount', 'total', 'count', 'v'];
+      for (var i = 0; i < pref.length; i++) { var v = d[pref[i]]; if (want === 'str' ? (typeof v === 'string' || v instanceof Date) : (typeof v === 'number' && isFinite(v))) return v instanceof Date ? v.toLocaleDateString('en-IN') : v; }
+      for (var k in d) { var x = d[k]; if (want === 'str' ? typeof x === 'string' : (typeof x === 'number' && isFinite(x) && !/^(index|id|x0|x1|y0|y1|startAngle|endAngle|padAngle)$/.test(k))) return x; }
+      return null;
+    },
+    labelOf: function (d, j) { var l = this.pick(d, 'str'); return l == null ? String(j + 1) : String(l); },
+    valueOf: function (d) { return this.pick(d, 'num'); },
+    list: function () {
+      if (!window.d3) return [];
+      var out = [];
+      Array.prototype.forEach.call(D.querySelectorAll('svg'), function (svg) {
+        if (svg.closest('.highcharts-container,.js-plotly-plot,[_echarts_instance_],[data-ms-editor]') || (svg.parentNode && svg.parentNode.closest && svg.parentNode.closest('svg'))) return;
+        var r = svg.getBoundingClientRect();
+        if ((r.width && r.width < 120) || (r.height && r.height < 80)) return;
+        if (A.d3.marks(svg).length >= 2) out.push({ el: svg, inst: svg });
+      });
+      return out;
+    },
+    kind: function (svg, marks) {
+      var m = marks[0], d = m.__data__;
+      if (d && d.startAngle != null) return 'pie';
+      if (m.tagName === 'circle' || m.tagName === 'ellipse') return 'scatter';
+      if (m.tagName === 'rect') { var b0 = m.getBBox(); return b0.width > b0.height * 1.5 && marks.length > 1 && Math.abs(marks[0].getBBox().x - marks[1].getBBox().x) < 1 ? 'hbar' : 'bar'; }
+      return 'line';
+    },
+    titleOf: function (svg) {
+      var t = svg.querySelector('title'), a = svg.getAttribute('aria-label');
+      if (a) return a;
+      if (t && t.parentNode === svg) return t.textContent;
+      var big = Array.prototype.filter.call(svg.querySelectorAll('text'), function (x) { return /title/i.test(x.getAttribute('class') || ''); })[0];
+      return big ? big.textContent : '';
+    },
+    info: function (svg) {
+      var ms = this.marks(svg), self = this;
+      return { type: this.kind(svg, ms), title: this.titleOf(svg), labels: ms.map(function (m, j) { return self.labelOf(m.__data__, j); }).slice(0, 200), series: [''] };
+    },
+    data: function (svg) {
+      var ms = this.marks(svg), self = this;
+      var d0 = ms[0] && ms[0].__data__, v0 = d0 && this.valueOf(d0), src = d0 && d0.startAngle != null ? d0.data : d0, nm = 'Value';
+      if (src && typeof src === 'object' && !Array.isArray(src)) Object.keys(src).some(function (k) { if (src[k] === v0) { nm = k.charAt(0).toUpperCase() + k.slice(1); return true; } return false; });
+      return { labels: ms.map(function (m, j) { return self.labelOf(m.__data__, j); }), series: [{ name: nm, values: ms.map(function (m) { return self.valueOf(m.__data__); }) }] };
+    },
+    colors: function (svg, labels) {
+      var out = {};
+      this.marks(svg).forEach(function (m, j) { var f = getComputedStyle(m).fill; if (f && f !== 'none') out[labels[j]] = f; });
+      return out;
+    },
+    snapshot: function () {},
+    setTooltip: function (svg, fn) {
+      var ms = this.marks(svg), self = this, vals = ms.map(function (m) { return self.valueOf(m.__data__); }), tot = sum(vals);
+      ms.forEach(function (m, j) {
+        if (!fn) { m.removeAttribute('data-ms-tip'); return; }
+        m.setAttribute('data-ms-tip', fn({ label: self.labelOf(m.__data__, j), series: '', value: vals[j], index: j, total: tot }));
+      });
+    },
+    paint: function (svg, colorOf) {
+      this.marks(svg).forEach(function (m, j) {
+        var c = colorOf(m, j);
+        var line = m.tagName === 'path' && getComputedStyle(m).fill === 'none';
+        if (c) { if (line) m.style.stroke = c; else m.style.fill = c; } else { m.style.fill = ''; m.style.stroke = ''; }
+      });
+    },
+    setCatColors: function (svg, map) { var self = this; this.paint(svg, function (m, j) { return map[self.labelOf(m.__data__, j)] || m.style.fill || m.style.stroke || null; }); },
+    setPalette: function (svg, colors) { var pie = this.kind(svg, this.marks(svg)) === 'pie'; this.paint(svg, function (m, j) { return colors ? colors[pie ? j % colors.length : 0] : null; }); },
+    setData: function () {},
+    setStyle: function (svg, st) {
+      Array.prototype.forEach.call(svg.querySelectorAll('text'), function (t) {
+        t.style.fontFamily = st && st.font || ''; t.style.fontSize = st && st.size ? st.size + 'px' : ''; t.style.fill = st && st.color || '';
+      });
+    },
+    onDbl: function (svg, i, cb) {
+      var self = this;
+      svg.addEventListener('dblclick', function (e) {
+        var ms = self.marks(svg), j = ms.indexOf(e.target);
+        if (j >= 0) cb({ label: self.labelOf(ms[j].__data__, j), index: j, series: 0 });
+      });
+    },
+    image: function (svg) { return svgImage(svg); },
+    clone: function (svg, target) { var c = svg.cloneNode(true); c.style.maxWidth = '100%'; target.appendChild(c); return c; },
+    fill: function () {},
+    resize: function () {}
+  };
   rt.adapters = A;
 
   /* ------------------------------------------------------------ chart registry */
@@ -1672,19 +2004,20 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   };
   // The numbers a chart was drawn with (before any binding), as labels + series.
   function num(v) { var n = Number(v && typeof v === 'object' ? (v.y != null ? v.y : v.value != null ? (Array.isArray(v.value) ? v.value[v.value.length - 1] : v.value) : v.x) : v); return isNaN(n) ? null : n; }
-  rt.chartData = function (key) {
+  rt.chartData = function (key, now) {
     var c = rt.chart(key); if (!c) return null;
     var i = c.inst, labels = [], series = [];
-    if (c.lib === 'chartjs') {
-      var O = i.__msOrig;
+    if (c.a.data) { var dd = c.a.data(i, now); labels = dd.labels; series = dd.series; }
+    else if (c.lib === 'chartjs') {
+      var O = !now && i.__msOrig;
       labels = (O ? O.labels : i.data.labels) || [];
       series = (O ? O.datasets : i.data.datasets).map(function (d, k) { return { name: d.label || ('Series ' + (k + 1)), values: (d.data || []).map(num) }; });
     } else if (c.lib === 'echarts') {
-      var o = i.__msOrig || i.getOption(), ax = A.echarts.cat(o), ss = o.series || [];
+      var o = (!now && i.__msOrig) || i.getOption(), ax = A.echarts.cat(o), ss = o.series || [];
       labels = ax ? (o[ax][0].data || []).map(function (x) { return x && typeof x === 'object' ? x.value : x; }) : ((ss[0] || {}).data || []).map(function (d) { return d && d.name; });
       series = ss.map(function (x, k) { return { name: x.name || ('Series ' + (k + 1)), values: (x.data || []).map(num) }; });
     } else {
-      var tr = i.__msOrig || i.data;
+      var tr = (!now && i.__msOrig) || i.data;
       labels = [].slice.call(A.plotly.lv(tr[0] || {}).l);
       series = tr.map(function (t, k) { return { name: t.name || ('Series ' + (k + 1)), values: [].map.call(A.plotly.lv(t).v, num) }; });
     }
@@ -1730,7 +2063,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var c = rt.chart(key); if (!c) return {};
     var info = c.a.info(c.inst), out = {}, labels = info.labels || [], series = info.series || [];
     try {
-      if (c.lib === 'chartjs') {
+      if (c.a.colors) out = c.a.colors(c.inst, labels);
+      else if (c.lib === 'chartjs') {
         var ds = c.inst.data.datasets, radial = /pie|doughnut|polarArea/.test(c.inst.config.type);
         if (ds.length > 1 && !radial) ds.forEach(function (d) { var b = d.borderColor || d.backgroundColor; if (d.label && typeof b === 'string') out[d.label] = b; });
         else { var bg = ds[0] && ds[0].backgroundColor; labels.forEach(function (l, j) { var v = Array.isArray(bg) ? bg[j % bg.length] : bg; if (typeof v === 'string') out[l] = v; }); }
@@ -1747,6 +2081,85 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     Object.keys(out).forEach(function (k) { if (!out[k] || typeof out[k] !== 'string') delete out[k]; });
     return out;
   };
+  /* ------------------------------------------------------------ plain-language chart summaries */
+  var MONTHS = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b|^(q[1-4]|h[12])\b|^(fy|cy)\s?'?\d{2}|^\d{4}([-\/]\d{1,2})?([-\/]\d{1,2})?$|^w(ee)?k\s?\d+/i;
+  function words(n) { return n === 1 ? '' : 's'; }
+  function sumFmt(st, hint) {
+    var f = st && st.axisFormat;
+    if (f) return function (v) { return fmtNum(v, f); };
+    var money = /[₹$€£¥]|rs\.?\b|inr|usd|eur|gbp|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
+    var pct = /%|percent|ratio|rate|share|margin %/i.test(hint);
+    // a chart that names its currency keeps it, whatever the region setting
+    var m = /₹|\brs\.?\s|\binr\b|crore|lakh|€|\beur\b|£|\bgbp\b|¥|\bjpy\b|\$|\busd\b/i.exec(hint || ''), code = null;
+    if (m) { var t = m[0].toLowerCase(); code = /₹|rs|inr|crore|lakh/.test(t) ? 'INR' : /€|eur/.test(t) ? 'EUR' : /£|gbp/.test(t) ? 'GBP' : /¥|jpy/.test(t) ? 'JPY' : 'USD'; if (code === locale().currency) code = null; }
+    return function (v) {
+      if (v == null) return '–';
+      var a = Math.abs(v);
+      if (pct && a <= 100) return fmtNum(v, 'pct');
+      if (code) return a >= 1e4 ? shortNum(v, true, code) : nf(v, { style: 'currency', currency: code, maximumFractionDigits: a < 10 ? 2 : 0, minimumFractionDigits: 0 });
+      if (a >= 1e4) return fmtNum(v, money ? 'curshort' : 'short');
+      return money ? fmtNum(v, 'cur') : fmtNum(v, a < 10 ? 'num' : 'int');
+    };
+  }
+  function pctOf(v, t) { return t ? Math.round(v / t * 100) + '%' : ''; }
+  rt.summarize = function (key, name) {
+    var c = rt.chart(key); if (!c) return '';
+    var d = rt.chartData(key, true), info = c.a.info(c.inst) || {};
+    if (!d || !d.labels.length || !d.series.length) return '';
+    var type = String(info.type || ''), cs = rt.state.charts[key] || {};
+    var f = sumFmt(cs.style, [name, info.title, d.series.map(function (s) { return s.name; }).join(' ')].join(' '));
+    var L = d.labels, n = L.length, S = d.series.filter(function (s) { return s.values.some(function (v) { return v != null; }); });
+    if (!S.length) return '';
+    var lead = name ? name + ': ' : '';
+    var trend = /line|area/.test(type) || (n >= 4 && L.filter(function (l) { return MONTHS.test(String(l).trim()); }).length >= n * 0.6);
+    var pts = function (s) { return L.map(function (l, j) { return { l: l, v: s.values[j] }; }).filter(function (p) { return p.v != null; }); };
+    var tot = function (s) { return s.values.reduce(function (a, v) { return a + (v || 0); }, 0); };
+    var out = [];
+    if (S.length === 1 || /pie|doughnut|funnel/.test(type)) {
+      var s = S[0], p = pts(s), T = tot(s);
+      if (!p.length) return '';
+      var hi = p.reduce(function (a, b) { return b.v > a.v ? b : a; }), lo = p.reduce(function (a, b) { return b.v < a.v ? b : a; });
+      if (trend && p.length >= 2) {
+        var a0 = p[0], z = p[p.length - 1], ch = a0.v ? (z.v - a0.v) / Math.abs(a0.v) * 100 : null;
+        out.push(lead + (z.v > a0.v ? 'Rose' : z.v < a0.v ? 'Fell' : 'Flat') + ' from ' + f(a0.v) + ' in ' + a0.l + ' to ' + f(z.v) + ' in ' + z.l + (ch != null && z.v !== a0.v ? ' (' + (ch > 0 ? '+' : '') + Math.round(ch) + '%)' : '') + '.');
+        out.push('Highest ' + f(hi.v) + ' in ' + hi.l + '; lowest ' + f(lo.v) + ' in ' + lo.l + '.');
+      } else if (/pie|doughnut|funnel/.test(type)) {
+        var by = p.slice().sort(function (a, b) { return b.v - a.v; });
+        out.push(lead + by[0].l + ' is the largest share at ' + f(by[0].v) + ' (' + pctOf(by[0].v, T) + ')' + (by[1] ? ', followed by ' + by[1].l + ' (' + pctOf(by[1].v, T) + ')' : '') + '.');
+        if (by.length > 2) out.push('The smallest is ' + by[by.length - 1].l + ' (' + pctOf(by[by.length - 1].v, T) + '). Total ' + f(T) + '.');
+      } else {
+        var srt = p.slice().sort(function (a, b) { return b.v - a.v; }), top = srt.slice(0, Math.min(3, srt.length - 1));
+        out.push(lead + p.length + ' item' + words(p.length) + ', total ' + f(T) + '. ' + hi.l + ' is highest at ' + f(hi.v) + (T > 0 ? ' (' + pctOf(hi.v, T) + ')' : '') + '; ' + lo.l + ' is lowest at ' + f(lo.v) + '.');
+        if (p.length >= 5 && T > 0) out.push('The top ' + top.length + ' make up ' + pctOf(top.reduce(function (a, b) { return a + b.v; }, 0), T) + ' of the total.');
+      }
+    } else {
+      var tots = S.map(function (s) { return { s: s.name, t: tot(s) }; }).sort(function (a, b) { return b.t - a.t; });
+      if (trend) {
+        out.push(lead + S.length + ' series from ' + L[0] + ' to ' + L[n - 1] + '.');
+        S.slice(0, 4).forEach(function (s) { var p = pts(s); if (p.length < 2) return; var a0 = p[0].v, z = p[p.length - 1].v; out.push(s.name + ' ' + (z > a0 ? 'rose' : z < a0 ? 'fell' : 'was flat') + ' from ' + f(a0) + ' to ' + f(z) + '.'); });
+      } else {
+        out.push(lead + S.length + ' series across ' + n + ' categor' + (n === 1 ? 'y' : 'ies') + '. ' + tots.slice(0, 3).map(function (x) { return x.s + ' totals ' + f(x.t); }).join(', ') + '.');
+        var best = S[0], bp = pts(best);
+        if (bp.length) { var bh = bp.reduce(function (a, b) { return b.v > a.v ? b : a; }); out.push(best.name + ' is highest in ' + bh.l + ' (' + f(bh.v) + ').'); }
+      }
+    }
+    var fl = []; Object.keys(rt.filterValues || {}).forEach(function (ds) { var fv = rt.filterValues[ds]; Object.keys(fv).forEach(function (k) { if (fv[k] !== '' && fv[k] != null) fl.push(k + ' = ' + fv[k]); }); });
+    if (fl.length && cs.binding) out.push('Filtered to ' + fl.join(', ') + '.');
+    return out.join(' ');
+  };
+  function renderSummary(c) {
+    var cs = rt.state.charts[c.key] || {}, sm = cs.summary, host = c.el.closest('.ms-visual') || (c.el.tagName === 'CANVAS' && c.el.parentNode !== D.body ? c.el.parentNode : c.el);
+    var cap = host.parentNode && host.parentNode.querySelector(':scope > .ms-summary[data-for="' + c.key.replace(/"/g, '') + '"]');
+    if (!sm) { if (cap) cap.remove(); if (c.el.__msAria) { c.el.removeAttribute('aria-label'); c.el.removeAttribute('role'); c.el.__msAria = false; } return; }
+    var text = rt.summarize(c.key, sm.name);
+    if (!text) return;
+    if (c.el.tagName !== 'CANVAS' || !c.el.getAttribute('aria-label') || c.el.__msAria) { c.el.setAttribute('role', 'img'); c.el.setAttribute('aria-label', text); c.el.__msAria = true; }
+    if (sm.show === 'caption') {
+      if (!cap) { cap = el('p', { 'class': 'ms-summary', 'data-for': c.key }); host.parentNode.insertBefore(cap, host.nextSibling); }
+      if (cap.textContent !== text) cap.textContent = text;
+    } else if (cap) cap.remove();
+  }
+  rt.renderSummary = renderSummary;
   rt.setChart = function (key, patch) {
     var cs = rt.state.charts[key] = rt.state.charts[key] || {};
     Object.keys(patch).forEach(function (k) { if (patch[k] === null) delete cs[k]; else cs[k] = patch[k]; });
@@ -1999,6 +2412,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       }
       if (!c.el.__msDbl) { c.el.__msDbl = true; c.a.onDbl(c.el, c.inst, function (hit) { onChartDbl(rt.chart(c.key) || c, hit); }); }
       if (c.el.closest('.ms-block:not(.ms-inline) .ms-visual') && !c.inst.__msFill) { c.inst.__msFill = true; c.a.fill(c.inst); }
+      renderSummary(c);
     } catch (e) { console.warn('[Mothership] chart apply failed', c.key, e); }
   }
 
@@ -2244,6 +2658,11 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     '.ms-kpi-label{font-size:12px;color:var(--ms-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}',
     '.ms-kpi-value{font-size:26px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}',
     '.ms-kpi-note{font-size:12px;color:var(--ms-muted)}',
+    '.ms-summary{font-size:12.5px;line-height:1.45;color:var(--ms-muted);margin:6px 2px 0}',
+    '#ms-badge{position:fixed;right:10px;bottom:10px;z-index:9990;background:rgba(255,255,255,.94);color:#334155;border:1px solid #e2e8f0;border-radius:8px;padding:5px 9px;font:12px/1.4 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;max-width:360px}',
+    '#ms-badge .ms-badge-log{display:none;margin-top:6px;border-top:1px solid #e2e8f0;padding-top:6px;max-height:220px;overflow:auto}#ms-badge.open .ms-badge-log{display:block}#ms-badge .ms-badge-log>div{margin-bottom:6px}',
+    '#ms-errbar{position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:9991;background:#fffbeb;color:#78350f;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font:13px/1.4 system-ui,sans-serif;display:flex;gap:10px;align-items:center;max-width:90vw;box-shadow:0 4px 14px rgba(0,0,0,.1)}#ms-errbar button{border:0;background:none;cursor:pointer;color:inherit;font-size:14px}',
+    '@media print{#ms-badge,#ms-errbar{display:none}}',
     '.ms-kpi[data-ms-status=good]{border-top-color:#1a7f37}.ms-kpi[data-ms-status=warn]{border-top-color:#d4a106}.ms-kpi[data-ms-status=bad]{border-top-color:#c62828}',
     '.ms-kpi[data-ms-status] .ms-kpi-value::before{content:"";display:inline-block;width:.42em;height:.42em;border-radius:50%;margin-right:.3em;vertical-align:.18em}',
     '.ms-kpi[data-ms-status=good] .ms-kpi-value::before{background:#1a7f37}.ms-kpi[data-ms-status=warn] .ms-kpi-value::before{background:#d4a106}.ms-kpi[data-ms-status=bad] .ms-kpi-value::before{background:#c62828}',
@@ -2395,6 +2814,38 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   };
 
   /* ------------------------------------------------------------ refresh */
+  /* ------------------------------------------------------------ published files: version stamp, and a calm message if something fails */
+  function fmtDate(d) { try { return new Date(d).toLocaleDateString(locale().locale, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return String(d || ''); } }
+  function renderBadge() {
+    var P = rt.state.publish, b = D.getElementById('ms-badge');
+    if (EDITOR || !P || !P.version || P.badge === false) { if (b) b.remove(); return; }
+    if (!b) {
+      b = el('div', { id: 'ms-badge', role: 'note' });
+      b.addEventListener('click', function () { b.classList.toggle('open'); });
+      D.body.appendChild(b);
+    }
+    var bits = ['Version ' + P.version, 'Published ' + fmtDate(P.at)].concat(P.asOf ? ['Data as of ' + fmtDate(P.asOf)] : []);
+    b.innerHTML = '';
+    b.appendChild(el('div', { 'class': 'ms-badge-line', text: bits.join(' · ') }));
+    var log = el('div', { 'class': 'ms-badge-log' }, (P.log || []).slice().reverse().slice(0, 8).map(function (x) {
+      return el('div', {}, [el('b', { text: 'Version ' + x.version }), ' · ' + fmtDate(x.at) + (x.by ? ' · ' + x.by : ''), x.note ? el('div', { text: x.note }) : null]);
+    }));
+    b.appendChild(log);
+    b.title = 'Click for release notes';
+  }
+  var errShown = false;
+  function showErr(msg) {
+    if (errShown || !D.body) return; errShown = true;
+    var bar = el('div', { id: 'ms-errbar', role: 'alert' }, [el('span', { text: 'Part of this dashboard didn\u2019t load' + (msg ? ' (' + String(msg).slice(0, 80) + ')' : '') + '. The rest works. If it persists, ask the owner for a fresh copy.' }),
+      el('button', { text: '\u2715', title: 'Hide', onclick: function () { bar.remove(); } })]);
+    D.body.appendChild(bar);
+  }
+  if (!EDITOR) {
+    // errors before the runtime loaded were noted by the #ms-early script in <head>
+    if (window.__msErrs && window.__msErrs.length) showErr(window.__msErrs[0].message);
+    window.addEventListener('error', function (e) { showErr(e && e.message); });
+  }
+
   rt.refresh = function (force) {
     ensureStyle('ms-base-css', BASE_CSS);
     ensureStyle('ms-theme-css', themeCss());
@@ -2413,6 +2864,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     renderNative();
     renderKpis();
     ensureStyle('ms-tip-css', tipCss());
+    renderBadge();
     bindTips();
     cloneCopies();
     rt.charts().forEach(function (c) { applyChart(c, force); });
@@ -2476,6 +2928,12 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var rs = doc.createElement('script'); rs.id = 'ms-runtime'; rs.setAttribute('data-ms-own', '');
     rs.textContent = MS.RUNTIME_SRC().replace(/<\/script/gi, '<\\/script');
     doc.body.appendChild(rs);
+    // first thing in <head>: note script errors from the very start, before the page's own scripts run
+    // (the runtime shows viewers a calm message; "Ready to publish?" lists them)
+    var early = doc.getElementById('ms-early'); if (early) early.remove();
+    early = doc.createElement('script'); early.id = 'ms-early'; early.setAttribute('data-ms-own', '');
+    early.textContent = EARLY;
+    doc.head.insertBefore(early, doc.head.firstChild);
 
     if (opts.editor) {
       var head = doc.head;
@@ -2489,6 +2947,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     }
     return { html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML, doc: doc };
   };
+  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<20)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
   function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
   MS.safeJson = safeJson;
 
@@ -2504,6 +2963,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- open */
   MS.openHtml = function (html, name, opts) {
     opts = opts || {};
+    // a published file locked for editing asks for its password first (see publish.js)
+    if (!opts.unlocked && MS.publish && MS.publish.isLocked(html)) {
+      return MS.publish.gate(html, name || 'dashboard.html', opts.password).then(function (ok) {
+        if (!ok) { if (opts.password != null) throw new Error('Wrong password: "' + (name || 'this file') + '" is locked for editing.'); return false; }
+        return MS.openHtml(html, name, Object.assign({}, opts, { unlocked: true }));
+      });
+    }
     MS.doc = { name: name || 'dashboard.html', source: html, folder: !!opts.folder };
     var probe = new DOMParser().parseFromString(html, 'text/html');
     var rel = opts.folder ? [] : relativeRefs(probe);
@@ -2518,6 +2984,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     MS.$('#doc-name').textContent = MS.doc.name;
     if (rel.length) MS.toast(rel.length + ' linked file(s) (e.g. ' + rel[0] + ') can\'t load from a single file. Use "Open folder" so Mothership can bundle them.', 'warn', 9000);
     MS.emit('doc-opened', MS.doc);
+    return Promise.resolve(true);
   };
 
   function mountFrame(html) {
@@ -2537,7 +3004,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   MS.reload = function (keepState) {
     if (!MS.doc) return;
     var html = MS.exportHtml({ keepEditor: false });
-    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder });
+    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder, unlocked: true });
   };
 
   MS.openFileObj = function (file) {
@@ -2555,7 +3022,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     try { return decodeURIComponent(new URL(rel.split('#')[0].split('?')[0], 'http://x/' + (dir ? dir + '/' : '')).pathname.slice(1)); } catch (e) { return null; }
   }
   var TEXT_EXT = /^(json|csv|tsv|txt|geojson|xml|md)$/;
-  MS.openFolder = function (files) {
+  MS.openFolder = function (files, opts) {
     var map = {};
     files.forEach(function (f) { map[f.webkitRelativePath || f.name] = f; });
     var htmls = Object.keys(map).filter(function (p) { return /\.html?$/i.test(p); });
@@ -2606,8 +3073,10 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
             doc.head.insertBefore(s, doc.head.firstChild);
           }
           if (missing.length) MS.toast('Could not find: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : ''), 'warn', 8000);
-          MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true });
-          MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+          return MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true, password: opts && opts.password }).then(function (ok) {
+            if (ok) MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+            return ok;
+          });
         });
       });
     });
@@ -2650,6 +3119,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var rt = MS.rt();
     var state = rt ? rt.getState() : JSON.parse(JSON.stringify(MS.doc.state || {}));
     if (opts.dropComments) delete state.comments;
+    // only a published copy carries the seal (publish.js fills it in); working copies never do
+    if (opts.publish) state.publish = opts.publish;
+    else if (state.publish) delete state.publish.seal;
     var root = MS.child.doc.documentElement.cloneNode(true);
     MS.$$('[data-ms-editor]', root).forEach(function (n) { n.remove(); });
     MS.$$('.ms-sel,.ms-hover,.ms-editing,.ms-drop,.ms-dragging,.ms-flash,.ms-cmt-hover', root).forEach(function (n) { n.classList.remove('ms-sel', 'ms-hover', 'ms-editing', 'ms-drop', 'ms-dragging', 'ms-flash', 'ms-cmt-hover'); if (!n.className) n.removeAttribute('class'); });
@@ -4203,11 +4675,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   var PRESETS = [
     ['', '(chart default)'],
     ['{label}: {value}', 'Label: value'],
+    ['{series}\n{label}: {value:cur}', 'Series + currency'],
+    ['{label}\n{value:curshort}', 'Currency short ($1.2M)'],
     ['{series}\n{label}: {value:inr}', 'Series + ₹ value'],
     ['{label}\n{value:cr}', '₹ crore'],
     ['{label}\n{value:lakh}', '₹ lakh'],
     ['{label}: {value} ({pct:pct} of total)', 'Value + share %'],
-    ['{label}\nValue: {value:inr}\nRecords: {count}', 'Value + record count (bound charts)']
+    ['{label}\nValue: {value:cur}\nRecords: {count}', 'Value + record count (bound charts)']
   ];
 
   C.settings = function (key, startTab) {
@@ -4234,7 +4708,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var tipPane = MS.h('div', {}, [
       MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Start from' }), preset]),
       MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Tooltip template (new line = new line in the tooltip)' }), tplIn]), chips,
-      MS.h('small', { 'class': 'hint', html: 'Formats: <code>{value:inr}</code> ₹1,23,456 · <code>{value:cr}</code> ₹1.23 Cr · <code>{value:lakh}</code> · <code>{value:k}</code> · <code>{value:pct}</code> · <code>{value:0.0}</code> · <code>{value:usd}</code>' }),
+      MS.h('small', { 'class': 'hint', html: 'Formats (Design › Region & currency sets the currency): <code>{value:cur}</code> $1,234 · <code>{value:curshort}</code> $1.2M · <code>{value:short}</code> 1.2M · <code>{value:inr}</code> ₹1,23,456 · <code>{value:cr}</code> ₹1.23 Cr · <code>{value:lakh}</code> · <code>{value:k}</code> · <code>{value:pct}</code> · <code>{value:0.0}</code> · <code>{value:usd}</code>' }),
       MS.h('div', { 'class': 'field' }, [MS.h('span', { text: 'Preview' }), preview])
     ]);
 
@@ -4320,7 +4794,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     dsSel.addEventListener('change', function () { levels = []; drawData(); drawSuggest(); });
     drawData();
     drawSuggest();
-    var dataPane = MS.h('div', {}, [suggest, MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
+    var dataPane = c.a.basic ? MS.h('div', {}, [MS.h('p', { 'class': 'hint', html: 'This chart is drawn by the page\'s own script (D3 or similar), so Mothership can\'t redraw it from other data. You can still change its pop-up, colours, look and commentary, save it as an image, and comment on it. To drill down, rebuild it with <b>Insert › Chart</b> from the same data.' })])
+      : MS.h('div', {}, [suggest, MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
 
     /* -- layout & commentary pane -- */
     var head = block && block.querySelector('.ms-head');
@@ -4437,7 +4912,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var legend = MS.h('select', { 'class': 'inp' }, [['', '(chart default)'], ['top', 'Top'], ['bottom', 'Bottom'], ['right', 'Right'], ['left', 'Left'], ['none', 'Hidden']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.legend || '')) op.selected = true; return op; }));
     var tipSize = MS.h('input', { 'class': 'inp', type: 'number', min: 8, max: 32, placeholder: 'auto', value: style.tipSize || '' });
     var tipRadius = MS.h('input', { 'class': 'inp', type: 'number', min: 0, max: 24, placeholder: 'auto', value: style.tipRadius != null ? style.tipRadius : '' });
-    var axisFmt = MS.h('select', { 'class': 'inp', title: 'How numbers on the value axis are written (Chart.js and ECharts charts)' }, [['', '(chart default)'], ['int', '1,23,456'], ['inr', '₹1,23,456'], ['cr', '₹ crore'], ['lakh', '₹ lakh'], ['k', 'Thousands (K)'], ['m', 'Millions (M)'], ['pct', 'Percent (%)']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.axisFormat || '')) op.selected = true; return op; }));
+    var axisFmt = MS.h('select', { 'class': 'inp', title: 'How numbers on the value axis are written (Chart.js and ECharts charts)' }, [['', '(chart default)'], ['cur', 'Currency ($1,234)'], ['curshort', 'Currency short ($1.2M)'], ['short', 'Short (1.2M)'], ['int', 'Whole number'], ['inr', '₹1,23,456'], ['cr', '₹ crore'], ['lakh', '₹ lakh'], ['k', 'Thousands (K)'], ['m', 'Millions (M)'], ['pct', 'Percent (%)']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.axisFormat || '')) op.selected = true; return op; }));
     var color = optColor(style.color, fire, compact), tipBg = optColor(style.tipBg, fire, compact), tipColor = optColor(style.tipColor, fire, compact), tipBorder = optColor(style.tipBorder, fire, compact);
     function val() {
       return clean({ font: font.value, size: size.value ? +size.value : '', color: color.value, legend: legend.value, axisFormat: axisFmt.value, tipBg: tipBg.value, tipColor: tipColor.value, tipBorder: tipBorder.value, tipSize: tipSize.value ? +tipSize.value : '', tipRadius: tipRadius.value === '' ? '' : +tipRadius.value });
@@ -4475,7 +4950,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   'use strict';
   var Cp = MS.compose = {};
 
-  function today() { return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function today() { return new Date().toLocaleDateString(MS.locale ? MS.locale.get().locale : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }); }
 
   // Turn an HTML string into owned (export-kept) nodes inside the child.
   function make(html) {
@@ -4569,7 +5044,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   /* ---------------------------------------------------------- KPI cards */
   var AGGS = [{ value: 'sum', label: 'Sum' }, { value: 'avg', label: 'Average' }, { value: 'count', label: 'Count rows' }, { value: 'distinct', label: 'Count distinct' }, { value: 'min', label: 'Minimum' }, { value: 'max', label: 'Maximum' }];
-  var FORMATS = [{ value: '', label: 'Number (1,23,456.78)' }, { value: 'inr', label: '₹ (₹1,23,457)' }, { value: 'cr', label: '₹ crore' }, { value: 'lakh', label: '₹ lakh' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
+  var FORMATS = [{ value: '', label: 'Number (region style)' }, { value: 'cur', label: 'Currency (region, e.g. $1,234)' }, { value: 'curshort', label: 'Currency short ($1.2M)' }, { value: 'short', label: 'Short (1.2M)' }, { value: 'inr', label: '₹ (₹1,23,457)' }, { value: 'cr', label: '₹ crore' }, { value: 'lakh', label: '₹ lakh' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
   function kpiCard(id, label, value, note) {
     var c = make('<div class="ms-kpi"><div class="ms-kpi-label"></div><div class="ms-kpi-value"></div><div class="ms-kpi-note"></div></div>');
     if (id) c.setAttribute('data-ms-kpi', id);
@@ -4595,7 +5070,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
           var fld = nums[i % (nums.length || 1)], id = rt.uid('k');
           specs[id] = fld ? { dataset: v.ds, measure: fld.name, agg: 'sum', format: '' } : { dataset: v.ds, agg: 'count', format: 'int' };
           row.appendChild(kpiCard(id, fld ? 'Total ' + fld.name : 'Records', '…', v.ds));
-        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), '₹0 Cr', 'vs last month'));
+        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), MS.rt() ? MS.rt().fmtNum(0, 'cur') : '$0', 'vs last month'));
       }
       MS.history.group('Insert KPI cards', function () {
         if (v.ds) MS.history.state('KPI settings', function (s) { Object.keys(specs).forEach(function (k) { s.kpis[k] = specs[k]; }); });
@@ -4624,7 +5099,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       { key: 'bad', label: 'Red (bad) at or beyond', type: 'number', value: st.bad != null ? st.bad : '' }
     ]);
     var body = MS.h('div', {}, [f, MS.h('h4', { 'class': 'rag-head', text: 'Status colours (red / amber / green)' }), rag,
-      MS.h('small', { 'class': 'hint', text: 'Use the raw numbers from the data, before ₹ crore or lakh formatting. In between is amber. The colour updates whenever filters change.' })]);
+      MS.h('small', { 'class': 'hint', text: 'Use the raw numbers from the data, before currency or K/M formatting. In between is amber. The colour updates whenever filters change.' })]);
     f.inputs.dataset.addEventListener('change', function () { f.inputs.measure.innerHTML = ''; fieldsOf(f.inputs.dataset.value).forEach(function (o) { f.inputs.measure.appendChild(MS.h('option', { value: o.value, text: o.label })); }); });
     MS.dialog({ title: 'KPI card', body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { var o = f.values(); o.rag = rag.values(); return o; } }] }).then(function (v) {
       if (!v) return;
@@ -4704,7 +5179,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   /* ---------------------------------------------------------- new dashboard */
   function blankHtml(title) {
-    return '<!DOCTYPE html>\n<html lang="en-IN">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + MS.esc(title) + '</title>\n' +
+    return '<!DOCTYPE html>\n<html lang="' + (MS.locale ? MS.locale.get().locale : 'en-US') + '">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + MS.esc(title) + '</title>\n' +
       '<style>\nbody{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:#1f2937;background:#f6f7fb}\n.page{padding:20px 24px;max-width:1400px;margin:0 auto}\n</style>\n</head>\n<body>\n<main class="page">\n' +
       '<header class="ms-banner"><h1>' + MS.esc(title) + '</h1><p>What this dashboard answers · Updated ' + today() + '</p></header>\n' +
       '<p>Start building from the <b>Insert</b> tab: sections, KPI cards, charts from your data, columns, callouts and a footer.</p>\n</main>\n</body>\n</html>\n';
@@ -5099,10 +5574,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   }
 
   /* ---------------------------------------------------------- documents */
-  A.open_html = { d: 'Open a dashboard from its HTML source.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'] },
-    f: function (a) { MS.openHtml(a.html, a.name || 'dashboard.html'); return settle(1800).then(function () { return A.outline.f({}); }); } };
-  A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true] },
-    f: function (a) { MS.openFolder(a.files.map(fileOf)); return settle(2500).then(function () { return A.outline.f({}); }); } };
+  A.open_html = { d: 'Open a dashboard from its HTML source. A published file locked for editing needs its password.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'], password: ['string', 'Password, for a published file locked for editing'] },
+    f: function (a) {
+      if (MS.publish.isLocked(a.html) && a.password == null) throw new Error('This file is locked for editing. Pass its password.');
+      return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password == null ? undefined : a.password }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
+    } };
+  A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true], password: ['string', 'Password, for a published file locked for editing'] },
+    f: function (a) { return Promise.resolve(MS.openFolder(a.files.map(fileOf), { password: a.password })).then(function (ok) { if (ok === false) throw new Error('Not opened: the dashboard is locked for editing.'); return settle(2500); }).then(function () { return A.outline.f({}); }); } };
   A.new_dashboard = { d: 'Start a new dashboard from scratch.', p: { title: ['string', 'Dashboard name'], tabs: ['boolean', 'Start with Overview, How to use, FAQs and Methodology tabs (default true)'] },
     f: function (a) {
       MS.dirty = false; MS.compose.newDoc();
@@ -5203,12 +5681,50 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       MS.history.group('Insert KPI cards', function () { if (Object.keys(specs).length) MS.history.state('KPI settings', function (s) { Object.keys(specs).forEach(function (k) { s.kpis[k] = specs[k]; }); }); MS.compose.place(row, 'Insert KPI cards'); });
       return settle(150).then(function () { return { ref: refOf(row), cards: MS.$$('.ms-kpi', row).map(refOf), values: MS.$$('.ms-kpi-value', row).map(function (v) { return v.textContent; }) }; });
     } };
-  A.kpi_status = { d: 'Give a calculated KPI card red / amber / green status colours. Thresholds are raw data values (before ₹ crore formatting); between them is amber. better="" removes the colours.', p: { ref: ['string', 'KPI card ref (or its row: the first card is used)', true], better: ['string', 'high (higher is better) | low | "" to remove', true], good: ['number', 'Green at or beyond this'], bad: ['number', 'Red at or beyond this'] },
+  A.kpi_status = { d: 'Give a calculated KPI card red / amber / green status colours. Thresholds are raw data values (before currency or K/M formatting); between them is amber. better="" removes the colours.', p: { ref: ['string', 'KPI card ref (or its row: the first card is used)', true], better: ['string', 'high (higher is better) | low | "" to remove', true], good: ['number', 'Green at or beyond this'], bad: ['number', 'Red at or beyond this'] },
     f: function (a) {
       var el = elOf(a.ref), card = el.closest('[data-ms-kpi]') || el.querySelector('[data-ms-kpi]'); if (!card) throw new Error('That is not a calculated KPI card. Insert KPI cards from a dataset first.');
       var id = card.getAttribute('data-ms-kpi');
       MS.history.state('KPI status colours', function (s) { if (!s.kpis[id]) return; if (a.better) s.kpis[id].status = { better: a.better, good: a.good, bad: a.bad }; else delete s.kpis[id].status; });
       return settle(150).then(function () { return { ref: refOf(card), status: card.getAttribute('data-ms-status') || null, value: (card.querySelector('.ms-kpi-value') || {}).textContent }; });
+    } };
+  A.chart_summaries = { d: 'Plain-language summaries of the charts ("West is highest at ₹4.2 Cr (38%)…"), written from the numbers on screen. Optionally add them as captions under the charts or for screen readers.', p: { chart: ['string', 'One chart (default: all)'], show: ['string', 'caption | aria (screen readers only) | off; leave out to just read them'] },
+    f: function (a) {
+      var keys = a.chart ? [chartKey(a.chart)] : rt().charts().map(function (c) { return c.key; });
+      if (a.show) MS.summaries.set(keys, a.show);
+      return settle(200).then(function () { return MS.summaries.list().filter(function (x) { return keys.indexOf(x.key) >= 0; }).map(function (x) { return { chart: x.name, kind: x.kind, summary: x.summary, shown: x.show }; }); });
+    } };
+  A.get_locale = { d: 'The region and currency Mothership uses to write numbers (US dollars unless changed), with examples.', p: {},
+    f: function () { var o = MS.locale.get(); return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); } };
+  A.set_locale = { d: 'Set the country, currency and number style for pop-ups, axes, KPI cards and summaries that use the currency or short formats. Give a country (US, India, Germany…) and optionally a different currency.', p: { country: ['string', 'Country name or 2-letter code, e.g. US, IN, GB, DE'], currency: ['string', '3-letter currency code, e.g. USD, INR, EUR (default: the country\'s)'], locale: ['string', 'Number style, e.g. en-US, en-IN, de-DE (default: the country\'s)'], units: ['string', 'intl (K, M, B) | indian (lakh, crore)'] },
+    f: function (a) { var o = MS.locale.set(a); return settle(400).then(function () { return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); }); } };
+  A.publish_check = { d: 'Ready to publish? Checks script errors, charts with no numbers, untitled charts, KPI totals, open comments, internet files, size and title. fail = fix first, warn = look at it.', p: {},
+    f: function () { var items = MS.preflight.run(); return { ready: !items.some(function (x) { return x.status === 'fail'; }), items: items }; } };
+  A.publish = { d: 'Make a view-only published copy: version number, date, release note and corner badge; optionally locked for editing with a password; sealed so Mothership warns if it is changed later. Returns the HTML (the MCP publish_html tool saves it).', p: { version: ['string', 'e.g. 1.0 (default: next after the last publish)'], note: ['string', 'What changed'], by: ['string', 'Published by'], as_of: ['string', 'Data as of (YYYY-MM-DD)'], password: ['string', 'Lock editing in Mothership with this password (6+ characters). Without one, an earlier lock is kept'], unlock: ['boolean', 'Remove an earlier lock'], badge: ['boolean', 'Show the version badge (default true)'], keep_comments: ['boolean', 'Keep review comments in the file'] },
+    f: function (a) {
+      if (a.password && String(a.password).length < 6) throw new Error('Use a password of at least 6 characters.');
+      return MS.publish.build({ version: a.version, note: a.note, by: a.by, asOf: a.as_of, password: a.password, keepLock: !a.unlock, badge: a.badge, keepComments: !!a.keep_comments }).then(function (r) {
+        return { html: r.html, name: r.name, bytes: r.html.length, version: r.publish.version, locked: !!r.publish.lock, sha256: r.sha256 };
+      });
+    } };
+  A.number_check = { d: 'Check that KPI cards match the totals of the charts that show the same measure, and that charts of the same measure add up alike. Returns differences first.', p: { add_comments: ['boolean', 'Add a review comment for each difference'] },
+    f: function (a) {
+      var res = MS.numcheck.run();
+      if (a.add_comments) res.filter(function (x) { return x.status === 'diff'; }).forEach(function (x) { A.add_comment.f({ ref: x.el ? refOf(x.el) : null, chart: x.el ? null : x.chart, text: 'Numbers don\'t add up: ' + x.what + ' shows ' + x.shown + ' but ' + x.against + ' adds up to ' + x.expected + '. ' + (x.note || ''), type: 'bug', priority: 'must' }); });
+      return res.map(function (x) { return { status: x.status, item: x.what, shows: x.shown, against: x.against || null, addsUpTo: x.expected || null, note: x.note || null }; });
+    } };
+  A.comments_tracker = { d: 'All review comments as an Excel tracker (tab, section, chart, comment, done-when, status, owner, due). Returns the .xlsx as base64; the save_tracker tool writes it to disk.', p: {},
+    f: function () { return MS.tracker.build().then(function (r) { var b = '', u = new Uint8Array(r.bytes); for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { name: r.name, rows: r.rows, b64: btoa(b) }; }); } };
+  A.apply_tracker = { d: 'Update comments from an edited tracker (.xlsx): status, priority, owner, due, notes and wording, matched by the ID column.', p: { file: ['object', '{name, b64}', true] },
+    f: function (a) { return MS.readFile(fileOf(a.file), 'buffer').then(function (b) { return MS.tracker.apply(b); }); } };
+  A.compare_versions = { d: 'What changed between two versions: tabs, text, chart settings, data, KPI cards, filters, colours and comments. Compares saved versions by name, the dashboard now ("now"), or HTML you pass.', p: { before: ['string', 'Saved version name, or "now"'], after: ['string', 'Saved version name, or "now" (default)'], before_html: ['string', 'Or the HTML of the earlier file'], after_html: ['string', 'Or the HTML of the later file'] },
+    f: function (a) {
+      return MS.compare.sources().then(function (src) {
+        var pick = function (n, html) { if (html) return html; n = n || 'now'; var x = src.filter(function (s) { return s.id === n || (n === 'now' && s.id === 'now') || s.name.split(' · ')[0].toLowerCase() === String(n).toLowerCase(); })[0]; if (!x) throw new Error('No version called "' + n + '". Versions: ' + src.map(function (s) { return s.name.split(' · ')[0]; }).join(', ')); return x.get(); };
+        if (!a.before && !a.before_html) throw new Error('Say what to compare from: before (a version name) or before_html.');
+        var r = MS.compare.compare(pick(a.before, a.before_html), pick(a.after, a.after_html));
+        return { changes: r.changes, sections: r.sections };
+      });
     } };
   A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], sort: ['string', 'desc | asc | "" (by label)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
     f: function (a) {
@@ -5270,8 +5786,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- charts */
   A.chart_settings = { d: 'Change a chart: commentary (title/subtitle/inference), pop-up text template, look (fonts, legend, pop-up colours, axis number format), linked data and drill-down.', p: {
       chart: ['string', 'Chart name or key', true], title: ['string', 'Title above the chart'], subtitle: ['string', 'Subtitle'], inference: ['string', 'The "so what" line'],
-      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:cr}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :inr :cr :lakh :k :m :pct :int'],
-      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: inr|cr|lakh|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
+      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:cr}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :cur :curshort :short (follow set_locale) :inr :cr :lakh :k :m :pct :int'],
+      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: cur|curshort|short|inr|cr|lakh|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
       data: ['object', '{dataset, levels:[col,...], measure, agg, series, sort, top} (null = unlink)'], double_click: ['string', 'levels | details | crossfilter | none'], columns: ['array', 'Columns in the records view'] },
     f: function (a) {
       var r = rt(), key = chartKey(a.chart), c = r.chart(key);
@@ -5413,6 +5929,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     } };
 
   MS.api = {};
+  MS.api.refOf = refOf;
   Object.keys(A).forEach(function (k) { MS.api[k] = function (args) { return A[k].f(args || {}); }; });
   // tool descriptions with JSON Schemas, for MCP and docs
   MS.api.describe = function () {
@@ -5856,6 +6373,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       if (c.lib === 'chartjs') { var tt = c.inst.tooltip; if (tt && tt.opacity && tt.body) return clip([].concat(tt.title || []).join(' ') + ' ' + tt.body.map(function (b) { return b.lines.join(' '); }).join(' · '), 160); }
       if (c.lib === 'echarts') { var dv = Array.prototype.filter.call(c.el.querySelectorAll('div'), function (d) { return /z-index:\s*9999999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && d.style.opacity !== '0'; })[0]; if (dv) return clip(dv.textContent, 160); }
       if (c.lib === 'plotly') { var hl = c.el.querySelector('.hoverlayer'); if (hl && hl.textContent.trim()) return clip(hl.textContent, 160); }
+      if (c.lib === 'highcharts') { var ht = MS.$$('.highcharts-tooltip', c.el).map(function (x) { return x.textContent.trim(); }).filter(Boolean).join(' '); if (ht && c.inst.tooltip && !c.inst.tooltip.isHidden) return clip(ht, 160); }
+      if (c.lib === 'd3') { var tp = cdoc().querySelector('.ms-hovertip'); if (tp && tp.style.display !== 'none' && tp.textContent) return clip(tp.textContent, 160); }
     } catch (e) {}
     return '';
   }
@@ -5863,6 +6382,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     try {
       if (c.lib === 'chartjs') { var p = c.inst.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)[0]; if (p) return String(c.inst.data.labels[p.index]); }
       if (c.lib === 'plotly' && c.el._hoverdata && c.el._hoverdata[0]) { var q = c.el._hoverdata[0]; return String(q.label != null ? q.label : q.x); }
+      if (c.lib === 'highcharts' && c.inst.hoverPoint) { var hp = c.inst.hoverPoint; return String(hp.name != null ? hp.name : hp.category); }
+      if (c.lib === 'd3' && e && e.target && e.target.__data__) { var ms = c.a.marks(c.el), j = ms.indexOf(e.target); if (j >= 0) return c.a.labelOf(e.target.__data__, j); }
     } catch (x) {}
     return '';
   }
@@ -6011,11 +6532,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- the comment dialog */
   function editor(c, extra) {
     var f = MS.form([
-      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in ₹ crore, and add last year for comparison.' },
+      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in millions, and add last year for comparison.' },
       { key: 'type', label: 'Type', type: 'select', options: TYPES, value: c.type || 'change' },
       { key: 'prio', label: 'Priority', type: 'select', options: PRIOS, value: c.prio || 'should' }
     ]);
-    f.inputs.text.placeholder = 'e.g. Show values in ₹ crore, and add last year for comparison.';
+    f.inputs.text.placeholder = 'e.g. Show values in millions, and add last year for comparison.';
     var labels = f.querySelectorAll(':scope > label');
     f.appendChild(h('div', { 'class': 'row gap' }, [labels[1], labels[2]]));
     return { el: h('div', { 'class': 'cmt-ed' }, [extra, f]), f: f };
@@ -6201,7 +6722,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       var charts = r.charts();
       if (charts.length) {
         L.push('- Charts (' + charts.length + '):');
-        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly' }[c.lib];
+        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly', highcharts: 'Highcharts', d3: 'D3 (SVG)' }[c.lib];
           L.push('  - “' + MS.charts.nameOf(c.key) + '”: ' + MS.charts.kindName(info.type).toLowerCase() + ' drawn with ' + lib + (sec ? ', on the “' + sec.getAttribute('data-ms-title') + '” tab' : '') + (c.el.id ? ', element `#' + c.el.id + '`' : '') + '.'); });
       }
       var ds = Object.keys(r.state.datasets);
@@ -6213,7 +6734,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     L.push('2. Do not invent data. If a comment needs data the file does not have, say so and leave a clearly marked placeholder.');
     L.push('3. The file was saved by an editor called Mothership. Keep every `data-ms-*` attribute, the `<script id="ms-state" type="application/json">` block and the `<script id="ms-runtime">` block. If a change needs a setting stored in `ms-state` (tooltips, chart look, drill-down), you may edit that JSON carefully.');
     L.push('4. Each comment says where it is: a description, a selector you can search for (`[data-ms-id="…"]` or `[data-ms-ref="…"]`), and a fallback CSS path.');
-    L.push('5. Formats follow India: ₹, lakh and crore (e.g. ₹1,23,45,678 or ₹1.23 Cr), DD-MM-YYYY dates, and the April–March financial year, unless a comment says otherwise.');
+    L.push('5. ' + MS.locale.rule());
     L.push('6. Keep it accessible: readable contrast, text at least 12px, and charts that still make sense without colour.');
     if (o.extra) L.push('7. ' + o.extra.trim());
     L.push('');
@@ -6298,7 +6819,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   function rt() { return MS.rt(); }
   function clip(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   function q(s) { return '“' + s + '”'; }
-  var LIB = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly' };
+  var LIB = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly', highcharts: 'Highcharts', d3: 'D3 (SVG)' };
 
   /* ---------------------------------------------------------- where is this element? */
   var CARDISH = /(^|[-_ ])(card|panel|tile|widget|box|kpi|metric|chart-?wrap|chart-?box|chart-?container|ms-block)([-_ ]|$)/i;
@@ -6394,9 +6915,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     { re: /colou?r|palette|green|red|blue|amber|brand|theme|dark|light/i, id: 'colour', tool: 'category_colors / chart_settings.look / set_style', ui: 'Charts › Category colours, or the Format panel', done: 'the new colours show everywhere this item appears, with readable contrast' },
     { re: /font|bold|italic|size|bigger|smaller|text size|typeface/i, id: 'type', tool: 'set_style / chart_settings.look', ui: 'Home › Font, or Charts › Look', done: 'the text uses the requested font/size and still fits without overlapping' },
     { re: /order|sort|rank|first|last|sequence|arrange/i, id: 'order', tool: 'category_order', ui: 'Charts › Category order', done: 'the categories appear in the requested order on every chart that shows them' },
-    { re: /tool ?tip|pop-?up|hover/i, id: 'tooltip', tool: 'chart_settings.tooltip / tooltip_all / set_popup', ui: 'Charts › Tooltip', done: 'hovering shows the requested text in Indian number formats' },
+    { re: /tool ?tip|pop-?up|hover/i, id: 'tooltip', tool: 'chart_settings.tooltip / tooltip_all / set_popup', ui: 'Charts › Tooltip', done: 'hovering shows the requested text in the dashboard\'s number format' },
     { re: /drill|double.?click|break ?down|deeper|detail/i, id: 'drill', tool: 'link_chart_data / chart_settings.data / drill_data_file', ui: 'Charts › Drill-down', done: 'double-clicking goes to the requested level and the breadcrumb leads back up' },
-    { re: /₹|crore|lakh|\bcr\b|format|decimal|percent|%|comma|million|units?/i, id: 'number', tool: 'chart_settings.look.axisFormat / chart_settings.tooltip', ui: 'Charts › Look › Axis numbers', done: 'numbers read in the requested format (e.g. ₹1.23 Cr) on axes, labels and pop-ups' },
+    { re: /₹|\$|€|£|currency|dollar|crore|lakh|\bcr\b|format|decimal|percent|%|comma|million|units?/i, id: 'number', tool: 'chart_settings.look.axisFormat / chart_settings.tooltip', ui: 'Charts › Look › Axis numbers', done: 'numbers read in the requested format (e.g. $1.2M or ₹1.23 Cr) on axes, labels and pop-ups' },
     { re: /title|subtitle|heading|label|wording|rename|typo|spelling|text|say|insight|inference|so what/i, id: 'words', tool: 'set_text / chart_settings.title / replace_text', ui: 'double-click the text', done: 'the new wording appears exactly where the comment points' },
     { re: /filter|slicer|drop-?down|select/i, id: 'filter', tool: 'filter_pane / set_filter', ui: 'Layout › Filter pane', done: 'every chart and KPI card follows the filter' },
     { re: /legend|axis|grid ?line|scale|bar|line chart|pie|donut|doughnut|stack|chart type|switch to/i, id: 'chart', tool: 'chart_settings', ui: 'double-click the chart', done: 'the chart shows the requested form and the numbers are unchanged' },
@@ -6422,6 +6943,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     }
     return { c: c, n: n, loc: loc || {}, alive: c.kind !== 'element' || !!el, topics: topicsOf(c.text) };
   }
+  R.resolveComment = resolve;
+
 
   /* ---------------------------------------------------------- the map of the dashboard */
   function mapOf(r, only) {
@@ -6538,7 +7061,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       'Never invent numbers. If a comment needs data the file does not have, say so and leave a clearly marked placeholder.',
       assistant === 'mcp' ? 'Each comment names its tab, section and chart exactly as Mothership shows them. Pass those names to the tools (e.g. `chart: "Sales by region"`).'
         : 'Find each item by its location and the selector given (`[data-ms-id]` / `[data-ms-ref]`), then the fallback CSS path. Keep every `data-ms-*` attribute and the `<script id="ms-state">` and `<script id="ms-runtime">` blocks: Mothership needs them to reopen the file. Settings such as chart look, pop-up text and drill-down live in the `ms-state` JSON under `charts["<key>"]`; you may edit that JSON carefully.',
-      'Use Indian formats unless a comment says otherwise: ₹, lakh and crore (₹1,23,45,678 or ₹1.23 Cr), DD-MM-YYYY dates, April–March financial year.',
+      MS.locale.rule(),
       'Keep it readable and accessible: text at least 12 px, good contrast, and charts that still make sense without colour.'
     ];
     if (kinds.interaction) rules.push('For interaction comments, follow the steps to reproduce the behaviour first, then fix it so the expected behaviour happens.');
@@ -6698,6 +7221,707 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var d = MS.$('.dlg-wrap:last-child .dlg'); if (d) d.classList.add('xwide');
     setTimeout(function () { side.scrollTop = 0; var cb = main.querySelector('.btn.primary'); if (cb) cb.focus(); }, 60);
   };
+})(window.MS);
+
+</script>
+<script>/* src/js/insights.js */
+/* Checks and reports: plain-language chart summaries, number check (KPI vs chart totals),
+   review comments as an Excel tracker (and back), and comparing two versions. */
+(function (MS) {
+  'use strict';
+  var h = MS.h;
+  function rt() { return MS.rt(); }
+  function need() { if (!MS.child) { MS.toast('Open a dashboard first.', 'warn'); return false; } if (!rt()) { MS.toast('Turn off Safe mode (View tab) first.', 'warn'); return false; } return true; }
+  function close() { var w = MS.$('.dlg-wrap'); if (w) w.remove(); }
+  function copy(text) {
+    var done = function () { MS.toast('Copied. Paste it into an email, Word or PowerPoint.', 'ok'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    fallback();
+    function fallback() { var t = h('textarea', { style: 'position:fixed;left:-9999px' }); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { MS.toast('Select the text and press Ctrl+C.', 'warn'); } t.remove(); }
+  }
+  var IN = function (x, d) { return Number(x).toLocaleString(MS.locale.get().locale, { maximumFractionDigits: d == null ? 2 : d }); };
+
+  /* ================================================================ chart summaries */
+  var S = MS.summaries = {};
+  S.list = function () {
+    var r = rt(); if (!r) return [];
+    return r.charts().map(function (c) {
+      var name = MS.charts.nameOf(c.key), cs = r.state.charts[c.key] || {};
+      return { key: c.key, name: name, kind: MS.charts.kindName((r.chartInfo(c.key) || {}).type), summary: r.summarize(c.key, name), show: cs.summary ? cs.summary.show || 'aria' : 'off' };
+    });
+  };
+  // show: 'caption' (text under the chart + screen readers), 'aria' (screen readers only), 'off'
+  S.set = function (keys, show) {
+    MS.history.state(show === 'off' ? 'Remove chart summaries' : 'Chart summaries', function (s) {
+      keys.forEach(function (k) {
+        var cs = s.charts[k] = s.charts[k] || {};
+        if (show === 'off') delete cs.summary; else cs.summary = { show: show, name: MS.charts.nameOf(k) };
+      });
+    });
+  };
+  S.text = function () { return S.list().filter(function (x) { return x.summary; }).map(function (x) { return x.name + '\n' + x.summary; }).join('\n\n'); };
+  S.dialog = function () {
+    if (!need()) return;
+    var items = S.list();
+    if (!items.length) return MS.toast('No charts found in this dashboard.', 'warn');
+    var OPTS = [{ value: 'off', label: 'Not added' }, { value: 'aria', label: 'Screen readers only' }, { value: 'caption', label: 'Caption under the chart' }];
+    var rows = items.map(function (x) {
+      var sel = h('select', { 'class': 'inp sm', onchange: function () { S.set([x.key], sel.value); } }, OPTS.map(function (o) { var e = h('option', { value: o.value, text: o.label }); if (o.value === x.show) e.selected = true; return e; }));
+      return h('div', { 'class': 'sum-row' }, [
+        h('div', { 'class': 'sum-head' }, [h('strong', { text: x.name }), h('small', { 'class': 'muted', text: x.kind }), h('span', { 'class': 'grow' }), sel]),
+        h('p', { 'class': 'sum-text', text: x.summary || 'Nothing to summarise (no numbers found).' })
+      ]);
+    });
+    var body = h('div', {}, [
+      h('p', { 'class': 'hint', text: 'One or two plain sentences per chart, written from the numbers on screen. Use them in emails, as captions, or for colleagues using screen readers. Captions update when filters change and stay in the exported file.' }),
+      h('div', { 'class': 'sum-list' }, rows)
+    ]);
+    MS.dialog({ title: 'Chart summaries', wide: true, body: body, buttons: [
+      { label: 'Close', value: null },
+      { label: 'Captions on all charts', value: function () { S.set(items.map(function (x) { return x.key; }), 'caption'); MS.toast('Captions added under ' + items.length + ' chart(s). Ctrl+Z undoes.', 'ok'); return null; } },
+      { label: 'Copy all', primary: true, value: function () { copy(S.text()); return false; } }
+    ] });
+  };
+
+  /* ================================================================ number check */
+  var N = MS.numcheck = {};
+  var STOP = { total: 1, overall: 1, sum: 1, the: 1, and: 1, for: 1, by: 1, of: 1, in: 1, ytd: 1, mtd: 1, qtd: 1, all: 1, value: 1, values: 1, amount: 1, chart: 1, series: 1, vs: 1, per: 1, to: 1, fy: 1, inr: 1, crore: 1, lakh: 1, cr: 1, rs: 1 };
+  function tokens(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !STOP[w] && !/^\d+$/.test(w); }).map(function (w) { return w.replace(/(ies)$/, 'y').replace(/s$/, ''); }); }
+  function overlap(a, b) { var n = 0; a.forEach(function (w) { if (b.indexOf(w) >= 0) n++; }); return n; }
+  // "₹1.25 Cr" -> { v: 12500000, tol: 50000, pct: false }
+  function regionComma() { return (1.5).toLocaleString(MS.locale.get().locale).indexOf(',') >= 0; }
+  N.parse = function (text) {
+    var t = String(text || '').replace(/ /g, ' ').trim();
+    // which mark is the decimal point? read it from the number itself (1,234.5 or 1.234,5),
+    // and only fall back to the region setting when it can't tell (1.234 or 1,234 alone)
+    var num0 = (t.match(/-?\d[\d.,\s\u202f\u00a0']*/) || [''])[0].replace(/[\s\u202f\u00a0']+$/, ''), comma;
+    var lc = num0.lastIndexOf(','), ld = num0.lastIndexOf('.');
+    if (lc >= 0 && ld >= 0) comma = lc > ld;
+    else if (lc >= 0) comma = !/^-?\d{1,3}(,\d{2,3})+$/.test(num0) || (num0.match(/,/g).length === 1 && /,\d{3}$/.test(num0) && regionComma());
+    else if (ld >= 0) comma = (num0.match(/\./g).length > 1) || (/^-?\d{1,3}\.\d{3}$/.test(num0) && regionComma());
+    else comma = false;
+    var fixed = comma ? num0.replace(/[.\s\u202f\u00a0']/g, '').replace(',', '.') : num0.replace(/[,\s\u202f\u00a0']/g, '');
+    var plain = num0 ? t.replace(num0, fixed) : t;
+    var m = plain.match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|thousand|k\b|millions?|mn\b|m\b|billions?|bn\b|b\b|%)?/i);
+    if (!m) return null;
+    var num = parseFloat(m[1]), unit = (m[2] || '').toLowerCase(), dec = (m[1].split('.')[1] || '').length;
+    if (/^million/.test(unit)) unit = 'm'; else if (/^billion/.test(unit)) unit = 'bn'; else if (unit === 'thousand') unit = 'k';
+    var scale = /^cr/.test(unit) ? 1e7 : /^(lakh|lac|l$)/.test(unit) ? 1e5 : unit === 'k' ? 1e3 : /^(m|mn)$/.test(unit) ? 1e6 : /^(bn|b)$/.test(unit) ? 1e9 : 1;
+    return { v: num * scale, tol: 0.5 * Math.pow(10, -dec) * scale, pct: unit === '%', unit: unit, text: t };
+  };
+  function kpis() {
+    var d = MS.child.doc, out = [], seen = [];
+    MS.$$('.ms-kpi', d).forEach(function (k) {
+      var v = k.querySelector('.ms-kpi-value'), l = k.querySelector('.ms-kpi-label');
+      if (v) { out.push({ el: k, valueEl: v, label: l ? l.textContent.trim() : '', shown: v.textContent.trim(), spec: k.getAttribute('data-ms-kpi') && rt().state.kpis[k.getAttribute('data-ms-kpi')] }); seen.push(k); }
+    });
+    MS.$$('[class*=kpi],[class*=metric],[class*=stat],[class*=tile]', d).forEach(function (k) {
+      if (seen.some(function (s) { return s.contains(k) || k.contains(s); }) || k.closest('[data-ms-editor]')) return;
+      var vs = MS.$$('[class*=value],[class*=number],[class*=figure],[class*=amount]', k); if (vs.length !== 1) return; // a row of cards, not one card
+      var v = vs[0], l = MS.$$('[class*=label],[class*=title],[class*=name],[class*=caption]', k)[0];
+      if (!v || !l || v.contains(l) || l.contains(v) || !/\d/.test(v.textContent) || v.textContent.length > 40) return;
+      out.push({ el: k, valueEl: v, label: l.textContent.trim(), shown: v.textContent.trim() }); seen.push(k);
+    });
+    return out.filter(function (k) { return k.el.offsetParent !== null || k.el.closest('section.ms-tab'); });
+  }
+  function fmtLike(p, v) {
+    if (!p) return IN(v);
+    var s = p.unit;
+    if (/^cr/.test(s)) return '₹' + IN(v / 1e7) + ' Cr';
+    if (/^(lakh|lac|l$)/.test(s)) return '₹' + IN(v / 1e5) + ' L';
+    if (s === 'k') return IN(v / 1e3, 1) + 'K';
+    if (/^(m|mn)$/.test(s)) return IN(v / 1e6) + 'M';
+    if (/^(bn|b)$/.test(s)) return IN(v / 1e9) + 'B';
+    var sym = (p.text.match(/[₹$€£¥]/) || [''])[0];
+    return sym + IN(v, 2);
+  }
+  function big(v) {
+    var a = Math.abs(v);
+    if (MS.locale.get().units === 'indian') return a >= 1e7 ? IN(v / 1e7) + ' crore' : a >= 1e5 ? IN(v / 1e5) + ' lakh' : IN(v);
+    return a >= 1e9 ? IN(v / 1e9) + ' billion' : a >= 1e6 ? IN(v / 1e6) + ' million' : IN(v);
+  }
+  function seriesOf(r, key) {
+    var d = r.chartData(key, true); if (!d) return [];
+    return d.series.map(function (s) {
+      var vals = s.values.filter(function (v) { return v != null; });
+      return { name: s.name, total: vals.reduce(function (a, b) { return a + b; }, 0), avg: vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null, n: vals.length };
+    });
+  }
+  N.run = function () {
+    var r = rt(), charts = r.charts().map(function (c) { var b = (r.state.charts[c.key] || {}).binding; return { key: c.key, name: MS.charts.nameOf(c.key), series: seriesOf(r, c.key), binding: b }; }).filter(function (c) { return c.series.length; });
+    var filtered = Object.keys(r.filterValues || {}).some(function (ds) { var fv = r.filterValues[ds]; return Object.keys(fv).some(function (k) { return fv[k] !== '' && fv[k] != null; }); });
+    var results = [];
+    kpis().forEach(function (k) {
+      var p = N.parse(k.shown), kt = tokens(k.label + ' ' + (k.spec && k.spec.measure || ''));
+      var res = { kind: 'kpi', what: 'KPI “' + (k.label || k.shown) + '”', shown: k.shown, el: k.valueEl || k.el };
+      if (!p) { results.push(Object.assign(res, { status: 'skip', note: 'No number to check.' })); return; }
+      if (p.pct) { results.push(Object.assign(res, { status: 'skip', note: 'A percentage: it is not a total of a chart.' })); return; }
+      if (k.spec && /^(count|distinct|min|max)$/.test(k.spec.agg || '')) { results.push(Object.assign(res, { status: 'skip', note: 'Counts rows (' + k.spec.agg + '), not a chart total.' })); return; }
+      var best = null;
+      charts.forEach(function (c) {
+        c.series.forEach(function (s) {
+          var sc = overlap(kt, tokens(c.name + ' ' + s.name));
+          if (k.spec && c.binding && c.binding.dataset === k.spec.dataset && c.binding.measure && c.binding.measure === k.spec.measure) sc += 3;
+          if (c.series.length > 1 && !overlap(kt, tokens(s.name)) && sc < 3) return; // a grouped chart: only the matching series
+          if (sc > 0 && (!best || sc > best.sc)) best = { sc: sc, c: c, s: s };
+        });
+      });
+      if (!best) { results.push(Object.assign(res, { status: 'skip', note: 'No chart shows the same measure (compared by name).' })); return; }
+      var avg = /avg|average|mean|per\b/i.test(k.label) || (k.spec && k.spec.agg === 'avg');
+      var target = avg ? best.s.avg : best.s.total, diff = p.v - target, tol = Math.max(p.tol, Math.abs(target) * 0.005);
+      res.against = 'chart “' + best.c.name + '”' + (best.c.series.length > 1 ? ' › ' + best.s.name : '') + (avg ? ' (average)' : ' (total)');
+      res.chart = best.c.key; res.expected = fmtLike(p, target);
+      if (Math.abs(diff) <= tol) res.status = 'ok';
+      else {
+        res.status = 'diff';
+        res.note = 'Differs by ' + fmtLike(p, Math.abs(diff)) + (target ? ' (' + IN(Math.abs(diff) / Math.abs(target) * 100, 1) + '%)' : '') + '.' + (filtered && !(k.spec && best.c.binding) ? ' A filter is on: one of them may not follow it.' : '');
+      }
+      results.push(res);
+    });
+    // charts that show the same measure should add up to the same total
+    var bySeries = {};
+    charts.forEach(function (c) { c.series.forEach(function (s) { var n = String(s.name || '').trim().toLowerCase(); if (!n || /^(series \d+|value|data|count|y)$/.test(n) || /target|budget|plan|last year|ly|prior/i.test(n)) return; (bySeries[n] = bySeries[n] || []).push({ c: c, s: s }); }); });
+    Object.keys(bySeries).forEach(function (n) {
+      var list = bySeries[n]; if (list.length < 2) return;
+      var a = list[0];
+      list.slice(1).forEach(function (b) {
+        var diff = a.s.total - b.s.total, tol = Math.max(Math.abs(a.s.total), 1) * 0.005;
+        var res = { kind: 'charts', what: 'chart “' + a.c.name + '”', against: 'chart “' + b.c.name + '” (' + a.s.name + ')', shown: big(a.s.total), expected: big(b.s.total), chart: b.c.key };
+        if (Math.abs(diff) <= tol) res.status = 'ok';
+        else { res.status = 'diff'; res.note = 'Both show “' + a.s.name + '” but add up differently (' + IN(Math.abs(diff) / Math.max(Math.abs(b.s.total), 1) * 100, 1) + '% apart). One may be filtered, rounded or missing a category.'; }
+        results.push(res);
+      });
+    });
+    var rank = { diff: 0, ok: 1, skip: 2 };
+    return results.sort(function (x, y) { return rank[x.status] - rank[y.status]; });
+  };
+  N.dialog = function () {
+    if (!need()) return;
+    var res = N.run();
+    if (!res.length) return MS.toast('No KPI cards or charts with numbers to compare.', 'warn');
+    var diffs = res.filter(function (x) { return x.status === 'diff'; }), oks = res.filter(function (x) { return x.status === 'ok'; });
+    var ICON = { ok: '✅', diff: '⚠', skip: '–' };
+    var table = h('table', { 'class': 'nc-table' }, [h('tr', {}, ['', 'Number', 'Shows', 'Compared with', 'Adds up to', 'Result'].map(function (t) { return h('th', { text: t }); }))].concat(res.map(function (x) {
+      return h('tr', { 'class': 'nc-' + x.status }, [h('td', { text: ICON[x.status] }), h('td', { text: x.what }), h('td', { text: x.shown || '' }), h('td', { text: x.against || '' }), h('td', { text: x.expected || '' }), h('td', { text: x.status === 'ok' ? 'Matches' : x.note || '' })]);
+    })));
+    var head = h('p', { 'class': 'nc-sum', html: diffs.length ? '<b>' + diffs.length + ' number(s) don\'t add up</b> · ' + oks.length + ' match' : '<b>Everything that could be checked matches</b> (' + oks.length + ' check' + (oks.length === 1 ? '' : 's') + ').' });
+    MS.dialog({ title: 'Number check', wide: true, body: h('div', {}, [head, h('p', { 'class': 'hint', text: 'Each KPI card is compared with the chart that shows the same measure (matched by name, or by data for calculated cards), and charts showing the same measure are compared with each other. Rounding on the card is allowed for.' }), h('div', { 'class': 'nc-wrap' }, [table])]),
+      buttons: [{ label: 'Close', value: null }].concat(diffs.length ? [{ label: 'Add ' + diffs.length + ' as review comments', primary: true, value: 'cmt' }] : []) }).then(function (v) {
+      if (v !== 'cmt') return;
+      diffs.forEach(function (x) {
+        var text = 'Numbers don\'t add up: ' + x.what + ' shows ' + x.shown + ' but ' + x.against + ' adds up to ' + x.expected + '. ' + (x.note || '') + ' Make them consistent or explain the difference.';
+        if (x.el) MS.api.run('add_comment', { ref: MS.api.refOf ? MS.api.refOf(x.el) : null, text: text, type: 'bug', priority: 'must' }).catch(function () {});
+        else MS.api.run('add_comment', { chart: x.chart, text: text, type: 'bug', priority: 'must' }).catch(function () {});
+      });
+      MS.toast(diffs.length + ' comment(s) added. ✨ Prompt turns them into instructions.', 'ok');
+    });
+  };
+
+  /* ================================================================ comments as an Excel tracker */
+  var T = MS.tracker = {};
+  var STATUS = ['Open', 'In progress', 'Done', 'Won\'t do'];
+  T.rows = function () {
+    var R = MS.review, list = R.list();
+    return list.map(function (c, i) {
+      var x = R.resolveComment ? R.resolveComment(c, i + 1) : { loc: c.loc || {}, topics: [] }, l = x.loc || {};
+      var chart = l.chart ? l.chart.name : (l.charts && l.charts.length ? l.charts.join(', ') : '');
+      return {
+        'No.': i + 1, 'Status': c.status || (c.done ? 'Done' : 'Open'), 'Priority': { must: 'Must', should: 'Should', nice: 'Nice to have' }[c.prio] || 'Should',
+        'Type': { change: 'Change', bug: 'Bug', question: 'Question', idea: 'Idea' }[c.type] || 'Change',
+        'Tab': l.tab || (c.tab && c.tab.title) || '', 'Section': l.section || (l.sections || []).join(', '), 'Chart': chart,
+        'Item': l.kpi ? 'KPI card “' + l.kpi.label + '”' : (l.item || (c.target && c.target.what) || (c.kind === 'area' ? 'screen area' : c.kind === 'interaction' ? 'interaction' : '')),
+        'Where': R.trail ? R.trail(l) : '', 'Comment': c.text || '',
+        'Done when': (x.topics || []).map(function (t) { return t.done; }).join('; '),
+        'Owner': c.owner || '', 'Due': c.due || '', 'Notes': c.notes || '',
+        'Added': c.created ? new Date(c.created).toLocaleDateString('en-IN') : '', 'ID': c.id
+      };
+    });
+  };
+  T.build = function () {
+    return MS.lib('xlsx').then(function (X) {
+      var rows = T.rows(), wb = X.utils.book_new();
+      var ws = X.utils.json_to_sheet(rows.length ? rows : [{ 'No.': '', Status: '', Priority: '', Type: '', Tab: '', Section: '', Chart: '', Item: '', Where: '', Comment: 'No comments yet', 'Done when': '', Owner: '', Due: '', Notes: '', Added: '', ID: '' }]);
+      ws['!cols'] = [5, 11, 12, 9, 16, 18, 24, 22, 40, 50, 40, 14, 11, 30, 11, 12].map(function (w) { return { wch: w }; });
+      ws['!autofilter'] = { ref: ws['!ref'] };
+      X.utils.book_append_sheet(wb, ws, 'Comments');
+      var count = function (key) { var m = {}; rows.forEach(function (r) { var k = r[key] || '(none)'; m[k] = m[k] || { open: 0, done: 0 }; if (/done|won/i.test(r.Status)) m[k].done++; else m[k].open++; }); return Object.keys(m).map(function (k) { return [k, m[k].open, m[k].done, m[k].open + m[k].done]; }); };
+      var aoa = [['Review tracker: ' + (MS.doc && MS.doc.name || 'dashboard')], ['Made ' + new Date().toLocaleString('en-IN') + '. Edit Status, Priority, Owner, Due and Notes, then load it back with Review › Tracker › Update from tracker. Keep the ID column.'], [],
+        ['By tab', 'Open', 'Closed', 'All']].concat(count('Tab')).concat([[], ['By priority', 'Open', 'Closed', 'All']]).concat(count('Priority')).concat([[], ['Status values', STATUS.join(', ')]]);
+      var ss = X.utils.aoa_to_sheet(aoa); ss['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+      X.utils.book_append_sheet(wb, ss, 'Summary');
+      var out = X.write(wb, { type: 'array', bookType: 'xlsx' });
+      return { bytes: out, rows: rows.length, name: (MS.doc && MS.doc.name || 'dashboard').replace(/\.html?$/i, '') + ' - review tracker.xlsx' };
+    });
+  };
+  T.exportFile = function () {
+    if (!need()) return;
+    if (!MS.review.list().length) return MS.toast('There are no comments yet. Add some from the Review tab.', 'warn');
+    T.build().then(function (r) {
+      MS.download(r.name, new Blob([r.bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      MS.toast('Saved ' + r.name + ' with ' + r.rows + ' comment(s). Opens in Excel.', 'ok', 6000);
+    }).catch(function (e) { MS.toast('Could not make the tracker: ' + e.message, 'error'); });
+  };
+  // Apply an edited tracker: status, priority, owner, due, notes and comment text, matched by ID.
+  T.apply = function (buf) {
+    return MS.lib('xlsx').then(function (X) {
+      var wb = X.read(buf, { type: 'array' }), ws = wb.Sheets.Comments || wb.Sheets[wb.SheetNames[0]];
+      var rows = X.utils.sheet_to_json(ws, { defval: '', raw: false });
+      var byId = {}; rows.forEach(function (r) { if (r.ID) byId[String(r.ID).trim()] = r; });
+      var changed = 0, unknown = rows.filter(function (r) { return !r.ID && String(r.Comment || '').trim(); }).length;
+      var PR = { must: 'must', 'should': 'should', 'nice to have': 'nice', nice: 'nice' };
+      MS.history.state('Update comments from tracker', function (s) {
+        (s.comments || []).forEach(function (c) {
+          var r = byId[c.id]; if (!r) return;
+          var before = JSON.stringify(c);
+          var st = String(r.Status || '').trim();
+          var cur = c.status || (c.done ? 'Done' : 'Open');
+          if (st && st.toLowerCase() !== cur.toLowerCase()) { var m = STATUS.filter(function (x) { return x.toLowerCase() === st.toLowerCase(); })[0] || st; c.status = m; c.done = /^(done|won't do|closed|resolved)$/i.test(m); }
+          var p = PR[String(r.Priority || '').trim().toLowerCase()]; if (p) c.prio = p;
+          ['Owner', 'Due', 'Notes'].forEach(function (k) { var v = String(r[k] || '').trim(); if (v) c[k.toLowerCase()] = v; else delete c[k.toLowerCase()]; });
+          var t = String(r.Comment || '').trim(); if (t) c.text = t;
+          if (JSON.stringify(c) !== before) changed++;
+        });
+      });
+      MS.emit('comments');
+      return { updated: changed, notFound: Object.keys(byId).filter(function (id) { return !MS.review.list().some(function (c) { return c.id === id; }); }).length, newRowsIgnored: unknown };
+    });
+  };
+  T.importFile = function () {
+    if (!need()) return;
+    MS.pickFiles('.xlsx,.xls,.csv').then(function (f) {
+      if (!f[0]) return;
+      MS.readFile(f[0], 'buffer').then(function (b) { return T.apply(b); }).then(function (r) {
+        MS.toast(r.updated + ' comment(s) updated from the tracker.' + (r.notFound ? ' ' + r.notFound + ' row(s) belong to comments that no longer exist.' : '') + (r.newRowsIgnored ? ' ' + r.newRowsIgnored + ' new row(s) without an ID were skipped: add those in Mothership.' : ''), 'ok', 8000);
+      }).catch(function (e) { MS.toast('Could not read the tracker: ' + e.message, 'error'); });
+    });
+  };
+
+  /* ================================================================ compare two versions */
+  var V = MS.compare = {};
+  var TEXT_SEL = 'h1,h2,h3,h4,h5,h6,p,li,td,th,figcaption,label,button,summary,dt,dd,.ms-kpi-label,.ms-kpi-value,.ms-kpi-note,.ms-title,.ms-sub,.ms-inference';
+  function parse(html) { return new DOMParser().parseFromString(html || '', 'text/html'); }
+  V.snapshot = function (html, nameOf) {
+    var d = parse(html), st = {};
+    try { st = JSON.parse((d.getElementById('ms-state') || {}).textContent || '{}'); } catch (e) {}
+    var tabs = Array.prototype.map.call(d.querySelectorAll('section.ms-tab'), function (s) { return { id: s.getAttribute('data-ms-tab'), title: s.getAttribute('data-ms-title') || 'Untitled', hidden: s.hasAttribute('data-ms-hidden') }; });
+    var texts = [];
+    Array.prototype.forEach.call(d.body ? d.body.querySelectorAll(TEXT_SEL) : [], function (e) {
+      if (e.closest('script,style,svg,canvas,[data-ms-editor],#ms-filter-pane') || e.querySelector(TEXT_SEL)) return;
+      var t = e.textContent.replace(/\s+/g, ' ').trim(); if (!t) return;
+      var tab = e.closest('section.ms-tab');
+      texts.push({ t: t, tab: tab ? tab.getAttribute('data-ms-title') : '' });
+    });
+    var chartName = function (key) {
+      var n = nameOf && nameOf(key); if (n) return n;
+      var e = d.querySelector('[data-ms-id="' + key + '"],[data-ms-chart="' + key + '"],#' + String(key).replace(/^#/, '').replace(/[^\w-]/g, '')), b = e && e.closest('.ms-block'), tt = b && b.querySelector('.ms-title');
+      return tt ? tt.textContent.trim() : key;
+    };
+    return { state: st, tabs: tabs, texts: texts, chartName: chartName };
+  };
+  // Longest-common-subsequence diff of two string lists -> [{op:'=',a},{op:'-',a},{op:'+',b}]
+  function lcs(a, b) {
+    var n = a.length, m = b.length;
+    if (n * m > 4e6) { var A = {}, Bm = {}; a.forEach(function (x) { A[x] = 1; }); b.forEach(function (x) { Bm[x] = 1; }); return a.filter(function (x) { return !Bm[x]; }).map(function (x) { return { op: '-', a: x }; }).concat(b.filter(function (x) { return !A[x]; }).map(function (x) { return { op: '+', b: x }; })); }
+    var dp = new Array(n + 1); for (var i = 0; i <= n; i++) dp[i] = new Uint32Array(m + 1);
+    for (i = n - 1; i >= 0; i--) for (var j = m - 1; j >= 0; j--) dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    var out = []; i = 0; j = 0;
+    while (i < n && j < m) { if (a[i] === b[j]) { out.push({ op: '=', a: a[i] }); i++; j++; } else if (dp[i + 1][j] >= dp[i][j + 1]) out.push({ op: '-', a: a[i++] }); else out.push({ op: '+', b: b[j++] }); }
+    while (i < n) out.push({ op: '-', a: a[i++] }); while (j < m) out.push({ op: '+', b: b[j++] });
+    return out;
+  }
+  var SETTING = { tooltip: 'Pop-up text', style: 'Look', binding: 'Data & drill-down', summary: 'Summary', native: 'Chart type and data', drill: 'Drill-down' };
+  function short(v) { if (v == null) return '(none)'; var s = typeof v === 'string' ? v : JSON.stringify(v); return s.length > 90 ? s.slice(0, 87) + '…' : s; }
+  V.diff = function (A, B) {
+    var secs = [], add = function (title, items) { if (items.length) secs.push({ title: title, items: items }); };
+    // tabs
+    var it = [], aT = {}, bT = {};
+    A.tabs.forEach(function (t) { aT[t.id] = t; }); B.tabs.forEach(function (t) { bT[t.id] = t; });
+    B.tabs.forEach(function (t) { if (!aT[t.id]) it.push({ op: '+', text: 'Tab “' + t.title + '” added' }); else if (aT[t.id].title !== t.title) it.push({ op: '~', text: 'Tab renamed', before: aT[t.id].title, after: t.title }); else if (aT[t.id].hidden !== t.hidden) it.push({ op: '~', text: 'Tab “' + t.title + '” ' + (t.hidden ? 'hidden' : 'shown again') }); });
+    A.tabs.forEach(function (t) { if (!bT[t.id]) it.push({ op: '-', text: 'Tab “' + t.title + '” removed' }); });
+    var common = function (L, M) { return L.filter(function (t) { return M[t.id]; }).map(function (t) { return t.id; }).join(); };
+    if (!it.length && common(A.tabs, bT) !== common(B.tabs, aT)) it.push({ op: '~', text: 'Tabs reordered', before: A.tabs.map(function (t) { return t.title; }).join(' · '), after: B.tabs.map(function (t) { return t.title; }).join(' · ') });
+    if (!A.tabs.length && B.tabs.length) it.unshift({ op: '+', text: 'Turned into a tabbed layout' });
+    add('Tabs', it);
+    // text
+    var d = lcs(A.texts.map(function (x) { return x.t; }), B.texts.map(function (x) { return x.t; })), tx = [];
+    for (var i = 0; i < d.length; i++) {
+      if (d[i].op === '-' && d[i + 1] && d[i + 1].op === '+') { tx.push({ op: '~', text: 'Text changed', before: d[i].a, after: d[i + 1].b }); i++; }
+      else if (d[i].op === '-') tx.push({ op: '-', text: d[i].a });
+      else if (d[i].op === '+') tx.push({ op: '+', text: d[i].b });
+    }
+    add('Text', tx.slice(0, 300));
+    // charts
+    var ac = A.state.charts || {}, bc = B.state.charts || {}, ch = [];
+    Object.keys(bc).forEach(function (k) {
+      var nm = B.chartName(k) || A.chartName(k);
+      if (!ac[k]) { if (bc[k].native) ch.push({ op: '+', text: 'Chart “' + nm + '” added' }); else ch.push({ op: '~', text: 'Chart “' + nm + '”: settings added (' + Object.keys(bc[k]).map(function (s) { return SETTING[s] || s; }).join(', ') + ')' }); return; }
+      Object.keys(SETTING).concat(Object.keys(bc[k]), Object.keys(ac[k])).filter(function (s, j, all) { return all.indexOf(s) === j; }).forEach(function (s) {
+        if (JSON.stringify(ac[k][s]) !== JSON.stringify(bc[k][s])) ch.push({ op: '~', text: 'Chart “' + nm + '”: ' + (SETTING[s] || s), before: short(ac[k][s]), after: short(bc[k][s]) });
+      });
+    });
+    Object.keys(ac).forEach(function (k) { if (!bc[k]) ch.push({ op: ac[k].native ? '-' : '~', text: ac[k].native ? 'Chart “' + A.chartName(k) + '” removed' : 'Chart “' + A.chartName(k) + '”: Mothership settings removed' }); });
+    add('Charts', ch);
+    // data, KPI cards, filters, consistency, theme
+    var dt = [], ad = A.state.datasets || {}, bd = B.state.datasets || {};
+    var rowsOf = function (x) { return x && x.rows ? x.rows.length : null; };
+    Object.keys(bd).forEach(function (n) { if (!ad[n]) dt.push({ op: '+', text: 'Dataset “' + n + '” added' + (rowsOf(bd[n]) != null ? ' (' + IN(rowsOf(bd[n]), 0) + ' rows)' : '') }); else if (JSON.stringify(ad[n]) !== JSON.stringify(bd[n])) dt.push({ op: '~', text: 'Dataset “' + n + '” changed', before: rowsOf(ad[n]) != null ? IN(rowsOf(ad[n]), 0) + ' rows' : '', after: rowsOf(bd[n]) != null ? IN(rowsOf(bd[n]), 0) + ' rows' : '' }); });
+    Object.keys(ad).forEach(function (n) { if (!bd[n]) dt.push({ op: '-', text: 'Dataset “' + n + '” removed' }); });
+    var ak = A.state.kpis || {}, bk = B.state.kpis || {};
+    Object.keys(bk).forEach(function (n) { if (!ak[n]) dt.push({ op: '+', text: 'Calculated KPI card added (' + (bk[n].measure || bk[n].agg) + ')' }); else if (JSON.stringify(ak[n]) !== JSON.stringify(bk[n])) dt.push({ op: '~', text: 'KPI card settings changed (' + (bk[n].measure || bk[n].agg) + ')', before: short(ak[n]), after: short(bk[n]) }); });
+    Object.keys(ak).forEach(function (n) { if (!bk[n]) dt.push({ op: '-', text: 'Calculated KPI card removed (' + (ak[n].measure || ak[n].agg) + ')' }); });
+    var fl = function (s) { return (s.filters || []).map(function (f) { return f.label || f.field; }).join(', '); };
+    if (fl(A.state) !== fl(B.state)) dt.push({ op: '~', text: 'Filter pane', before: fl(A.state) || '(none)', after: fl(B.state) || '(none)' });
+    var L1 = A.state.layout || {}, L2 = B.state.layout || {};
+    if (JSON.stringify(L1.orders || []) !== JSON.stringify(L2.orders || [])) dt.push({ op: '~', text: 'Category order', before: (L1.orders || []).map(function (o) { return o.join(' › '); }).join('; ') || '(none)', after: (L2.orders || []).map(function (o) { return o.join(' › '); }).join('; ') || '(none)' });
+    if (JSON.stringify(L1.colors || {}) !== JSON.stringify(L2.colors || {})) dt.push({ op: '~', text: 'Category colours', before: short(L1.colors), after: short(L2.colors) });
+    if (JSON.stringify(A.state.theme || null) !== JSON.stringify(B.state.theme || null)) dt.push({ op: '~', text: 'Brand / theme', before: short(A.state.theme && (A.state.theme.name || A.state.theme.primary)), after: short(B.state.theme && (B.state.theme.name || B.state.theme.primary)) });
+    add('Data, KPI cards, filters and design', dt);
+    var ca = (A.state.comments || []), cb = (B.state.comments || []);
+    var cm = [];
+    if (ca.length !== cb.length) cm.push({ op: '~', text: 'Review comments', before: ca.length + '', after: cb.length + '' });
+    var doneA = ca.filter(function (c) { return c.done; }).length, doneB = cb.filter(function (c) { return c.done; }).length;
+    if (doneA !== doneB) cm.push({ op: '~', text: 'Comments marked done', before: doneA + '', after: doneB + '' });
+    add('Review comments', cm);
+    var n = 0; secs.forEach(function (s) { n += s.items.length; });
+    return { sections: secs, changes: n };
+  };
+  V.sources = function () {
+    return MS.store.all('versions').catch(function () { return []; }).then(function (list) {
+      list.sort(function (a, b) { return b.key - a.key; });
+      var out = MS.child ? [{ id: 'now', name: 'Now (on screen)', get: function () { return MS.exportHtml(); } }] : [];
+      return out.concat(list.map(function (x) { var v = x.value; return { id: String(x.key), name: v.name + ' · ' + new Date(v.created).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), get: function () { return v.html; } }; }));
+    });
+  };
+  V.compare = function (htmlA, htmlB) {
+    var nameOf = function (k) { try { return rt() && rt().chart(k) ? MS.charts.nameOf(k) : ''; } catch (e) { return ''; } };
+    return V.diff(V.snapshot(htmlA, nameOf), V.snapshot(htmlB, nameOf));
+  };
+  V.asText = function (r, an, bn) {
+    var L = ['Changes from ' + an + ' to ' + bn + ' (' + r.changes + ')', ''];
+    r.sections.forEach(function (s) { L.push(s.title.toUpperCase()); s.items.forEach(function (x) { L.push((x.op === '+' ? '+ ' : x.op === '-' ? '− ' : '~ ') + x.text + (x.before != null ? ': ' + x.before + ' → ' + x.after : '')); }); L.push(''); });
+    return L.join('\n');
+  };
+  V.dialog = function () {
+    V.sources().then(function (src) {
+      var files = {};
+      var mk = function (pick) {
+        var s = h('select', { 'class': 'inp' }, src.map(function (x, i) { var o = h('option', { value: x.id, text: x.name }); if (i === pick) o.selected = true; return o; }).concat([h('option', { value: 'file', text: 'A file on this laptop…' })]));
+        s.addEventListener('change', function () {
+          if (s.value !== 'file') return;
+          MS.pickFiles('.html,.htm').then(function (f) {
+            if (!f[0]) { s.selectedIndex = 0; return; }
+            MS.readFile(f[0]).then(function (t) { var id = 'f' + Date.now(); files[id] = { name: f[0].name, html: t }; s.insertBefore(h('option', { value: id, text: f[0].name }), s.lastChild); s.value = id; go(); });
+          });
+        });
+        return s;
+      };
+      if (src.length < 1) return MS.toast('Open a dashboard or save a version first (Ctrl+S).', 'warn');
+      var a = mk(Math.min(1, src.length - 1)), b = mk(0);
+      a.addEventListener('change', function () { if (a.value !== 'file') go(); }); b.addEventListener('change', function () { if (b.value !== 'file') go(); });
+      var get = function (s) { var x = files[s.value]; if (x) return { name: x.name, html: x.html }; var y = src.filter(function (q) { return q.id === s.value; })[0]; return y ? { name: y.name.split(' · ')[0], html: y.get() } : null; };
+      var list = h('div', { 'class': 'cmp-list' }), sbs = h('div', { 'class': 'cmp-sbs' }), last = '';
+      var seg = h('div', { 'class': 'seg' }, [h('button', { 'class': 'seg-btn on', text: 'What changed', onclick: function () { show(0); } }), h('button', { 'class': 'seg-btn', text: 'Side by side', onclick: function () { show(1); } })]);
+      function show(n) { MS.$$('button', seg).forEach(function (x, i) { x.classList.toggle('on', i === n); }); list.style.display = n ? 'none' : ''; sbs.style.display = n ? '' : 'none'; if (n) frames(); }
+      var A0, B0;
+      function frames() {
+        sbs.innerHTML = '';
+        [[A0, 'Before'], [B0, 'After']].forEach(function (p) {
+          if (!p[0]) return;
+          var f = h('iframe', { sandbox: 'allow-scripts', title: p[1] }); f.srcdoc = p[0].html;
+          sbs.appendChild(h('div', { 'class': 'cmp-pane' }, [h('div', { 'class': 'cmp-cap' }, [h('b', { text: p[1] + ': ' }), p[0].name]), h('div', { 'class': 'cmp-frame' }, [f])]));
+        });
+      }
+      function go() {
+        A0 = get(a); B0 = get(b); if (!A0 || !B0) return;
+        var r = V.compare(A0.html, B0.html);
+        last = V.asText(r, A0.name, B0.name);
+        list.innerHTML = '';
+        if (!r.changes) list.appendChild(h('p', { 'class': 'cmp-none', text: A0.html === B0.html ? 'These are the same.' : 'No visible changes found (only invisible details differ).' }));
+        r.sections.forEach(function (s) {
+          list.appendChild(h('h4', { text: s.title + ' (' + s.items.length + ')' }));
+          s.items.forEach(function (x) {
+            list.appendChild(h('div', { 'class': 'cmp-item cmp-' + ({ '+': 'add', '-': 'del', '~': 'chg' })[x.op] }, [h('span', { 'class': 'cmp-op', text: x.op === '~' ? '±' : x.op === '-' ? '−' : '+' }),
+              h('div', { 'class': 'grow' }, [h('div', { text: x.text })].concat(x.before != null ? [h('div', { 'class': 'cmp-ba' }, [h('del', { text: x.before || '(empty)' }), h('span', { text: ' → ' }), h('ins', { text: x.after || '(empty)' })])] : []))]));
+          });
+        });
+        if (sbs.style.display !== 'none') frames();
+      }
+      sbs.style.display = 'none';
+      var body = h('div', { 'class': 'cmp' }, [h('div', { 'class': 'cmp-pick' }, [h('label', { 'class': 'field' }, [h('span', { text: 'Before' }), a]), h('span', { 'class': 'cmp-arrow', text: '→' }), h('label', { 'class': 'field' }, [h('span', { text: 'After' }), b]), h('span', { 'class': 'grow' }), seg]), list, sbs]);
+      MS.dialog({ title: 'Compare versions', wide: true, body: body, buttons: [{ label: 'Close', value: null }, { label: 'Copy the list', primary: true, value: function () { copy(last); return false; } }] });
+      var dl = MS.$('.dlg-wrap .dlg'); if (dl) dl.classList.add('xwide');
+      go();
+    });
+  };
+})(window.MS);
+
+</script>
+<script>/* src/js/publish.js */
+/* Region and currency, the "Ready to publish?" check, and publishing a view-only, versioned file
+   (optional password lock for Mothership editing, and a tamper check when it is reopened). */
+(function (MS) {
+  'use strict';
+  var h = MS.h;
+  function rt() { return MS.rt(); }
+
+  /* ================================================================ region and currency */
+  var COUNTRIES = [
+    ['US', 'United States', 'en-US', 'USD'], ['IN', 'India', 'en-IN', 'INR'], ['GB', 'United Kingdom', 'en-GB', 'GBP'], ['CA', 'Canada', 'en-CA', 'CAD'],
+    ['AU', 'Australia', 'en-AU', 'AUD'], ['NZ', 'New Zealand', 'en-NZ', 'NZD'], ['IE', 'Ireland', 'en-IE', 'EUR'], ['DE', 'Germany', 'de-DE', 'EUR'],
+    ['FR', 'France', 'fr-FR', 'EUR'], ['ES', 'Spain', 'es-ES', 'EUR'], ['IT', 'Italy', 'it-IT', 'EUR'], ['NL', 'Netherlands', 'nl-NL', 'EUR'],
+    ['BE', 'Belgium', 'nl-BE', 'EUR'], ['PT', 'Portugal', 'pt-PT', 'EUR'], ['AT', 'Austria', 'de-AT', 'EUR'], ['CH', 'Switzerland', 'de-CH', 'CHF'],
+    ['SE', 'Sweden', 'sv-SE', 'SEK'], ['NO', 'Norway', 'nb-NO', 'NOK'], ['DK', 'Denmark', 'da-DK', 'DKK'], ['FI', 'Finland', 'fi-FI', 'EUR'],
+    ['PL', 'Poland', 'pl-PL', 'PLN'], ['CZ', 'Czechia', 'cs-CZ', 'CZK'], ['TR', 'Türkiye', 'tr-TR', 'TRY'], ['AE', 'United Arab Emirates', 'en-AE', 'AED'],
+    ['SA', 'Saudi Arabia', 'en-SA', 'SAR'], ['QA', 'Qatar', 'en-QA', 'QAR'], ['IL', 'Israel', 'en-IL', 'ILS'], ['EG', 'Egypt', 'en-EG', 'EGP'],
+    ['ZA', 'South Africa', 'en-ZA', 'ZAR'], ['NG', 'Nigeria', 'en-NG', 'NGN'], ['KE', 'Kenya', 'en-KE', 'KES'], ['SG', 'Singapore', 'en-SG', 'SGD'],
+    ['HK', 'Hong Kong', 'en-HK', 'HKD'], ['MY', 'Malaysia', 'en-MY', 'MYR'], ['ID', 'Indonesia', 'id-ID', 'IDR'], ['TH', 'Thailand', 'th-TH', 'THB'],
+    ['PH', 'Philippines', 'en-PH', 'PHP'], ['VN', 'Vietnam', 'vi-VN', 'VND'], ['JP', 'Japan', 'ja-JP', 'JPY'], ['KR', 'South Korea', 'ko-KR', 'KRW'],
+    ['CN', 'China', 'zh-CN', 'CNY'], ['TW', 'Taiwan', 'zh-TW', 'TWD'], ['PK', 'Pakistan', 'en-PK', 'PKR'], ['BD', 'Bangladesh', 'en-BD', 'BDT'],
+    ['LK', 'Sri Lanka', 'en-LK', 'LKR'], ['NP', 'Nepal', 'en-NP', 'NPR'], ['BR', 'Brazil', 'pt-BR', 'BRL'], ['MX', 'Mexico', 'es-MX', 'MXN'],
+    ['AR', 'Argentina', 'es-AR', 'ARS'], ['CL', 'Chile', 'es-CL', 'CLP'], ['CO', 'Colombia', 'es-CO', 'COP'], ['PE', 'Peru', 'es-PE', 'PEN']
+  ];
+  var Lc = MS.locale = { COUNTRIES: COUNTRIES, DEFAULT: { country: 'US', locale: 'en-US', currency: 'USD', units: 'intl' } };
+  Lc.get = function () { var r = rt(), s = r && r.state.locale; return Object.assign({}, Lc.DEFAULT, s || {}); };
+  Lc.currencies = function () {
+    var list = [];
+    try { list = Intl.supportedValuesOf('currency'); } catch (e) {}
+    if (!list.length) list = COUNTRIES.map(function (c) { return c[3]; }).filter(function (c, i, a) { return a.indexOf(c) === i; }).sort();
+    var dn = null; try { dn = new Intl.DisplayNames(['en'], { type: 'currency' }); } catch (e) {}
+    return list.map(function (c) { return { value: c, label: c + (dn ? ' · ' + dn.of(c) : '') }; });
+  };
+  Lc.sample = function (o) {
+    var r = rt(); if (!r) return '';
+    var keep = r.state.locale; r.state.locale = o;
+    try { return [r.fmtNum(1234567.89, 'cur'), r.fmtNum(98765432, 'curshort'), r.fmtNum(1234567.891, 'num'), r.fmtNum(12.5, 'pct')].join('  ·  '); } finally { if (keep === undefined) delete r.state.locale; else r.state.locale = keep; }
+  };
+  // set({country}) fills locale and currency from the country; currency/locale/units can be given too
+  Lc.set = function (o) {
+    var c = o.country && COUNTRIES.filter(function (x) { return x[0] === String(o.country).toUpperCase() || x[1].toLowerCase() === String(o.country).toLowerCase(); })[0];
+    var cur = Lc.get(), next = { country: c ? c[0] : (o.country || cur.country), locale: o.locale || (c ? c[2] : cur.locale), currency: String(o.currency || (c ? c[3] : cur.currency)).toUpperCase() };
+    next.units = o.units || (next.currency === 'INR' || /-IN$/.test(next.locale) ? 'indian' : 'intl');
+    try { new Intl.NumberFormat(next.locale, { style: 'currency', currency: next.currency }); } catch (e) { throw new Error('Unknown currency or region: ' + next.currency + ' / ' + next.locale); }
+    MS.history.state('Region and currency', function (s) { s.locale = next; });
+    MS.emit('locale', next);
+    return next;
+  };
+  Lc.describe = function (o) {
+    o = o || Lc.get();
+    var c = COUNTRIES.filter(function (x) { return x[0] === o.country; })[0], dn = null;
+    try { dn = new Intl.DisplayNames(['en'], { type: 'currency' }).of(o.currency); } catch (e) {}
+    return (c ? c[1] : o.locale) + ', ' + (dn || o.currency) + (o.units === 'indian' ? ' (lakh and crore)' : '');
+  };
+  Lc.dialog = function () {
+    if (!rt()) return MS.toast('Open a dashboard first.', 'warn');
+    var cur = Lc.get();
+    var f = MS.form([
+      { key: 'country', label: 'Country or region (number style)', type: 'select', options: COUNTRIES.map(function (c) { return { value: c[0], label: c[1] }; }), value: cur.country },
+      { key: 'currency', label: 'Currency', type: 'select', options: Lc.currencies(), value: cur.currency },
+      { key: 'units', label: 'Big numbers', type: 'select', options: [{ value: 'intl', label: 'Thousand, million, billion (K, M, B)' }, { value: 'indian', label: 'Lakh and crore (L, Cr)' }], value: cur.units || 'intl' }
+    ]);
+    var prev = h('div', { 'class': 'loc-prev' });
+    var draw = function () { var c = COUNTRIES.filter(function (x) { return x[0] === f.inputs.country.value; })[0]; prev.textContent = 'Looks like: ' + Lc.sample({ country: f.inputs.country.value, locale: c ? c[2] : 'en-US', currency: f.inputs.currency.value, units: f.inputs.units.value }); };
+    f.inputs.country.addEventListener('change', function () { var c = COUNTRIES.filter(function (x) { return x[0] === f.inputs.country.value; })[0]; if (c) { f.inputs.currency.value = c[3]; f.inputs.units.value = c[3] === 'INR' ? 'indian' : 'intl'; } draw(); });
+    f.inputs.currency.addEventListener('change', draw); f.inputs.units.addEventListener('change', draw);
+    draw();
+    MS.dialog({ title: 'Region and currency', body: h('div', {}, [f, prev, h('p', { 'class': 'hint', html: 'Used wherever Mothership writes numbers: pop-ups and axes set to <b>Currency</b> or <b>Short</b>, KPI cards, chart summaries and the number check. Numbers the dashboard\'s own script writes are not changed. Formats you chose by name (₹ crore, $) stay as they are.' })]),
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
+      if (!v) return;
+      var c = COUNTRIES.filter(function (x) { return x[0] === v.country; })[0];
+      try { var n = Lc.set({ country: v.country, locale: c && c[2], currency: v.currency, units: v.units }); MS.toast('Numbers now follow ' + Lc.describe(n) + '.', 'ok'); } catch (e) { MS.toast(e.message, 'error'); }
+    });
+  };
+  // one line for AI prompts: which number style to use
+  Lc.rule = function () {
+    var o = Lc.get(), r = rt(), ex = r ? r.fmtNum(12345678, 'cur') + ' or ' + r.fmtNum(12345678, 'curshort') : '';
+    return 'Use ' + Lc.describe(o) + ' number formats unless a comment says otherwise' + (ex ? ' (e.g. ' + ex + ')' : '') + (o.units === 'indian' ? ', DD-MM-YYYY dates and the April–March financial year.' : ', with dates written the ' + (o.country === 'US' ? 'US way (MM/DD/YYYY)' : 'local way') + '.') + ' Keep amounts the dashboard already labels in another currency as they are.';
+  };
+  // A dashboard that clearly shows another currency (but has no setting yet) gets a nudge, not a silent change.
+  MS.on('child-loaded', function () {
+    setTimeout(function () {
+      var r = rt(); if (!r || r.state.locale || !MS.child) return;
+      var t = (MS.child.doc.body && MS.child.doc.body.textContent || '').slice(0, 200000);
+      var hits = { INR: (t.match(/₹|\bcrores?\b|\blakhs?\b|\bRs\.?\s?\d/gi) || []).length, EUR: (t.match(/€/g) || []).length, GBP: (t.match(/£/g) || []).length };
+      var best = Object.keys(hits).sort(function (a, b) { return hits[b] - hits[a]; })[0];
+      if (hits[best] >= 3) MS.status('This dashboard shows ' + { INR: '₹ (India)', EUR: '€', GBP: '£' }[best] + ' amounts. Mothership writes numbers in US $ until you change Design › Region & currency.');
+    }, 1500);
+  });
+
+  /* ================================================================ crypto helpers */
+  function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+  function sha256(text) {
+    if (!window.crypto || !crypto.subtle) return Promise.reject(new Error('This browser can\'t do the security check.'));
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(hex);
+  }
+  function pbkdf2(password, salt, iter) {
+    return crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
+      .then(function (k) { return crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(salt), iterations: iter, hash: 'SHA-256' }, k, 256); }).then(hex);
+  }
+  var ZERO = new Array(65).join('0');
+  function stateOf(html) {
+    var m = /<script[^>]*id="ms-state"[^>]*>([\s\S]*?)<\/script>/i.exec(html || '');
+    if (!m) return null;
+    try { return JSON.parse(m[1].replace(/<\\\/script/gi, '<\/script')); } catch (e) { try { return JSON.parse(new DOMParser().parseFromString('<x>' + m[1] + '</x>', 'text/html').body.textContent); } catch (e2) { return null; } }
+  }
+
+  /* ================================================================ ready to publish? */
+  var Pf = MS.preflight = {};
+  // script errors since the page started (recorded by the #ms-early script that opening adds to <head>)
+  function childErrors() {
+    var list = []; try { list = (MS.child && MS.child.win.__msErrs) || []; } catch (e) {}
+    return list.map(function (e) { return e.message + (e.file ? ' (' + e.file + (e.line ? ':' + e.line : '') + ')' : ''); });
+  }
+  Pf.errors = childErrors;
+  Pf.run = function () {
+    var r = rt(), d = MS.child.doc, out = [];
+    var add = function (status, title, detail, fix) { out.push({ status: status, title: title, detail: detail || '', fix: fix || '' }); };
+    // script errors
+    var errs = childErrors();
+    if (errs.length) add('fail', 'The dashboard had script errors', errs.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
+    else add('pass', 'No script errors');
+    // charts that drew nothing
+    var charts = r ? r.charts() : [], empty = charts.filter(function (c) { var x = r.chartData(c.key, true); return !x || !x.labels.length || !x.series.some(function (s) { return s.values.some(function (v) { return v != null; }); }); });
+    var bare = MS.$$('canvas', d).filter(function (cv) { return !charts.some(function (c) { return c.el === cv || c.el.contains(cv); }) && !cv.closest('[data-ms-editor]') && cv.width > 50; });
+    if (empty.length || bare.length) add('warn', (empty.length + bare.length) + ' chart(s) show no numbers', empty.map(function (c) { return MS.charts.nameOf(c.key); }).concat(bare.length ? [bare.length + ' blank drawing area(s)'] : []).join(', '), 'Check the data, or open the folder so the chart\'s files are bundled.');
+    else add('pass', charts.length + ' chart(s) drew their numbers');
+    var unnamed = charts.filter(function (c) { return /^Chart \d+$/.test(MS.charts.nameOf(c.key)); });
+    if (unnamed.length) add('warn', unnamed.length + ' chart(s) have no title', 'Viewers and summaries call them “' + MS.charts.nameOf(unnamed[0].key) + '”.', 'Double-click the chart › Commentary & size › Title.');
+    // numbers
+    try {
+      var nc = MS.numcheck.run(), diffs = nc.filter(function (x) { return x.status === 'diff'; });
+      if (diffs.length) add('warn', diffs.length + ' number(s) don\'t add up', diffs.slice(0, 2).map(function (x) { return x.what + ' ' + x.shown + ' vs ' + x.against + ' ' + x.expected; }).join('; '), 'Review › Number check.');
+      else add('pass', 'KPI cards match their charts', nc.filter(function (x) { return x.status === 'ok'; }).length + ' check(s)');
+    } catch (e) {}
+    // comments
+    var cm = MS.review ? MS.review.list() : [], must = cm.filter(function (c) { return !c.done && c.prio === 'must'; }), open = cm.filter(function (c) { return !c.done; });
+    if (must.length) add('fail', must.length + ' must-fix comment(s) still open', must.slice(0, 2).map(function (c) { return '“' + c.text.slice(0, 60) + '”'; }).join('; '), 'Fix them, or mark them done in the Review tab.');
+    else if (open.length) add('warn', open.length + ' review comment(s) still open', 'None are must-fix.', 'Publishing leaves comments out of the file.');
+    else add('pass', 'No open review comments');
+    // internet
+    var html = MS.exportHtml({ dropComments: true });
+    var net = [], re = /<(?:script|link|img|iframe|source)\b[^>]*?(?:src|href)\s*=\s*["'](https?:)?\/\/([^\/"']+)/gi, m;
+    while ((m = re.exec(html))) if (net.indexOf(m[2]) < 0) net.push(m[2]);
+    if (net.length) add('warn', 'Needs the internet for ' + net.length + ' file(s)', net.slice(0, 4).join(', '), 'On a locked-down laptop these may not load. Use File › Open folder with local copies.');
+    else add('pass', 'Works offline (no internet files)');
+    // size
+    var mb = html.length / 1048576;
+    if (mb > 20) add('warn', 'Large file: ' + mb.toFixed(1) + ' MB', 'Email often stops at 10–25 MB.', 'Share through OneDrive, SharePoint or Teams, or remove unused datasets (Data › Manage).');
+    else add('pass', 'File size ' + (mb < 1 ? Math.round(html.length / 1024) + ' KB' : mb.toFixed(1) + ' MB'));
+    // number style and titles
+    add('info', 'Numbers follow ' + MS.locale.describe(), '', 'Design › Region & currency to change.');
+    if (!(d.title || '').trim()) add('warn', 'The page has no title', 'Browser tabs will show the file name.', 'Add a header (Insert › Header) or set the file name.');
+    var P = r && r.state.publish;
+    add('info', P && P.version ? 'Last published: version ' + P.version + ' on ' + new Date(P.at).toLocaleDateString() : 'Not published before');
+    return out;
+  };
+  var ICON = { pass: '✅', warn: '⚠', fail: '✕', info: 'ℹ' };
+  function checklist(items) {
+    return h('div', { 'class': 'pf-list' }, items.map(function (x) {
+      return h('div', { 'class': 'pf-item pf-' + x.status }, [h('span', { 'class': 'pf-ic', text: ICON[x.status] }), h('div', { 'class': 'grow' }, [h('div', { 'class': 'pf-title', text: x.title })].concat(x.detail ? [h('div', { 'class': 'pf-detail', text: x.detail })] : []).concat(x.fix && x.status !== 'pass' ? [h('div', { 'class': 'pf-fix', text: x.fix })] : []))]);
+    }));
+  }
+  Pf.dialog = function () {
+    if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
+    var items = Pf.run(), bad = items.filter(function (x) { return x.status === 'fail'; }).length, warn = items.filter(function (x) { return x.status === 'warn'; }).length;
+    MS.dialog({ title: 'Ready to publish?', wide: true, body: h('div', {}, [h('p', { 'class': 'pf-sum', html: bad ? '<b>' + bad + ' thing(s) to fix</b> before sharing' + (warn ? ', and ' + warn + ' to look at.' : '.') : warn ? '<b>Nearly ready.</b> ' + warn + ' thing(s) to look at.' : '<b>Ready to publish.</b>' }), checklist(items)]),
+      buttons: [{ label: 'Close', value: null }, { label: 'Publish…', primary: !bad, value: 'pub' }] }).then(function (v) { if (v === 'pub') Pub.dialog(true); });
+  };
+
+  /* ================================================================ publish */
+  var Pub = MS.publish = {};
+  function nextVersion(v) { if (!v) return '1.0'; var p = String(v).split('.'); var last = parseInt(p[p.length - 1], 10); if (isNaN(last)) return v + '.1'; p[p.length - 1] = String(last + 1); return p.join('.'); }
+  // o: { version, note, asOf, by, password, badge, keepComments }  ->  Promise<{ html, name, publish }>
+  Pub.build = function (o) {
+    var r = rt(); if (!r) return Promise.reject(new Error('Open a dashboard first (and turn off Safe mode).'));
+    var prev = r.state.publish || {}, at = new Date().toISOString();
+    var P = { version: o.version || nextVersion(prev.version), at: at, by: o.by || '', note: o.note || '', asOf: o.asOf || '', badge: o.badge !== false,
+      log: (prev.log || []).concat([{ version: o.version || nextVersion(prev.version), at: at, by: o.by || '', note: o.note || '' }]).slice(-50), seal: ZERO };
+    var lock = o.password ? (function () { var salt = hex(crypto.getRandomValues(new Uint8Array(16))), iter = 150000; return pbkdf2(o.password, salt, iter).then(function (k) { return { salt: salt, iter: iter, key: k }; }); })() : Promise.resolve(o.keepLock && prev.lock ? prev.lock : null);
+    return lock.then(function (L) {
+      if (L) P.lock = L;
+      // keep the record in the editor too, so the next publish counts on from here
+      MS.history.state('Publish version ' + P.version, function (s) { var c = JSON.parse(JSON.stringify(P)); delete c.seal; s.publish = c; });
+      var html = MS.exportHtml({ dropComments: !o.keepComments, publish: P });
+      return sha256(html).then(function (sum) {
+        html = html.replace(ZERO, sum);
+        return { html: html, name: MS.exportName(' v' + P.version), publish: P, sha256: sum };
+      });
+    });
+  };
+  Pub.dialog = function (checked) {
+    if (!rt()) return MS.toast('Open a dashboard first (and turn off Safe mode).', 'warn');
+    var prev = rt().state.publish || {};
+    var f = MS.form([
+      { key: 'version', label: 'Version', value: nextVersion(prev.version) },
+      { key: 'by', label: 'Published by', value: prev.by || MS.prefs.get('publishBy', '') },
+      { key: 'asOf', label: 'Data as of', type: 'date', value: prev.asOf || '' },
+      { key: 'note', label: 'What changed (release note)', type: 'textarea', rows: 3, value: '' },
+      { key: 'badge', label: 'Show the version, date and notes in a small corner badge', type: 'checkbox', value: prev.badge !== false },
+      { key: 'keepComments', label: 'Keep review comments in the file', type: 'checkbox', value: false },
+      { key: 'lock', label: 'Lock editing in Mothership with a password', type: 'checkbox', value: !!prev.lock },
+      { key: 'password', label: 'Password (leave blank to keep the current one)', type: 'password', value: '' },
+      { key: 'password2', label: 'Password again', type: 'password', value: '' }
+    ]);
+    var pw = [f.inputs.password, f.inputs.password2].map(function (i) { return i.closest('.field') || i.parentNode; });
+    var sync = function () { pw.forEach(function (p) { p.style.display = f.inputs.lock.checked ? '' : 'none'; }); };
+    f.inputs.lock.addEventListener('change', sync); sync();
+    var warn = h('div', { 'class': 'pub-note' }, [h('b', { text: 'About the lock. ' }), 'It stops people changing the dashboard in Mothership without the password, and Mothership warns if the file was changed some other way. It is a deterrent, not a vault: an HTML file can always be opened in Notepad, and anything shown on screen can be copied. Keep confidential numbers out of files you send outside the team, and use SharePoint or Teams permissions to control who can open it.']);
+    var pre = checked ? null : Pf.run().filter(function (x) { return x.status === 'fail' || x.status === 'warn'; });
+    var body = h('div', {}, [pre && pre.length ? h('div', { 'class': 'pub-pre' }, [h('b', { text: pre.length + ' thing(s) from the publish check: ' }), pre.map(function (x) { return x.title; }).join(' · '), ' ', h('a', { href: '#', text: 'See all', onclick: function (e) { e.preventDefault(); MS.$('.dlg-wrap').remove(); Pf.dialog(); } })]) : null, f, warn]);
+    MS.dialog({ title: 'Publish a view-only copy', wide: true, body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Publish', primary: true, value: function () {
+      var v = f.values();
+      if (!String(v.version || '').trim()) { MS.toast('Give it a version, e.g. 1.0.', 'warn'); return false; }
+      if (v.lock && (v.password || v.password2 || !prev.lock)) {
+        if (!v.password || v.password.length < 6) { MS.toast('Use a password of at least 6 characters.', 'warn'); return false; }
+        if (v.password !== v.password2) { MS.toast('The two passwords are different.', 'warn'); return false; }
+      }
+      return v;
+    } }] }).then(function (v) {
+      if (!v) return;
+      MS.prefs.set('publishBy', v.by || '');
+      Pub.build({ version: v.version.trim(), by: v.by, note: v.note, asOf: v.asOf, badge: v.badge, keepComments: v.keepComments, password: v.lock ? v.password : '', keepLock: v.lock && !v.password }).then(function (r) {
+        MS.download(r.name, r.html);
+        MS.toast('Published ' + r.name + (r.publish.lock ? ' (locked for editing)' : '') + '. Share this file; keep editing your working copy.', 'ok', 7000);
+      }).catch(function (e) { MS.toast('Could not publish: ' + e.message, 'error'); });
+    });
+  };
+
+  /* ================================================================ opening a published file */
+  // Called by MS.openHtml before anything is shown. Resolves true when it may open.
+  // Only a published copy (it carries a seal) is locked; the working copy keeps the lock details for the next publish.
+  Pub.isLocked = function (html) { var st = /"lock":\{/.test(html || '') && stateOf(html), P = st && st.publish; return !!(P && P.lock && P.seal); };
+  Pub.gate = function (html, name, password) {
+    var st = stateOf(html), L = st && st.publish && st.publish.seal && st.publish.lock;
+    if (!L) return Promise.resolve(true);
+    var tryPw = function (pw) { return pbkdf2(pw || '', L.salt, L.iter || 150000).then(function (k) { return k === L.key; }); };
+    if (password != null) return tryPw(password);
+    return new Promise(function (resolve) {
+      var ask = function (again) {
+        var f = MS.form([{ key: 'pw', label: 'Password', type: 'password', value: '' }]);
+        MS.dialog({ title: 'Locked for editing', body: h('div', {}, [h('p', { text: '“' + name + '” (version ' + (st.publish.version || '?') + (st.publish.by ? ', published by ' + st.publish.by : '') + ') is locked for editing. ' + (again ? 'That password didn\'t match. ' : '') + 'Viewers don\'t need a password: double-click the file to open it in a browser.' }), f]),
+          buttons: [{ label: 'Cancel', value: null }, { label: 'Unlock', primary: true, value: function () { return f.values().pw || false; } }] }).then(function (pw) {
+          if (!pw) return resolve(false);
+          tryPw(pw).then(function (ok) { if (ok) resolve(true); else ask(true); });
+        });
+      };
+      ask(false);
+    });
+  };
+  // Tamper check: the published file carries a SHA-256 of itself.
+  Pub.verify = function (html) {
+    var st = stateOf(html), P = st && st.publish;
+    if (!P || !P.seal || P.seal === ZERO) return Promise.resolve(null);
+    return sha256(html.replace(P.seal, ZERO)).then(function (sum) { return { ok: sum === P.seal, version: P.version, by: P.by, at: P.at }; });
+  };
+  MS.on('doc-opened', function (doc) {
+    if (!doc || !doc.source) return;
+    Pub.verify(doc.source).then(function (v) {
+      if (!v) return;
+      MS.doc.integrity = v;
+      if (v.ok) MS.status('Published version ' + v.version + (v.by ? ' by ' + v.by : '') + ': unchanged since it was published.');
+      else MS.toast('This file says it is published version ' + v.version + (v.by ? ' by ' + v.by : '') + ', but it was changed outside Mothership afterwards. Check it before sharing it on.', 'warn', 12000);
+    }).catch(function () {});
+  });
+  Pub.stateOf = stateOf;
 })(window.MS);
 
 </script>
@@ -6861,9 +8085,16 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     { id: 'present', title: 'Presenting', html: '<p>▶ <b>Present</b> (' + K('F5') + ') shows the dashboard full screen, one tab at a time. ' + K('→') + ' / ' + K('←') + ' change tabs, ' + K('L') + ' laser pointer, ' + K('B') + ' blank screen, ' + K('Esc') + ' ends. View › Presenter view opens a second window with notes, a timer and the next tab.</p>' },
     { id: 'save', title: 'Saving, versions and export', html: '<ul><li><b>Export HTML</b> (' + K('Ctrl') + '+' + K('E') + ') saves one standalone file. In Chrome/Edge later exports overwrite the same file.</li><li><b>Save version</b> (' + K('Ctrl') + '+' + K('S') + ') keeps a named copy in this browser. <b>Versions</b> restores one. Mothership also autosaves.</li><li>Print / PDF prints each tab on its own page.</li></ul>' },
     { id: 'extend', title: 'Plugins, recipes and brand skills', html: '<p>Plugins (.js) add buttons to the Plugins tab. Recipes (.json) replay a list of edits (tabs, theme, tooltips, filters) on any dashboard, which is handy for a monthly refresh. See docs/EXTENDING.md in the Mothership folder.</p>' },
+    { id: 'checks', title: 'Summaries, number check, tracker and compare', html: '<h3>📰 Chart summaries</h3><p><b>Charts › Summaries</b> writes one or two plain sentences per chart from the numbers on screen, e.g. <i>“West is highest at ₹4.2 Cr (38%); East is lowest at ₹1.2 Cr.”</i> Trends say what rose or fell and by how much. For each chart choose <b>Caption under the chart</b>, <b>Screen readers only</b> or nothing. Captions follow the filters and stay in the exported file. <b>Copy all</b> gives you the lot for an email.</p>' +
+      '<h3>🧮 Number check</h3><p><b>Review › Number check</b> compares each KPI card with the chart that shows the same measure (by name, or by data for cards that calculate), and charts of the same measure with each other. Rounding on the card (₹16.2 Cr) is allowed for. Differences can be turned into review comments in one click. Percentages and row counts are not added up.</p>' +
+      '<h3>📗 Excel tracker</h3><p><b>Review › Excel tracker</b> saves every comment as a spreadsheet: number, status, priority, tab, section, chart, where exactly, the comment, what “done” means, owner, due date and notes, plus a summary sheet by tab and priority. Use it in the review meeting, then <b>Update from tracker</b> loads status, priority, owner, due date, notes and wording back. Keep the ID column.</p>' +
+      '<h3>⚖ Compare versions</h3><p><b>File › Compare</b> shows what changed between two saved versions, the dashboard now, or a file on this laptop: tabs added, renamed or removed, text changes (old crossed out, new in green), chart settings, data, KPI cards, filters, colours and comments. <b>Side by side</b> shows both dashboards next to each other. <b>Copy the list</b> for your change note.</p>' },
+    { id: 'libraries', title: 'Chart libraries', html: '<table><tr><th>Library</th><th>What works</th></tr><tr><td>Chart.js, ECharts, Plotly</td><td>Everything: look, pop-ups, colours, order, data, drill-down, images, summaries.</td></tr><tr><td>Highcharts</td><td>Everything as above. Mothership uses the Highcharts already inside your dashboard (it is not free for commercial use, so Mothership doesn\'t include it).</td></tr><tr><td>D3 and other SVG charts</td><td>Names, pop-ups, colours, look (fonts), summaries, number check, image and comments. The page\'s own script draws them, so Mothership can\'t redraw them from other data or drill down: rebuild with <b>Insert › Chart</b> for that.</td></tr></table><p>Charts drawn as plain images can\'t be read; ask for the data behind them.</p>' },
     { id: 'theme', title: 'Mothership theme and search', html: "<p>Make Mothership itself easier on the eyes. Your dashboard is not affected.</p><ul><li><b>🎨</b> in the top bar, View › <b>Theme</b>, or the welcome screen: 8 ready-made looks (Classic, Daylight, Ocean, Forest, Saffron, Midnight, Slate dark, High contrast).</li><li>Pick light, dark, “Match Windows” or high contrast; any accent colour (or <b>Match brand</b> after loading a brand); a coloured or plain top bar; comfortable or compact spacing; text size; ribbon labels or icons only.</li><li>View › <b>Dark mode</b> switches in one click. Settings are saved in this browser.</li></ul><h3>🔍 Search everything</h3><p>Press " + K('Ctrl') + "+" + K('K') + " (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.</p>" },
+    { id: 'region', title: 'Region and currency', html: '<p>Mothership writes numbers in <b>US dollars, US style</b> ($1,234,567 and $1.23M) unless you choose otherwise. Change it in <b>Design › Region & currency</b>: pick a country (52 to choose from) and it fills in the currency and number style; then change the currency on its own if you need to (any currency, e.g. a UK dashboard in US $). <b>Big numbers</b> chooses K, M, B or lakh and crore. The preview shows what you will get.</p><table><tr><th>Choice</th><th>1234567 as currency</th><th>short</th></tr><tr><td>United States</td><td>$1,234,567</td><td>$1.23M</td></tr><tr><td>India</td><td>₹12,34,567</td><td>₹12.35 L</td></tr><tr><td>Germany</td><td>1.234.567 €</td><td>1,23 Mio. €</td></tr><tr><td>United Kingdom</td><td>£1,234,567</td><td>£1.23M</td></tr></table><h3>Where it applies</h3><ul><li>Pop-ups and axes set to <b>Currency</b>, <b>Currency short</b> or <b>Short</b> (<code>{value:cur}</code>, <code>{value:curshort}</code>, <code>{value:short}</code>).</li><li>KPI cards, chart summaries, the number check and the AI prompt rules.</li><li>The setting is saved inside the dashboard, so viewers see the same thing. It is one undo step.</li></ul><p>Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbers the dashboard\'s own script writes are not changed. If a dashboard clearly shows ₹, € or £, Mothership tells you in the status bar but doesn\'t switch on its own.</p>' },
+    { id: 'publish', title: 'Publishing and locking', html: '<p>Your working copy is for editing; a <b>published copy</b> is what you share.</p><h3>🛡 File › Ready to publish?</h3><p>A checklist before you share: script errors, charts with no numbers, untitled charts, KPI cards that don\'t match their charts, open must-fix comments, files that need the internet, file size and page title. Red means fix first; amber means take a look.</p><h3>🚀 File › Publish</h3><ul><li><b>Version and release note</b>: 1.0, 1.1… counts on by itself. Each publish adds to the release log.</li><li><b>Corner badge</b>: “Version 1.1 · Published 22 Oct 2026 · Data as of 30 Sep 2026”. Click it for the release notes. It is hidden when printing.</li><li><b>Comments left out</b> unless you tick Keep.</li><li><b>Tamper check</b>: the file carries a fingerprint of itself (SHA-256). If someone changes it in Notepad or another tool and it is opened in Mothership again, you get a warning.</li><li><b>Lock editing with a password</b>: Mothership asks for it before opening the file for editing. Viewers never need it. The password is not stored, only a salted key (PBKDF2).</li><li>If part of a published dashboard fails to load, viewers see a calm one-line message instead of a broken page.</li></ul><h3>What the lock can and can\'t do</h3><p>It is a <b>deterrent, not a vault</b>. An HTML file is text: anyone can open it in Notepad, and anything on screen can be copied or photographed. The lock stops casual edits in Mothership and the seal tells you if the file was changed. For real control use <b>SharePoint, OneDrive or Teams permissions</b> (view-only links, no download), your company\'s sensitivity labels, or a PDF. Keep confidential numbers out of files that leave the team.</p>' },
     { id: 'mcp', title: 'Use with AI assistants (MCP)', html: "<p><b>MCP</b> (Model Context Protocol) lets an AI assistant use Mothership for you: “open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it”. The assistant calls Mothership’s tools; nothing goes to the internet from Mothership.</p><pre>AI assistant ──▶ MCP server ──▶ Edge/Chrome ──▶ Mothership\n(any client)    (Python/Node)   (hidden)        (MS.api)</pre><h3>1. Pick the server that your laptop allows</h3><table><tr><th>You have</th><th>Run</th></tr><tr><td>Python 3.8+ (no pip needed)</td><td><code>python tools/mcp/mothership_mcp.py</code></td></tr><tr><td>Node.js 16+ (no npm install needed)</td><td><code>node tools/mcp/mothership-mcp.js</code></td></tr></table><p>Both need Edge or Chrome and offer the same ~75 tools. You don’t start them yourself: your AI assistant starts them.</p><h3>2. Connect your assistant</h3><dl><dt>Claude Desktop</dt><dd>Settings › Developer › Edit config, then add (change the path):<pre>{\n  \"mcpServers\": {\n    \"mothership\": {\n      \"command\": \"python\",\n      \"args\": [\"C:\\\\Users\\\\you\\\\HTML-Mothership\\\\tools\\\\mcp\\\\mothership_mcp.py\"],\n      \"env\": { \"MOTHERSHIP_OUT\": \"C:\\\\Users\\\\you\\\\Dashboards\" }\n    }\n  }\n}</pre>Restart Claude Desktop. Use <code>\"command\": \"node\"</code> and <code>mothership-mcp.js</code> for the Node server.</dd><dt>Claude Code</dt><dd><code>claude mcp add mothership -- python tools/mcp/mothership_mcp.py</code> (the repo’s <code>.mcp.json</code> does this for the Node server).</dd><dt>Your own Python script or agent</dt><dd><code>tools/mcp/python_client.py</code> has a ready <b>MothershipClient</b> with nothing to install:<pre>from python_client import MothershipClient\nwith MothershipClient() as ms:\n    ms.call(\"open_file\", path=\"sales.html\")\n    ms.call(\"category_order\", order=[\"North\", \"South\", \"East\", \"West\"])\n    ms.call(\"category_colors\", colors={\"Retail\": \"#16a34a\"})\n    print(ms.call(\"export_html\")[\"saved\"])</pre>With the official SDK (<code>pip install mcp</code>): <code>StdioServerParameters(command=\"python\", args=[\"tools/mcp/mothership_mcp.py\"])</code>. Any MCP-capable framework works the same way.</dd><dt>Any other MCP client</dt><dd>Command <code>python</code> (or <code>node</code>), argument: the server file. Transport: stdio.</dd></dl><h3>3. Ask in plain English</h3><ul><li>“Open C:\\Dashboards\\claims.html and tell me what is on each tab.”</li><li>“Use one order for regions on every chart: North, South, East, West. Make South green everywhere.”</li><li>“Add a Methodology tab from methodology.docx and a footer saying Source: Finance, FY 2024-25.”</li><li>“Take a screenshot of the Overview tab and check the numbers are in ₹ crore.”</li><li>“Apply my review comments” (paste a prompt from ✨ Prompt with “Mothership MCP” chosen).</li></ul><h3>Settings (optional “env”)</h3><table><tr><td><code>MOTHERSHIP_HEADLESS=0</code></td><td>Show the browser window so you can watch the edits.</td></tr><tr><td><code>MOTHERSHIP_ATTACH=9222</code></td><td>Work in <i>your</i> window: start Edge with <code>msedge --remote-debugging-port=9222</code>, open mothership.html, then connect.</td></tr><tr><td><code>MOTHERSHIP_OUT</code></td><td>Folder for exports, prompts and screenshots.</td></tr><tr><td><code>MOTHERSHIP_BROWSER</code></td><td>Full path to msedge.exe or chrome.exe if it isn’t found.</td></tr><tr><td><code>MOTHERSHIP_HTML</code></td><td>Use dist/mothership-standalone.html instead.</td></tr></table><p>Exports never overwrite your original: they are saved as <code>&lt;name&gt;-edited.html</code>. Every change can be undone (“undo the last three changes”).</p>" },
-    { id: 'faq', title: 'FAQ', html: "<dl><dt>Does Mothership send my data anywhere?</dt><dd>No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.</dd><dt>Do I need the internet or admin rights?</dt><dd>No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.</dd><dt>My laptop has Python but not Node (or the reverse).</dt><dd>Use the matching server: <code>tools/mcp/mothership_mcp.py</code> for Python, <code>tools/mcp/mothership-mcp.js</code> for Node. They have the same tools.</dd><dt>Neither Python nor Node is allowed.</dt><dd>Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.</dd><dt>The server says it can’t find Edge or Chrome.</dt><dd>Set <code>MOTHERSHIP_BROWSER</code> to the full path, e.g. <code>C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe</code>.</dd><dt>It says DevTools refused the connection, or the browser closes at once.</dt><dd>Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.</dd><dt>How do I see what the assistant is doing?</dt><dd>Set <code>MOTHERSHIP_HEADLESS=0</code> to show the window, or ask it for a <i>screenshot</i>. To edit in your own window, use <code>MOTHERSHIP_ATTACH</code> (see the MCP section).</dd><dt>Where are files saved? Can it overwrite my dashboard?</dt><dd>In <code>MOTHERSHIP_OUT</code> (or the folder the assistant was started in) unless the assistant gives a path. The default export name is <code>&lt;name&gt;-edited.html</code>, so the original is kept.</dd><dt>Which AI assistants work?</dt><dd>Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.</dd><dt>Can the assistant see my comments?</dt><dd>Yes: <i>list_comments</i> and <i>comments_prompt</i> give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.</dd><dt>Can I change how Mothership looks?</dt><dd>Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.</dd><dt>How do I find a command quickly?</dt><dd>" + K('Ctrl') + "+" + K('K') + " and type what you want.</dd><dt>Will a KPI card turn red automatically?</dt><dd>Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.</dd></dl>" },
+    { id: 'faq', title: 'FAQ', html: "<dl><dt>Does Mothership send my data anywhere?</dt><dd>No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.</dd><dt>Do I need the internet or admin rights?</dt><dd>No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.</dd><dt>My laptop has Python but not Node (or the reverse).</dt><dd>Use the matching server: <code>tools/mcp/mothership_mcp.py</code> for Python, <code>tools/mcp/mothership-mcp.js</code> for Node. They have the same tools.</dd><dt>Neither Python nor Node is allowed.</dt><dd>Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.</dd><dt>The server says it can’t find Edge or Chrome.</dt><dd>Set <code>MOTHERSHIP_BROWSER</code> to the full path, e.g. <code>C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe</code>.</dd><dt>It says DevTools refused the connection, or the browser closes at once.</dt><dd>Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.</dd><dt>How do I see what the assistant is doing?</dt><dd>Set <code>MOTHERSHIP_HEADLESS=0</code> to show the window, or ask it for a <i>screenshot</i>. To edit in your own window, use <code>MOTHERSHIP_ATTACH</code> (see the MCP section).</dd><dt>Where are files saved? Can it overwrite my dashboard?</dt><dd>In <code>MOTHERSHIP_OUT</code> (or the folder the assistant was started in) unless the assistant gives a path. The default export name is <code>&lt;name&gt;-edited.html</code>, so the original is kept.</dd><dt>Which AI assistants work?</dt><dd>Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.</dd><dt>Can the assistant see my comments?</dt><dd>Yes: <i>list_comments</i> and <i>comments_prompt</i> give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.</dd><dt>Can I change how Mothership looks?</dt><dd>Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.</dd><dt>How do I find a command quickly?</dt><dd>" + K('Ctrl') + "+" + K('K') + " and type what you want.</dd><dt>Does it work with Highcharts or D3?</dt><dd>Yes. Highcharts works fully. D3 (and similar SVG) charts get names, pop-ups, colours, fonts, summaries, the number check and comments, but not new data or drill-down. See Chart libraries.</dd><dt>How do I check the numbers before sending?</dt><dd>Review › Number check. It flags KPI cards that don\u2019t match their chart and charts of the same measure that add up differently.</dd><dt>Can I track comments in Excel?</dt><dd>Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.</dd><dt>Can I change the currency from US $?</dt><dd>Yes: Design › Region & currency. Pick any country and any currency; it is saved in the dashboard.</dd><dt>Can I lock the dashboard so no one else edits it?</dt><dd>Partly. File › Publish can lock editing in Mothership with a password, and Mothership warns if the file was changed elsewhere. But no HTML file can be truly locked: it can always be opened in Notepad. Use SharePoint or Teams view-only permissions for real control. See Publishing and locking.</dd><dt>Will a KPI card turn red automatically?</dt><dd>Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.</dd></dl>" },
     { id: 'shortcuts', title: 'Keyboard shortcuts', html: '<table class="keys">' + [['Ctrl+K', 'Search commands, charts, tabs and help'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy, cut, paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete the selection'], ['Enter', 'Edit the selected text'], ['Esc', 'Deselect / cancel commenting'], ['Alt+↑', 'Select the parent'], ['Alt+→ / Alt+←', 'Next / previous tab'], ['Ctrl+F', 'Find & replace'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+Shift+E', 'Save as…'], ['Ctrl+O', 'Open'], ['Ctrl+wheel', 'Zoom the dashboard'], ['F5', 'Present']].map(function (r) { return '<tr><td><kbd>' + r[0] + '</kbd></td><td>' + r[1] + '</td></tr>'; }).join('') + '</table>' },
     { id: 'troubleshooting', title: 'Problems and fixes', html: '<dl><dt>Charts are blank</dt><dd>The dashboard loads its libraries or data from separate files or the internet. Use File › Open folder. If it needs the internet, turn off View › Network lock.</dd><dt>"Use this data" doesn\'t appear</dt><dd>The data isn\'t in the page (it may be fetched from a server). Use "the numbers drawn in this chart", or load a CSV/Excel export from the Data tab.</dd><dt>My text change came back after reload</dt><dd>That text is written by the page\'s script. Mothership re-applies your edit after the script runs; if the script writes it later, edit it in the source data instead.</dd><dt>Copy prompt didn\'t work</dt><dd>Some browsers block copying from local files. Click in the prompt box, press Ctrl+A then Ctrl+C, or use Save as .md.</dd><dt>Versions/autosave are off</dt><dd>The browser blocks storage for local files (some Firefox or locked-down setups). Export still works.</dd><dt>The page looks squashed</dt><dd>View › Draw at › Auto, then ⤢ Fit.</dd></dl>' }
   ];
@@ -7227,7 +8458,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     find: need(MS.edit.findReplace),
     present: needRt(function () { MS.present.start(false); }),
     presenter: needRt(function () { MS.present.start(true); }),
-    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state }); MS.ribbon.render(); },
+    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state, unlocked: true }); MS.ribbon.render(); },
     netLock: function () { MS.settings.netLock = !MS.settings.netLock; MS.prefs.set('netLock', MS.settings.netLock); MS.toast(MS.settings.netLock ? 'Network lock on: the dashboard can\'t load or send anything over the internet while editing. Online-only libraries (CDN) will not load.' : 'Network lock off.', 'ok', 7000); if (MS.child) MS.reload(); MS.ribbon.render(); }
   };
 
@@ -7242,7 +8473,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '⬇', label: 'Export HTML', title: 'Save the edited dashboard as one standalone .html file on this laptop (Ctrl+E)', run: MS.cmd.export },
         { icon: '📝', label: 'Save as…', title: 'Choose a new file name and location', run: MS.cmd.exportAs },
         { icon: '🕘', label: 'Save version', title: 'Keep a named version in this browser (Ctrl+S)', run: MS.cmd.saveVersion },
-        { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions }] },
+        { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions },
+        { icon: '⚖', label: 'Compare', title: 'What changed between two versions (or a file): tabs, text, charts, data. Side by side too.', run: function () { MS.compare.dialog(); } }] },
+      { name: 'Publish', items: [
+        { icon: '🛡', label: 'Ready to publish?', title: 'Check before sharing: script errors, empty charts, numbers that don\'t add up, open comments, internet files, size', run: need(function () { MS.preflight.dialog(); }) },
+        { icon: '🚀', label: 'Publish', title: 'Save a view-only copy with a version number, date and release note. Optionally lock editing with a password; Mothership warns if it is changed afterwards.', run: needRt(function () { MS.publish.dialog(); }) }] },
       { name: 'Output', items: [
         { icon: '🖨', label: 'Print / PDF', title: 'Print the dashboard, or choose "Save as PDF" in the print dialog. Each tab prints on its own page.', run: MS.cmd.print },
         { icon: '↻', label: 'Reload', title: 'Re-run the dashboard as it will look when exported', run: MS.cmd.reload }] }
@@ -7306,6 +8541,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '🖌', label: 'Edit theme', title: 'Colours, chart palette, fonts, logo', run: needRt(MS.brand.edit) },
         { icon: '📚', label: 'Library', title: 'Brands you have used before', run: needRt(MS.brand.library) },
         { icon: '🔤', label: 'Fonts', title: 'Upload brand font files (.woff2/.woff/.ttf/.otf). They are embedded, so they work offline.', run: needRt(function () { MS.pickFiles('.woff,.woff2,.ttf,.otf', { multiple: true }).then(function (fs) { if (fs.length) MS.brand.addFontFiles(fs); }); }) }] },
+      { name: 'Numbers', items: [
+        { icon: '🌍', label: 'Region & currency', title: 'Country, currency and number style (US $ by default) for pop-ups, axes, KPI cards and summaries', run: needRt(function () { MS.locale.dialog(); }) }] },
       { name: 'Check', items: [
         { icon: '✅', label: 'Brand check', title: 'Find off-brand colours and fonts, low contrast, and charts missing commentary', run: need(MS.brand.check) }] }
     ] },
@@ -7322,7 +8559,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '🎨', label: 'Category colours', title: 'Give each category or series one colour on every chart', run: needRt(MS.catColors.dialog) }] },
       { name: 'Share', items: [
         { icon: '🖼', label: 'As image', title: 'Save the selected chart as a PNG for PowerPoint, Word or email', run: needRt(function () { MS.chartOut.image(); }) },
-        { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) }] },
+        { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) },
+        { icon: '📰', label: 'Summaries', title: 'A plain-English summary of every chart: for emails, captions and screen readers', run: needRt(function () { MS.summaries.dialog(); }) }] },
       { name: 'All charts', items: [
         { icon: '💬', label: 'Tooltips', title: 'Set one tooltip format for every chart', run: needRt(MS.charts.tooltipAll) },
         { icon: '🎨', label: 'Look', title: 'One font, legend and pop-up style for every chart', run: needRt(function () {
@@ -7375,6 +8613,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       { name: 'Comments', items: [
         { icon: '📌', label: 'Pins', title: 'Show or hide the numbered comment pins on the dashboard', run: function () { MS.review.togglePins(); }, toggle: function () { return MS.review.showPins; } },
         { icon: '🗑', label: 'Clear all', title: 'Delete all comments (Ctrl+Z to undo)', run: function () { MS.review.clear(); } }] },
+      { name: 'Tracker', items: [
+        { icon: '📗', label: 'Excel tracker', title: 'Save every comment as an Excel sheet with tab, chart, status, owner and due date, for review meetings', run: function () { MS.tracker.exportFile(); } },
+        { icon: '⬆', label: 'Update from tracker', title: 'Load the edited Excel tracker back: status, priority, owner, due date and notes', run: function () { MS.tracker.importFile(); } }] },
+      { name: 'Check', items: [
+        { icon: '🧮', label: 'Number check', title: 'Do the KPI cards match the chart totals? Do charts of the same measure add up alike?', run: function () { MS.numcheck.dialog(); } }] },
       { name: 'AI prompt', items: [
         { icon: '✨', label: 'Make prompt', title: 'Turn every comment into one prompt you can paste into an AI assistant', run: function () { MS.review.prompt(); } }] }
     ] },
@@ -7607,7 +8850,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '2.0.0';
+  MS.VERSION = '2.3.0';
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };

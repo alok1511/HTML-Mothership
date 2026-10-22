@@ -34,6 +34,12 @@
     var rs = doc.createElement('script'); rs.id = 'ms-runtime'; rs.setAttribute('data-ms-own', '');
     rs.textContent = MS.RUNTIME_SRC().replace(/<\/script/gi, '<\\/script');
     doc.body.appendChild(rs);
+    // first thing in <head>: note script errors from the very start, before the page's own scripts run
+    // (the runtime shows viewers a calm message; "Ready to publish?" lists them)
+    var early = doc.getElementById('ms-early'); if (early) early.remove();
+    early = doc.createElement('script'); early.id = 'ms-early'; early.setAttribute('data-ms-own', '');
+    early.textContent = EARLY;
+    doc.head.insertBefore(early, doc.head.firstChild);
 
     if (opts.editor) {
       var head = doc.head;
@@ -47,6 +53,7 @@
     }
     return { html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML, doc: doc };
   };
+  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<20)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
   function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
   MS.safeJson = safeJson;
 
@@ -62,6 +69,13 @@
   /* ---------------------------------------------------------- open */
   MS.openHtml = function (html, name, opts) {
     opts = opts || {};
+    // a published file locked for editing asks for its password first (see publish.js)
+    if (!opts.unlocked && MS.publish && MS.publish.isLocked(html)) {
+      return MS.publish.gate(html, name || 'dashboard.html', opts.password).then(function (ok) {
+        if (!ok) { if (opts.password != null) throw new Error('Wrong password: "' + (name || 'this file') + '" is locked for editing.'); return false; }
+        return MS.openHtml(html, name, Object.assign({}, opts, { unlocked: true }));
+      });
+    }
     MS.doc = { name: name || 'dashboard.html', source: html, folder: !!opts.folder };
     var probe = new DOMParser().parseFromString(html, 'text/html');
     var rel = opts.folder ? [] : relativeRefs(probe);
@@ -76,6 +90,7 @@
     MS.$('#doc-name').textContent = MS.doc.name;
     if (rel.length) MS.toast(rel.length + ' linked file(s) (e.g. ' + rel[0] + ') can\'t load from a single file. Use "Open folder" so Mothership can bundle them.', 'warn', 9000);
     MS.emit('doc-opened', MS.doc);
+    return Promise.resolve(true);
   };
 
   function mountFrame(html) {
@@ -95,7 +110,7 @@
   MS.reload = function (keepState) {
     if (!MS.doc) return;
     var html = MS.exportHtml({ keepEditor: false });
-    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder });
+    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder, unlocked: true });
   };
 
   MS.openFileObj = function (file) {
@@ -113,7 +128,7 @@
     try { return decodeURIComponent(new URL(rel.split('#')[0].split('?')[0], 'http://x/' + (dir ? dir + '/' : '')).pathname.slice(1)); } catch (e) { return null; }
   }
   var TEXT_EXT = /^(json|csv|tsv|txt|geojson|xml|md)$/;
-  MS.openFolder = function (files) {
+  MS.openFolder = function (files, opts) {
     var map = {};
     files.forEach(function (f) { map[f.webkitRelativePath || f.name] = f; });
     var htmls = Object.keys(map).filter(function (p) { return /\.html?$/i.test(p); });
@@ -164,8 +179,10 @@
             doc.head.insertBefore(s, doc.head.firstChild);
           }
           if (missing.length) MS.toast('Could not find: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : ''), 'warn', 8000);
-          MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true });
-          MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+          return MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true, password: opts && opts.password }).then(function (ok) {
+            if (ok) MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
+            return ok;
+          });
         });
       });
     });
@@ -208,6 +225,9 @@
     var rt = MS.rt();
     var state = rt ? rt.getState() : JSON.parse(JSON.stringify(MS.doc.state || {}));
     if (opts.dropComments) delete state.comments;
+    // only a published copy carries the seal (publish.js fills it in); working copies never do
+    if (opts.publish) state.publish = opts.publish;
+    else if (state.publish) delete state.publish.seal;
     var root = MS.child.doc.documentElement.cloneNode(true);
     MS.$$('[data-ms-editor]', root).forEach(function (n) { n.remove(); });
     MS.$$('.ms-sel,.ms-hover,.ms-editing,.ms-drop,.ms-dragging,.ms-flash,.ms-cmt-hover', root).forEach(function (n) { n.classList.remove('ms-sel', 'ms-hover', 'ms-editing', 'ms-drop', 'ms-dragging', 'ms-flash', 'ms-cmt-hover'); if (!n.className) n.removeAttribute('class'); });

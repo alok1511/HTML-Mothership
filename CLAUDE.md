@@ -11,10 +11,13 @@ A zero-install, offline, PowerPoint-style editor for HTML dashboards. The user r
 - `src/js/api.js` (`MS.api`) is the dialog-free layer for every feature; the MCP server (`tools/mcp/mothership-mcp.js`, plain Node, no packages) calls it over the DevTools protocol. New features should get an `MS.api` entry too.
 - There are two MCP servers with the same behaviour: `tools/mcp/mothership-mcp.js` (Node) and `tools/mcp/mothership_mcp.py` (Python 3.8+, standard library only). Both read the tool list from `MS.api.describe()`; a new file-handling tool must be added to `LOCAL` in both. `npm test` runs `tests/mcp.test.js` against each.
 - Editor UI: use the CSS variables in `mothership.css` (they follow the theme from `src/js/uitheme.js`), `MS.icon(name)` from `src/js/icons.js` for icons (emoji in UI text are swapped automatically), and keep `MS.review.locate` / `buildPrompt` in `src/js/prompt.js` in step with new element kinds.
+- Chart libraries: each has an adapter in `runtime.js` (`A.chartjs`, `A.echarts`, `A.plotly`, `A.highcharts`, and the basic `A.d3`). Never vendor Highcharts (not free for commercial use); tests build Highcharts/D3 pages from `node_modules` via `tests/fixtures/pages.js`.
+- Checks and reports (summaries UI, number check, Excel tracker, compare versions) are in `src/js/insights.js`.
+- Region and currency (`MS.locale`), "Ready to publish?" (`MS.preflight`) and publishing with lock and seal (`MS.publish`) are in `src/js/publish.js`. Normal exports must never carry `state.publish.seal`.
 - After changing `src/`, run `node tools/build.js` so `dist/mothership-standalone.html` and `samples/` stay in sync, then `npm test` (Playwright, from file://).
 
 ## Code style
-ES5-style JavaScript (`var`, `function`), 2-space indent, small helpers (`MS.h`, `MS.$`, `MS.$$`). User-facing text is plain English and Indian context (₹, lakh/crore formats). India is the default locale (`en-IN`).
+ES5-style JavaScript (`var`, `function`), 2-space indent, small helpers (`MS.h`, `MS.$`, `MS.$$`). User-facing text is plain English. Dashboard numbers default to **US English and US dollars** (`en-US`, `USD`) and follow `state.locale` (Design › Region & currency); use the `cur`/`curshort`/`short` formats rather than hard-coding a currency. The ₹ crore/lakh formats stay available by name.
 
 ## Docs
 `README.md` (user guide), `docs/ARCHITECTURE.md`, `docs/EXTENDING.md` (plugins, recipes, skills, MS.api/MCP), `docs/TUTORIAL.md`.

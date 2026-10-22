@@ -131,3 +131,17 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 **Prompt.** `buildPrompt` writes: role and how to work (by assistant), an "At a glance" table, the dashboard (file, libraries, tab/section/chart map, datasets), comments grouped by tab with *Where / On screen / Find it / The chart shows / Current settings / Comment / Done when*, rules adapted to the comment types, and what to send back (by assistant and output). "Done when" and tool hints come from simple keyword topics (colour, order, chart type, pop-up, drill, numbers, wording, filters, layout).
 
 **Python MCP server.** Same protocol, tools and env settings as the Node server. Requests are handled one at a time; a reader thread matches DevTools replies to waiting calls.
+
+## v3.1 additions
+
+**Highcharts** is a full adapter: it reads `Highcharts.charts`, keeps the original categories, series and tooltip formatter in `__msOrig`, and changes the chart with `chart.update`, `series.setData` and `axis.setCategories`. Mothership never ships Highcharts; it uses the copy inside the dashboard.
+
+**D3 and other SVG charts** are found by their marks: shapes inside an `<svg>` that carry a bound datum (`__data__`, which D3 sets). The first text field of a datum is its label and the first number its value (`d3.pie()` data is unwrapped). Pop-ups use Mothership's own hover tips (`data-ms-tip`), colours are inline `fill`, and the look sets fonts on the SVG's text. There is no `setData`, so order, binding and drill-down are skipped for them.
+
+**Summaries** live in the runtime so captions follow filters and survive export; they are generated elements (no `data-ms-own`) and rebuilt on load.
+
+**Region and currency** (`state.locale = {country, locale, currency, units: 'intl'|'indian'}`, default en-US / USD). The runtime's `locale()` reads it; `fmtNum` specs `cur`, `cur2`, `short`, `curshort` and `num` follow it, as do `k`/`m`/`pct`/`int` and the default. `inr`/`cr`/`lakh`/`usd` stay fixed. Editor side: `MS.locale` in `publish.js`.
+
+**Publishing** (`publish.js`). `MS.publish.build()` writes `state.publish = {version, at, by, note, asOf, badge, log[], lock?, seal}` through `MS.exportHtml({publish})`, with `seal` as 64 zeros, hashes the whole file (SHA-256, Web Crypto) and puts the hash in place of the zeros. `verify()` swaps it back and re-hashes. Normal exports delete `seal`, so the working copy keeps the lock details (for the next publish) but is never locked. `MS.openHtml` calls `MS.publish.gate()` first when the file has both `lock` and `seal`; the lock is `{salt, iter: 150000, key}` from PBKDF2-SHA-256. The runtime draws the corner badge (`#ms-badge`) and the failure bar (`#ms-errbar`) only outside the editor.
+
+**Checks and reports** (`insights.js`) are editor-only and read what is on screen: `rt.chartData(key, true)` for charts, the KPI cards' text for KPIs.

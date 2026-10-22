@@ -51,10 +51,13 @@
   }
 
   /* ---------------------------------------------------------- documents */
-  A.open_html = { d: 'Open a dashboard from its HTML source.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'] },
-    f: function (a) { MS.openHtml(a.html, a.name || 'dashboard.html'); return settle(1800).then(function () { return A.outline.f({}); }); } };
-  A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true] },
-    f: function (a) { MS.openFolder(a.files.map(fileOf)); return settle(2500).then(function () { return A.outline.f({}); }); } };
+  A.open_html = { d: 'Open a dashboard from its HTML source. A published file locked for editing needs its password.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'], password: ['string', 'Password, for a published file locked for editing'] },
+    f: function (a) {
+      if (MS.publish.isLocked(a.html) && a.password == null) throw new Error('This file is locked for editing. Pass its password.');
+      return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password == null ? undefined : a.password }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
+    } };
+  A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true], password: ['string', 'Password, for a published file locked for editing'] },
+    f: function (a) { return Promise.resolve(MS.openFolder(a.files.map(fileOf), { password: a.password })).then(function (ok) { if (ok === false) throw new Error('Not opened: the dashboard is locked for editing.'); return settle(2500); }).then(function () { return A.outline.f({}); }); } };
   A.new_dashboard = { d: 'Start a new dashboard from scratch.', p: { title: ['string', 'Dashboard name'], tabs: ['boolean', 'Start with Overview, How to use, FAQs and Methodology tabs (default true)'] },
     f: function (a) {
       MS.dirty = false; MS.compose.newDoc();
@@ -155,12 +158,50 @@
       MS.history.group('Insert KPI cards', function () { if (Object.keys(specs).length) MS.history.state('KPI settings', function (s) { Object.keys(specs).forEach(function (k) { s.kpis[k] = specs[k]; }); }); MS.compose.place(row, 'Insert KPI cards'); });
       return settle(150).then(function () { return { ref: refOf(row), cards: MS.$$('.ms-kpi', row).map(refOf), values: MS.$$('.ms-kpi-value', row).map(function (v) { return v.textContent; }) }; });
     } };
-  A.kpi_status = { d: 'Give a calculated KPI card red / amber / green status colours. Thresholds are raw data values (before ₹ crore formatting); between them is amber. better="" removes the colours.', p: { ref: ['string', 'KPI card ref (or its row: the first card is used)', true], better: ['string', 'high (higher is better) | low | "" to remove', true], good: ['number', 'Green at or beyond this'], bad: ['number', 'Red at or beyond this'] },
+  A.kpi_status = { d: 'Give a calculated KPI card red / amber / green status colours. Thresholds are raw data values (before currency or K/M formatting); between them is amber. better="" removes the colours.', p: { ref: ['string', 'KPI card ref (or its row: the first card is used)', true], better: ['string', 'high (higher is better) | low | "" to remove', true], good: ['number', 'Green at or beyond this'], bad: ['number', 'Red at or beyond this'] },
     f: function (a) {
       var el = elOf(a.ref), card = el.closest('[data-ms-kpi]') || el.querySelector('[data-ms-kpi]'); if (!card) throw new Error('That is not a calculated KPI card. Insert KPI cards from a dataset first.');
       var id = card.getAttribute('data-ms-kpi');
       MS.history.state('KPI status colours', function (s) { if (!s.kpis[id]) return; if (a.better) s.kpis[id].status = { better: a.better, good: a.good, bad: a.bad }; else delete s.kpis[id].status; });
       return settle(150).then(function () { return { ref: refOf(card), status: card.getAttribute('data-ms-status') || null, value: (card.querySelector('.ms-kpi-value') || {}).textContent }; });
+    } };
+  A.chart_summaries = { d: 'Plain-language summaries of the charts ("West is highest at ₹4.2 Cr (38%)…"), written from the numbers on screen. Optionally add them as captions under the charts or for screen readers.', p: { chart: ['string', 'One chart (default: all)'], show: ['string', 'caption | aria (screen readers only) | off; leave out to just read them'] },
+    f: function (a) {
+      var keys = a.chart ? [chartKey(a.chart)] : rt().charts().map(function (c) { return c.key; });
+      if (a.show) MS.summaries.set(keys, a.show);
+      return settle(200).then(function () { return MS.summaries.list().filter(function (x) { return keys.indexOf(x.key) >= 0; }).map(function (x) { return { chart: x.name, kind: x.kind, summary: x.summary, shown: x.show }; }); });
+    } };
+  A.get_locale = { d: 'The region and currency Mothership uses to write numbers (US dollars unless changed), with examples.', p: {},
+    f: function () { var o = MS.locale.get(); return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); } };
+  A.set_locale = { d: 'Set the country, currency and number style for pop-ups, axes, KPI cards and summaries that use the currency or short formats. Give a country (US, India, Germany…) and optionally a different currency.', p: { country: ['string', 'Country name or 2-letter code, e.g. US, IN, GB, DE'], currency: ['string', '3-letter currency code, e.g. USD, INR, EUR (default: the country\'s)'], locale: ['string', 'Number style, e.g. en-US, en-IN, de-DE (default: the country\'s)'], units: ['string', 'intl (K, M, B) | indian (lakh, crore)'] },
+    f: function (a) { var o = MS.locale.set(a); return settle(400).then(function () { return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); }); } };
+  A.publish_check = { d: 'Ready to publish? Checks script errors, charts with no numbers, untitled charts, KPI totals, open comments, internet files, size and title. fail = fix first, warn = look at it.', p: {},
+    f: function () { var items = MS.preflight.run(); return { ready: !items.some(function (x) { return x.status === 'fail'; }), items: items }; } };
+  A.publish = { d: 'Make a view-only published copy: version number, date, release note and corner badge; optionally locked for editing with a password; sealed so Mothership warns if it is changed later. Returns the HTML (the MCP publish_html tool saves it).', p: { version: ['string', 'e.g. 1.0 (default: next after the last publish)'], note: ['string', 'What changed'], by: ['string', 'Published by'], as_of: ['string', 'Data as of (YYYY-MM-DD)'], password: ['string', 'Lock editing in Mothership with this password (6+ characters). Without one, an earlier lock is kept'], unlock: ['boolean', 'Remove an earlier lock'], badge: ['boolean', 'Show the version badge (default true)'], keep_comments: ['boolean', 'Keep review comments in the file'] },
+    f: function (a) {
+      if (a.password && String(a.password).length < 6) throw new Error('Use a password of at least 6 characters.');
+      return MS.publish.build({ version: a.version, note: a.note, by: a.by, asOf: a.as_of, password: a.password, keepLock: !a.unlock, badge: a.badge, keepComments: !!a.keep_comments }).then(function (r) {
+        return { html: r.html, name: r.name, bytes: r.html.length, version: r.publish.version, locked: !!r.publish.lock, sha256: r.sha256 };
+      });
+    } };
+  A.number_check = { d: 'Check that KPI cards match the totals of the charts that show the same measure, and that charts of the same measure add up alike. Returns differences first.', p: { add_comments: ['boolean', 'Add a review comment for each difference'] },
+    f: function (a) {
+      var res = MS.numcheck.run();
+      if (a.add_comments) res.filter(function (x) { return x.status === 'diff'; }).forEach(function (x) { A.add_comment.f({ ref: x.el ? refOf(x.el) : null, chart: x.el ? null : x.chart, text: 'Numbers don\'t add up: ' + x.what + ' shows ' + x.shown + ' but ' + x.against + ' adds up to ' + x.expected + '. ' + (x.note || ''), type: 'bug', priority: 'must' }); });
+      return res.map(function (x) { return { status: x.status, item: x.what, shows: x.shown, against: x.against || null, addsUpTo: x.expected || null, note: x.note || null }; });
+    } };
+  A.comments_tracker = { d: 'All review comments as an Excel tracker (tab, section, chart, comment, done-when, status, owner, due). Returns the .xlsx as base64; the save_tracker tool writes it to disk.', p: {},
+    f: function () { return MS.tracker.build().then(function (r) { var b = '', u = new Uint8Array(r.bytes); for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { name: r.name, rows: r.rows, b64: btoa(b) }; }); } };
+  A.apply_tracker = { d: 'Update comments from an edited tracker (.xlsx): status, priority, owner, due, notes and wording, matched by the ID column.', p: { file: ['object', '{name, b64}', true] },
+    f: function (a) { return MS.readFile(fileOf(a.file), 'buffer').then(function (b) { return MS.tracker.apply(b); }); } };
+  A.compare_versions = { d: 'What changed between two versions: tabs, text, chart settings, data, KPI cards, filters, colours and comments. Compares saved versions by name, the dashboard now ("now"), or HTML you pass.', p: { before: ['string', 'Saved version name, or "now"'], after: ['string', 'Saved version name, or "now" (default)'], before_html: ['string', 'Or the HTML of the earlier file'], after_html: ['string', 'Or the HTML of the later file'] },
+    f: function (a) {
+      return MS.compare.sources().then(function (src) {
+        var pick = function (n, html) { if (html) return html; n = n || 'now'; var x = src.filter(function (s) { return s.id === n || (n === 'now' && s.id === 'now') || s.name.split(' · ')[0].toLowerCase() === String(n).toLowerCase(); })[0]; if (!x) throw new Error('No version called "' + n + '". Versions: ' + src.map(function (s) { return s.name.split(' · ')[0]; }).join(', ')); return x.get(); };
+        if (!a.before && !a.before_html) throw new Error('Say what to compare from: before (a version name) or before_html.');
+        var r = MS.compare.compare(pick(a.before, a.before_html), pick(a.after, a.after_html));
+        return { changes: r.changes, sections: r.sections };
+      });
     } };
   A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], sort: ['string', 'desc | asc | "" (by label)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
     f: function (a) {
@@ -222,8 +263,8 @@
   /* ---------------------------------------------------------- charts */
   A.chart_settings = { d: 'Change a chart: commentary (title/subtitle/inference), pop-up text template, look (fonts, legend, pop-up colours, axis number format), linked data and drill-down.', p: {
       chart: ['string', 'Chart name or key', true], title: ['string', 'Title above the chart'], subtitle: ['string', 'Subtitle'], inference: ['string', 'The "so what" line'],
-      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:cr}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :inr :cr :lakh :k :m :pct :int'],
-      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: inr|cr|lakh|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
+      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:cr}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :cur :curshort :short (follow set_locale) :inr :cr :lakh :k :m :pct :int'],
+      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: cur|curshort|short|inr|cr|lakh|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
       data: ['object', '{dataset, levels:[col,...], measure, agg, series, sort, top} (null = unlink)'], double_click: ['string', 'levels | details | crossfilter | none'], columns: ['array', 'Columns in the records view'] },
     f: function (a) {
       var r = rt(), key = chartKey(a.chart), c = r.chart(key);
@@ -365,6 +406,7 @@
     } };
 
   MS.api = {};
+  MS.api.refOf = refOf;
   Object.keys(A).forEach(function (k) { MS.api[k] = function (args) { return A[k].f(args || {}); }; });
   // tool descriptions with JSON Schemas, for MCP and docs
   MS.api.describe = function () {

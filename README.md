@@ -127,6 +127,30 @@ HTML-Mothership/
 | **Python client** | `tools/mcp/python_client.py` | Drive Mothership from your own Python script: `MothershipClient().call('open_file', path=...)`. |
 | **MCP how-to and FAQ** | **Help › Guide › Use with AI assistants (MCP)** and **FAQ** | Step-by-step set-up for Claude Desktop, Claude Code and Python, plus answers to office questions (IT policy, no admin, where files go). |
 
+### New in v3.1
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Highcharts support** | Automatic | Highcharts dashboards get everything Chart.js, ECharts and Plotly get: plain names, look, pop-ups, one category order, category colours, data and drill-down, images, summaries. |
+| **D3 / SVG charts** | Automatic | Charts drawn by D3 (or similar) are found and named. You can set pop-ups, colours and fonts, get summaries, run the number check, save an image and comment on them. They can't be redrawn from other data. |
+| **Chart summaries** | **Charts › Summaries** | One or two plain sentences per chart from the numbers on screen: "West is highest at ₹4.2 Cr (38%); East is lowest at ₹1.2 Cr." Trends say what rose or fell and by how much. Add them as captions, for screen readers, or copy them all for an email. Captions follow filters and stay in the export. |
+| **Number check** | **Review › Number check** | Do KPI cards match the totals of their charts? Do charts of the same measure add up alike? Rounding is allowed for; differences become review comments in one click. |
+| **Excel comment tracker** | **Review › Excel tracker** / **Update from tracker** | Every comment as a spreadsheet (status, priority, tab, section, chart, where, comment, done-when, owner, due, notes) with a summary sheet. Edit it in the meeting and load it back. |
+| **Compare versions** | **File › Compare** | What changed between two saved versions, now, or a file: tabs, text (old crossed out, new in green), chart settings, data, KPI cards, filters, colours, comments. Side-by-side view too. |
+| **MCP tools** | Both servers | `chart_summaries`, `number_check`, `compare_versions`, `compare_file`, `save_tracker`, `load_tracker`. |
+
+### New in v3.2: US $ by default, and publishing
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Region & currency** | **Design › Region & currency** | Numbers are written in **US dollars, US style** by default ($1,234,567, $1.23M). Pick any of 52 countries and any currency; choose K/M/B or lakh/crore. Applies to pop-ups and axes set to Currency or Short, KPI cards, chart summaries, the number check and AI prompts. Saved in the dashboard. A ₹, € or £ dashboard gets a hint, not a silent change. |
+| **Ready to publish?** | **File › Ready to publish?** | One checklist: script errors, charts with no numbers, untitled charts, KPI totals that don't match, open must-fix comments, files that need the internet, size, title. |
+| **Publish** | **File › Publish** | A view-only copy for sharing: version number (1.0, 1.1…), release note, "published by", "data as of", and a small corner badge with the release log. Comments are left out. |
+| **Lock editing** | In Publish | Optional password: Mothership asks for it before editing the published copy. Only a salted key (PBKDF2) is stored. **A deterrent, not a vault** (see Limitations). |
+| **Tamper check** | Automatic | A published copy carries its own SHA-256 fingerprint. Reopened in Mothership, it says "unchanged since published" or warns that it was edited elsewhere. |
+| **Calm failure message** | Published files | If part of a dashboard fails to load, viewers see one line ("Part of this dashboard didn't load…") instead of a broken page. |
+| **MCP tools** | Both servers | `get_locale`, `set_locale`, `publish_check`, `publish_html`; `open_file` takes a `password`. |
+
 ---
 
 ## 3. How-to guide
@@ -155,7 +179,7 @@ HTML-Mothership/
   - *Value* + *Aggregate* (sum, average, count, min, max), optional *Split into series*, sort, top N.
   - *Double-click does*: drill to next level then show records · show records · cross-filter every chart · nothing.
   - A breadcrumb above the chart (`All region › South`) lets viewers climb back up.
-- **Supported chart libraries:** Chart.js, Apache ECharts, Plotly. Other visuals (D3, SVG, images, tables) can still be selected, moved, copied, resized and given commentary. Their tooltips and drill-downs belong to their own code.
+- **Supported chart libraries:** Chart.js, Apache ECharts, Plotly and Highcharts (everything). D3 and other SVG charts: names, pop-ups, colours, fonts, summaries, number check, image and comments, but not new data or drill-down. Images and tables can still be selected, moved, copied, resized and given commentary.
 
 ### Filter pane
 **Layout › Filter pane**: add filters (dataset + field), relabel, reorder, choose left or top, set a title. Drop-downs cascade, so choosing *West* limits *State* to western states. Filters apply to every chart **bound** to that dataset.
@@ -314,13 +338,15 @@ Deeper detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 Stated plainly so nothing surprises you:
 
-- **Chart features cover Chart.js, ECharts and Plotly only.** D3, Highcharts, Google Charts, Power BI embeds and similar can be moved, resized and annotated, but not given new tooltips or drill-downs. Adding an adapter is about 80 lines (see `A.chartjs` in `src/js/runtime.js`). Highcharts would be a sensible next one.
+- **Full chart features cover Chart.js, ECharts, Plotly and Highcharts.** D3/SVG charts get basic support (no new data or drill-down). Google Charts, Power BI embeds and similar can be moved, resized and annotated only. Adding an adapter is about 100 lines (see `A.highcharts` in `src/js/runtime.js`).
 - **Drill-down and filters need row-level data** (an array of objects) in the page's scripts, a `<script type="application/json">`, or a loaded file. Charts built from pre-aggregated numbers can't drill below what they hold.
 - **Edits on script-made elements** (anything the dashboard's code creates after load) can be redrawn by the page. Edits on the page's own elements are safe.
 - **Pages that rebuild the whole `<body>`** (some React/Vue apps) don't suit DOM editing. Mothership is designed for "static HTML + chart library" dashboards, which is how most exported dashboards are built.
 - **Turning tabs off** merges all tabs into one page. It can't be undone with Ctrl+Z, so a version is saved first automatically.
 - **Versions and plugins live in one browser profile.** If IT clears browser data, they go. Exports don't.
 - **PowerPoint import** keeps text, tables, pictures and notes, not exact slide layout or native PowerPoint charts. Use PDF import "as images" when you need it pixel-identical.
+- **The publish lock is a deterrent, not security.** An HTML file is text: anyone can open it in Notepad, change it, or copy what is on screen. The lock stops edits in Mothership and the seal reveals changes, but only when the file is opened in Mothership. For real control use SharePoint/OneDrive/Teams view-only permissions, sensitivity labels, or send a PDF.
+- **Region & currency changes Mothership's numbers only**: pop-ups and axes set to Currency/Short, KPI cards and summaries. Numbers the dashboard's own script writes (and formats picked by name, like ₹ crore) are not converted, and no exchange rates are applied.
 - **Very large datasets** (more than about 50k rows) embedded via *Load data* make exports large and drill-downs slower. Link to the page's own data where possible (*Find data*).
 
 ---
@@ -428,7 +454,8 @@ with MothershipClient() as ms:                      # starts the Python server
 | Tabs | `layout`, `add_tab`, `rename_tab`, `move_tab`, `hide_tab`, `duplicate_tab`, `move_chart`, `tab_notes` |
 | Charts | `chart_settings` (commentary, pop-up text, look, data, drill), `chart_look_all`, `tooltip_all`, `category_order`, `category_colors`, `format_painter`, `find_chart_data`, `link_chart_data`, `drill`, `chart_data` |
 | Data | `discover_datasets`, `add_dataset`, `refresh_dataset`, `drill_data`, `filter_pane`, `set_filter` |
-| Review | `add_comment`, `update_comment`, `list_comments` (with *Tab › Section › Chart* for each), `comments_prompt` (scope, goal, assistant, output) |
+| Review | `add_comment`, `update_comment`, `list_comments` (with *Tab › Section › Chart* for each), `comments_prompt` (scope, goal, assistant, output), `save_tracker`, `load_tracker` |
+| Checks | `chart_summaries`, `number_check`, `compare_versions`, `compare_file` |
 | Anything else | `undo`, `redo`, `run_recipe`, `call` (any Mothership function by name) |
 
 **Settings** (optional `env` entries):
@@ -449,13 +476,12 @@ Exports never overwrite your original: the default name is `<name>-edited.html`.
 
 Not built yet, roughly in order of value:
 
-1. **Highcharts and D3 adapters**: the next most common dashboard libraries.
-2. **Compare versions**: side-by-side diff of two versions' text and settings.
-3. **Template gallery**: save a tab layout and reuse it across dashboards (partly covered by recipes today).
-4. **Accessibility pass**: alt-text prompts for images and charts, keyboard navigation audit of exports.
-5. **Scheduled refresh**: re-load a local CSV/Excel and re-export in one click (manual refresh exists under Data › Manage).
-6. **Conditional formatting for tables** (KPI cards have red/amber/green from v3).
-7. **Comment tracker export**: comments as an Excel sheet with owner, status and date, for review meetings.
-8. **Presenter notes from comments**: turn resolved comments into speaker notes for Present mode.
-9. **Number check**: flag KPI cards and chart totals that don't add up to the same figure.
-10. **Plain-language chart summaries**: one-line "what this chart says" for each chart, for screen readers and email.
+1. **Template gallery**: save a tab layout and reuse it across dashboards (partly covered by recipes today).
+2. **Scheduled refresh**: re-load a local CSV/Excel and re-export in one click (manual refresh exists under Data › Manage).
+3. **Conditional formatting for tables** (KPI cards have red/amber/green from v3).
+4. **Presenter notes from comments**: turn resolved comments into speaker notes for Present mode.
+5. **Accessibility pass**: alt text for images and a keyboard check of exports (chart summaries cover charts from v3.1).
+6. **Full D3 support**: redraw D3 charts from new data, which needs knowing how each chart was built.
+7. **Real access control and signing** (needs company systems, not a file): view-only SharePoint/Teams links, sensitivity labels, and signing published files with the company's certificate instead of a self-check.
+8. **Usage analytics** (who opened which tab): needs a server, so it is out of scope for an offline file.
+9. **Currency conversion** with a rate table you supply, for dashboards that mix currencies.

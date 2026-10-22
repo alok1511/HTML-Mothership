@@ -172,6 +172,34 @@ Each comment in the prompt has its location, how to find it in the code, what th
 
 Plugins (.js) add buttons to the Plugins tab. Recipes (.json) replay a list of edits (tabs, theme, tooltips, filters) on any dashboard, which is handy for a monthly refresh. See docs/EXTENDING.md in the Mothership folder.
 
+## Summaries, number check, tracker and compare
+
+### 📰 Chart summaries
+
+**Charts › Summaries** writes one or two plain sentences per chart from the numbers on screen, e.g. *“West is highest at ₹4.2 Cr (38%); East is lowest at ₹1.2 Cr.”* Trends say what rose or fell and by how much. For each chart choose **Caption under the chart**, **Screen readers only** or nothing. Captions follow the filters and stay in the exported file. **Copy all** gives you the lot for an email.
+
+### 🧮 Number check
+
+**Review › Number check** compares each KPI card with the chart that shows the same measure (by name, or by data for cards that calculate), and charts of the same measure with each other. Rounding on the card (₹16.2 Cr) is allowed for. Differences can be turned into review comments in one click. Percentages and row counts are not added up.
+
+### 📗 Excel tracker
+
+**Review › Excel tracker** saves every comment as a spreadsheet: number, status, priority, tab, section, chart, where exactly, the comment, what “done” means, owner, due date and notes, plus a summary sheet by tab and priority. Use it in the review meeting, then **Update from tracker** loads status, priority, owner, due date, notes and wording back. Keep the ID column.
+
+### ⚖ Compare versions
+
+**File › Compare** shows what changed between two saved versions, the dashboard now, or a file on this laptop: tabs added, renamed or removed, text changes (old crossed out, new in green), chart settings, data, KPI cards, filters, colours and comments. **Side by side** shows both dashboards next to each other. **Copy the list** for your change note.
+
+## Chart libraries
+
+| Library | What works |
+|---|---|
+| Chart.js, ECharts, Plotly | Everything: look, pop-ups, colours, order, data, drill-down, images, summaries. |
+| Highcharts | Everything as above. Mothership uses the Highcharts already inside your dashboard (it is not free for commercial use, so Mothership doesn't include it). |
+| D3 and other SVG charts | Names, pop-ups, colours, look (fonts), summaries, number check, image and comments. The page's own script draws them, so Mothership can't redraw them from other data or drill down: rebuild with **Insert › Chart** for that. |
+
+Charts drawn as plain images can't be read; ask for the data behind them.
+
 ## Mothership theme and search
 
 Make Mothership itself easier on the eyes. Your dashboard is not affected.
@@ -183,6 +211,46 @@ Make Mothership itself easier on the eyes. Your dashboard is not affected.
 ### 🔍 Search everything
 
 Press `Ctrl`+`K` (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.
+
+## Region and currency
+
+Mothership writes numbers in **US dollars, US style** ($1,234,567 and $1.23M) unless you choose otherwise. Change it in **Design › Region & currency**: pick a country (52 to choose from) and it fills in the currency and number style; then change the currency on its own if you need to (any currency, e.g. a UK dashboard in US $). **Big numbers** chooses K, M, B or lakh and crore. The preview shows what you will get.
+
+| Choice | 1234567 as currency | short |
+|---|---|---|
+| United States | $1,234,567 | $1.23M |
+| India | ₹12,34,567 | ₹12.35 L |
+| Germany | 1.234.567 € | 1,23 Mio. € |
+| United Kingdom | £1,234,567 | £1.23M |
+
+### Where it applies
+
+- Pop-ups and axes set to **Currency**, **Currency short** or **Short** (`{value:cur}`, `{value:curshort}`, `{value:short}`).
+- KPI cards, chart summaries, the number check and the AI prompt rules.
+- The setting is saved inside the dashboard, so viewers see the same thing. It is one undo step.
+
+Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbers the dashboard's own script writes are not changed. If a dashboard clearly shows ₹, € or £, Mothership tells you in the status bar but doesn't switch on its own.
+
+## Publishing and locking
+
+Your working copy is for editing; a **published copy** is what you share.
+
+### 🛡 File › Ready to publish?
+
+A checklist before you share: script errors, charts with no numbers, untitled charts, KPI cards that don't match their charts, open must-fix comments, files that need the internet, file size and page title. Red means fix first; amber means take a look.
+
+### 🚀 File › Publish
+
+- **Version and release note**: 1.0, 1.1… counts on by itself. Each publish adds to the release log.
+- **Corner badge**: “Version 1.1 · Published 22 Oct 2026 · Data as of 30 Sep 2026”. Click it for the release notes. It is hidden when printing.
+- **Comments left out** unless you tick Keep.
+- **Tamper check**: the file carries a fingerprint of itself (SHA-256). If someone changes it in Notepad or another tool and it is opened in Mothership again, you get a warning.
+- **Lock editing with a password**: Mothership asks for it before opening the file for editing. Viewers never need it. The password is not stored, only a salted key (PBKDF2).
+- If part of a published dashboard fails to load, viewers see a calm one-line message instead of a broken page.
+
+### What the lock can and can't do
+
+It is a **deterrent, not a vault**. An HTML file is text: anyone can open it in Notepad, and anything on screen can be copied or photographed. The lock stops casual edits in Mothership and the seal tells you if the file was changed. For real control use **SharePoint, OneDrive or Teams permissions** (view-only links, no download), your company's sensitivity labels, or a PDF. Keep confidential numbers out of files that leave the team.
 
 ## Use with AI assistants (MCP)
 
@@ -298,6 +366,21 @@ Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your 
 **How do I find a command quickly?**  
 `Ctrl`+`K` and type what you want.
 
+**Does it work with Highcharts or D3?**  
+Yes. Highcharts works fully. D3 (and similar SVG) charts get names, pop-ups, colours, fonts, summaries, the number check and comments, but not new data or drill-down. See Chart libraries.
+
+**How do I check the numbers before sending?**  
+Review › Number check. It flags KPI cards that don’t match their chart and charts of the same measure that add up differently.
+
+**Can I track comments in Excel?**  
+Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.
+
+**Can I change the currency from US $?**  
+Yes: Design › Region & currency. Pick any country and any currency; it is saved in the dashboard.
+
+**Can I lock the dashboard so no one else edits it?**  
+Partly. File › Publish can lock editing in Mothership with a password, and Mothership warns if the file was changed elsewhere. But no HTML file can be truly locked: it can always be opened in Notepad. Use SharePoint or Teams view-only permissions for real control. See Publishing and locking.
+
 **Will a KPI card turn red automatically?**  
 Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.
 
@@ -340,3 +423,5 @@ The browser blocks storage for local files (some Firefox or locked-down setups).
 
 **The page looks squashed**  
 View › Draw at › Auto, then ⤢ Fit.
+
+
