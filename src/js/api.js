@@ -121,7 +121,7 @@
       return done();
     } };
   A.delete = { d: 'Delete an element or block (undoable).', p: { ref: ['string', 'Element ref or selector', true] }, f: function (a) { MS.blocks.remove(elOf(a.ref)); return done(); } };
-  A.duplicate = { d: 'Duplicate an element or chart block.', p: { ref: ['string', 'Element ref or selector', true] }, f: function (a) { var el = elOf(a.ref); MS.blocks.duplicate(MS.blocks.of(el) || el); return done(); } };
+  A.duplicate = { d: 'Duplicate an element or chart block.', p: { ref: ['string', 'Element ref or selector', true] }, f: function (a) { var el = elOf(a.ref); var n = MS.clipboard.duplicate(el); return { ref: n ? refOf(n) : null }; } };
   A.move_element = { d: 'Move an element before/after another one (e.g. reorder sections or cards).', p: { ref: ['string', 'Element to move', true], before: ['string', 'Put it before this element'], after: ['string', 'Put it after this element'] },
     f: function (a) { var el = elOf(a.ref), t = elOf(a.before || a.after); MS.history.move('Move', el, function () { t.parentNode.insertBefore(el, a.before ? t : t.nextSibling); }); return done(); } };
   A.replace_text = { d: 'Find and replace text everywhere in the dashboard.', p: { find: ['string', 'Text to find', true], replace: ['string', 'Replacement', true] },
@@ -390,9 +390,10 @@
     f: function () { MS.brand.check(); var dlg = document.querySelector('.dlg'); var txt = dlg ? dlg.querySelector('.dlg-body').innerText : ''; if (dlg) dlg.closest('.dlg-wrap').remove(); return { report: txt }; } };
 
   /* ---------------------------------------------------------- review */
-  A.add_comment = { d: 'Add a review comment on an element, an area, or an interaction.', p: { text: ['string', 'The comment', true], ref: ['string', 'Element ref/selector (element comment)'], chart: ['string', 'Or a chart name'], area: ['object', '{x, y, w, h} in page px (area comment)'], steps: ['array', 'What was done (interaction comment)'], type: ['string', 'change | bug | question | idea'], priority: ['string', 'must | should | nice'], by: ['string', 'Author name'] },
+  A.add_comment = { d: 'Add a review comment on an element, an area, or an interaction.', p: { text: ['string', 'The comment', true], ref: ['string', 'Element ref/selector (element comment)'], chart: ['string', 'Or a chart name'], area: ['object', '{x, y, w, h} in page px (area comment)'], steps: ['array', 'What was done (interaction comment)'], type: ['string', 'change | bug | question | idea'], priority: ['string', 'must | should | nice'], by: ['string', 'Author name'], to: ['string', 'Assign to (initials or name); an @mention in the text also assigns'] },
     f: function (a) {
       var r = rt(), c = { id: r.uid('m'), created: new Date().toISOString(), text: a.text, type: a.type || 'change', prio: a.priority || 'should' };
+      var men = MS.review.mentions(a.text); if (men.length) c.mentions = men; if (a.to || men.length) c.to = String(a.to || men[0]).replace(/^@/, '');
       var t = r.layoutEnabled() ? r.tabs().filter(function (x) { return x.id === r.activeTab; })[0] : null;
       if (!t && MS.pageTabs.has()) { var pa = MS.pageTabs.active(); if (pa) t = { id: 'page:' + pa.index, title: pa.title }; }
       c.by = a.by || ''; c.replies = [];
@@ -406,11 +407,70 @@
       MS.history.state('Add comment', function (s) { s.comments.push(c); }); MS.emit('comments');
       return { id: c.id, number: r.state.comments.length };
     } };
-  A.list_comments = { d: 'All review comments.', p: {}, f: function () { return MS.review.list().map(function (c, i) { return { number: i + 1, id: c.id, kind: c.kind, text: c.text, type: c.type, priority: c.prio, done: !!c.done, by: c.by || '', on: c.target ? c.target.what : c.inside || c.steps, where: c.loc ? MS.review.trail(c.loc) : (c.tab && c.tab.title), tab: c.tab && c.tab.title, replies: (c.replies || []).map(function (y) { return { by: y.by || '', text: y.text, at: y.at }; }) }; }); } };
-  A.update_comment = { d: 'Edit, resolve (done), reply to or delete a comment.', p: { id: ['string', 'Comment id', true], text: ['string', 'New text'], done: ['boolean', 'Resolve / re-open'], reply: ['string', 'Add a reply'], by: ['string', 'Reply author'], delete: ['boolean', 'Delete it'] },
-    f: function (a) { MS.history.state('Comment', function (s) { if (a.delete) { s.comments = s.comments.filter(function (c) { return c.id !== a.id; }); return; } s.comments.forEach(function (c) { if (c.id !== a.id) return; if (a.text != null) c.text = a.text; if (a.done != null) c.done = a.done; if (a.reply) (c.replies = c.replies || []).push({ id: rt().uid('y'), text: a.reply, by: a.by || '', at: new Date().toISOString() }); }); }); MS.emit('comments'); return done(); } };
+  A.list_comments = { d: 'All review comments.', p: {}, f: function () { return MS.review.list().map(function (c, i) { return { number: i + 1, id: c.id, kind: c.kind, text: c.text, type: c.type, priority: c.prio, done: !!c.done, by: c.by || '', to: c.to || '', mentions: c.mentions || [], on: c.target ? c.target.what : c.inside || c.steps, where: c.loc ? MS.review.trail(c.loc) : (c.tab && c.tab.title), tab: c.tab && c.tab.title, replies: (c.replies || []).map(function (y) { return { by: y.by || '', text: y.text, at: y.at }; }) }; }); } };
+  A.update_comment = { d: 'Edit, resolve (done), reply to or delete a comment.', p: { id: ['string', 'Comment id', true], text: ['string', 'New text'], done: ['boolean', 'Resolve / re-open'], reply: ['string', 'Add a reply'], by: ['string', 'Reply author'], to: ['string', 'Assign to (initials or name; "" unassigns)'], delete: ['boolean', 'Delete it'] },
+    f: function (a) { MS.history.state('Comment', function (s) { if (a.delete) { s.comments = s.comments.filter(function (c) { return c.id !== a.id; }); return; } s.comments.forEach(function (c) { if (c.id !== a.id) return; if (a.text != null) c.text = a.text; if (a.done != null) c.done = a.done; if (a.to != null) { if (a.to) c.to = String(a.to).replace(/^@/, ''); else delete c.to; } if (a.reply) (c.replies = c.replies || []).push({ id: rt().uid('y'), text: a.reply, by: a.by || '', at: new Date().toISOString() }); }); }); MS.emit('comments'); return done(); } };
   A.comments_prompt = { d: 'Turn the review comments into one prompt for an AI assistant. Each comment is located by tab › section › card/chart › item.', p: { goal: ['string', 'apply (default) | polish | review | explain'], assistant: ['string', 'chat (default) | agent | mcp: who will carry it out'], scope: ['string', 'all (default) | tab | must'], tab: ['string', 'Tab title when scope is tab'], ids: ['array', 'Only these comment ids'], group: ['string', 'where | priority | order'], detail: ['string', 'full | brief'], output: ['string', 'file (complete updated HTML) | changes | plan | tickets'], include_done: ['boolean', 'Include closed comments'], extra: ['string', 'Extra instruction'], embed_html: ['boolean', 'Paste the dashboard source into the prompt'] },
     f: function (a) { return { prompt: MS.review.buildPrompt({ goal: a.goal, assistant: a.assistant, scope: a.scope, tab: a.tab, ids: a.ids, group: a.group, detail: a.detail, output: a.output, structure: true, includeDone: !!a.include_done, extra: a.extra, embed: a.embed_html ? MS.exportHtml({ dropComments: true }) : '', fileName: MS.exportName() }) }; } };
+
+  /* ---------------------------------------------------------- client work: firm template, stage, confidential, change log */
+  A.firm_template = { d: 'The firm template: logo, fonts, palette and disclaimer footer that the dashboard snaps to, locked so colours and fonts stay on brand. action: get (default) | apply | save_current | lock | unlock | footer | remove.', p: { action: ['string', 'get | apply | save_current | lock | unlock | footer | remove'], template: ['object', 'For apply: {name, footer, logo, theme:{colors, fonts, palette}, locked}'], name: ['string', 'Template name (save_current)'], footer: ['string', 'Disclaimer footer text'], lock: ['boolean', 'Lock after applying (default true)'], password: ['string', 'Unlock password (lock / unlock)'] },
+    f: function (a) {
+      var act = a.action || 'get', F = MS.firm;
+      if (act === 'apply') { F.apply(a.template || {}, { lock: a.lock }); return F.current(); }
+      if (act === 'save_current') { var t = F.fromDashboard({ name: a.name, footer: a.footer, locked: a.lock !== false }); F.apply(t, { lock: a.lock !== false }); return { template: t }; }
+      if (act === 'lock' || act === 'unlock') return F.lock(act === 'lock', a.password).then(function (ok) { if (!ok) throw new Error('Wrong password.'); return F.current(); });
+      if (act === 'footer') { F.setFooter(a.footer); return F.current(); }
+      if (act === 'remove') { F.remove(); return done(); }
+      var c = F.current(); return c ? { name: c.name, footer: c.footer, locked: !!c.locked, password: !!c.pw, logo: !!c.logo } : null;
+    } };
+  A.stage = { d: 'The review stage stamp: draft, review (In review) or client (Client-ready, no stamp). Without stage it reports the current one and what still blocks client-ready.', p: { stage: ['string', 'draft | review | client | "" (no stamp)'] },
+    f: function (a) { if (a.stage != null) MS.stage.set(a.stage); return { stage: MS.stage.get(), label: MS.stage.label(), blockers: MS.stage.blockers() }; } };
+  A.confidential = { d: 'Mark the dashboard "Client confidential": a watermark on every page and a label in the footer.', p: { on: ['boolean', 'On (default true) or off'], label: ['string', 'Text (default "Client confidential")'], watermark: ['boolean', 'Show the watermark (default true)'] },
+    f: function (a) { MS.confidential.set(a.on !== false, a.label, a.watermark); return MS.confidential.get() || { on: false }; } };
+  A.scrub_names = { d: 'Take client or people names out of everything: text, chart labels, data, comments, settings and the page\'s scripts. where: copy (default: returns a cleaned copy as html, the open dashboard is unchanged) or here (cleans the open dashboard; a version is saved first). Returns how many were replaced and how many remain (inside words or pictures).', p: { names: ['array', '[{from, to}] e.g. [{from: "Acme Insurance", to: "Client"}]', true], where: ['string', 'copy | here'] },
+    f: function (a) { return MS.confidential.scrub(a.names || [], a.where).then(function (r) { var o = { replaced: r.counts, left: r.left }; if (a.where !== 'here') o.html = r.html; return o; }); } };
+  A.change_log = { d: 'The change log saved inside the file: who changed what and when (newest first).', p: { limit: ['number', 'How many (default 50)'], note: ['string', 'Add an entry'] },
+    f: function (a) { if (a.note) MS.audit.note(a.note); return MS.audit.list().reverse().slice(0, a.limit || 50); } };
+  A.colour_blind_check = { d: 'Chart colours that red-, green- or blue-blind readers can\'t tell apart. fix: switch to a colour-blind safe palette (Okabe–Ito).', p: { fix: ['boolean', 'Apply the safe palette'] },
+    f: function (a) { var before = MS.cvd.check(); if (a.fix) MS.cvd.fix(); return { problems: before.map(function (p) { return { chart: p.title, a: p.a, b: p.b, colors: p.colors, who: p.who }; }), fixed: !!a.fix, left: a.fix ? MS.cvd.check().length : before.length }; } };
+
+  /* ---------------------------------------------------------- notes on charts, sources, story, PDF and PowerPoint */
+  A.annotate = { d: 'Callouts, arrows and "so what" boxes pinned to a data point of a chart; they follow the point. action: list (default) | add | update | delete.', p: { action: ['string', 'list | add | update | delete'], chart: ['string', 'Chart name or key'], label: ['string', 'The category (x label) to pin to'], series: ['number', 'Series number from 0 (default 0)'], text: ['string', 'The note'], kind: ['string', 'callout | arrow | sowhat'], title: ['string', 'Heading of a "so what" box'], color: ['string', 'Colour'], dx: ['number', 'Offset of the note from the point, px'], dy: ['number', 'Offset, px'], id: ['string', 'Annotation id (update / delete)'] },
+    f: function (a) {
+      var act = a.action || 'list';
+      if (act === 'add') { var key = chartKey(a.chart); var x = MS.annotate.add({ chart: key, label: a.label, series: a.series || 0, text: a.text, kind: a.kind, title: a.title, color: a.color, dx: a.dx, dy: a.dy }); return x; }
+      if (act === 'update') { var p = {}; ['text', 'kind', 'title', 'color', 'dx', 'dy', 'label', 'series'].forEach(function (k) { if (a[k] !== undefined) p[k] = a[k]; }); MS.annotate.update(a.id, p); return MS.annotate.get(a.id); }
+      if (act === 'delete') { MS.annotate.remove(a.id); return done(); }
+      return MS.annotate.list(a.chart ? chartKey(a.chart) : null);
+    } };
+  A.chart_source = { d: 'The source and "data as of" date shown under a chart (data hygiene). Without text/as_of it reports the sources and which charts have none.', p: { chart: ['string', 'Chart name or key'], text: ['string', 'Source, e.g. "Policy admin extract"'], as_of: ['string', 'Data as of (YYYY-MM-DD)'], note: ['string', 'A short note'], all: ['boolean', 'Use it for every chart without a source'], clear: ['boolean', 'Remove the source'] },
+    f: function (a) {
+      var r = rt();
+      if (a.all && !a.chart) { var n = MS.sources.setAll({ text: a.text || '', asOf: a.as_of || '' }); return { charts: n }; }
+      if (a.chart != null && (a.text != null || a.as_of != null || a.note != null || a.clear)) { var k = chartKey(a.chart); MS.sources.set(k, a.clear ? null : { text: a.text, asOf: a.as_of, note: a.note }); if (a.all) MS.sources.setAll({ text: a.text || '', asOf: a.as_of || '' }); return { chart: MS.charts.nameOf(k), shows: r.sourceText(MS.sources.get(k)) }; }
+      return { charts: r.charts().map(function (c) { return { chart: MS.charts.nameOf(c.key), source: MS.sources.get(c.key) }; }), missing: MS.sources.missing().map(function (k) { return MS.charts.nameOf(k); }) };
+    } };
+  A.insert_footnotes = { d: 'Insert (or refresh) a "Notes and sources" block: every chart\'s source and date, extra notes, and the firm disclaimer.', p: { notes: ['array', 'Extra notes, one per line'], after: ['string', 'Element ref to insert after'] },
+    f: function (a) { if (a.after) MS.edit.select(elOf(a.after)); var n = MS.sources.insertFootnotes(a.notes); return { ref: n ? refOf(n) : null }; } };
+  A.story = { d: 'The storyline: steps that light up one part each with a headline, played like slides (also in the exported file). action: get (default) | add | update | delete | move | title | draft (one step per chart) | clear | play | stop.', p: { action: ['string', 'get | add | update | delete | move | title | draft | clear | play | stop'], ref: ['string', 'Element ref to show (add)'], chart: ['string', 'Or a chart name (add)'], headline: ['string', 'The takeaway'], text: ['string', 'A line of detail'], index: ['number', 'Step number from 0'], to: ['number', 'New position (move)'], title: ['string', 'Story title'] },
+    f: function (a) {
+      var S = MS.story, act = a.action || 'get';
+      if (act === 'add') { var el = a.ref ? elOf(a.ref) : (a.chart ? rt().chart(chartKey(a.chart)).el : MS.sel); S.add(el, a.headline, a.text, a.index); }
+      else if (act === 'update') { var p = {}; if (a.headline != null) p.headline = a.headline; if (a.text != null) p.text = a.text; if (a.ref) p.ref = S.refOf(elOf(a.ref)); S.update(a.index || 0, p); }
+      else if (act === 'delete') S.remove(a.index || 0);
+      else if (act === 'move') S.move(a.index || 0, a.to || 0);
+      else if (act === 'title') S.setTitle(a.title);
+      else if (act === 'draft') S.draft();
+      else if (act === 'clear') S.clear();
+      else if (act === 'play') { S.play(a.index || 0); return settle(500).then(function () { return { playing: rt().story.i }; }); }
+      else if (act === 'stop') S.stop();
+      var st = S.get(); return { title: st.title || '', steps: (st.steps || []).map(function (s, i) { return { index: i, headline: s.headline, text: s.text || '', found: !!rt().findRef(s.ref) }; }) };
+    } };
+  A.print_layout = { d: 'A print layout with one page per tab (or per story step), with the firm header and footer, fitted to A4 landscape. Returns html; the MCP save_pdf tool turns it into a PDF.', p: { from: ['string', 'tabs (default) | story'] },
+    f: function (a) { return MS.deliver.build({ from: a.from }).then(function (b) { return { pages: b.shots.map(function (s) { return s.title; }), html: b.html }; }); } };
+  A.export_pptx = { d: 'A PowerPoint (.pptx): one slide per tab (or per story step) with an editable title and the page as a picture. Returns base64; the MCP save_pptx tool writes it to disk.', p: { from: ['string', 'tabs (default) | story'] },
+    f: function (a) { return MS.deliver.pptx({ from: a.from }).then(function (r) { var b = '', u = r.bytes; for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { slides: r.slides, name: MS.exportName(a.from === 'story' ? '-story' : '').replace(/\.html$/, '.pptx'), b64: btoa(b) }; }); } };
 
   /* ---------------------------------------------------------- automation */
   A.run_recipe = { d: 'Run a Mothership recipe (a list of steps: layout, theme, addTab, renameTab, deleteTab, hideTab, wrapCharts, tooltip, chart, moveChart, copyChart, dataset, filter, replaceText, css). See docs/EXTENDING.md.', p: { recipe: ['object', '{steps:[{do:..., ...}]}', true] },
@@ -421,6 +481,86 @@
       for (; i < parts.length - 1; i++) { ctx = ctx[parts[i]]; if (!ctx) throw new Error('No such path ' + a.path); }
       var fn = ctx[parts[parts.length - 1]]; if (typeof fn !== 'function') throw new Error(a.path + ' is not a function');
       return Promise.resolve(fn.apply(ctx, a.args || [])).then(function (x) { try { return x === undefined ? { ok: true } : JSON.parse(JSON.stringify(x)); } catch (e) { return { ok: true, note: 'Result is not JSON' }; } });
+    } };
+
+  /* ---------- v3.4: clipboard, chart size / legend / data, table colour rules, templates, refresh, accessibility, notes */
+  function anyEl(x) { try { return elOf(x); } catch (e) { var k = chartKey(x), c = rt().chart(k); return MS.clipboard.unitOf(c.el); } }
+  A.copy = { d: 'Copy (or cut) a part of the dashboard: a chart, card, section, text or table. Paste it with paste, here or in another dashboard.', p: { ref: ['string', 'Element ref, CSS selector or chart name (default: the selection)'], cut: ['boolean', 'Cut instead of copy'] },
+    f: function (a) { var el = a.ref ? anyEl(a.ref) : MS.sel; MS.edit.select(el); var c = MS.clipboard.copy(!!a.cut); if (!c) throw new Error('Nothing to copy.'); return { copied: (el.textContent || '').trim().slice(0, 80), cut: !!a.cut }; } };
+  A.paste = { d: 'Paste what was copied: after an element, or inside a section / card / tab (inside: true). Without "after" it goes after the selection, or at the end of the tab or page on screen. Also pastes outside content: html (e.g. a table) or text (tab-separated becomes a table).', p: { after: ['string', 'Element ref, selector or chart name to paste after (or inside, with inside: true)'], inside: ['boolean', 'Put it inside the element instead of after it'], html: ['string', 'Outside HTML to paste instead of the clipboard'], text: ['string', 'Outside text to paste (tab-separated lines become a table)'] },
+    f: function (a) {
+      if (a.after) MS.edit.select(anyEl(a.after));
+      var p;
+      if (a.html || a.text) { var dt = new DataTransfer(); if (a.html) dt.setData('text/html', a.html); if (a.text) dt.setData('text/plain', a.text); p = MS.clipboard.pasteExternal(dt, !!a.inside); }
+      else p = MS.clipboard.paste({ inside: !!a.inside });
+      return Promise.resolve(p).then(function (n) { return settle(250).then(function () { if (!n) throw new Error('Nothing was pasted.'); return { pasted: true, ref: refOf(n), where: n.parentNode && (n.parentNode.className || n.parentNode.tagName.toLowerCase()) }; }); });
+    } };
+  A.chart_size = { d: 'Resize a chart (or any card, block or picture): width as columns of its grid, or a percentage, and height in pixels.', p: { chart: ['string', 'Chart name or key, or an element ref', true], columns: ['number', 'Columns to span in its grid (12-column grid for Mothership blocks)'], width_percent: ['number', 'Width as % of the row, when it is not in a grid'], height: ['number', 'Height in px'] },
+    f: function (a) { var el = anyEl(a.chart); MS.chartKit.setSize(el, { span: a.columns, pct: a.width_percent, height: a.height, px: a.width_px }); return settle(150).then(function () { var o = MS.chartKit.sizing(el); return { columns: o.span || null, of: o.cols || null, widthPercent: o.pct || null, height: o.height }; }); } };
+  A.chart_legend = { d: 'Show a chart\'s legend at the top, bottom, left or right, hide it (none), or put it back as the dashboard had it (default). The page\'s own hand-made legend is hidden while the chart shows its own.', p: { chart: ['string', 'Chart name or key', true], position: ['string', 'top | bottom | left | right | none | default', true] },
+    f: function (a) { var k = chartKey(a.chart), pos = a.position === 'default' ? '' : a.position; if (['', 'top', 'bottom', 'left', 'right', 'none'].indexOf(pos) < 0) throw new Error('position: top, bottom, left, right, none or default'); MS.chartKit.setLegend(k, pos); return settle(150).then(function () { return MS.chartKit.legendOf(k); }); } };
+  A.set_chart_data = { d: 'Replace the numbers of one chart (read them with chart_data). Give labels + series, or rows (a wide table: first column labels, one column per series; or Category/Series/Value), or file (CSV/Excel; the MCP chart_data_file tool fills it in). reset: back to the page\'s own numbers.', p: { chart: ['string', 'Chart name or key', true], labels: ['array', 'Category labels'], series: ['array', '[{name, values:[…]}]'], rows: ['array', 'Row objects'], file: ['object', '{name, b64}'], reset: ['boolean', 'Use the page\'s own numbers again'] },
+    f: function (a) {
+      var k = chartKey(a.chart), K = MS.chartKit;
+      if (a.reset) { K.resetData(k); return settle(200).then(function () { return K.current(k); }); }
+      var go = function (t, from) { var r = K.applyData(k, t, from); return settle(250).then(function () { var c = K.current(k); r.now = { labels: c.labels.slice(0, 50), series: c.series.map(function (s) { return { name: s.name, values: s.values.slice(0, 50) }; }) }; return r; }); };
+      if (a.file) return MS.drillData.read(fileOf(a.file)).then(function (ts) { var t = ts.filter(function (x) { return x.rows && x.rows.length; })[0]; return go(t ? K.tableFromRows(t.rows) : null, a.file.name); });
+      if (a.rows) return go(K.tableFromRows(a.rows));
+      if (a.labels && a.series) return go({ labels: a.labels.map(String), series: a.series.map(function (s) { return { name: String(s.name || 'Series'), values: (s.values || []).map(K.num) }; }) });
+      return K.current(k);
+    } };
+  function tableOf(x) {
+    var r = rt(), ts = r.tables();
+    if (x == null || x === '') { var t = MS.sel && MS.sel.closest && MS.sel.closest('table'); if (t) return t; if (ts.length === 1) return ts[0]; throw new Error('Say which table: its number (0 = first), a ref or a selector. Tables: ' + ts.length); }
+    if (typeof x === 'number' || /^\d+$/.test(x)) { if (!ts[+x]) throw new Error('There are ' + ts.length + ' tables.'); return ts[+x]; }
+    var el = elOf(x); return el.tagName === 'TABLE' ? el : el.closest('table') || el.querySelector('table');
+  }
+  A.table_rules = { d: 'Colour a table\'s cells by value (conditional formatting). Rules: {col, type: rag (value = green threshold, value2 = amber, higher: true/false) | scale (higher) | bars (color) | rule (op: gt|ge|lt|le|between|eq|ne|contains|blank, value, value2, color, bold) | top | bottom (n, color)}.', p: { table: ['string', 'Table number (0 = first), ref or selector'], action: ['string', 'list (default) | add | set | clear'], rule: ['object', 'One rule, for add'], rules: ['array', 'All rules, for set'] },
+    f: function (a) {
+      var t = tableOf(a.table), T = MS.tables, r = rt();
+      if (a.action === 'add') T.addRule(t, a.rule || {});
+      else if (a.action === 'set') T.setRules(t, a.rules || []);
+      else if (a.action === 'clear') T.setRules(t, [], 'Clear table colour rules');
+      return { table: r.tables().indexOf(t), columns: r.tableColumns(t), rules: T.rulesOf(t).map(function (x) { return Object.assign({ text: T.describe(x) }, x); }), coloured: t.querySelectorAll('[data-ms-cf]').length };
+    } };
+  A.templates = { d: 'Template gallery: list templates (yours and starters), save the selection or the tab on screen, insert one (a tab template becomes a new tab), or delete one.', p: { action: ['string', 'list (default) | save | insert | delete'], name: ['string', 'Template name (save / insert / delete)'], what: ['string', 'save: selection (default) | tab'], ref: ['string', 'save: element ref, selector or chart name'], after: ['string', 'insert: element to insert after'], inside: ['boolean', 'insert: inside that element'] },
+    f: function (a) {
+      var T = MS.templates, find = function (list) { var t = list.filter(function (x) { return x.id === a.name || low(x.name) === low(a.name); })[0]; if (!t) throw new Error('No template "' + a.name + '". Templates: ' + list.map(function (x) { return x.name; }).join(', ')); return t; };
+      var row = function (t) { return { name: t.name, kind: t.kind, starter: !!t.starter, charts: (t.snap.charts || []).length, from: t.src || null, created: t.created || null }; };
+      if (a.action === 'save') return T.save(a.name, a.what === 'tab' ? 'tab' : 'selection', a.ref ? anyEl(a.ref) : null).then(row);
+      if (a.action === 'insert') return T.list().then(function (l) { var t = find(l); if (a.after) MS.edit.select(anyEl(a.after)); return T.insert(t, { inside: a.inside }); }).then(function (n) { return settle(300).then(function () { return { inserted: true, ref: n ? refOf(n) : null }; }); });
+      if (a.action === 'delete') return T.list().then(function (l) { var t = find(l); if (t.starter) throw new Error('Starters can\'t be deleted.'); return T.remove(t.id); }).then(function () { return done(); });
+      return T.list().then(function (l) { return l.map(row); });
+    } };
+  A.refresh_data = { d: 'Refresh every embedded dataset from new files in one go (e.g. this month\'s CSV / Excel). Files are matched to datasets by file name, then sheet or dataset name. Charts, KPI cards and filters keep their settings.', p: { files: ['array', '[{name, b64}] (the MCP refresh_data_files tool fills this in)', true], apply: ['boolean', 'Apply the matches (default true); false only lists them'] },
+    f: function (a) {
+      var files = (a.files || []).map(fileOf);
+      return Promise.all(files.map(function (f) { return MS.drillData.read(f).then(function (ts) { return ts.filter(function (t) { return t.rows && t.rows.length; }).map(function (t) { return { file: f.name, name: t.name, rows: t.rows }; }); }); }))
+        .then(function (all) {
+          var m = MS.data.matchRefresh([].concat.apply([], all));
+          if (a.apply === false) return m.map(function (x) { return { dataset: x.dataset, file: x.file, rows: x.after, was: x.before, missingColumns: x.missing }; });
+          return { refreshed: MS.data.applyRefresh(m), unmatched: files.map(function (f) { return f.name; }).filter(function (n) { return !m.some(function (x) { return x.file === n; }); }) };
+        });
+    } };
+  A.accessibility_check = { d: 'Accessibility check: pictures without alt text, hard-to-read text colours, tables without headings, tab buttons that need a mouse, unnamed buttons, page language and title. fix: true applies the automatic fixes (all but alt text).', p: { fix: ['boolean', 'Apply the automatic fixes'] },
+    f: function (a) {
+      var list = MS.a11y.check();
+      if (a.fix) { var fx = list.filter(function (f) { return f.fix && f.fix !== 'alt'; }); MS.history.group('Accessibility fixes', function () { fx.forEach(MS.a11y.fix); }); list = MS.a11y.check(); }
+      return list.map(function (f) { return { kind: f.kind, problem: f.msg, ref: f.el && f.el.getAttribute && f.el !== MS.child.doc.documentElement ? refOf(f.el) : null, autoFix: !!(f.fix && f.fix !== 'alt') }; });
+    } };
+  A.set_alt_text = { d: 'Set the alt text of a picture (read by screen readers), or mark it decorative.', p: { ref: ['string', 'Picture ref or selector', true], text: ['string', 'What the picture shows'], decorative: ['boolean', 'Screen readers skip it'] },
+    f: function (a) { var el = elOf(a.ref); if (el.tagName !== 'IMG') el = el.querySelector('img'); if (!el) throw new Error('That is not a picture.'); MS.a11y.setAlt(el, a.text, !!a.decorative); return { alt: el.getAttribute('alt') }; } };
+  A.presenter_notes = { d: 'Speaker notes for Presenter view: read or set a tab\'s notes, and choose whether comments show as notes (off | resolved | all).', p: { tab: ['string', 'Tab name (the dashboard\'s own tabs or the tab ribbon)'], text: ['string', 'New notes for that tab'], from_comments: ['string', 'off | resolved | all'] },
+    f: function (a) {
+      var r = rt();
+      if (a.from_comments) MS.present.setCommentMode(a.from_comments);
+      var tabs = r.layoutEnabled() ? r.tabs() : MS.pageTabs.list().map(function (t, j) { return { id: 'page:' + j, title: t.title, page: true, notes: (r.state.pageNotes || {})[t.title] || '' }; });
+      if (a.tab != null && a.text != null) {
+        var t = tabs.filter(function (x) { return low(x.title) === low(a.tab); })[0]; if (!t) throw new Error('No tab "' + a.tab + '".');
+        if (t.page) MS.pageTabs.notes(t.title, a.text); else MS.history.attrs('Tab notes', t.el, ['data-ms-notes'], function (x) { if (a.text) x.setAttribute('data-ms-notes', a.text); else x.removeAttribute('data-ms-notes'); });
+        tabs = r.layoutEnabled() ? r.tabs() : tabs.map(function (x) { x.notes = (r.state.pageNotes || {})[x.title] || ''; return x; });
+      }
+      return { fromComments: MS.present.commentMode(), tabs: tabs.filter(function (x) { return a.tab == null || low(x.title) === low(a.tab); }).map(function (x) { return { tab: x.title, notes: MS.present.notesFor(x) }; }) };
     } };
 
   MS.api = {};

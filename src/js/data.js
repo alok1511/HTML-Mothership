@@ -153,12 +153,12 @@
 
   /* ================================================================ DATASETS */
   var Dt = MS.data = {};
-  Dt.addDataset = function (name, rows, silent) {
+  Dt.addDataset = function (name, rows, silent, extra) {
     var rt = MS.rt(); if (!rt) return MS.toast('Open a dashboard first.', 'warn');
     if (!Array.isArray(rows) || !rows.length) return MS.toast(name + ': no rows found.', 'warn');
     var base = name, i = 2; while (rt.state.datasets[name]) name = base + ' (' + (i++) + ')';
     var size = JSON.stringify(rows).length;
-    MS.history.state('Add dataset ' + name, function (s) { s.datasets[name] = { rows: rows, source: 'file' }; });
+    MS.history.state('Add dataset ' + name, function (s) { s.datasets[name] = Object.assign({ rows: rows, source: 'file' }, extra || {}); });
     if (!silent || size > 3e6) MS.toast('Dataset "' + name + '" added: ' + rows.length + ' rows (' + MS.bytes(size) + ' embedded in the export).', size > 3e6 ? 'warn' : 'ok', 6000);
     MS.emit('structure');
     return name;
@@ -174,7 +174,7 @@
     MS.pickFiles('.json,.csv,.tsv,.xlsx,.xls,.xlsm,.ods', { multiple: true }).then(function (fs) {
       fs.forEach(function (f) {
         if (MS.ext(f.name) === 'json') MS.readFile(f).then(function (t) { try { Dt.addDatasetFromJson(JSON.parse(t), f.name); } catch (e) { MS.toast(f.name + ': ' + e.message, 'error'); } });
-        else MS.lib('xlsx').then(function (X) { return MS.readFile(f, 'buffer').then(function (b) { MS.importers.sheet(X, b, f.name, f.name.replace(/\.[^.]+$/, '')).datasets.forEach(function (d) { Dt.addDataset(d.name, d.rows); }); }); }).catch(function (e) { MS.toast(e.message, 'error'); });
+        else MS.lib('xlsx').then(function (X) { return MS.readFile(f, 'buffer').then(function (b) { MS.importers.sheet(X, b, f.name, f.name.replace(/\.[^.]+$/, '')).datasets.forEach(function (d) { Dt.addDataset(d.name, d.rows, false, { file: f.name, sheet: d.sheet || d.name }); }); }); }).catch(function (e) { MS.toast(e.message, 'error'); });
       });
     });
   };
@@ -216,6 +216,68 @@
       }).catch(function (e) { MS.toast('Could not read the file: ' + e.message, 'error'); });
     });
   };
+  /* ---------- one-click refresh: re-read this month's files for every embedded dataset */
+  function embedded() { var rt = MS.rt(); return Object.keys(rt.state.datasets).filter(function (n) { return rt.state.datasets[n].rows; }); }
+  function base(f) { return String(f || '').replace(/\.[^.]+$/, '').toLowerCase().replace(/[\s_\-]*(\d{4}[-_.]?\d{2}([-_.]?\d{2})?|\d{2}[-_.]\d{4}|v\d+|final|latest|copy)$/g, '').trim(); }
+  // Which table of which file refreshes which dataset: same file name, then sheet / dataset name.
+  Dt.matchRefresh = function (tables) {
+    var rt = MS.rt(), out = [];
+    embedded().forEach(function (n) {
+      var d = rt.state.datasets[n], ln = n.toLowerCase(), cands = tables.filter(function (t) { return d.file && base(t.file) === base(d.file); });
+      var pick = (cands.length > 1 ? cands.filter(function (t) { return t.name.toLowerCase() === String(d.sheet || n).toLowerCase() || ln.indexOf(t.name.toLowerCase()) >= 0; })[0] : cands[0]) ||
+        tables.filter(function (t) { return t.name.toLowerCase() === ln || base(t.file) === ln || ln === base(t.file) + ' · ' + t.name.toLowerCase(); })[0];
+      if (!pick) return;
+      var oldCols = rt.fields(n).map(function (f) { return f.name; }), newCols = Object.keys(pick.rows[0] || {});
+      out.push({ dataset: n, file: pick.file, table: pick.name, before: rt.getRows(n).length, after: pick.rows.length, missing: oldCols.filter(function (c) { return newCols.indexOf(c) < 0; }), rows: pick.rows });
+    });
+    return out;
+  };
+  Dt.applyRefresh = function (matches) {
+    var at = new Date().toISOString();
+    MS.history.state('Refresh data', function (s) { matches.forEach(function (m) { var old = s.datasets[m.dataset] || {}; s.datasets[m.dataset] = Object.assign({}, old, { rows: m.rows, source: 'file', file: m.file, refreshed: at }); }); });
+    MS.emit('structure');
+    return matches.map(function (m) { return { dataset: m.dataset, file: m.file, rows: m.after, was: m.before, missingColumns: m.missing }; });
+  };
+  function readAll(files) {
+    return Promise.all(files.map(function (f) { return MS.drillData.read(f).then(function (ts) { return ts.filter(function (t) { return t.rows && t.rows.length; }).map(function (t) { return { file: f.name, name: t.name, rows: t.rows }; }); }); }))
+      .then(function (all) { return [].concat.apply([], all); });
+  }
+  Dt.refreshFrom = function (files, auto) {
+    MS.busy && MS.busy(true, 'Reading ' + files.length + ' file(s)…');
+    return readAll(files).then(function (tables) {
+      MS.busy && MS.busy(false);
+      var m = Dt.matchRefresh(tables);
+      if (!m.length) return MS.dialog({ title: 'No matching data', body: MS.h('p', { text: 'None of these files matches a dataset in this dashboard. Datasets remember the file they came from (' + embedded().map(function (n) { var d = MS.rt().state.datasets[n]; return n + (d.file ? ' ← ' + d.file : ''); }).join(', ') + '). Use Data › Manage › Refresh from file to pick one by hand.' }), buttons: [{ label: 'Close', value: null }] });
+      var checks = m.map(function (x) { var cb = MS.h('input', { type: 'checkbox', checked: !x.missing.length || !auto }); return { x: x, cb: cb, row: MS.h('label', { 'class': 'list-row' }, [cb, MS.h('div', { 'class': 'grow' }, [MS.h('strong', { text: x.dataset }), MS.h('div', { 'class': 'muted small', text: '← ' + x.file + (x.table && base(x.table) !== base(x.file) ? ' › ' + x.table : '') + ' · ' + x.before + ' → ' + x.after + ' rows' })]), x.missing.length ? MS.h('span', { 'class': 'tag warn', title: 'Charts or filters using these columns will be empty', text: 'missing: ' + x.missing.slice(0, 3).join(', ') }) : MS.h('span', { 'class': 'tag ok', text: 'columns match' })]) }; });
+      return MS.dialog({ title: '↻ Refresh data', sub: 'Charts, KPI cards and filters keep their settings and show the new numbers.', wide: true, body: MS.h('div', { 'class': 'list' }, checks.map(function (c) { return c.row; })),
+        buttons: [{ label: 'Cancel', value: null }, { label: 'Refresh', primary: true, value: function () { return checks.filter(function (c) { return c.cb.checked; }).map(function (c) { return c.x; }); } }] }).then(function (sel) {
+        if (!sel || !sel.length) return null;
+        var res = Dt.applyRefresh(sel);
+        MS.toast(res.length + ' dataset(s) refreshed. Export to share the updated file.', 'ok', 8000, { action: { label: 'Export now', run: function () { MS.cmd.export(); } } });
+        return res;
+      });
+    }).catch(function (e) { MS.busy && MS.busy(false); MS.toast('Could not read the files: ' + e.message, 'error', 8000); });
+  };
+  // Remembers the files picked (where the browser allows it), so next month it is one click.
+  var ACCEPT = '.csv,.tsv,.xlsx,.xls,.xlsm,.ods,.json,.md';
+  function handleKey() { return 'handles:' + (MS.doc && MS.doc.name || ''); }
+  Dt.refreshAll = function () {
+    var rt = MS.rt(); if (!rt) return;
+    if (!embedded().length) return MS.toast('No data files in this dashboard yet. Load one with Data › Load data; next time Refresh re-reads it in one click.', 'warn', 7000);
+    var pickNew = function () {
+      if (window.showOpenFilePicker) return window.showOpenFilePicker({ multiple: true }).then(function (hs) {
+        MS.store.set('kv', handleKey(), hs).catch(function () {});
+        return Promise.all(hs.map(function (x) { return x.getFile(); }));
+      }).then(function (fs) { return Dt.refreshFrom(fs); }, function (e) { if (e && e.name !== 'AbortError') return MS.pickFiles(ACCEPT, { multiple: true }).then(function (fs) { if (fs.length) Dt.refreshFrom(fs); }); });
+      return MS.pickFiles(ACCEPT, { multiple: true }).then(function (fs) { if (fs.length) Dt.refreshFrom(fs); });
+    };
+    return MS.store.get('kv', handleKey()).then(function (hs) {
+      if (!hs || !hs.length || !hs[0].getFile) return pickNew();
+      return Promise.all(hs.map(function (x) { return (x.queryPermission ? x.queryPermission({ mode: 'read' }) : Promise.resolve('granted')).then(function (p) { return p === 'granted' ? p : x.requestPermission({ mode: 'read' }); }).then(function (p) { if (p !== 'granted') throw new Error('denied'); return x.getFile(); }); }))
+        .then(function (fs) { return Dt.refreshFrom(fs, true); }, pickNew);
+    }, pickNew);
+  };
+
   Dt.manage = function () {
     var rt = MS.rt(); if (!rt) return;
     var names = Object.keys(rt.state.datasets);
@@ -371,7 +433,7 @@
         { key: 'measure', label: 'Value (measure)', type: 'select', options: fieldOpts(true), value: b.measure || (fs.filter(function (x) { return x.numeric; })[0] || {}).name },
         { key: 'agg', label: 'Aggregate', type: 'select', options: [{ value: 'sum', label: 'Sum' }, { value: 'avg', label: 'Average' }, { value: 'count', label: 'Count rows' }, { value: 'min', label: 'Minimum' }, { value: 'max', label: 'Maximum' }], value: b.agg || 'sum' },
         { key: 'series', label: 'Split into series by (optional)', type: 'select', options: fieldOpts(false, '— none —'), value: b.series || '' },
-        { key: 'sort', label: 'Sort', type: 'select', options: [{ value: '', label: 'By label' }, { value: 'desc', label: 'Largest first' }, { value: 'asc', label: 'Smallest first' }], value: b.sort || '' },
+        { key: 'sort', label: 'Sort', type: 'select', options: [{ value: '', label: 'By label' }, { value: 'desc', label: 'Largest first' }, { value: 'asc', label: 'Smallest first' }, { value: 'source', label: 'As in the data' }], value: b.sort || '' },
         { key: 'top', label: 'Show top N only (blank = all)', type: 'number', value: b.top || '' },
         { key: 'mode', label: 'Double-click does', type: 'select', value: (cs.drill && cs.drill.mode) || 'levels', options: [
           { value: 'levels', label: 'Drill down to the next level, then show the records' },

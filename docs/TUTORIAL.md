@@ -175,7 +175,7 @@ Each comment in the prompt has its location, how to find it in the code, what th
 
 - **Export HTML** (`Ctrl`+`E`) saves one standalone file. In Chrome/Edge later exports overwrite the same file.
 - **Save version** (`Ctrl`+`S`) keeps a named copy in this browser. **Versions** restores one. Mothership also autosaves.
-- Print / PDF prints each tab on its own page.
+- **File › PDF** makes a client-ready PDF (one page per tab, firm header and footer); **File › PowerPoint** makes one slide per tab or per story step.
 
 ## Plugins, recipes and brand skills
 
@@ -239,6 +239,22 @@ Mothership writes numbers in **US dollars, US style** ($1,234,567 and $1.23M) un
 - The setting is saved inside the dashboard, so viewers see the same thing. It is one undo step.
 
 Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbers the dashboard's own script writes are not changed. If a dashboard clearly shows ₹, € or £, Mothership tells you in the status bar but doesn't switch on its own.
+
+## Getting a dashboard ready for a client
+
+A typical order, about ten minutes:
+
+1. **Design › Firm template**: apply your firm's template (logo, fonts, palette, disclaimer). It stays locked so colours and fonts can't drift.
+2. **Copy and paste** what you need: select a chart card, Ctrl+C, click where it should go, Ctrl+V. Right-click shows everything you can do with a part.
+3. **Charts › Source** on each chart (tick "every chart without a source" for the first one), then **Charts › Footnotes**.
+4. **Annotate**: right-click the point that matters › *Annotate this point* › write the "so what". Drag the note where it reads best.
+5. **Review › Stage › In review**, share it, and collect comments. Type @AK in a comment to assign it; each reviewer clicks **For me** in the Comments pane.
+6. **Design › Colour-blind** and **Review › Accessibility**: fix what they find.
+7. **Design › Confidential**, and **Design › Remove names** if the file goes beyond the client team (save a cleaned copy).
+8. **Review › Storyline › Draft one step per chart**, then rewrite each headline as the takeaway. **View › Play story** to rehearse.
+9. **Review › Stage › Client-ready** (it warns about anything still open), then **File › PDF** or **File › PowerPoint** (one page or slide per tab, or per story step), and **File › Publish** for the HTML.
+
+**Review › Change log** shows who changed what, and it travels inside the file.
 
 ## Publishing and locking
 

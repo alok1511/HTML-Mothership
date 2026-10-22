@@ -170,6 +170,7 @@
 
   /* ================================================================ publish */
   var Pub = MS.publish = {};
+  Pub.pbkdf2 = pbkdf2; Pub.sha256 = sha256;
   function nextVersion(v) { if (!v) return '1.0'; var p = String(v).split('.'); var last = parseInt(p[p.length - 1], 10); if (isNaN(last)) return v + '.1'; p[p.length - 1] = String(last + 1); return p.join('.'); }
   // o: { version, note, asOf, by, password, badge, keepComments }  ->  Promise<{ html, name, publish }>
   Pub.build = function (o) {

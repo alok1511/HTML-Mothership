@@ -30,6 +30,7 @@
     var ph = MS.pageTabs && MS.pageTabs.insertHost(); if (ph) return ph;
     return d.body;
   }
+  Cp.container = container;
   function place(node, label, where) {
     var d = MS.child.doc, host = container(), ref = null;
     var sel = MS.sel && MS.sel.isConnected && host.contains(MS.sel) && MS.sel !== host ? MS.sel : null;
@@ -203,7 +204,7 @@
       { key: 'measure', label: 'Value', type: 'select', options: opts(ds0, true) },
       { key: 'agg', label: 'Calculate', type: 'select', options: AGGS.filter(function (a) { return a.value !== 'distinct'; }), value: 'sum' },
       { key: 'series', label: 'Split by (optional, gives several series)', type: 'select', options: opts(ds0, false, '— none —') },
-      { key: 'sort', label: 'Sort', type: 'select', options: [{ value: 'desc', label: 'Largest first' }, { value: '', label: 'By label' }, { value: 'asc', label: 'Smallest first' }] },
+      { key: 'sort', label: 'Sort', type: 'select', options: [{ value: 'desc', label: 'Largest first' }, { value: '', label: 'By label' }, { value: 'asc', label: 'Smallest first' }, { value: 'source', label: 'As in the data' }] },
       { key: 'top', label: 'Top N only (blank = all)', type: 'number', min: 1 }
     ]);
     f.inputs.ds.addEventListener('change', function () {

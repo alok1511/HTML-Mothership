@@ -60,13 +60,49 @@
   function info() {
     var rt = MS.rt();
     if (!rt.layoutEnabled() && MS.pageTabs.has()) {
-      var pts = MS.pageTabs.list(), k = 0; pts.forEach(function (t, j) { if (t.active) k = j; });
+      var pts = MS.pageTabs.list(), k = 0; pts.forEach(function (t, j) { if (t.active) k = j; t.notes = (rt.state.pageNotes || {})[t.title] || ''; t.id = 'page:' + j; });
       return { i: k, n: pts.length, cur: pts[k], next: pts[k + 1] };
     }
     var vis = rt.tabs().filter(function (t) { return !t.hidden; });
     var i = vis.findIndex(function (t) { return t.id === rt.activeTab; });
     return { i: i, n: vis.length, cur: vis[i], next: vis[i + 1] };
   }
+  /* ---------- speaker notes: the tab's own notes, plus comments on that tab (Review › Notes from comments) */
+  Pr.commentMode = function () { var rt = MS.rt(); return (rt && rt.state.layout.commentNotes) || 'resolved'; };
+  Pr.notesFor = function (tab) {
+    var rt = MS.rt(); if (!tab || !rt) return '';
+    var out = tab.notes || '', mode = Pr.commentMode();
+    if (mode !== 'off') {
+      var cs = (rt.state.comments || []).filter(function (c) { return c.tab && (c.tab.id === tab.id || c.tab.title === tab.title) && (mode === 'all' || c.done); });
+      if (cs.length) out += (out ? '\n\n' : '') + (mode === 'all' ? 'From comments:' : 'Talking points (resolved comments):') + '\n' + cs.map(function (c) {
+        return '• ' + String(c.text || '').trim() + (mode === 'all' && !c.done ? ' (open)' : '') + (c.replies && c.replies.length ? ' — ' + c.replies[c.replies.length - 1].text : '');
+      }).join('\n');
+    }
+    return out;
+  };
+  Pr.setCommentMode = function (m) { MS.history.state('Notes from comments', function (s) { s.layout.commentNotes = m; }); };
+  Pr.notesMenu = function (anchor) {
+    var cur = Pr.commentMode(), it = function (m, label) { return { label: label, on: cur === m, run: function () { Pr.setCommentMode(m); MS.toast(m === 'off' ? 'Comments are not used as notes.' : 'Presenter view shows ' + (m === 'all' ? 'every comment' : 'resolved comments') + ' on each tab under its notes.', 'ok'); } }; };
+    MS.menu(anchor, [it('resolved', 'Resolved comments become talking points'), it('all', 'All comments (open ones marked)'), it('off', 'Don\'t use comments'), '-',
+      { label: 'Copy into each tab\'s notes…', icon: '🗒', run: Pr.bakeNotes }]);
+  };
+  // Write the comments into each tab's own speaker notes (so they stay when the comments are cleared).
+  Pr.bakeNotes = function () {
+    var rt = MS.rt(), n = 0, mode = Pr.commentMode() === 'off' ? 'resolved' : Pr.commentMode();
+    var tabs = rt.layoutEnabled() ? rt.tabs() : MS.pageTabs.list().map(function (t, j) { return { id: 'page:' + j, title: t.title, page: true, notes: (rt.state.pageNotes || {})[t.title] || '' }; });
+    MS.history.group('Notes from comments', function () {
+      tabs.forEach(function (t) {
+        var keep = Pr.commentMode(); rt.state.layout.commentNotes = mode;
+        var txt = Pr.notesFor(t); rt.state.layout.commentNotes = keep;
+        if (txt === (t.notes || '')) return;
+        n++;
+        if (t.page) MS.history.state('Tab notes', function (s) { s.pageNotes[t.title] = txt; });
+        else MS.history.attrs('Tab notes', t.el, ['data-ms-notes'], function (x) { x.setAttribute('data-ms-notes', txt); });
+      });
+      if (n) MS.history.state('Notes from comments', function (s) { s.layout.commentNotes = 'off'; });
+    });
+    MS.toast(n ? 'Comments copied into the notes of ' + n + ' tab(s).' : 'No ' + (mode === 'all' ? '' : 'resolved ') + 'comments on any tab yet.', n ? 'ok' : 'warn', 5000);
+  };
   function clock() { var s = Math.floor((Date.now() - t0) / 1000); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
   function update() {
     if (!Pr.on) return;
@@ -77,7 +113,7 @@
       d.getElementById('cur').textContent = x.cur ? x.cur.title : '';
       d.getElementById('pos').textContent = (x.i + 1) + ' / ' + x.n;
       d.getElementById('next').textContent = x.next ? 'Next: ' + x.next.title : 'Last tab';
-      d.getElementById('notes').textContent = (x.cur && x.cur.notes) || 'No notes for this tab. Add them from the tab menu in the left panel (Notes…).';
+      d.getElementById('notes').textContent = Pr.notesFor(x.cur) || 'No notes for this tab. Add them from the tab menu in the left panel (Speaker notes…), or use comments as notes (Review › Notes from comments).';
       d.getElementById('time').textContent = clock();
     }
   }

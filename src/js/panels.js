@@ -4,15 +4,55 @@
   var h = MS.h;
 
   /* small popup menu */
+  // A pop-up menu under `anchor`, or at a point (MS.menuAt). Items: {label, icon, key, run, danger, disabled, sub:[items]} or '-'.
   MS.menu = function (anchor, items) {
-    var old = MS.$('.popmenu'); if (old) old.remove();
     var r = anchor.getBoundingClientRect();
-    var m = h('div', { 'class': 'popmenu', style: { left: Math.min(r.left, window.innerWidth - 230) + 'px', top: (r.bottom + 4) + 'px' } }, items.filter(Boolean).map(function (it) {
-      if (it === '-') return h('hr');
-      return h('button', { 'class': it.danger ? 'danger' : '', onclick: function () { m.remove(); it.run(); } }, [it.label]);
-    }));
-    document.body.appendChild(m);
-    setTimeout(function () { document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('mousedown', off); } }); }, 0);
+    return MS.menuAt(r.left, r.bottom + 4, items, r);
+  };
+  MS.menuAt = function (x, y, items, avoid) {
+    MS.$$('.popmenu').forEach(function (o) { o.remove(); });
+    var closeAll = function () { MS.$$('.popmenu').forEach(function (o) { o.remove(); }); document.removeEventListener('mousedown', off, true); document.removeEventListener('keydown', key, true); window.removeEventListener('blur', closeAll); };
+    function build(list, px, py, level) {
+      var m = h('div', { 'class': 'popmenu' + (level ? ' sub' : ''), role: 'menu' });
+      list.filter(Boolean).forEach(function (it) {
+        if (it === '-') { if (m.lastChild && m.lastChild.tagName !== 'HR') m.appendChild(h('hr')); return; }
+        var b = h('button', { 'class': (it.danger ? 'danger' : '') + (it.on ? ' on' : ''), role: 'menuitem', disabled: !!it.disabled, title: it.title || '' }, [
+          h('span', { 'class': 'mi-ic' }, [it.icon && MS.icon.has(it.icon) ? MS.icon(it.icon) : (it.icon || '')]),
+          h('span', { 'class': 'mi-label', text: it.label }),
+          it.key ? h('kbd', { 'class': 'mi-key', text: it.key }) : null,
+          it.sub ? h('span', { 'class': 'mi-more', text: '›' }) : null]);
+        if (it.sub) {
+          var open = function () { MS.$$('.popmenu.sub').forEach(function (o) { if (o.__level > level) o.remove(); }); var br = b.getBoundingClientRect(); var sm = build(it.sub, br.right + 2, br.top - 5, level + 1); sm.__level = level + 1; };
+          b.addEventListener('mouseenter', open); b.addEventListener('click', open);
+        } else {
+          b.addEventListener('mouseenter', function () { MS.$$('.popmenu.sub').forEach(function (o) { if (o.__level > level) o.remove(); }); });
+          b.addEventListener('click', function () { closeAll(); if (it.run) it.run(); });
+        }
+        m.appendChild(b);
+      });
+      if (m.lastChild && m.lastChild.tagName === 'HR') m.lastChild.remove();
+      document.body.appendChild(m);
+      var w = m.offsetWidth, hh = m.offsetHeight;
+      var left = px + w > window.innerWidth - 8 ? (level ? px - w - 4 - (avoid ? 0 : 0) : window.innerWidth - w - 8) : px;
+      if (level && px + w > window.innerWidth - 8) left = Math.max(8, px - w * 2 - 6);
+      var top = py + hh > window.innerHeight - 8 ? Math.max(8, (avoid && !level ? avoid.top - hh - 4 : window.innerHeight - hh - 8)) : py;
+      m.style.left = Math.max(8, left) + 'px'; m.style.top = top + 'px';
+      return m;
+    }
+    var root = build(items, x, y, 0); root.__level = 0;
+    root.tabIndex = -1; try { root.focus({ preventScroll: true }); } catch (e) {}
+    var btns = function () { var subs = MS.$$('.popmenu'), m = subs[subs.length - 1]; return MS.$$('button:not([disabled])', m); };
+    function off(e) { if (!e.target.closest || !e.target.closest('.popmenu')) closeAll(); }
+    function key(e) {
+      var list = btns(), i = list.indexOf(document.activeElement);
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && i < 0) { e.preventDefault(); e.stopPropagation(); var f0 = e.key === 'ArrowDown' ? list[0] : list[list.length - 1]; if (f0) f0.focus(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); var subs = MS.$$('.popmenu.sub'); if (subs.length) subs[subs.length - 1].remove(); else closeAll(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); var n = list[(i + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length]; if (n) n.focus(); return; }
+      if (e.key === 'ArrowRight' && document.activeElement && document.activeElement.querySelector('.mi-more')) { e.preventDefault(); document.activeElement.click(); var l2 = btns(); if (l2[0]) l2[0].focus(); return; }
+      if (e.key === 'ArrowLeft') { var sb = MS.$$('.popmenu.sub'); if (sb.length) { e.preventDefault(); sb[sb.length - 1].remove(); } }
+    }
+    setTimeout(function () { document.addEventListener('mousedown', off, true); document.addEventListener('keydown', key, true); window.addEventListener('blur', closeAll); }, 0);
+    return root;
   };
 
   /* ============================================================ OUTLINE */
@@ -127,7 +167,7 @@
         h('h3', { text: MS.doc.name }),
         h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : MS.mode === 'comment' ? 'Comment mode: click anything to comment on it, or drag a box around an area. The Comments tab (above) lists every comment.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top right) to make changes.' }),
         h('h4', { text: 'Shortcuts' }),
-        h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
+        h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste anything, also between dashboards'], ['Ctrl+Shift+V', 'Paste inside the selected section, card or tab'], ['Right-click', 'Menu for the part under the mouse'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
       ]));
     }
     var w = MS.child.win, cs = w.getComputedStyle(el), rt = MS.rt();
@@ -164,22 +204,23 @@
         h('small', { 'class': 'hint', text: 'Or drag the ⠿ handle onto a tab name in the dashboard ribbon (hold Ctrl to copy).' })]));
     }
 
-    /* block size */
-    if (block) {
-      var vis = block.querySelector(':scope > .ms-visual');
-      var span = parseInt((block.style.gridColumn || 'span 6').replace(/\D+/g, ''), 10) || 6;
-      var inGrid = block.parentElement.classList.contains('ms-grid');
-      var spanIn = h('input', { type: 'range', min: 1, max: 12, value: span });
-      var spanLbl = h('span', { text: span + '/12' });
-      spanIn.addEventListener('input', function () { spanLbl.textContent = spanIn.value + '/12'; block.style.gridColumn = 'span ' + spanIn.value; });
-      spanIn.addEventListener('change', function () { block.style.gridColumn = 'span ' + span; MS.blocks.resize(block, +spanIn.value, null); });
-      var hIn = h('input', { type: 'number', 'class': 'inp', min: 60, step: 10, value: parseInt(vis && vis.style.getPropertyValue('--ms-h'), 10) || (vis ? Math.round(vis.getBoundingClientRect().height) : 300) });
-      hIn.addEventListener('change', function () { MS.blocks.resize(block, null, +hIn.value); if (block.classList.contains('ms-inline') && vis && !vis.style.height) MS.history.attrs('Height', vis, ['style'], function (x) { x.style.height = 'var(--ms-h)'; }); });
-      host.appendChild(group('Size', [
-        inGrid ? h('label', { 'class': 'field' }, [h('span', {}, ['Width ', spanLbl]), spanIn]) : null,
-        h('label', { 'class': 'field' }, [h('span', { text: 'Height of the visual (px)' }), hIn]),
-        h('small', { 'class': 'hint', text: 'Tip: drag the corner handle of the block.' })]));
+    /* size: any chart, block, picture or card (drag the round handle, or type it here) */
+    if (block || chartKey || el.tagName === 'IMG' || !/^inline/.test(cs.display) && !/^(TD|TH|TR|LI|OPTION)$/.test(el.tagName)) {
+      var sz = MS.chartKit.sizeFields(el, function (v) { MS.chartKit.setSize(el, v); });
+      host.appendChild(group('Size', [sz, h('small', { 'class': 'hint', text: block ? 'Or drag the corner handle of the block.' : chartKey || el.tagName === 'IMG' ? 'Or drag the round handle at the bottom-right corner.' : 'Width follows the columns of the grid it sits in.' })], !(block || chartKey || el.tagName === 'IMG')));
     }
+
+    /* chart data and legend */
+    if (chartKey && rt) {
+      var bound = (rt.state.charts[chartKey] || {}).binding;
+      host.appendChild(group('Data & legend', [
+        h('div', { 'class': 'row gap' }, [h('button', { 'class': 'btn sm', title: 'Upload a CSV or Excel file, paste from Excel, or type the numbers for this chart', onclick: function () { MS.chartKit.dataDialog(chartKey); } }, ['⛁ Chart data…']),
+          h('button', { 'class': 'btn sm', title: 'The numbers as a CSV file (also a template to fill in)', onclick: function () { MS.chartKit.downloadCsv(chartKey); } }, ['⬇ CSV'])]),
+        bound ? h('small', { 'class': 'hint', text: 'Drawn from “' + bound.dataset + '”.' }) : null,
+        h('label', { 'class': 'field' }, [h('span', { text: 'Legend' }), MS.chartKit.legendControl(chartKey)])]));
+    }
+    if (el.tagName === 'IMG') host.appendChild(group('Alt text', [MS.a11y.altField(el)]));
+    if (el.tagName === 'TABLE' || el.closest('table')) host.appendChild(group('Table', [h('div', { 'class': 'row gap' }, [h('button', { 'class': 'btn sm', onclick: function () { MS.tables.rulesDialog(el.closest('table')); } }, ['🎨 Colour rules…'])]), h('small', { 'class': 'hint', text: 'Colour cells by their value: red / amber / green, colour scales or data bars.' })]));
 
     /* chart look */
     if (chartKey && rt) {
@@ -304,6 +345,7 @@
     var theme = MS.rt() && MS.rt().state.theme;
     var c = h('input', { type: 'color', value: value });
     c.addEventListener('change', function () { onChange(c.value); });
+    if (MS.firm && MS.firm.locked()) { c.hidden = true; c.title = 'Brand colours only: the firm template is locked'; }
     var sw = theme ? h('div', { 'class': 'swatches mini' }, [].concat(Object.keys(theme.colors).map(function (k) { return theme.colors[k]; }), theme.palette).filter(function (v, i, a) { return a.indexOf(v) === i; }).slice(0, 10).map(function (v) { return h('i', { style: { background: v }, title: v, onclick: function () { onChange(v); } }); })) : null;
     return h('div', { 'class': 'colorfield' }, [c, allowClear ? h('button', { 'class': 'icon-btn', title: 'No background', onclick: function () { onChange(''); } }, ['⌀']) : null, sw]);
   }

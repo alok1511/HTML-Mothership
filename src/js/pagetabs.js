@@ -129,6 +129,14 @@
     return MS.confirm('Delete the "' + t.title + '" tab?', 'Its button and everything on it are removed. You can undo with Ctrl+Z.', 'Delete', true).then(function (ok) { return ok ? go() : false; });
   };
   // where "Insert" puts new things when the page has its own tabs: the panel on screen
+  // Speaker notes for one of the dashboard's own tabs (kept in the state by tab name; never shown in the export).
+  PT.notes = function (which, text) {
+    var t = PT.find(which), rt = MS.rt(); if (!t || !rt) return;
+    var put = function (v) { MS.history.state('Tab notes', function (s) { if (v) s.pageNotes[t.title] = v; else delete s.pageNotes[t.title]; }); };
+    if (text != null) return put(text);
+    var f = MS.form([{ key: 'n', label: 'Speaker notes (shown in Presenter view, never in the exported dashboard)', type: 'textarea', rows: 8, value: (rt.state.pageNotes || {})[t.title] || '' }]);
+    MS.dialog({ title: '🗒 Notes for “' + t.title + '”', body: f, enterSubmits: false, buttons: [{ label: 'Cancel', value: null }, { label: 'Save', primary: true, value: function () { return f.values().n; } }] }).then(function (v) { if (v !== null) put(v); });
+  };
   PT.insertHost = function () { var t = PT.active(); return t ? t.panel : null; };
 
   /* ---------------------------------------------------------- left panel section */
@@ -147,6 +155,7 @@
           { label: 'Rename…', run: function () { PT.rename(i); } },
           { label: 'Add a tab after this one…', run: function () { MS.prompt('Add a tab', 'New tab', 'Tab name').then(function (v) { if (v) PT.add(v, null, i); }); } },
           { label: 'Load a file into a new tab…', run: function () { MS.pickFiles(MS.importers.accept, { multiple: true }).then(function (fs) { if (fs.length) MS.importers.newTabs(fs); }); } },
+          { label: 'Speaker notes…', run: function () { PT.notes(i); } },
           i > 0 ? { label: 'Move left / up', run: function () { PT.move(i, i - 1); } } : null,
           i < g.tabs.length - 1 ? { label: 'Move right / down', run: function () { PT.move(i, i + 1); } } : null,
           '-',

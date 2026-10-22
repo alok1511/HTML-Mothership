@@ -168,3 +168,37 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 **Legends.** `rt.legendItems(chart)` → `[{name, item, sw}]`: the page's own HTML legend next to a chart (an element whose text is a category or series name, with a small coloured swatch). After category colours or the palette change, the runtime paints the swatches to match (the old colour is kept in `data-ms-legend-orig`). `rt.legendOf(node)` → `{key, name}`; `MS.edit.style` on a swatch sets the category colour instead. `MS.catColors.pick(name, key)` is the colour dialog a Chart.js legend click opens.
 
 **Brand mapping.** `MS.brand.pageColors()` → `{colors:[{hex, text, fill, border, n, status, where}], bodyBg, fontsElsewhere}`; `MS.brand.plan(theme)` → `{map, fontsElsewhere}`; `MS.brand.preview(theme)` shows the dialog; `MS.brand.loadFile(file, direct)`. Runtime: `rt.eachRule(fn(rule, media))` walks the page's own style sheets; `theme.map` becomes override rules in `#ms-theme-css` plus inline swaps remembered in `data-ms-colmap`.
+
+## v3.4 building blocks
+
+**Clipboard** (`src/js/clipboard.js`, `MS.clipboard`). `MS.clip = {id, node, cut, doc, at}` is the part in hand; a snapshot also goes to `localStorage['ms.clipSnap']` (`{v, id, doc, html, text, charts:[{key, title, type, labels, series, look, h}]}`) so another Mothership window can paste it. In the snapshot each chart is a `<div data-clipchart="i">` placeholder (not `data-ms-*`, which the sanitizer strips) and is rebuilt as a native chart from its numbers. `Cb.unitOf(el)` (a chart's whole card), `Cb.target(inside)`, `Cb.clone(el)` (new ids, `data-ms-copyof` for live charts in the same dashboard), `Cb.fit(node, host)`, `Cb.copy(cut)`, `Cb.paste({inside, data})`, `Cb.pasteSnapshot(snap, inside)`, `Cb.pasteExternal(data)` (image, HTML table, tab-separated text, paragraphs), `Cb.duplicate(el)`. API/MCP: `copy`, `paste {after, inside, html, text}`.
+
+**Chart kit** (`src/js/chartkit.js`, `MS.chartKit`). `sizing(el)` and `setSize(el, {span, pct, px, height})` (grid span or width %, height through the box, `--h`, `min-height` or the image); `[data-ms-fill]` makes Chart.js fill its box. `setLegend(key, pos)` with `''` / `top` / `bottom` / `left` / `right` / `hidden`; `applyData(key, table)` stores a dataset `"<name> data"` with `chart: key` and binds the chart with sort `source`; `resetData(key)`, `csv(key)`, `dataDialog(key)`. API/MCP: `chart_size`, `chart_legend`, `set_chart_data`; MCP file tool `chart_data_file {chart, path}`.
+
+**Table colour rules** (`src/js/tables.js`, runtime `rt.applyTableRules`). `state.tableRules[rt.tableKey(table)] = [{col, type: rag|scale|bars|top|bottom|rule, op, value, value2, n, higher, color, bold}]`. The runtime keeps each coloured cell's original style in `data-ms-cf`. API/MCP: `table_rules`.
+
+**Templates** (`src/js/templates.js`). Saved in IndexedDB (`kv`, key `templates`) as clipboard snapshots, with `what: 'part' | 'tab'`. `MS.templates.list()`, `.save(name, what, el)`, `.insert(t)`, `.remove(id)`. API/MCP: `templates`.
+
+**Refresh** (`data.js`). `MS.data.matchRefresh(tables)` matches files to datasets by base name (dates ignored), then sheet or dataset name; `refreshFrom(files)` shows the review; `refreshAll()` reuses saved file handles (`kv` `handles:<doc>`) where the browser supports them. API/MCP: `refresh_data`; MCP file tool `refresh_data_files {paths, apply}`.
+
+**Accessibility** (`src/js/a11y.js`). `MS.a11y.check()` → `[{id, kind: lang|title|alt|th|name|keys|contrast, text, fix}]`; `MS.a11y.fix(f)`, `setAlt(el, text)`. API/MCP: `accessibility_check`, `set_alt_text`.
+
+**Presenter notes.** `state.pageNotes[tabTitle]`, `state.layout.commentNotes` (`off` / `resolved` / `all`). `MS.present.notesFor(tab)`; `MS.pageTabs.notes(which, text)`. API/MCP: `presenter_notes`.
+
+**UI kit.** `MS.dialog({title, sub, body, buttons, wide, xwide})` (draggable, focus trap, peek button, `MS.dialogError(msg)` for inline errors); `MS.menuAt(x, y, items)` with `{label, icon, key, sub, on, disabled}`; `MS.toast(msg, kind, ms, {action:{label, on}})` → `{close}`.
+
+## v3.5 building blocks (client work)
+
+**Firm template** (`src/js/consult.js`, `MS.firm`). `state.firm = {name, footer, logo, locked, pw?:{salt, iter, key}, palette}`; the theme itself stays in `state.theme`. A template file is `{$type: 'mothership/firm', name, footer, logo, theme, locked}` (saved in IndexedDB `kv` `firm` and as `.firm.json`). `MS.firm.apply(t, {lock})`, `.lock(on, password)`, `.blocks(what)` (true and a message while locked: `MS.brand.apply`, `.edit`, `.addFontFiles`, `MS.catColors` and the free colour picker call it). The runtime draws `#ms-firm-foot` at the end of `<body>`. API/MCP: `firm_template`.
+
+**Stage, confidential, names, change log.** `state.stage` (`draft` | `review` | `client`) → runtime `#ms-stamp`; `MS.stage.blockers()`. `state.confidential = {on, label, watermark}` → `#ms-watermark` (SVG background) and a footer label. `MS.confidential.scrubHtml(html, [{from, to}])` replaces whole words (and their HTML / JSON escaped forms) everywhere except `data:` URLs, and counts what is left. `MS.audit` keeps `{at, by, what, n}` from every history label; `MS.exportHtml` writes it to `state.changeLog`. API/MCP: `stage`, `confidential`, `scrub_names` (MCP file tool `scrubbed_copy`), `change_log`.
+
+**Colour-blind check** (`MS.cvd`). Machado (2009) matrices for protanopia, deuteranopia and tritanopia; pairs of a chart's colours closer than ΔE 11 when simulated (but not normally) are reported. `MS.cvd.fix()` sets the Okabe–Ito palette; `MS.cvd.preview(kind)` adds an editor-only SVG filter. Also a finding kind `cvd` in `MS.a11y.check()`. API/MCP: `colour_blind_check`.
+
+**Annotations and sources** (`src/js/annotate.js`). `state.annotations = [{id, chart, label, series, kind: callout|arrow|sowhat, text, title, color, dx, dy, fx, fy}]`. Adapters have `point(inst, index, series)` → px from the chart's top-left (Chart.js, ECharts, Highcharts, D3; others fall back to `fx/fy`); the runtime draws `.ms-annot-layer` next to the chart and redraws on refresh, resize and tab switches. In the editor, dragging fires `ms:annot-move` and double-click `ms:annot-edit`. `state.charts[key].source = {text, asOf, note}` → `.ms-source` under the chart; `MS.sources.insertFootnotes()`. API/MCP: `annotate`, `chart_source`, `insert_footnotes`.
+
+**Storyline** (`src/js/story.js`, runtime `rt.story`). `state.story = {title, steps:[{ref:{id, chart}, headline, text}]}`. `rt.story.play(i)`, `.next()`, `.prev()`, `.stop()`; `rt.findRef(ref)`. Exports get `#ms-story-btn`. API/MCP: `story`.
+
+**PDF and PowerPoint** (`src/js/deliver.js`, `MS.deliver`). `pages()` (own tabs, tab ribbon or the whole page) or `storyPages()`; `capture()` shows each in turn and takes a static copy (canvases become `<img>`). `printHtml()` builds the print layout (A4 landscape, `zoom` fitted per page by `msFit()`); `print()` prints it from a hidden frame. `pptx()` draws each page as a picture through an SVG `foreignObject` (falling back to the chart images) and `pptxFrom(slides)` writes the `.pptx` with JSZip. API/MCP: `print_layout`, `export_pptx`; file tools `save_pdf` (DevTools `Page.printToPDF`, or the print layout if the browser can't) and `save_pptx`.
+
+**Comments.** `c.to` (assignee) and `c.mentions`; `MS.review.mentions(text)`, `.initials(name)`, `.forMe(c, name)`, `.assign(id, who)`.

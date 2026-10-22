@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.4.0';
+var VERSION = '2.6.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -287,6 +287,20 @@ function openFiles(main, others, password) {
 }
 
 /* ------------------------------------------------------------------ tools that need the file system */
+// A PDF of an HTML page, printed by the browser in a tab of its own.
+function printPdf(html) {
+  var target = null, sid;
+  var close = function () { if (target) cdp('Target.closeTarget', { targetId: target }, null).catch(function () {}); };
+  return cdp('Target.createTarget', { url: 'about:blank' }, null).then(function (t) { target = t.targetId; return cdp('Target.attachToTarget', { targetId: target, flatten: true }, null); })
+    .then(function (x) { sid = x.sessionId; return cdp('Page.enable', {}, sid); })
+    .then(function () { return cdp('Page.getFrameTree', {}, sid); })
+    .then(function (ft) { return cdp('Page.setDocumentContent', { frameId: ft.frameTree.frame.id, html: html }, sid); })
+    .then(function () { return sleep(900); })
+    .then(function () { return cdp('Runtime.evaluate', { expression: 'typeof msFit==="function"&&msFit()' }, sid); })
+    .then(function () { return cdp('Page.printToPDF', { printBackground: true, preferCSSPageSize: true, landscape: true }, sid); })
+    .then(function (r) { close(); return r.data; }, function (e) { close(); throw e; });
+}
+
 var LOCAL = {
   status: { description: 'Is Mothership running? Which browser, which editor file, and what is open.', props: {},
     run: function () {
@@ -334,6 +348,10 @@ var LOCAL = {
     run: function (a) { return api('add_dataset', { name: a.name, file: b64file(a.path) }); } },
   drill_data_file: { description: 'Embed drill-down (double-click) detail from a Markdown, Excel, CSV or JSON file and link each table to its chart automatically. In Markdown, put each | table | under a heading naming the chart.', props: { path: ['string', 'File path', true], link: ['boolean', 'Link to matching charts (default true)'] },
     run: function (a) { return api('drill_data', { file: b64file(a.path), link: a.link }); } },
+  chart_data_file: { description: 'Give one chart new numbers from a CSV or Excel file on disk: labels in the first column, one column per series (or Category / Series / Value).', props: { chart: ['string', 'Chart name or key', true], path: ['string', 'File path', true] },
+    run: function (a) { return api('set_chart_data', { chart: a.chart, file: b64file(a.path) }); } },
+  refresh_data_files: { description: 'One-click refresh: re-read this month\'s CSV / Excel files for every dataset (matched by file name, then sheet or dataset name). Charts, KPI cards and filters keep their settings. Then export_html.', props: { paths: ['array', 'File paths', true], apply: ['boolean', 'Apply (default true); false only lists the matches'] },
+    run: function (a) { return api('refresh_data', { files: (a.paths || []).map(function (p) { return b64file(p); }), apply: a.apply }); } },
   load_brand: { description: 'Apply a brand from a file: brand JSON, a brand SKILL.md, a .skill/.zip package, or a font file.', props: { path: ['string', 'File path', true] },
     run: function (a) { return api('apply_theme', { file: b64file(a.path) }); } },
   save_prompt: { description: 'Turn review comments into an AI prompt (each located by tab › section › chart) and save it as a Markdown file.', props: { path: ['string', 'Where to save (default: <name>-review-prompt.md)'], goal: ['string', 'apply | polish | review | explain'], assistant: ['string', 'chat | agent | mcp'], scope: ['string', 'all | tab | must'], output: ['string', 'file (complete updated HTML, default) | changes | plan | tickets'], include_done: ['boolean', 'Include closed comments'], extra: ['string', 'Extra instruction'], embed_html: ['boolean', 'Paste the dashboard source into the prompt'] },
@@ -342,6 +360,23 @@ var LOCAL = {
       return Promise.all([api('comments_prompt', args), api('outline', {})]).then(function (r) {
         var file = outPath(a.path, String(r[1].name || 'dashboard').replace(/\.html?$/i, '') + '-review-prompt.md');
         fs.writeFileSync(file, r[0].prompt, 'utf8'); return { saved: file, comments: r[1].comments, characters: r[0].prompt.length };
+      });
+    } },
+  save_pdf: { description: 'Save a client-ready PDF: one page per tab (or per story step) with the firm header and footer, fitted to A4 landscape.', props: { path: ['string', 'Where to save (default: <name>.pdf)'], from: ['string', 'tabs (default) | story'] },
+    run: function (a) {
+      return Promise.all([api('print_layout', { from: a.from }), api('outline', {})]).then(function (r) {
+        var html = r[0].html, base = String(r[1].name || 'dashboard').replace(/\.html?$/i, '') + (a.from === 'story' ? '-story' : '');
+        return printPdf(html).then(function (pdf) { var file = outPath(a.path, base + '.pdf'); fs.writeFileSync(file, Buffer.from(pdf, 'base64')); return { saved: file, pages: r[0].pages }; },
+          function (e) { var file = outPath(a.path ? a.path.replace(/\.pdf$/i, '-print.html') : null, base + '-print.html'); fs.writeFileSync(file, html, 'utf8'); return { saved: file, pages: r[0].pages, note: 'The browser could not make the PDF itself (' + e.message + '). Open the saved print layout and choose Print, then Save as PDF.' }; });
+      });
+    } },
+  save_pptx: { description: 'Save a PowerPoint: one slide per tab (or per story step), editable titles, each page as a picture, firm footer.', props: { path: ['string', 'Where to save (default: <name>.pptx)'], from: ['string', 'tabs (default) | story'] },
+    run: function (a) { return api('export_pptx', { from: a.from }).then(function (r) { var file = outPath(a.path, r.name); fs.writeFileSync(file, Buffer.from(r.b64, 'base64')); return { saved: file, slides: r.slides }; }); } },
+  scrubbed_copy: { description: 'Save a copy with client or people names taken out (text, chart labels, data, comments, settings). The open dashboard is unchanged.', props: { names: ['array', '[{from, to}] e.g. [{from: "Acme Insurance", to: "Client"}]', true], path: ['string', 'Where to save (default: <name>-cleaned.html)'] },
+    run: function (a) {
+      return Promise.all([api('scrub_names', { names: a.names, where: 'copy' }), api('outline', {})]).then(function (r) {
+        var file = outPath(a.path, String(r[1].name || 'dashboard').replace(/\.html?$/i, '') + '-cleaned.html'); fs.writeFileSync(file, r[0].html, 'utf8');
+        return { saved: file, replaced: r[0].replaced, left: r[0].left };
       });
     } },
   save_tracker: { description: 'Save every review comment as an Excel tracker (.xlsx) with tab, section, chart, comment, done-when, status, owner and due date.', props: { path: ['string', 'Where to save (default: <name> - review tracker.xlsx)'] },

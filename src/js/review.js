@@ -377,6 +377,17 @@
     MS.emit('comments');
   }
   function author() { return MS.prefs.get('author', '') || ''; }
+  // @mentions in a comment ("@AK", "@Priya") and the initials of a name, for assigning comments
+  R.mentions = function (text) { var out = [], m, re = /(^|[\s(,])@([A-Za-z][\w.-]{0,30})/g; while ((m = re.exec(String(text || '')))) if (out.indexOf(m[2]) < 0) out.push(m[2].replace(/[.-]+$/, '')); return out; };
+  R.initials = function (name) { var p = String(name || '').trim().split(/\s+/).filter(Boolean); return p.length > 1 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : (p[0] || '').slice(0, 2).toUpperCase(); };
+  // is this comment for me? (assigned to my name, first name or initials, or mentions them)
+  R.forMe = function (c, me) {
+    me = me == null ? author() : me; if (!me) return false;
+    var keys = [me, me.split(/\s+/)[0], R.initials(me)].map(function (x) { return String(x).toLowerCase(); });
+    var who = [c.to].concat(c.mentions || []).concat((c.replies || []).reduce(function (a, y) { return a.concat(R.mentions(y.text)); }, [])).filter(Boolean).map(function (x) { return String(x).toLowerCase(); });
+    return who.some(function (w) { return keys.indexOf(w) >= 0; });
+  };
+  R.assign = function (id, who) { patch(id, who ? 'Assign comment to ' + who : 'Unassign comment', function (x) { if (who) x.to = String(who).trim(); else delete x.to; }); };
   function base(kind) { var t = tabOf(null); return { id: rt().uid('m'), kind: kind, created: new Date().toISOString(), by: author(), tab: t, type: 'change', prio: 'should', replies: [] }; }
   function ctxBox(lines) { return h('div', { 'class': 'cmt-ctx' }, lines.filter(Boolean).map(function (l) { return h('div', { html: l }); })); }
   R.compose = function (c, ctx, extra, done) {
@@ -455,7 +466,7 @@
   };
   R.resolve = function (id) { var c = byId(id); if (c) patch(id, c.done ? 'Re-open comment' : 'Resolve comment', function (x) { x.done = !x.done; x.doneAt = x.done ? new Date().toISOString() : undefined; }); };
   R.remove = function (id) { MS.history.state('Delete comment', function (s) { s.comments = s.comments.filter(function (x) { return x.id !== id; }); }); if (R.current === id) R.current = null; MS.emit('comments'); };
-  R.reply = function (id, text) { if (!String(text || '').trim()) return; patch(id, 'Reply to comment', function (x) { (x.replies = x.replies || []).push({ id: rt().uid('y'), text: String(text).trim(), by: author(), at: new Date().toISOString() }); }); };
+  R.reply = function (id, text) { if (!String(text || '').trim()) return; patch(id, 'Reply to comment', function (x) { (x.replies = x.replies || []).push({ id: rt().uid('y'), text: String(text).trim(), by: author(), at: new Date().toISOString() }); var m = R.mentions(text); if (m.length) { x.mentions = (x.mentions || []).concat(m.filter(function (k) { return (x.mentions || []).indexOf(k) < 0; })); if (!x.to) x.to = m[0]; } }); };
   R.clear = function () {
     if (!list().length) return;
     MS.confirm('Delete all ' + list().length + ' comments?', 'You can undo this with Ctrl+Z.', 'Delete all', true).then(function (ok) {
@@ -485,14 +496,18 @@
     var ty = h('select', { 'class': 'inp' }, TYPES.map(function (o) { return h('option', { value: o.value, text: o.label, selected: o.value === (c.type || 'change') }); }));
     var pr = h('select', { 'class': 'inp' }, PRIOS.map(function (o) { return h('option', { value: o.value, text: o.label, selected: o.value === (c.prio || 'should') }); }));
     var nm = isNew ? h('input', { 'class': 'inp', placeholder: 'Your name (optional)', value: author() }) : null;
+    var to = h('input', { 'class': 'inp cmt-to', placeholder: 'Assign to (initials), or @mention in the text', value: c.to || '', title: 'Who should act on it, e.g. AK. An @mention in the text assigns it too.' });
     var go = function () {
       if (!ta.value.trim()) { ta.focus(); return MS.toast('Type a comment first.', 'warn'); }
       if (nm) { MS.prefs.set('author', nm.value.trim()); c.by = nm.value.trim(); }
-      c.text = ta.value.trim(); c.type = ty.value; c.prio = pr.value; onSave(c);
+      c.text = ta.value.trim(); c.type = ty.value; c.prio = pr.value;
+      c.mentions = R.mentions(c.text); if (!c.mentions.length) delete c.mentions;
+      c.to = to.value.trim().replace(/^@/, '') || (c.mentions && c.mentions[0]) || ''; if (!c.to) delete c.to;
+      onSave(c);
     };
     ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); go(); } if (e.key === 'Escape') { e.preventDefault(); onCancel(); } });
     return h('div', { 'class': 'cmt-draft' }, [ctx ? ctxBox(ctx) : null, extra || null, ta,
-      h('div', { 'class': 'row gap' }, [ty, pr]), nm,
+      h('div', { 'class': 'row gap' }, [ty, pr]), to, nm,
       h('div', { 'class': 'row gap' }, [h('span', { 'class': 'grow' }), h('button', { 'class': 'btn sm', onclick: onCancel }, ['Cancel']), h('button', { 'class': 'btn sm primary', onclick: go }, [isNew ? 'Add comment' : 'Save'])])]);
   }
   function card(c, n) {
@@ -500,8 +515,9 @@
     var el = h('div', { 'class': 'cmt-card' + (cur ? ' cur' : '') + (c.done ? ' done' : ''), 'data-id': c.id });
     el.appendChild(h('div', { 'class': 'cmt-top' }, [h('span', { 'class': 'cmt-n' + (c.done ? ' done' : ''), text: String(n) }), h('span', { 'class': 'kind', text: KIND_ICON[c.kind] || '' }),
       h('span', { 'class': 'grow cmt-what', text: clip(what(c), 70), title: where(c) }),
+      c.to ? h('span', { 'class': 'tag who', text: '@' + c.to, title: 'Assigned to ' + c.to }) : null,
       c.prio === 'must' && !c.done ? h('span', { 'class': 'tag warn', text: 'must' }) : null, c.done ? h('span', { 'class': 'tag ok', text: '✓ resolved' }) : null]));
-    if (editing) el.appendChild(composer(JSON.parse(JSON.stringify(c)), false, null, null, function (v) { R.editing = null; patch(c.id, 'Edit comment', function (x) { x.text = v.text; x.type = v.type; x.prio = v.prio; }); }, function () { R.editing = null; R.renderPane(); }));
+    if (editing) el.appendChild(composer(JSON.parse(JSON.stringify(c)), false, null, null, function (v) { R.editing = null; patch(c.id, 'Edit comment', function (x) { x.text = v.text; x.type = v.type; x.prio = v.prio; if (v.to) x.to = v.to; else delete x.to; if (v.mentions) x.mentions = v.mentions; else delete x.mentions; }); }, function () { R.editing = null; R.renderPane(); }));
     else el.appendChild(h('div', { 'class': 'cmt-text', text: c.text }));
     el.appendChild(h('div', { 'class': 'cmt-meta muted small', text: [c.by || 'Reviewer', ago(c.created), (TYPES.filter(function (t) { return t.value === c.type; })[0] || {}).label].filter(Boolean).join(' · ') }));
     (c.replies || []).forEach(function (rp) {
@@ -544,13 +560,14 @@
       host.appendChild(h('div', { 'class': 'cmt-card new' }, [h('div', { 'class': 'cmt-top' }, [h('span', { 'class': 'cmt-n', text: String(cs.length + 1) }), h('strong', { text: 'New comment' })]),
         composer(dr.c, true, dr.ctx, dr.extra, function (c) { if (dr.done) dr.done(c); R.draft = null; R.current = c.id; save(c, 'Add comment'); MS.toast('Comment ' + list().length + ' added.', 'ok'); }, R.discard)]));
     }
-    var chips = [['open', 'Open (' + open + ')'], ['all', 'All (' + cs.length + ')'], ['must', 'Must fix'], ['done', 'Resolved']];
+    var mine = cs.filter(function (c) { return !c.done && R.forMe(c); }).length;
+    var chips = [['open', 'Open (' + open + ')'], ['mine', 'For me' + (mine ? ' (' + mine + ')' : '')], ['all', 'All (' + cs.length + ')'], ['must', 'Must fix'], ['done', 'Resolved']];
     host.appendChild(h('div', { 'class': 'seg small cmt-filter' }, chips.map(function (x) {
       return h('button', { 'class': 'seg-btn' + (R.filter === x[0] ? ' on' : ''), onclick: function () { R.filter = x[0]; MS.prefs.set('cmtFilter', x[0]); R.renderPane(); R.renderPins(); } }, [x[1]]);
     })));
-    var show = cs.filter(function (c) { return R.filter === 'all' || (R.filter === 'open' && !c.done) || (R.filter === 'done' && c.done) || (R.filter === 'must' && c.prio === 'must' && !c.done) || c.id === R.current; });
+    var show = cs.filter(function (c) { return R.filter === 'all' || (R.filter === 'open' && !c.done) || (R.filter === 'done' && c.done) || (R.filter === 'must' && c.prio === 'must' && !c.done) || (R.filter === 'mine' && !c.done && R.forMe(c)) || c.id === R.current; });
     if (!cs.length) host.appendChild(h('p', { 'class': 'muted pad-sm small', text: 'No comments yet. Press 💬 Comment at the top (or here), then click anything on the dashboard, or drag a box around an area. Every comment gets a numbered pin that stays on the content as you scroll.' }));
-    else if (!show.length) host.appendChild(h('p', { 'class': 'muted pad-sm small', text: R.filter === 'open' ? 'Everything is resolved. 🎉' : 'Nothing here.' }));
+    else if (!show.length) host.appendChild(h('p', { 'class': 'muted pad-sm small', text: R.filter === 'open' ? 'Everything is resolved. 🎉' : R.filter === 'mine' && !author() ? 'Set your name (⋯ › Change my name) to see the comments assigned to you or that @mention you.' : 'Nothing here.' }));
     var groups = [], byTab = {};
     show.forEach(function (c) { var k = c.tab ? c.tab.title : 'Whole page'; if (!byTab[k]) { byTab[k] = []; groups.push(k); } byTab[k].push(c); });
     groups.forEach(function (g) {

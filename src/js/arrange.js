@@ -90,6 +90,7 @@
   };
   Co.dialog = function () {
     var r = rt(); if (!r) return;
+    if (MS.firm && MS.firm.blocks('chart colours')) return;
     var names = [], seen = {}, now = {};
     r.charts().forEach(function (c) {
       var info = r.chartInfo(c.key) || {}, cols = r.chartColors(c.key);
@@ -116,6 +117,7 @@
   // one name's colour, from a click on a legend
   Co.pick = function (name, key) {
     var r = rt(); if (!r || !name) return;
+    if (MS.firm && MS.firm.blocks('chart colours')) return;
     var cur = r.lookColor(name) || (key ? r.chartColors(key)[name] : '') || '#999999';
     var inp = h('input', { type: 'color', value: toHex(cur), style: { width: '64px', height: '36px' } });
     MS.dialog({ title: 'Colour of “' + name + '”', body: h('div', {}, [h('div', { 'class': 'row gap' }, [inp, h('span', { text: 'Used for “' + name + '” on this chart, its legend, and every chart that shows it.' })])]),

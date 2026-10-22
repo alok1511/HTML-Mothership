@@ -205,7 +205,7 @@
         'Item': l.kpi ? 'KPI card “' + l.kpi.label + '”' : (l.item || (c.target && c.target.what) || (c.kind === 'area' ? 'screen area' : c.kind === 'interaction' ? 'interaction' : '')),
         'Where': R.trail ? R.trail(l) : '', 'Comment': c.text || '',
         'Done when': (x.topics || []).map(function (t) { return t.done; }).join('; '),
-        'Owner': c.owner || '', 'Due': c.due || '', 'Notes': c.notes || '',
+        'Owner': c.owner || c.to || '', 'Due': c.due || '', 'Notes': c.notes || '',
         'Added': c.created ? new Date(c.created).toLocaleDateString('en-IN') : '', 'ID': c.id
       };
     });

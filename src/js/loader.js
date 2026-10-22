@@ -225,6 +225,7 @@
     var rt = MS.rt();
     var state = rt ? rt.getState() : JSON.parse(JSON.stringify(MS.doc.state || {}));
     if (opts.dropComments) delete state.comments;
+    if (MS.audit && MS.child) state.changeLog = MS.audit.list();
     // only a published copy carries the seal (publish.js fills it in); working copies never do
     if (opts.publish) state.publish = opts.publish;
     else if (state.publish) delete state.publish.seal;

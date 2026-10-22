@@ -106,3 +106,19 @@ function openTab(evt, name) {
   document.getElementById(name).style.display = 'block'; evt.currentTarget.className += ' active';
 }
 </script></body></html>`;
+
+// A one-page dashboard with a table, a picture without alt text, pale text and a Chart.js chart:
+// for table colour rules, the accessibility check, resize, legends and paste on a page with no tabs.
+exports.tablepage = () => `<!DOCTYPE html><html><head><meta charset="utf-8"><title></title>
+<script>${vend('charts/chart.umd.min.js')}</script>
+<style>body{font-family:Arial,sans-serif;margin:0;padding:20px;background:#f6f7fb}.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px}.pale{color:#c9ccd3}table{border-collapse:collapse;width:100%}td{border:1px solid #e2e8f0;padding:6px}</style></head><body>
+<h1>Regional review</h1>
+<p class="pale">Updated weekly from the finance extract.</p>
+<div class="row">
+ <div class="card" id="c1"><h3>Premium by region</h3><div style="height:220px"><canvas id="prem"></canvas></div></div>
+ <div class="card" id="c2"><h3>Notes</h3><p>Two regions are behind plan.</p></div>
+ <div class="card" id="c3"><h3>Logo</h3><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="40" height="40"></div>
+</div>
+<div class="card" style="margin-top:14px"><table id="perf"><tr><td>Region</td><td>Premium</td><td>Loss ratio</td></tr><tr><td>North</td><td>$2.6M</td><td>48%</td></tr><tr><td>South</td><td>$3.1M</td><td>71%</td></tr><tr><td>East</td><td>$2.2M</td><td>62%</td></tr><tr><td>West</td><td>$3.9M</td><td>55%</td></tr></table></div>
+<script>new Chart(document.getElementById('prem'), { type: 'bar', data: { labels: ['North', 'South', 'East', 'West'], datasets: [{ label: '2024', data: [2.1, 2.8, 1.9, 3.2] }, { label: '2025', data: [2.6, 3.1, 2.2, 3.9] }] }, options: { maintainAspectRatio: false } });</script>
+</body></html>`;

@@ -161,6 +161,7 @@
     return { family: family, weight: weight, style: /italic|oblique/i.test(base) ? 'italic' : 'normal', data: 'data:' + mime(path) + ';base64,' + b64 };
   }
   Br.addFontFiles = function (files) {
+    if (MS.firm && MS.firm.blocks('fonts')) return;
     return Promise.all(files.map(function (f) { return MS.readFile(f, 'dataurl').then(function (d) { return fontEntry(f.name, d.split(',')[1]); }); })).then(function (entries) {
       MS.history.state('Add brand fonts', function (s) {
         s.theme = s.theme || Br.normalize({ name: 'Custom' });
@@ -173,11 +174,12 @@
 
   Br.apply = function (theme) {
     if (!MS.rt()) { MS.toast('Open a dashboard first (scripts must be on).', 'warn'); return; }
+    if (MS.firm && MS.firm.blocks('the brand')) return;
     if (theme.map === undefined && theme.applyToPage !== false) { var plan = Br.plan(theme); theme.map = plan.map; if (plan.fontsElsewhere && theme.forceFonts === false) theme.forceFonts = true; }
     MS.history.state('Apply brand "' + theme.name + '"', function (s) { s.theme = theme; });
     Br.remember(theme);
     var c = Object.keys(theme.colors).length, p = theme.palette.length, f = Object.keys(theme.fonts).length;
-    MS.toast('Brand "' + theme.name + '" applied: ' + c + ' colour roles, ' + p + ' chart colours, ' + f + ' font(s). Review it in Design › Edit theme.', 'ok', 6000);
+    if (!(MS.firm && MS.firm.applying)) MS.toast('Brand "' + theme.name + '" applied: ' + c + ' colour roles, ' + p + ' chart colours, ' + f + ' font(s). Review it in Design › Edit theme.', 'ok', 6000);
     MS.emit('theme');
   };
   Br.remember = function (theme) {
@@ -314,6 +316,7 @@
   /* ---------------------------------------------------------- theme editor */
   Br.edit = function () {
     var rt = MS.rt(); if (!rt) return MS.toast('Open a dashboard first.', 'warn');
+    if (MS.firm && MS.firm.blocks('the theme')) return;
     var t = rt.state.theme ? JSON.parse(JSON.stringify(rt.state.theme)) : Br.normalize({ name: 'Custom', colors: { primary: '#2563eb' } });
     var roles = ['primary', 'secondary', 'accent', 'background', 'surface', 'text', 'muted', 'border', 'ribbonBg', 'ribbonText', 'paneBg'];
     var labels = { ribbonBg: 'Ribbon background', ribbonText: 'Ribbon text', paneBg: 'Filter pane background' };
