@@ -140,4 +140,8 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 
 **Summaries** live in the runtime so captions follow filters and survive export; they are generated elements (no `data-ms-own`) and rebuilt on load.
 
+**Region and currency** (`state.locale = {country, locale, currency, units: 'intl'|'indian'}`, default en-US / USD). The runtime's `locale()` reads it; `fmtNum` specs `cur`, `cur2`, `short`, `curshort` and `num` follow it, as do `k`/`m`/`pct`/`int` and the default. `inr`/`cr`/`lakh`/`usd` stay fixed. Editor side: `MS.locale` in `publish.js`.
+
+**Publishing** (`publish.js`). `MS.publish.build()` writes `state.publish = {version, at, by, note, asOf, badge, log[], lock?, seal}` through `MS.exportHtml({publish})`, with `seal` as 64 zeros, hashes the whole file (SHA-256, Web Crypto) and puts the hash in place of the zeros. `verify()` swaps it back and re-hashes. Normal exports delete `seal`, so the working copy keeps the lock details (for the next publish) but is never locked. `MS.openHtml` calls `MS.publish.gate()` first when the file has both `lock` and `seal`; the lock is `{salt, iter: 150000, key}` from PBKDF2-SHA-256. The runtime draws the corner badge (`#ms-badge`) and the failure bar (`#ms-errbar`) only outside the editor.
+
 **Checks and reports** (`insights.js`) are editor-only and read what is on screen: `rt.chartData(key, true)` for charts, the KPI cards' text for KPIs.

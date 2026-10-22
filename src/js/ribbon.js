@@ -24,7 +24,7 @@
     find: need(MS.edit.findReplace),
     present: needRt(function () { MS.present.start(false); }),
     presenter: needRt(function () { MS.present.start(true); }),
-    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state }); MS.ribbon.render(); },
+    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state, unlocked: true }); MS.ribbon.render(); },
     netLock: function () { MS.settings.netLock = !MS.settings.netLock; MS.prefs.set('netLock', MS.settings.netLock); MS.toast(MS.settings.netLock ? 'Network lock on: the dashboard can\'t load or send anything over the internet while editing. Online-only libraries (CDN) will not load.' : 'Network lock off.', 'ok', 7000); if (MS.child) MS.reload(); MS.ribbon.render(); }
   };
 
@@ -41,6 +41,9 @@
         { icon: '🕘', label: 'Save version', title: 'Keep a named version in this browser (Ctrl+S)', run: MS.cmd.saveVersion },
         { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions },
         { icon: '⚖', label: 'Compare', title: 'What changed between two versions (or a file): tabs, text, charts, data. Side by side too.', run: function () { MS.compare.dialog(); } }] },
+      { name: 'Publish', items: [
+        { icon: '🛡', label: 'Ready to publish?', title: 'Check before sharing: script errors, empty charts, numbers that don\'t add up, open comments, internet files, size', run: need(function () { MS.preflight.dialog(); }) },
+        { icon: '🚀', label: 'Publish', title: 'Save a view-only copy with a version number, date and release note. Optionally lock editing with a password; Mothership warns if it is changed afterwards.', run: needRt(function () { MS.publish.dialog(); }) }] },
       { name: 'Output', items: [
         { icon: '🖨', label: 'Print / PDF', title: 'Print the dashboard, or choose "Save as PDF" in the print dialog. Each tab prints on its own page.', run: MS.cmd.print },
         { icon: '↻', label: 'Reload', title: 'Re-run the dashboard as it will look when exported', run: MS.cmd.reload }] }
@@ -104,6 +107,8 @@
         { icon: '🖌', label: 'Edit theme', title: 'Colours, chart palette, fonts, logo', run: needRt(MS.brand.edit) },
         { icon: '📚', label: 'Library', title: 'Brands you have used before', run: needRt(MS.brand.library) },
         { icon: '🔤', label: 'Fonts', title: 'Upload brand font files (.woff2/.woff/.ttf/.otf). They are embedded, so they work offline.', run: needRt(function () { MS.pickFiles('.woff,.woff2,.ttf,.otf', { multiple: true }).then(function (fs) { if (fs.length) MS.brand.addFontFiles(fs); }); }) }] },
+      { name: 'Numbers', items: [
+        { icon: '🌍', label: 'Region & currency', title: 'Country, currency and number style (US $ by default) for pop-ups, axes, KPI cards and summaries', run: needRt(function () { MS.locale.dialog(); }) }] },
       { name: 'Check', items: [
         { icon: '✅', label: 'Brand check', title: 'Find off-brand colours and fonts, low contrast, and charts missing commentary', run: need(MS.brand.check) }] }
     ] },

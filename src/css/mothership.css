@@ -479,3 +479,20 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
 .cmp-cap { font-size: 12px; margin-bottom: 4px; color: var(--text-2); }
 .cmp-frame { height: 58vh; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; position: relative; }
 .cmp-frame iframe { width: 200%; height: 200%; border: 0; transform: scale(.5); transform-origin: 0 0; }
+
+/* region and currency, publish check, publish */
+.loc-prev { margin: 10px 0 4px; padding: 9px 11px; border: 1px dashed var(--accent-line); border-radius: var(--radius); background: var(--accent-weak); font-variant-numeric: tabular-nums; }
+.pf-sum { margin: 0 0 10px; font-size: 14px; }
+.pf-list { display: flex; flex-direction: column; gap: 6px; max-height: 58vh; overflow: auto; }
+.pf-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); }
+.pf-ic { width: 18px; flex: none; text-align: center; }
+.pf-ic svg.ic { width: 16px; height: 16px; }
+.pf-pass .pf-ic { color: var(--ok); }
+.pf-warn { background: var(--warn-weak); } .pf-warn .pf-ic { color: var(--warn); }
+.pf-fail { background: var(--danger-weak); } .pf-fail .pf-ic { color: var(--danger); }
+.pf-info .pf-ic { color: var(--muted); }
+.pf-title { font-weight: 600; }
+.pf-detail { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.pf-fix { font-size: 12.5px; margin-top: 3px; }
+.pub-note { margin-top: 10px; padding: 9px 11px; border-radius: var(--radius); background: var(--warn-weak); font-size: 12.5px; line-height: 1.45; }
+.pub-pre { margin-bottom: 10px; padding: 8px 11px; border-radius: var(--radius); background: var(--accent-weak); font-size: 12.5px; }

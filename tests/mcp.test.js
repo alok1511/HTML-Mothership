@@ -93,6 +93,19 @@ const call = async (name, args) => {
   check('load_tracker reads it back', lt.json && lt.json.updated === 0 && lt.json.notFound === 0, lt.error || lt.json);
   const cf = ex.json ? await call('compare_file', { path: ex.json.saved }) : { error: 'no export' };
   check('compare_file: an export matches what is open', cf.json && cf.json.changes === 0, cf.error || cf.json);
+  const loc = await call('get_locale', {});
+  check('get_locale: US dollars by default', loc.json && loc.json.currency === 'USD', loc.error || loc.json);
+  const sl = await call('set_locale', { country: 'India' });
+  check('set_locale: India gives lakh and crore', sl.json && sl.json.currency === 'INR' && /₹/.test(sl.json.example), sl.error || sl.json);
+  const pc = await call('publish_check', {});
+  check('publish_check returns a checklist', pc.json && Array.isArray(pc.json.items) && pc.json.items.length >= 6, pc.error || pc.json);
+  const pb = await call('publish_html', { version: '2.0', note: 'From MCP', password: 'secret12' });
+  const pubHtml = pb.json && fs.existsSync(pb.json.saved) ? fs.readFileSync(pb.json.saved, 'utf8') : '';
+  check('publish_html saves a sealed, locked copy', pb.json && pb.json.version === '2.0' && pb.json.locked && pubHtml.indexOf(pb.json.sha256) > 0 && /v2\.0\.html$/.test(pb.json.saved), pb.error || pb.json);
+  const lockedOpen = pb.json ? await call('open_file', { path: pb.json.saved }) : { error: 'x' };
+  check('open_file: a locked file needs its password', !!lockedOpen.error && /locked/i.test(lockedOpen.error), lockedOpen);
+  const unlocked = pb.json ? await call('open_file', { path: pb.json.saved, password: 'secret12' }) : { error: 'x' };
+  check('open_file: the right password opens it, seal intact', unlocked.json && unlocked.json.published && unlocked.json.published.ok === true, unlocked.error || (unlocked.json && unlocked.json.published));
   const bad = await call('no_such_tool', {});
   check('unknown tool is an error, not a crash', !!bad.error, bad);
 

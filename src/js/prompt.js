@@ -104,9 +104,9 @@
     { re: /colou?r|palette|green|red|blue|amber|brand|theme|dark|light/i, id: 'colour', tool: 'category_colors / chart_settings.look / set_style', ui: 'Charts › Category colours, or the Format panel', done: 'the new colours show everywhere this item appears, with readable contrast' },
     { re: /font|bold|italic|size|bigger|smaller|text size|typeface/i, id: 'type', tool: 'set_style / chart_settings.look', ui: 'Home › Font, or Charts › Look', done: 'the text uses the requested font/size and still fits without overlapping' },
     { re: /order|sort|rank|first|last|sequence|arrange/i, id: 'order', tool: 'category_order', ui: 'Charts › Category order', done: 'the categories appear in the requested order on every chart that shows them' },
-    { re: /tool ?tip|pop-?up|hover/i, id: 'tooltip', tool: 'chart_settings.tooltip / tooltip_all / set_popup', ui: 'Charts › Tooltip', done: 'hovering shows the requested text in Indian number formats' },
+    { re: /tool ?tip|pop-?up|hover/i, id: 'tooltip', tool: 'chart_settings.tooltip / tooltip_all / set_popup', ui: 'Charts › Tooltip', done: 'hovering shows the requested text in the dashboard\'s number format' },
     { re: /drill|double.?click|break ?down|deeper|detail/i, id: 'drill', tool: 'link_chart_data / chart_settings.data / drill_data_file', ui: 'Charts › Drill-down', done: 'double-clicking goes to the requested level and the breadcrumb leads back up' },
-    { re: /₹|crore|lakh|\bcr\b|format|decimal|percent|%|comma|million|units?/i, id: 'number', tool: 'chart_settings.look.axisFormat / chart_settings.tooltip', ui: 'Charts › Look › Axis numbers', done: 'numbers read in the requested format (e.g. ₹1.23 Cr) on axes, labels and pop-ups' },
+    { re: /₹|\$|€|£|currency|dollar|crore|lakh|\bcr\b|format|decimal|percent|%|comma|million|units?/i, id: 'number', tool: 'chart_settings.look.axisFormat / chart_settings.tooltip', ui: 'Charts › Look › Axis numbers', done: 'numbers read in the requested format (e.g. $1.2M or ₹1.23 Cr) on axes, labels and pop-ups' },
     { re: /title|subtitle|heading|label|wording|rename|typo|spelling|text|say|insight|inference|so what/i, id: 'words', tool: 'set_text / chart_settings.title / replace_text', ui: 'double-click the text', done: 'the new wording appears exactly where the comment points' },
     { re: /filter|slicer|drop-?down|select/i, id: 'filter', tool: 'filter_pane / set_filter', ui: 'Layout › Filter pane', done: 'every chart and KPI card follows the filter' },
     { re: /legend|axis|grid ?line|scale|bar|line chart|pie|donut|doughnut|stack|chart type|switch to/i, id: 'chart', tool: 'chart_settings', ui: 'double-click the chart', done: 'the chart shows the requested form and the numbers are unchanged' },
@@ -250,7 +250,7 @@
       'Never invent numbers. If a comment needs data the file does not have, say so and leave a clearly marked placeholder.',
       assistant === 'mcp' ? 'Each comment names its tab, section and chart exactly as Mothership shows them. Pass those names to the tools (e.g. `chart: "Sales by region"`).'
         : 'Find each item by its location and the selector given (`[data-ms-id]` / `[data-ms-ref]`), then the fallback CSS path. Keep every `data-ms-*` attribute and the `<script id="ms-state">` and `<script id="ms-runtime">` blocks: Mothership needs them to reopen the file. Settings such as chart look, pop-up text and drill-down live in the `ms-state` JSON under `charts["<key>"]`; you may edit that JSON carefully.',
-      'Use Indian formats unless a comment says otherwise: ₹, lakh and crore (₹1,23,45,678 or ₹1.23 Cr), DD-MM-YYYY dates, April–March financial year.',
+      MS.locale.rule(),
       'Keep it readable and accessible: text at least 12 px, good contrast, and charts that still make sense without colour.'
     ];
     if (kinds.interaction) rules.push('For interaction comments, follow the steps to reproduce the behaviour first, then fix it so the expected behaviour happens.');

@@ -488,6 +488,23 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
 .cmp-frame { height: 58vh; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; position: relative; }
 .cmp-frame iframe { width: 200%; height: 200%; border: 0; transform: scale(.5); transform-origin: 0 0; }
 
+/* region and currency, publish check, publish */
+.loc-prev { margin: 10px 0 4px; padding: 9px 11px; border: 1px dashed var(--accent-line); border-radius: var(--radius); background: var(--accent-weak); font-variant-numeric: tabular-nums; }
+.pf-sum { margin: 0 0 10px; font-size: 14px; }
+.pf-list { display: flex; flex-direction: column; gap: 6px; max-height: 58vh; overflow: auto; }
+.pf-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); }
+.pf-ic { width: 18px; flex: none; text-align: center; }
+.pf-ic svg.ic { width: 16px; height: 16px; }
+.pf-pass .pf-ic { color: var(--ok); }
+.pf-warn { background: var(--warn-weak); } .pf-warn .pf-ic { color: var(--warn); }
+.pf-fail { background: var(--danger-weak); } .pf-fail .pf-ic { color: var(--danger); }
+.pf-info .pf-ic { color: var(--muted); }
+.pf-title { font-weight: 600; }
+.pf-detail { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.pf-fix { font-size: 12.5px; margin-top: 3px; }
+.pub-note { margin-top: 10px; padding: 9px 11px; border-radius: var(--radius); background: var(--warn-weak); font-size: 12.5px; line-height: 1.45; }
+.pub-pre { margin-bottom: 10px; padding: 8px 11px; border-radius: var(--radius); background: var(--accent-weak); font-size: 12.5px; }
+
 </style>
 </head>
 <body>
@@ -796,6 +813,8 @@ window.MS = window.MS || {};
     calc: ['M8 7h8 M8 11h.01 M12 11h.01 M16 11h.01 M8 15h.01 M12 15h.01 M16 15v3 M8 18h.01 M12 18h.01', '<rect x="5" y="3" width="14" height="18" rx="2"/>'],
     sheet: ['M4 9h16 M4 14h16 M10 9v11 M14 4l-3 3', '<rect x="4" y="4" width="16" height="16" rx="2"/>'],
     compare: 'M12 3v18 M5 7h4 M15 7h4 M3 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M17 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M8 21h8',
+    globe: ['M3 12h18 M12 3a14 14 0 0 1 0 18 M12 3a14 14 0 0 0 0 18', '<circle cx="12" cy="12" r="9"/>'],
+    send: 'M22 2L11 13 M22 2l-7 20-4-9-9-4z',
     captions: ['M7 11h4 M13 11h4 M7 15h7 M16 15h1', '<rect x="3" y="5" width="18" height="14" rx="2"/>'],
     tabs: 'M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M3 8V5a1 1 0 0 1 1-1h5l2 4 M11 8V5a1 1 0 0 1 1-1h4l2 4',
     panelTop: ['M3 9h18', '<rect x="3" y="3" width="18" height="18" rx="2"/>'],
@@ -877,7 +896,7 @@ window.MS = window.MS || {};
     '📱': 'phone', '🛡': 'shield', '🔒': 'lock', '－': 'minus', '＋': 'plus', '⤢': 'fit', '▶': 'play', '🧩': 'puzzle', '📜': 'scroll', '📖': 'book',
     '🧭': 'compass', '🎓': 'graduation', '❓': 'help', 'ℹ': 'info', '⌨': 'keyboard', '📍': 'pin', '📌': 'pushpin', '⚡': 'zap', '☝': 'pointer',
     '✕': 'close', '✓': 'check', '🔗': 'link', '🗒': 'note', '👁': 'eye', '⚠': 'warning', '―': 'divider', '1:1': 'ruler', '▥': 'columns', '◆': 'diamond',
-    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '−': 'minus', '+': 'plus'
+    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '🌍': 'globe', '🚀': 'send', '−': 'minus', '+': 'plus'
   };
   // symbols that are also ordinary characters: only swapped when they are the whole label
   var WHOLE_ONLY = { 'H': 1, '¶': 1, '≡': 1, '―': 1, '1:1': 1, '↕': 1, '⋯': 1, '－': 1, '＋': 1, '✓': 1, '✕': 1, '◆': 1, '⠿': 1, '▁': 1, '−': 1, '+': 1 };
@@ -1298,23 +1317,58 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var n = Number(v);
     if (isNaN(n)) return String(v);
     var IN = function (x, d) { return x.toLocaleString('en-IN', { maximumFractionDigits: d == null ? 2 : d, minimumFractionDigits: 0 }); };
+    var L = locale(), LN = function (x, d) { return nf(x, { maximumFractionDigits: d == null ? 2 : d, minimumFractionDigits: 0 }); };
     switch (spec) {
+      case 'cur': return nf(n, { style: 'currency', currency: L.currency, maximumFractionDigits: Math.abs(n) < 10 ? 2 : 0, minimumFractionDigits: 0 });
+      case 'cur2': return nf(n, { style: 'currency', currency: L.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      case 'short': return shortNum(n, false);
+      case 'curshort': return shortNum(n, true);
+      case 'num': return LN(n, 2);
       case 'inr': return '₹' + IN(n, 0);
       case 'inr2': return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       case 'cr': return '₹' + IN(n / 1e7, 2) + ' Cr';
       case 'lakh': case 'l': return '₹' + IN(n / 1e5, 2) + ' L';
-      case 'k': return IN(n / 1e3, 1) + 'K';
-      case 'm': case 'mn': return IN(n / 1e6, 2) + 'M';
-      case 'bn': return IN(n / 1e9, 2) + 'B';
-      case 'pct': return IN(n, 1) + '%';
-      case 'pct100': return IN(n * 100, 1) + '%';
-      case 'int': return IN(n, 0);
+      case 'k': return LN(n / 1e3, 1) + 'K';
+      case 'm': case 'mn': return LN(n / 1e6, 2) + 'M';
+      case 'bn': return LN(n / 1e9, 2) + 'B';
+      case 'pct': return LN(n, 1) + '%';
+      case 'pct100': return LN(n * 100, 1) + '%';
+      case 'int': return LN(n, 0);
       case 'usd': return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
       case 'raw': return String(n);
       default:
-        if (spec && /^0(\.0+)?$/.test(spec)) { var d = spec.indexOf('.') < 0 ? 0 : spec.length - 2; return n.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d }); }
-        return IN(n, 2);
+        if (spec && /^0(\.0+)?$/.test(spec)) { var d = spec.indexOf('.') < 0 ? 0 : spec.length - 2; return nf(n, { minimumFractionDigits: d, maximumFractionDigits: d }); }
+        return LN(n, 2);
     }
+  }
+  /* Region and currency: state.locale = { country, locale: 'en-US', currency: 'USD', units: 'intl' | 'indian' }.
+     US English and the US dollar unless the dashboard says otherwise. */
+  function locale() {
+    var x = (rt.state && rt.state.locale) || {}, lc = x.locale || 'en-US', cur = (x.currency || 'USD').toUpperCase();
+    return { country: x.country || (lc.split('-')[1] || 'US'), locale: lc, currency: cur, indian: x.units ? x.units === 'indian' : (/-IN$/.test(lc) || cur === 'INR') };
+  }
+  rt.locale = locale;
+  var NF = {};
+  function nf(x, o) {
+    var L = locale(), k = L.locale + JSON.stringify(o);
+    try { if (!NF[k]) NF[k] = new Intl.NumberFormat(L.locale, o); return NF[k].format(x); }
+    catch (e) { try { return new Intl.NumberFormat('en-US', o).format(x); } catch (e2) { return String(x); } }
+  }
+  function curSymbol() {
+    var L = locale();
+    try { var p = new Intl.NumberFormat(L.locale, { style: 'currency', currency: L.currency }).formatToParts(1).filter(function (q) { return q.type === 'currency'; })[0]; return p ? p.value : L.currency; } catch (e) { return L.currency; }
+  }
+  rt.curSymbol = curSymbol;
+  // 1.2M / $1.2M (or 1.2 Cr / ₹1.2 Cr with Indian units)
+  function shortNum(n, money) {
+    var L = locale(), a = Math.abs(n), d2 = { maximumFractionDigits: 2, minimumFractionDigits: 0 };
+    if (L.indian) {
+      var u = a >= 1e7 ? [1e7, ' Cr'] : a >= 1e5 ? [1e5, ' L'] : a >= 1e3 ? [1e3, 'K'] : [1, ''];
+      return (money ? curSymbol() : '') + nf(n / u[0], d2) + u[1];
+    }
+    var o = a >= 1e3 ? { notation: 'compact', compactDisplay: 'short', maximumSignificantDigits: 3 } : { maximumFractionDigits: a < 10 ? 2 : 0 };
+    if (money) { o.style = 'currency'; o.currency = L.currency; }
+    return nf(n, o);
   }
   function fmt(tpl, ctx) {
     return String(tpl).replace(/\{([\w.$ -]+?)(?::([\w.]+))?\}/g, function (m, k, spec) {
@@ -2032,15 +2086,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   function sumFmt(st, hint) {
     var f = st && st.axisFormat;
     if (f) return function (v) { return fmtNum(v, f); };
-    var money = /₹|rs\.?\b|inr|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
+    var money = /[₹$€£¥]|rs\.?\b|inr|usd|eur|gbp|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
     var pct = /%|percent|ratio|rate|share|margin %/i.test(hint);
     return function (v) {
       if (v == null) return '–';
-      var a = Math.abs(v), IN = function (x, d) { return x.toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: 0 }); };
-      if (pct && a <= 100) return IN(v, 1) + '%';
-      if (a >= 1e7) return (money ? '₹' : '') + IN(v / 1e7, 2) + (money ? ' Cr' : ' crore');
-      if (a >= 1e5) return (money ? '₹' : '') + IN(v / 1e5, 2) + (money ? ' L' : ' lakh');
-      return (money ? '₹' : '') + IN(v, a < 10 ? 2 : 0);
+      var a = Math.abs(v);
+      if (pct && a <= 100) return fmtNum(v, 'pct');
+      if (a >= 1e4) return fmtNum(v, money ? 'curshort' : 'short');
+      return money ? fmtNum(v, 'cur') : fmtNum(v, a < 10 ? 'num' : 'int');
     };
   }
   function pctOf(v, t) { return t ? Math.round(v / t * 100) + '%' : ''; }
@@ -2601,6 +2654,10 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     '.ms-kpi-value{font-size:26px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}',
     '.ms-kpi-note{font-size:12px;color:var(--ms-muted)}',
     '.ms-summary{font-size:12.5px;line-height:1.45;color:var(--ms-muted);margin:6px 2px 0}',
+    '#ms-badge{position:fixed;right:10px;bottom:10px;z-index:9990;background:rgba(255,255,255,.94);color:#334155;border:1px solid #e2e8f0;border-radius:8px;padding:5px 9px;font:12px/1.4 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;max-width:360px}',
+    '#ms-badge .ms-badge-log{display:none;margin-top:6px;border-top:1px solid #e2e8f0;padding-top:6px;max-height:220px;overflow:auto}#ms-badge.open .ms-badge-log{display:block}#ms-badge .ms-badge-log>div{margin-bottom:6px}',
+    '#ms-errbar{position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:9991;background:#fffbeb;color:#78350f;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;font:13px/1.4 system-ui,sans-serif;display:flex;gap:10px;align-items:center;max-width:90vw;box-shadow:0 4px 14px rgba(0,0,0,.1)}#ms-errbar button{border:0;background:none;cursor:pointer;color:inherit;font-size:14px}',
+    '@media print{#ms-badge,#ms-errbar{display:none}}',
     '.ms-kpi[data-ms-status=good]{border-top-color:#1a7f37}.ms-kpi[data-ms-status=warn]{border-top-color:#d4a106}.ms-kpi[data-ms-status=bad]{border-top-color:#c62828}',
     '.ms-kpi[data-ms-status] .ms-kpi-value::before{content:"";display:inline-block;width:.42em;height:.42em;border-radius:50%;margin-right:.3em;vertical-align:.18em}',
     '.ms-kpi[data-ms-status=good] .ms-kpi-value::before{background:#1a7f37}.ms-kpi[data-ms-status=warn] .ms-kpi-value::before{background:#d4a106}.ms-kpi[data-ms-status=bad] .ms-kpi-value::before{background:#c62828}',
@@ -2752,6 +2809,33 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   };
 
   /* ------------------------------------------------------------ refresh */
+  /* ------------------------------------------------------------ published files: version stamp, and a calm message if something fails */
+  function fmtDate(d) { try { return new Date(d).toLocaleDateString(locale().locale, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return String(d || ''); } }
+  function renderBadge() {
+    var P = rt.state.publish, b = D.getElementById('ms-badge');
+    if (EDITOR || !P || !P.version || P.badge === false) { if (b) b.remove(); return; }
+    if (!b) {
+      b = el('div', { id: 'ms-badge', role: 'note' });
+      b.addEventListener('click', function () { b.classList.toggle('open'); });
+      D.body.appendChild(b);
+    }
+    var bits = ['Version ' + P.version, 'Published ' + fmtDate(P.at)].concat(P.asOf ? ['Data as of ' + fmtDate(P.asOf)] : []);
+    b.innerHTML = '';
+    b.appendChild(el('div', { 'class': 'ms-badge-line', text: bits.join(' · ') }));
+    var log = el('div', { 'class': 'ms-badge-log' }, (P.log || []).slice().reverse().slice(0, 8).map(function (x) {
+      return el('div', {}, [el('b', { text: 'Version ' + x.version }), ' · ' + fmtDate(x.at) + (x.by ? ' · ' + x.by : ''), x.note ? el('div', { text: x.note }) : null]);
+    }));
+    b.appendChild(log);
+    b.title = 'Click for release notes';
+  }
+  var errShown = false;
+  if (!EDITOR) window.addEventListener('error', function (e) {
+    if (errShown || !D.body) return; errShown = true;
+    var bar = el('div', { id: 'ms-errbar', role: 'alert' }, [el('span', { text: 'Part of this dashboard didn\u2019t load' + (e && e.message ? ' (' + String(e.message).slice(0, 80) + ')' : '') + '. The rest works. If it persists, ask the owner for a fresh copy.' }),
+      el('button', { text: '\u2715', title: 'Hide', onclick: function () { bar.remove(); } })]);
+    D.body.appendChild(bar);
+  });
+
   rt.refresh = function (force) {
     ensureStyle('ms-base-css', BASE_CSS);
     ensureStyle('ms-theme-css', themeCss());
@@ -2770,6 +2854,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     renderNative();
     renderKpis();
     ensureStyle('ms-tip-css', tipCss());
+    renderBadge();
     bindTips();
     cloneCopies();
     rt.charts().forEach(function (c) { applyChart(c, force); });
@@ -2861,6 +2946,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- open */
   MS.openHtml = function (html, name, opts) {
     opts = opts || {};
+    // a published file locked for editing asks for its password first (see publish.js)
+    if (!opts.unlocked && MS.publish && MS.publish.isLocked(html)) {
+      return MS.publish.gate(html, name || 'dashboard.html', opts.password).then(function (ok) {
+        if (!ok) { if (opts.password != null) throw new Error('Wrong password: "' + (name || 'this file') + '" is locked for editing.'); return false; }
+        return MS.openHtml(html, name, Object.assign({}, opts, { unlocked: true }));
+      });
+    }
     MS.doc = { name: name || 'dashboard.html', source: html, folder: !!opts.folder };
     var probe = new DOMParser().parseFromString(html, 'text/html');
     var rel = opts.folder ? [] : relativeRefs(probe);
@@ -2875,6 +2967,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     MS.$('#doc-name').textContent = MS.doc.name;
     if (rel.length) MS.toast(rel.length + ' linked file(s) (e.g. ' + rel[0] + ') can\'t load from a single file. Use "Open folder" so Mothership can bundle them.', 'warn', 9000);
     MS.emit('doc-opened', MS.doc);
+    return Promise.resolve(true);
   };
 
   function mountFrame(html) {
@@ -2894,7 +2987,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   MS.reload = function (keepState) {
     if (!MS.doc) return;
     var html = MS.exportHtml({ keepEditor: false });
-    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder });
+    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder, unlocked: true });
   };
 
   MS.openFileObj = function (file) {
@@ -2912,7 +3005,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     try { return decodeURIComponent(new URL(rel.split('#')[0].split('?')[0], 'http://x/' + (dir ? dir + '/' : '')).pathname.slice(1)); } catch (e) { return null; }
   }
   var TEXT_EXT = /^(json|csv|tsv|txt|geojson|xml|md)$/;
-  MS.openFolder = function (files) {
+  MS.openFolder = function (files, opts) {
     var map = {};
     files.forEach(function (f) { map[f.webkitRelativePath || f.name] = f; });
     var htmls = Object.keys(map).filter(function (p) { return /\.html?$/i.test(p); });
@@ -2963,7 +3056,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
             doc.head.insertBefore(s, doc.head.firstChild);
           }
           if (missing.length) MS.toast('Could not find: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : ''), 'warn', 8000);
-          MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true });
+          MS.openHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML, main.split('/').pop(), { folder: true, password: opts && opts.password });
           MS.toast('Bundled ' + jobs.length + ' file(s) into the dashboard.', 'ok');
         });
       });
@@ -3007,6 +3100,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var rt = MS.rt();
     var state = rt ? rt.getState() : JSON.parse(JSON.stringify(MS.doc.state || {}));
     if (opts.dropComments) delete state.comments;
+    // only a published copy carries the seal (publish.js fills it in); working copies never do
+    if (opts.publish) state.publish = opts.publish;
+    else if (state.publish) delete state.publish.seal;
     var root = MS.child.doc.documentElement.cloneNode(true);
     MS.$$('[data-ms-editor]', root).forEach(function (n) { n.remove(); });
     MS.$$('.ms-sel,.ms-hover,.ms-editing,.ms-drop,.ms-dragging,.ms-flash,.ms-cmt-hover', root).forEach(function (n) { n.classList.remove('ms-sel', 'ms-hover', 'ms-editing', 'ms-drop', 'ms-dragging', 'ms-flash', 'ms-cmt-hover'); if (!n.className) n.removeAttribute('class'); });
@@ -4560,11 +4656,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   var PRESETS = [
     ['', '(chart default)'],
     ['{label}: {value}', 'Label: value'],
+    ['{series}\n{label}: {value:cur}', 'Series + currency'],
+    ['{label}\n{value:curshort}', 'Currency short ($1.2M)'],
     ['{series}\n{label}: {value:inr}', 'Series + ₹ value'],
     ['{label}\n{value:cr}', '₹ crore'],
     ['{label}\n{value:lakh}', '₹ lakh'],
     ['{label}: {value} ({pct:pct} of total)', 'Value + share %'],
-    ['{label}\nValue: {value:inr}\nRecords: {count}', 'Value + record count (bound charts)']
+    ['{label}\nValue: {value:cur}\nRecords: {count}', 'Value + record count (bound charts)']
   ];
 
   C.settings = function (key, startTab) {
@@ -4591,7 +4689,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var tipPane = MS.h('div', {}, [
       MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Start from' }), preset]),
       MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Tooltip template (new line = new line in the tooltip)' }), tplIn]), chips,
-      MS.h('small', { 'class': 'hint', html: 'Formats: <code>{value:inr}</code> ₹1,23,456 · <code>{value:cr}</code> ₹1.23 Cr · <code>{value:lakh}</code> · <code>{value:k}</code> · <code>{value:pct}</code> · <code>{value:0.0}</code> · <code>{value:usd}</code>' }),
+      MS.h('small', { 'class': 'hint', html: 'Formats (Design › Region & currency sets the currency): <code>{value:cur}</code> $1,234 · <code>{value:curshort}</code> $1.2M · <code>{value:short}</code> 1.2M · <code>{value:inr}</code> ₹1,23,456 · <code>{value:cr}</code> ₹1.23 Cr · <code>{value:lakh}</code> · <code>{value:k}</code> · <code>{value:pct}</code> · <code>{value:0.0}</code> · <code>{value:usd}</code>' }),
       MS.h('div', { 'class': 'field' }, [MS.h('span', { text: 'Preview' }), preview])
     ]);
 
@@ -4795,7 +4893,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var legend = MS.h('select', { 'class': 'inp' }, [['', '(chart default)'], ['top', 'Top'], ['bottom', 'Bottom'], ['right', 'Right'], ['left', 'Left'], ['none', 'Hidden']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.legend || '')) op.selected = true; return op; }));
     var tipSize = MS.h('input', { 'class': 'inp', type: 'number', min: 8, max: 32, placeholder: 'auto', value: style.tipSize || '' });
     var tipRadius = MS.h('input', { 'class': 'inp', type: 'number', min: 0, max: 24, placeholder: 'auto', value: style.tipRadius != null ? style.tipRadius : '' });
-    var axisFmt = MS.h('select', { 'class': 'inp', title: 'How numbers on the value axis are written (Chart.js and ECharts charts)' }, [['', '(chart default)'], ['int', '1,23,456'], ['inr', '₹1,23,456'], ['cr', '₹ crore'], ['lakh', '₹ lakh'], ['k', 'Thousands (K)'], ['m', 'Millions (M)'], ['pct', 'Percent (%)']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.axisFormat || '')) op.selected = true; return op; }));
+    var axisFmt = MS.h('select', { 'class': 'inp', title: 'How numbers on the value axis are written (Chart.js and ECharts charts)' }, [['', '(chart default)'], ['cur', 'Currency ($1,234)'], ['curshort', 'Currency short ($1.2M)'], ['short', 'Short (1.2M)'], ['int', 'Whole number'], ['inr', '₹1,23,456'], ['cr', '₹ crore'], ['lakh', '₹ lakh'], ['k', 'Thousands (K)'], ['m', 'Millions (M)'], ['pct', 'Percent (%)']].map(function (o) { var op = MS.h('option', { value: o[0], text: o[1] }); if (o[0] === (style.axisFormat || '')) op.selected = true; return op; }));
     var color = optColor(style.color, fire, compact), tipBg = optColor(style.tipBg, fire, compact), tipColor = optColor(style.tipColor, fire, compact), tipBorder = optColor(style.tipBorder, fire, compact);
     function val() {
       return clean({ font: font.value, size: size.value ? +size.value : '', color: color.value, legend: legend.value, axisFormat: axisFmt.value, tipBg: tipBg.value, tipColor: tipColor.value, tipBorder: tipBorder.value, tipSize: tipSize.value ? +tipSize.value : '', tipRadius: tipRadius.value === '' ? '' : +tipRadius.value });
@@ -4833,7 +4931,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   'use strict';
   var Cp = MS.compose = {};
 
-  function today() { return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function today() { return new Date().toLocaleDateString(MS.locale ? MS.locale.get().locale : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }); }
 
   // Turn an HTML string into owned (export-kept) nodes inside the child.
   function make(html) {
@@ -4927,7 +5025,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   /* ---------------------------------------------------------- KPI cards */
   var AGGS = [{ value: 'sum', label: 'Sum' }, { value: 'avg', label: 'Average' }, { value: 'count', label: 'Count rows' }, { value: 'distinct', label: 'Count distinct' }, { value: 'min', label: 'Minimum' }, { value: 'max', label: 'Maximum' }];
-  var FORMATS = [{ value: '', label: 'Number (1,23,456.78)' }, { value: 'inr', label: '₹ (₹1,23,457)' }, { value: 'cr', label: '₹ crore' }, { value: 'lakh', label: '₹ lakh' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
+  var FORMATS = [{ value: '', label: 'Number (region style)' }, { value: 'cur', label: 'Currency (region, e.g. $1,234)' }, { value: 'curshort', label: 'Currency short ($1.2M)' }, { value: 'short', label: 'Short (1.2M)' }, { value: 'inr', label: '₹ (₹1,23,457)' }, { value: 'cr', label: '₹ crore' }, { value: 'lakh', label: '₹ lakh' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
   function kpiCard(id, label, value, note) {
     var c = make('<div class="ms-kpi"><div class="ms-kpi-label"></div><div class="ms-kpi-value"></div><div class="ms-kpi-note"></div></div>');
     if (id) c.setAttribute('data-ms-kpi', id);
@@ -4953,7 +5051,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
           var fld = nums[i % (nums.length || 1)], id = rt.uid('k');
           specs[id] = fld ? { dataset: v.ds, measure: fld.name, agg: 'sum', format: '' } : { dataset: v.ds, agg: 'count', format: 'int' };
           row.appendChild(kpiCard(id, fld ? 'Total ' + fld.name : 'Records', '…', v.ds));
-        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), '₹0 Cr', 'vs last month'));
+        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), MS.rt() ? MS.rt().fmtNum(0, 'cur') : '$0', 'vs last month'));
       }
       MS.history.group('Insert KPI cards', function () {
         if (v.ds) MS.history.state('KPI settings', function (s) { Object.keys(specs).forEach(function (k) { s.kpis[k] = specs[k]; }); });
@@ -4982,7 +5080,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       { key: 'bad', label: 'Red (bad) at or beyond', type: 'number', value: st.bad != null ? st.bad : '' }
     ]);
     var body = MS.h('div', {}, [f, MS.h('h4', { 'class': 'rag-head', text: 'Status colours (red / amber / green)' }), rag,
-      MS.h('small', { 'class': 'hint', text: 'Use the raw numbers from the data, before ₹ crore or lakh formatting. In between is amber. The colour updates whenever filters change.' })]);
+      MS.h('small', { 'class': 'hint', text: 'Use the raw numbers from the data, before currency or K/M formatting. In between is amber. The colour updates whenever filters change.' })]);
     f.inputs.dataset.addEventListener('change', function () { f.inputs.measure.innerHTML = ''; fieldsOf(f.inputs.dataset.value).forEach(function (o) { f.inputs.measure.appendChild(MS.h('option', { value: o.value, text: o.label })); }); });
     MS.dialog({ title: 'KPI card', body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { var o = f.values(); o.rag = rag.values(); return o; } }] }).then(function (v) {
       if (!v) return;
@@ -5062,7 +5160,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 
   /* ---------------------------------------------------------- new dashboard */
   function blankHtml(title) {
-    return '<!DOCTYPE html>\n<html lang="en-IN">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + MS.esc(title) + '</title>\n' +
+    return '<!DOCTYPE html>\n<html lang="' + (MS.locale ? MS.locale.get().locale : 'en-US') + '">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + MS.esc(title) + '</title>\n' +
       '<style>\nbody{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:#1f2937;background:#f6f7fb}\n.page{padding:20px 24px;max-width:1400px;margin:0 auto}\n</style>\n</head>\n<body>\n<main class="page">\n' +
       '<header class="ms-banner"><h1>' + MS.esc(title) + '</h1><p>What this dashboard answers · Updated ' + today() + '</p></header>\n' +
       '<p>Start building from the <b>Insert</b> tab: sections, KPI cards, charts from your data, columns, callouts and a footer.</p>\n</main>\n</body>\n</html>\n';
@@ -5457,10 +5555,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   }
 
   /* ---------------------------------------------------------- documents */
-  A.open_html = { d: 'Open a dashboard from its HTML source.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'] },
-    f: function (a) { MS.openHtml(a.html, a.name || 'dashboard.html'); return settle(1800).then(function () { return A.outline.f({}); }); } };
-  A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true] },
-    f: function (a) { MS.openFolder(a.files.map(fileOf)); return settle(2500).then(function () { return A.outline.f({}); }); } };
+  A.open_html = { d: 'Open a dashboard from its HTML source. A published file locked for editing needs its password.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'], password: ['string', 'Password, for a published file locked for editing'] },
+    f: function (a) {
+      if (MS.publish.isLocked(a.html) && a.password == null) throw new Error('This file is locked for editing. Pass its password.');
+      return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password == null ? undefined : a.password }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
+    } };
+  A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true], password: ['string', 'Password, for a published file locked for editing'] },
+    f: function (a) { MS.openFolder(a.files.map(fileOf), { password: a.password }); return settle(2500).then(function () { return A.outline.f({}); }); } };
   A.new_dashboard = { d: 'Start a new dashboard from scratch.', p: { title: ['string', 'Dashboard name'], tabs: ['boolean', 'Start with Overview, How to use, FAQs and Methodology tabs (default true)'] },
     f: function (a) {
       MS.dirty = false; MS.compose.newDoc();
@@ -5561,7 +5662,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       MS.history.group('Insert KPI cards', function () { if (Object.keys(specs).length) MS.history.state('KPI settings', function (s) { Object.keys(specs).forEach(function (k) { s.kpis[k] = specs[k]; }); }); MS.compose.place(row, 'Insert KPI cards'); });
       return settle(150).then(function () { return { ref: refOf(row), cards: MS.$$('.ms-kpi', row).map(refOf), values: MS.$$('.ms-kpi-value', row).map(function (v) { return v.textContent; }) }; });
     } };
-  A.kpi_status = { d: 'Give a calculated KPI card red / amber / green status colours. Thresholds are raw data values (before ₹ crore formatting); between them is amber. better="" removes the colours.', p: { ref: ['string', 'KPI card ref (or its row: the first card is used)', true], better: ['string', 'high (higher is better) | low | "" to remove', true], good: ['number', 'Green at or beyond this'], bad: ['number', 'Red at or beyond this'] },
+  A.kpi_status = { d: 'Give a calculated KPI card red / amber / green status colours. Thresholds are raw data values (before currency or K/M formatting); between them is amber. better="" removes the colours.', p: { ref: ['string', 'KPI card ref (or its row: the first card is used)', true], better: ['string', 'high (higher is better) | low | "" to remove', true], good: ['number', 'Green at or beyond this'], bad: ['number', 'Red at or beyond this'] },
     f: function (a) {
       var el = elOf(a.ref), card = el.closest('[data-ms-kpi]') || el.querySelector('[data-ms-kpi]'); if (!card) throw new Error('That is not a calculated KPI card. Insert KPI cards from a dataset first.');
       var id = card.getAttribute('data-ms-kpi');
@@ -5573,6 +5674,19 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       var keys = a.chart ? [chartKey(a.chart)] : rt().charts().map(function (c) { return c.key; });
       if (a.show) MS.summaries.set(keys, a.show);
       return settle(200).then(function () { return MS.summaries.list().filter(function (x) { return keys.indexOf(x.key) >= 0; }).map(function (x) { return { chart: x.name, kind: x.kind, summary: x.summary, shown: x.show }; }); });
+    } };
+  A.get_locale = { d: 'The region and currency Mothership uses to write numbers (US dollars unless changed), with examples.', p: {},
+    f: function () { var o = MS.locale.get(); return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); } };
+  A.set_locale = { d: 'Set the country, currency and number style for pop-ups, axes, KPI cards and summaries that use the currency or short formats. Give a country (US, India, Germany…) and optionally a different currency.', p: { country: ['string', 'Country name or 2-letter code, e.g. US, IN, GB, DE'], currency: ['string', '3-letter currency code, e.g. USD, INR, EUR (default: the country\'s)'], locale: ['string', 'Number style, e.g. en-US, en-IN, de-DE (default: the country\'s)'], units: ['string', 'intl (K, M, B) | indian (lakh, crore)'] },
+    f: function (a) { var o = MS.locale.set(a); return settle(400).then(function () { return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); }); } };
+  A.publish_check = { d: 'Ready to publish? Checks script errors, charts with no numbers, untitled charts, KPI totals, open comments, internet files, size and title. fail = fix first, warn = look at it.', p: {},
+    f: function () { var items = MS.preflight.run(); return { ready: !items.some(function (x) { return x.status === 'fail'; }), items: items }; } };
+  A.publish = { d: 'Make a view-only published copy: version number, date, release note and corner badge; optionally locked for editing with a password; sealed so Mothership warns if it is changed later. Returns the HTML (the MCP publish_html tool saves it).', p: { version: ['string', 'e.g. 1.0 (default: next after the last publish)'], note: ['string', 'What changed'], by: ['string', 'Published by'], as_of: ['string', 'Data as of (YYYY-MM-DD)'], password: ['string', 'Lock editing in Mothership with this password (6+ characters). Without one, an earlier lock is kept'], unlock: ['boolean', 'Remove an earlier lock'], badge: ['boolean', 'Show the version badge (default true)'], keep_comments: ['boolean', 'Keep review comments in the file'] },
+    f: function (a) {
+      if (a.password && String(a.password).length < 6) throw new Error('Use a password of at least 6 characters.');
+      return MS.publish.build({ version: a.version, note: a.note, by: a.by, asOf: a.as_of, password: a.password, keepLock: !a.unlock, badge: a.badge, keepComments: !!a.keep_comments }).then(function (r) {
+        return { html: r.html, name: r.name, bytes: r.html.length, version: r.publish.version, locked: !!r.publish.lock, sha256: r.sha256 };
+      });
     } };
   A.number_check = { d: 'Check that KPI cards match the totals of the charts that show the same measure, and that charts of the same measure add up alike. Returns differences first.', p: { add_comments: ['boolean', 'Add a review comment for each difference'] },
     f: function (a) {
@@ -5653,8 +5767,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- charts */
   A.chart_settings = { d: 'Change a chart: commentary (title/subtitle/inference), pop-up text template, look (fonts, legend, pop-up colours, axis number format), linked data and drill-down.', p: {
       chart: ['string', 'Chart name or key', true], title: ['string', 'Title above the chart'], subtitle: ['string', 'Subtitle'], inference: ['string', 'The "so what" line'],
-      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:cr}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :inr :cr :lakh :k :m :pct :int'],
-      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: inr|cr|lakh|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
+      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:cr}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :cur :curshort :short (follow set_locale) :inr :cr :lakh :k :m :pct :int'],
+      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: cur|curshort|short|inr|cr|lakh|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
       data: ['object', '{dataset, levels:[col,...], measure, agg, series, sort, top} (null = unlink)'], double_click: ['string', 'levels | details | crossfilter | none'], columns: ['array', 'Columns in the records view'] },
     f: function (a) {
       var r = rt(), key = chartKey(a.chart), c = r.chart(key);
@@ -6399,11 +6513,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- the comment dialog */
   function editor(c, extra) {
     var f = MS.form([
-      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in ₹ crore, and add last year for comparison.' },
+      { key: 'text', label: 'Your comment', type: 'textarea', rows: 4, value: c.text || '', placeholder: 'e.g. Show values in millions, and add last year for comparison.' },
       { key: 'type', label: 'Type', type: 'select', options: TYPES, value: c.type || 'change' },
       { key: 'prio', label: 'Priority', type: 'select', options: PRIOS, value: c.prio || 'should' }
     ]);
-    f.inputs.text.placeholder = 'e.g. Show values in ₹ crore, and add last year for comparison.';
+    f.inputs.text.placeholder = 'e.g. Show values in millions, and add last year for comparison.';
     var labels = f.querySelectorAll(':scope > label');
     f.appendChild(h('div', { 'class': 'row gap' }, [labels[1], labels[2]]));
     return { el: h('div', { 'class': 'cmt-ed' }, [extra, f]), f: f };
@@ -6601,7 +6715,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     L.push('2. Do not invent data. If a comment needs data the file does not have, say so and leave a clearly marked placeholder.');
     L.push('3. The file was saved by an editor called Mothership. Keep every `data-ms-*` attribute, the `<script id="ms-state" type="application/json">` block and the `<script id="ms-runtime">` block. If a change needs a setting stored in `ms-state` (tooltips, chart look, drill-down), you may edit that JSON carefully.');
     L.push('4. Each comment says where it is: a description, a selector you can search for (`[data-ms-id="…"]` or `[data-ms-ref="…"]`), and a fallback CSS path.');
-    L.push('5. Formats follow India: ₹, lakh and crore (e.g. ₹1,23,45,678 or ₹1.23 Cr), DD-MM-YYYY dates, and the April–March financial year, unless a comment says otherwise.');
+    L.push('5. ' + MS.locale.rule());
     L.push('6. Keep it accessible: readable contrast, text at least 12px, and charts that still make sense without colour.');
     if (o.extra) L.push('7. ' + o.extra.trim());
     L.push('');
@@ -6782,9 +6896,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     { re: /colou?r|palette|green|red|blue|amber|brand|theme|dark|light/i, id: 'colour', tool: 'category_colors / chart_settings.look / set_style', ui: 'Charts › Category colours, or the Format panel', done: 'the new colours show everywhere this item appears, with readable contrast' },
     { re: /font|bold|italic|size|bigger|smaller|text size|typeface/i, id: 'type', tool: 'set_style / chart_settings.look', ui: 'Home › Font, or Charts › Look', done: 'the text uses the requested font/size and still fits without overlapping' },
     { re: /order|sort|rank|first|last|sequence|arrange/i, id: 'order', tool: 'category_order', ui: 'Charts › Category order', done: 'the categories appear in the requested order on every chart that shows them' },
-    { re: /tool ?tip|pop-?up|hover/i, id: 'tooltip', tool: 'chart_settings.tooltip / tooltip_all / set_popup', ui: 'Charts › Tooltip', done: 'hovering shows the requested text in Indian number formats' },
+    { re: /tool ?tip|pop-?up|hover/i, id: 'tooltip', tool: 'chart_settings.tooltip / tooltip_all / set_popup', ui: 'Charts › Tooltip', done: 'hovering shows the requested text in the dashboard\'s number format' },
     { re: /drill|double.?click|break ?down|deeper|detail/i, id: 'drill', tool: 'link_chart_data / chart_settings.data / drill_data_file', ui: 'Charts › Drill-down', done: 'double-clicking goes to the requested level and the breadcrumb leads back up' },
-    { re: /₹|crore|lakh|\bcr\b|format|decimal|percent|%|comma|million|units?/i, id: 'number', tool: 'chart_settings.look.axisFormat / chart_settings.tooltip', ui: 'Charts › Look › Axis numbers', done: 'numbers read in the requested format (e.g. ₹1.23 Cr) on axes, labels and pop-ups' },
+    { re: /₹|\$|€|£|currency|dollar|crore|lakh|\bcr\b|format|decimal|percent|%|comma|million|units?/i, id: 'number', tool: 'chart_settings.look.axisFormat / chart_settings.tooltip', ui: 'Charts › Look › Axis numbers', done: 'numbers read in the requested format (e.g. $1.2M or ₹1.23 Cr) on axes, labels and pop-ups' },
     { re: /title|subtitle|heading|label|wording|rename|typo|spelling|text|say|insight|inference|so what/i, id: 'words', tool: 'set_text / chart_settings.title / replace_text', ui: 'double-click the text', done: 'the new wording appears exactly where the comment points' },
     { re: /filter|slicer|drop-?down|select/i, id: 'filter', tool: 'filter_pane / set_filter', ui: 'Layout › Filter pane', done: 'every chart and KPI card follows the filter' },
     { re: /legend|axis|grid ?line|scale|bar|line chart|pie|donut|doughnut|stack|chart type|switch to/i, id: 'chart', tool: 'chart_settings', ui: 'double-click the chart', done: 'the chart shows the requested form and the numbers are unchanged' },
@@ -6928,7 +7042,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       'Never invent numbers. If a comment needs data the file does not have, say so and leave a clearly marked placeholder.',
       assistant === 'mcp' ? 'Each comment names its tab, section and chart exactly as Mothership shows them. Pass those names to the tools (e.g. `chart: "Sales by region"`).'
         : 'Find each item by its location and the selector given (`[data-ms-id]` / `[data-ms-ref]`), then the fallback CSS path. Keep every `data-ms-*` attribute and the `<script id="ms-state">` and `<script id="ms-runtime">` blocks: Mothership needs them to reopen the file. Settings such as chart look, pop-up text and drill-down live in the `ms-state` JSON under `charts["<key>"]`; you may edit that JSON carefully.',
-      'Use Indian formats unless a comment says otherwise: ₹, lakh and crore (₹1,23,45,678 or ₹1.23 Cr), DD-MM-YYYY dates, April–March financial year.',
+      MS.locale.rule(),
       'Keep it readable and accessible: text at least 12 px, good contrast, and charts that still make sense without colour.'
     ];
     if (kinds.interaction) rules.push('For interaction comments, follow the steps to reproduce the behaviour first, then fix it so the expected behaviour happens.');
@@ -7106,7 +7220,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     fallback();
     function fallback() { var t = h('textarea', { style: 'position:fixed;left:-9999px' }); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { MS.toast('Select the text and press Ctrl+C.', 'warn'); } t.remove(); }
   }
-  var IN = function (x, d) { return Number(x).toLocaleString('en-IN', { maximumFractionDigits: d == null ? 2 : d }); };
+  var IN = function (x, d) { return Number(x).toLocaleString(MS.locale.get().locale, { maximumFractionDigits: d == null ? 2 : d }); };
 
   /* ================================================================ chart summaries */
   var S = MS.summaries = {};
@@ -7158,9 +7272,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   // "₹1.25 Cr" -> { v: 12500000, tol: 50000, pct: false }
   N.parse = function (text) {
     var t = String(text || '').replace(/ /g, ' ').trim();
-    var m = t.replace(/,/g, '').match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|k\b|mn\b|m\b|bn\b|b\b|%)?/i);
+    // regions that write 1.234,5 (Germany, France…): swap to 1234.5 first
+    var dot = (1.5).toLocaleString(MS.locale.get().locale).indexOf(',') >= 0;
+    var plain = dot ? t.replace(/[.\s\u202f]/g, '').replace(/,/g, '.') : t.replace(/,/g, '');
+    var m = plain.match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|thousand|k\b|millions?|mn\b|m\b|billions?|bn\b|b\b|%)?/i);
     if (!m) return null;
     var num = parseFloat(m[1]), unit = (m[2] || '').toLowerCase(), dec = (m[1].split('.')[1] || '').length;
+    if (/^million/.test(unit)) unit = 'm'; else if (/^billion/.test(unit)) unit = 'bn'; else if (unit === 'thousand') unit = 'k';
     var scale = /^cr/.test(unit) ? 1e7 : /^(lakh|lac|l$)/.test(unit) ? 1e5 : unit === 'k' ? 1e3 : /^(m|mn)$/.test(unit) ? 1e6 : /^(bn|b)$/.test(unit) ? 1e9 : 1;
     return { v: num * scale, tol: 0.5 * Math.pow(10, -dec) * scale, pct: unit === '%', unit: unit, text: t };
   };
@@ -7186,9 +7304,15 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (/^(lakh|lac|l$)/.test(s)) return '₹' + IN(v / 1e5) + ' L';
     if (s === 'k') return IN(v / 1e3, 1) + 'K';
     if (/^(m|mn)$/.test(s)) return IN(v / 1e6) + 'M';
-    return (/₹/.test(p.text) ? '₹' : '') + IN(v, 2);
+    if (/^(bn|b)$/.test(s)) return IN(v / 1e9) + 'B';
+    var sym = (p.text.match(/[₹$€£¥]/) || [''])[0];
+    return sym + IN(v, 2);
   }
-  function big(v) { var a = Math.abs(v); return a >= 1e7 ? IN(v / 1e7) + ' crore' : a >= 1e5 ? IN(v / 1e5) + ' lakh' : IN(v); }
+  function big(v) {
+    var a = Math.abs(v);
+    if (MS.locale.get().units === 'indian') return a >= 1e7 ? IN(v / 1e7) + ' crore' : a >= 1e5 ? IN(v / 1e5) + ' lakh' : IN(v);
+    return a >= 1e9 ? IN(v / 1e9) + ' billion' : a >= 1e6 ? IN(v / 1e6) + ' million' : IN(v);
+  }
   function seriesOf(r, key) {
     var d = r.chartData(key, true); if (!d) return [];
     return d.series.map(function (s) {
@@ -7505,6 +7629,273 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 })(window.MS);
 
 </script>
+<script>/* src/js/publish.js */
+/* Region and currency, the "Ready to publish?" check, and publishing a view-only, versioned file
+   (optional password lock for Mothership editing, and a tamper check when it is reopened). */
+(function (MS) {
+  'use strict';
+  var h = MS.h;
+  function rt() { return MS.rt(); }
+
+  /* ================================================================ region and currency */
+  var COUNTRIES = [
+    ['US', 'United States', 'en-US', 'USD'], ['IN', 'India', 'en-IN', 'INR'], ['GB', 'United Kingdom', 'en-GB', 'GBP'], ['CA', 'Canada', 'en-CA', 'CAD'],
+    ['AU', 'Australia', 'en-AU', 'AUD'], ['NZ', 'New Zealand', 'en-NZ', 'NZD'], ['IE', 'Ireland', 'en-IE', 'EUR'], ['DE', 'Germany', 'de-DE', 'EUR'],
+    ['FR', 'France', 'fr-FR', 'EUR'], ['ES', 'Spain', 'es-ES', 'EUR'], ['IT', 'Italy', 'it-IT', 'EUR'], ['NL', 'Netherlands', 'nl-NL', 'EUR'],
+    ['BE', 'Belgium', 'nl-BE', 'EUR'], ['PT', 'Portugal', 'pt-PT', 'EUR'], ['AT', 'Austria', 'de-AT', 'EUR'], ['CH', 'Switzerland', 'de-CH', 'CHF'],
+    ['SE', 'Sweden', 'sv-SE', 'SEK'], ['NO', 'Norway', 'nb-NO', 'NOK'], ['DK', 'Denmark', 'da-DK', 'DKK'], ['FI', 'Finland', 'fi-FI', 'EUR'],
+    ['PL', 'Poland', 'pl-PL', 'PLN'], ['CZ', 'Czechia', 'cs-CZ', 'CZK'], ['TR', 'Türkiye', 'tr-TR', 'TRY'], ['AE', 'United Arab Emirates', 'en-AE', 'AED'],
+    ['SA', 'Saudi Arabia', 'en-SA', 'SAR'], ['QA', 'Qatar', 'en-QA', 'QAR'], ['IL', 'Israel', 'en-IL', 'ILS'], ['EG', 'Egypt', 'en-EG', 'EGP'],
+    ['ZA', 'South Africa', 'en-ZA', 'ZAR'], ['NG', 'Nigeria', 'en-NG', 'NGN'], ['KE', 'Kenya', 'en-KE', 'KES'], ['SG', 'Singapore', 'en-SG', 'SGD'],
+    ['HK', 'Hong Kong', 'en-HK', 'HKD'], ['MY', 'Malaysia', 'en-MY', 'MYR'], ['ID', 'Indonesia', 'id-ID', 'IDR'], ['TH', 'Thailand', 'th-TH', 'THB'],
+    ['PH', 'Philippines', 'en-PH', 'PHP'], ['VN', 'Vietnam', 'vi-VN', 'VND'], ['JP', 'Japan', 'ja-JP', 'JPY'], ['KR', 'South Korea', 'ko-KR', 'KRW'],
+    ['CN', 'China', 'zh-CN', 'CNY'], ['TW', 'Taiwan', 'zh-TW', 'TWD'], ['PK', 'Pakistan', 'en-PK', 'PKR'], ['BD', 'Bangladesh', 'en-BD', 'BDT'],
+    ['LK', 'Sri Lanka', 'en-LK', 'LKR'], ['NP', 'Nepal', 'en-NP', 'NPR'], ['BR', 'Brazil', 'pt-BR', 'BRL'], ['MX', 'Mexico', 'es-MX', 'MXN'],
+    ['AR', 'Argentina', 'es-AR', 'ARS'], ['CL', 'Chile', 'es-CL', 'CLP'], ['CO', 'Colombia', 'es-CO', 'COP'], ['PE', 'Peru', 'es-PE', 'PEN']
+  ];
+  var Lc = MS.locale = { COUNTRIES: COUNTRIES, DEFAULT: { country: 'US', locale: 'en-US', currency: 'USD', units: 'intl' } };
+  Lc.get = function () { var r = rt(), s = r && r.state.locale; return Object.assign({}, Lc.DEFAULT, s || {}); };
+  Lc.currencies = function () {
+    var list = [];
+    try { list = Intl.supportedValuesOf('currency'); } catch (e) {}
+    if (!list.length) list = COUNTRIES.map(function (c) { return c[3]; }).filter(function (c, i, a) { return a.indexOf(c) === i; }).sort();
+    var dn = null; try { dn = new Intl.DisplayNames(['en'], { type: 'currency' }); } catch (e) {}
+    return list.map(function (c) { return { value: c, label: c + (dn ? ' · ' + dn.of(c) : '') }; });
+  };
+  Lc.sample = function (o) {
+    var r = rt(); if (!r) return '';
+    var keep = r.state.locale; r.state.locale = o;
+    try { return [r.fmtNum(1234567.89, 'cur'), r.fmtNum(98765432, 'curshort'), r.fmtNum(1234567.891, 'num'), r.fmtNum(12.5, 'pct')].join('  ·  '); } finally { if (keep === undefined) delete r.state.locale; else r.state.locale = keep; }
+  };
+  // set({country}) fills locale and currency from the country; currency/locale/units can be given too
+  Lc.set = function (o) {
+    var c = o.country && COUNTRIES.filter(function (x) { return x[0] === String(o.country).toUpperCase() || x[1].toLowerCase() === String(o.country).toLowerCase(); })[0];
+    var cur = Lc.get(), next = { country: c ? c[0] : (o.country || cur.country), locale: o.locale || (c ? c[2] : cur.locale), currency: String(o.currency || (c ? c[3] : cur.currency)).toUpperCase() };
+    next.units = o.units || (next.currency === 'INR' || /-IN$/.test(next.locale) ? 'indian' : 'intl');
+    try { new Intl.NumberFormat(next.locale, { style: 'currency', currency: next.currency }); } catch (e) { throw new Error('Unknown currency or region: ' + next.currency + ' / ' + next.locale); }
+    MS.history.state('Region and currency', function (s) { s.locale = next; });
+    MS.emit('locale', next);
+    return next;
+  };
+  Lc.describe = function (o) {
+    o = o || Lc.get();
+    var c = COUNTRIES.filter(function (x) { return x[0] === o.country; })[0], dn = null;
+    try { dn = new Intl.DisplayNames(['en'], { type: 'currency' }).of(o.currency); } catch (e) {}
+    return (c ? c[1] : o.locale) + ', ' + (dn || o.currency) + (o.units === 'indian' ? ' (lakh and crore)' : '');
+  };
+  Lc.dialog = function () {
+    if (!rt()) return MS.toast('Open a dashboard first.', 'warn');
+    var cur = Lc.get();
+    var f = MS.form([
+      { key: 'country', label: 'Country or region (number style)', type: 'select', options: COUNTRIES.map(function (c) { return { value: c[0], label: c[1] }; }), value: cur.country },
+      { key: 'currency', label: 'Currency', type: 'select', options: Lc.currencies(), value: cur.currency },
+      { key: 'units', label: 'Big numbers', type: 'select', options: [{ value: 'intl', label: 'Thousand, million, billion (K, M, B)' }, { value: 'indian', label: 'Lakh and crore (L, Cr)' }], value: cur.units || 'intl' }
+    ]);
+    var prev = h('div', { 'class': 'loc-prev' });
+    var draw = function () { var c = COUNTRIES.filter(function (x) { return x[0] === f.inputs.country.value; })[0]; prev.textContent = 'Looks like: ' + Lc.sample({ country: f.inputs.country.value, locale: c ? c[2] : 'en-US', currency: f.inputs.currency.value, units: f.inputs.units.value }); };
+    f.inputs.country.addEventListener('change', function () { var c = COUNTRIES.filter(function (x) { return x[0] === f.inputs.country.value; })[0]; if (c) { f.inputs.currency.value = c[3]; f.inputs.units.value = c[3] === 'INR' ? 'indian' : 'intl'; } draw(); });
+    f.inputs.currency.addEventListener('change', draw); f.inputs.units.addEventListener('change', draw);
+    draw();
+    MS.dialog({ title: 'Region and currency', body: h('div', {}, [f, prev, h('p', { 'class': 'hint', html: 'Used wherever Mothership writes numbers: pop-ups and axes set to <b>Currency</b> or <b>Short</b>, KPI cards, chart summaries and the number check. Numbers the dashboard\'s own script writes are not changed. Formats you chose by name (₹ crore, $) stay as they are.' })]),
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
+      if (!v) return;
+      var c = COUNTRIES.filter(function (x) { return x[0] === v.country; })[0];
+      try { var n = Lc.set({ country: v.country, locale: c && c[2], currency: v.currency, units: v.units }); MS.toast('Numbers now follow ' + Lc.describe(n) + '.', 'ok'); } catch (e) { MS.toast(e.message, 'error'); }
+    });
+  };
+  // one line for AI prompts: which number style to use
+  Lc.rule = function () {
+    var o = Lc.get(), r = rt(), ex = r ? r.fmtNum(12345678, 'cur') + ' or ' + r.fmtNum(12345678, 'curshort') : '';
+    return 'Use ' + Lc.describe(o) + ' number formats unless a comment says otherwise' + (ex ? ' (e.g. ' + ex + ')' : '') + (o.units === 'indian' ? ', DD-MM-YYYY dates and the April–March financial year.' : ', with dates written the ' + (o.country === 'US' ? 'US way (MM/DD/YYYY)' : 'local way') + '.') + ' Keep amounts the dashboard already labels in another currency as they are.';
+  };
+  // A dashboard that clearly shows another currency (but has no setting yet) gets a nudge, not a silent change.
+  MS.on('child-loaded', function () {
+    setTimeout(function () {
+      var r = rt(); if (!r || r.state.locale || !MS.child) return;
+      var t = (MS.child.doc.body && MS.child.doc.body.textContent || '').slice(0, 200000);
+      var hits = { INR: (t.match(/₹|\bcrores?\b|\blakhs?\b|\bRs\.?\s?\d/gi) || []).length, EUR: (t.match(/€/g) || []).length, GBP: (t.match(/£/g) || []).length };
+      var best = Object.keys(hits).sort(function (a, b) { return hits[b] - hits[a]; })[0];
+      if (hits[best] >= 3) MS.status('This dashboard shows ' + { INR: '₹ (India)', EUR: '€', GBP: '£' }[best] + ' amounts. Mothership writes numbers in US $ until you change Design › Region & currency.');
+    }, 1500);
+  });
+
+  /* ================================================================ crypto helpers */
+  function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+  function sha256(text) {
+    if (!window.crypto || !crypto.subtle) return Promise.reject(new Error('This browser can\'t do the security check.'));
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(hex);
+  }
+  function pbkdf2(password, salt, iter) {
+    return crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
+      .then(function (k) { return crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(salt), iterations: iter, hash: 'SHA-256' }, k, 256); }).then(hex);
+  }
+  var ZERO = new Array(65).join('0');
+  function stateOf(html) {
+    var m = /<script[^>]*id="ms-state"[^>]*>([\s\S]*?)<\/script>/i.exec(html || '');
+    if (!m) return null;
+    try { return JSON.parse(m[1].replace(/<\\\/script/gi, '<\/script')); } catch (e) { try { return JSON.parse(new DOMParser().parseFromString('<x>' + m[1] + '</x>', 'text/html').body.textContent); } catch (e2) { return null; } }
+  }
+
+  /* ================================================================ ready to publish? */
+  var Pf = MS.preflight = {};
+  MS.childErrors = [];
+  MS.on('child-loaded', function (c) {
+    MS.childErrors = [];
+    try { c.win.addEventListener('error', function (e) { MS.childErrors.push(String(e.message || 'Script error') + (e.filename ? ' (' + String(e.filename).split('/').pop() + (e.lineno ? ':' + e.lineno : '') + ')' : '')); }); } catch (e) {}
+  });
+  Pf.run = function () {
+    var r = rt(), d = MS.child.doc, out = [];
+    var add = function (status, title, detail, fix) { out.push({ status: status, title: title, detail: detail || '', fix: fix || '' }); };
+    // script errors
+    if (MS.childErrors.length) add('fail', 'The dashboard had script errors', MS.childErrors.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
+    else add('pass', 'No script errors');
+    // charts that drew nothing
+    var charts = r ? r.charts() : [], empty = charts.filter(function (c) { var x = r.chartData(c.key, true); return !x || !x.labels.length || !x.series.some(function (s) { return s.values.some(function (v) { return v != null; }); }); });
+    var bare = MS.$$('canvas', d).filter(function (cv) { return !charts.some(function (c) { return c.el === cv || c.el.contains(cv); }) && !cv.closest('[data-ms-editor]') && cv.width > 50; });
+    if (empty.length || bare.length) add('warn', (empty.length + bare.length) + ' chart(s) show no numbers', empty.map(function (c) { return MS.charts.nameOf(c.key); }).concat(bare.length ? [bare.length + ' blank drawing area(s)'] : []).join(', '), 'Check the data, or open the folder so the chart\'s files are bundled.');
+    else add('pass', charts.length + ' chart(s) drew their numbers');
+    var unnamed = charts.filter(function (c) { return /^Chart \d+$/.test(MS.charts.nameOf(c.key)); });
+    if (unnamed.length) add('warn', unnamed.length + ' chart(s) have no title', 'Viewers and summaries call them “' + MS.charts.nameOf(unnamed[0].key) + '”.', 'Double-click the chart › Commentary & size › Title.');
+    // numbers
+    try {
+      var nc = MS.numcheck.run(), diffs = nc.filter(function (x) { return x.status === 'diff'; });
+      if (diffs.length) add('warn', diffs.length + ' number(s) don\'t add up', diffs.slice(0, 2).map(function (x) { return x.what + ' ' + x.shown + ' vs ' + x.against + ' ' + x.expected; }).join('; '), 'Review › Number check.');
+      else add('pass', 'KPI cards match their charts', nc.filter(function (x) { return x.status === 'ok'; }).length + ' check(s)');
+    } catch (e) {}
+    // comments
+    var cm = MS.review ? MS.review.list() : [], must = cm.filter(function (c) { return !c.done && c.prio === 'must'; }), open = cm.filter(function (c) { return !c.done; });
+    if (must.length) add('fail', must.length + ' must-fix comment(s) still open', must.slice(0, 2).map(function (c) { return '“' + c.text.slice(0, 60) + '”'; }).join('; '), 'Fix them, or mark them done in the Review tab.');
+    else if (open.length) add('warn', open.length + ' review comment(s) still open', 'None are must-fix.', 'Publishing leaves comments out of the file.');
+    else add('pass', 'No open review comments');
+    // internet
+    var html = MS.exportHtml({ dropComments: true });
+    var net = [], re = /<(?:script|link|img|iframe|source)\b[^>]*?(?:src|href)\s*=\s*["'](https?:)?\/\/([^\/"']+)/gi, m;
+    while ((m = re.exec(html))) if (net.indexOf(m[2]) < 0) net.push(m[2]);
+    if (net.length) add('warn', 'Needs the internet for ' + net.length + ' file(s)', net.slice(0, 4).join(', '), 'On a locked-down laptop these may not load. Use File › Open folder with local copies.');
+    else add('pass', 'Works offline (no internet files)');
+    // size
+    var mb = html.length / 1048576;
+    if (mb > 20) add('warn', 'Large file: ' + mb.toFixed(1) + ' MB', 'Email often stops at 10–25 MB.', 'Share through OneDrive, SharePoint or Teams, or remove unused datasets (Data › Manage).');
+    else add('pass', 'File size ' + (mb < 1 ? Math.round(html.length / 1024) + ' KB' : mb.toFixed(1) + ' MB'));
+    // number style and titles
+    add('info', 'Numbers follow ' + MS.locale.describe(), '', 'Design › Region & currency to change.');
+    if (!(d.title || '').trim()) add('warn', 'The page has no title', 'Browser tabs will show the file name.', 'Add a header (Insert › Header) or set the file name.');
+    var P = r && r.state.publish;
+    add('info', P && P.version ? 'Last published: version ' + P.version + ' on ' + new Date(P.at).toLocaleDateString() : 'Not published before');
+    return out;
+  };
+  var ICON = { pass: '✅', warn: '⚠', fail: '✕', info: 'ℹ' };
+  function checklist(items) {
+    return h('div', { 'class': 'pf-list' }, items.map(function (x) {
+      return h('div', { 'class': 'pf-item pf-' + x.status }, [h('span', { 'class': 'pf-ic', text: ICON[x.status] }), h('div', { 'class': 'grow' }, [h('div', { 'class': 'pf-title', text: x.title })].concat(x.detail ? [h('div', { 'class': 'pf-detail', text: x.detail })] : []).concat(x.fix && x.status !== 'pass' ? [h('div', { 'class': 'pf-fix', text: x.fix })] : []))]);
+    }));
+  }
+  Pf.dialog = function () {
+    if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
+    var items = Pf.run(), bad = items.filter(function (x) { return x.status === 'fail'; }).length, warn = items.filter(function (x) { return x.status === 'warn'; }).length;
+    MS.dialog({ title: 'Ready to publish?', wide: true, body: h('div', {}, [h('p', { 'class': 'pf-sum', html: bad ? '<b>' + bad + ' thing(s) to fix</b> before sharing' + (warn ? ', and ' + warn + ' to look at.' : '.') : warn ? '<b>Nearly ready.</b> ' + warn + ' thing(s) to look at.' : '<b>Ready to publish.</b>' }), checklist(items)]),
+      buttons: [{ label: 'Close', value: null }, { label: 'Publish…', primary: !bad, value: 'pub' }] }).then(function (v) { if (v === 'pub') Pub.dialog(true); });
+  };
+
+  /* ================================================================ publish */
+  var Pub = MS.publish = {};
+  function nextVersion(v) { if (!v) return '1.0'; var p = String(v).split('.'); var last = parseInt(p[p.length - 1], 10); if (isNaN(last)) return v + '.1'; p[p.length - 1] = String(last + 1); return p.join('.'); }
+  // o: { version, note, asOf, by, password, badge, keepComments }  ->  Promise<{ html, name, publish }>
+  Pub.build = function (o) {
+    var r = rt(); if (!r) return Promise.reject(new Error('Open a dashboard first (and turn off Safe mode).'));
+    var prev = r.state.publish || {}, at = new Date().toISOString();
+    var P = { version: o.version || nextVersion(prev.version), at: at, by: o.by || '', note: o.note || '', asOf: o.asOf || '', badge: o.badge !== false,
+      log: (prev.log || []).concat([{ version: o.version || nextVersion(prev.version), at: at, by: o.by || '', note: o.note || '' }]).slice(-50), seal: ZERO };
+    var lock = o.password ? (function () { var salt = hex(crypto.getRandomValues(new Uint8Array(16))), iter = 150000; return pbkdf2(o.password, salt, iter).then(function (k) { return { salt: salt, iter: iter, key: k }; }); })() : Promise.resolve(o.keepLock && prev.lock ? prev.lock : null);
+    return lock.then(function (L) {
+      if (L) P.lock = L;
+      // keep the record in the editor too, so the next publish counts on from here
+      MS.history.state('Publish version ' + P.version, function (s) { var c = JSON.parse(JSON.stringify(P)); delete c.seal; s.publish = c; });
+      var html = MS.exportHtml({ dropComments: !o.keepComments, publish: P });
+      return sha256(html).then(function (sum) {
+        html = html.replace(ZERO, sum);
+        return { html: html, name: MS.exportName(' v' + P.version), publish: P, sha256: sum };
+      });
+    });
+  };
+  Pub.dialog = function (checked) {
+    if (!rt()) return MS.toast('Open a dashboard first (and turn off Safe mode).', 'warn');
+    var prev = rt().state.publish || {};
+    var f = MS.form([
+      { key: 'version', label: 'Version', value: nextVersion(prev.version) },
+      { key: 'by', label: 'Published by', value: prev.by || MS.prefs.get('publishBy', '') },
+      { key: 'asOf', label: 'Data as of', type: 'date', value: prev.asOf || '' },
+      { key: 'note', label: 'What changed (release note)', type: 'textarea', rows: 3, value: '' },
+      { key: 'badge', label: 'Show the version, date and notes in a small corner badge', type: 'checkbox', value: prev.badge !== false },
+      { key: 'keepComments', label: 'Keep review comments in the file', type: 'checkbox', value: false },
+      { key: 'lock', label: 'Lock editing in Mothership with a password', type: 'checkbox', value: !!prev.lock },
+      { key: 'password', label: 'Password (leave blank to keep the current one)', type: 'password', value: '' },
+      { key: 'password2', label: 'Password again', type: 'password', value: '' }
+    ]);
+    var pw = [f.inputs.password, f.inputs.password2].map(function (i) { return i.closest('.field') || i.parentNode; });
+    var sync = function () { pw.forEach(function (p) { p.style.display = f.inputs.lock.checked ? '' : 'none'; }); };
+    f.inputs.lock.addEventListener('change', sync); sync();
+    var warn = h('div', { 'class': 'pub-note' }, [h('b', { text: 'About the lock. ' }), 'It stops people changing the dashboard in Mothership without the password, and Mothership warns if the file was changed some other way. It is a deterrent, not a vault: an HTML file can always be opened in Notepad, and anything shown on screen can be copied. Keep confidential numbers out of files you send outside the team, and use SharePoint or Teams permissions to control who can open it.']);
+    var pre = checked ? null : Pf.run().filter(function (x) { return x.status === 'fail' || x.status === 'warn'; });
+    var body = h('div', {}, [pre && pre.length ? h('div', { 'class': 'pub-pre' }, [h('b', { text: pre.length + ' thing(s) from the publish check: ' }), pre.map(function (x) { return x.title; }).join(' · '), ' ', h('a', { href: '#', text: 'See all', onclick: function (e) { e.preventDefault(); MS.$('.dlg-wrap').remove(); Pf.dialog(); } })]) : null, f, warn]);
+    MS.dialog({ title: 'Publish a view-only copy', wide: true, body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Publish', primary: true, value: function () {
+      var v = f.values();
+      if (!String(v.version || '').trim()) { MS.toast('Give it a version, e.g. 1.0.', 'warn'); return false; }
+      if (v.lock && (v.password || v.password2 || !prev.lock)) {
+        if (!v.password || v.password.length < 6) { MS.toast('Use a password of at least 6 characters.', 'warn'); return false; }
+        if (v.password !== v.password2) { MS.toast('The two passwords are different.', 'warn'); return false; }
+      }
+      return v;
+    } }] }).then(function (v) {
+      if (!v) return;
+      MS.prefs.set('publishBy', v.by || '');
+      Pub.build({ version: v.version.trim(), by: v.by, note: v.note, asOf: v.asOf, badge: v.badge, keepComments: v.keepComments, password: v.lock ? v.password : '', keepLock: v.lock && !v.password }).then(function (r) {
+        MS.download(r.name, r.html);
+        MS.toast('Published ' + r.name + (r.publish.lock ? ' (locked for editing)' : '') + '. Share this file; keep editing your working copy.', 'ok', 7000);
+      }).catch(function (e) { MS.toast('Could not publish: ' + e.message, 'error'); });
+    });
+  };
+
+  /* ================================================================ opening a published file */
+  // Called by MS.openHtml before anything is shown. Resolves true when it may open.
+  // Only a published copy (it carries a seal) is locked; the working copy keeps the lock details for the next publish.
+  Pub.isLocked = function (html) { var st = /"lock":\{/.test(html || '') && stateOf(html), P = st && st.publish; return !!(P && P.lock && P.seal); };
+  Pub.gate = function (html, name, password) {
+    var st = stateOf(html), L = st && st.publish && st.publish.seal && st.publish.lock;
+    if (!L) return Promise.resolve(true);
+    var tryPw = function (pw) { return pbkdf2(pw || '', L.salt, L.iter || 150000).then(function (k) { return k === L.key; }); };
+    if (password != null) return tryPw(password);
+    return new Promise(function (resolve) {
+      var ask = function (again) {
+        var f = MS.form([{ key: 'pw', label: 'Password', type: 'password', value: '' }]);
+        MS.dialog({ title: 'Locked for editing', body: h('div', {}, [h('p', { text: '“' + name + '” (version ' + (st.publish.version || '?') + (st.publish.by ? ', published by ' + st.publish.by : '') + ') is locked for editing. ' + (again ? 'That password didn\'t match. ' : '') + 'Viewers don\'t need a password: double-click the file to open it in a browser.' }), f]),
+          buttons: [{ label: 'Cancel', value: null }, { label: 'Unlock', primary: true, value: function () { return f.values().pw || false; } }] }).then(function (pw) {
+          if (!pw) return resolve(false);
+          tryPw(pw).then(function (ok) { if (ok) resolve(true); else ask(true); });
+        });
+      };
+      ask(false);
+    });
+  };
+  // Tamper check: the published file carries a SHA-256 of itself.
+  Pub.verify = function (html) {
+    var st = stateOf(html), P = st && st.publish;
+    if (!P || !P.seal || P.seal === ZERO) return Promise.resolve(null);
+    return sha256(html.replace(P.seal, ZERO)).then(function (sum) { return { ok: sum === P.seal, version: P.version, by: P.by, at: P.at }; });
+  };
+  MS.on('doc-opened', function (doc) {
+    if (!doc || !doc.source) return;
+    Pub.verify(doc.source).then(function (v) {
+      if (!v) return;
+      MS.doc.integrity = v;
+      if (v.ok) MS.status('Published version ' + v.version + (v.by ? ' by ' + v.by : '') + ': unchanged since it was published.');
+      else MS.toast('This file says it is published version ' + v.version + (v.by ? ' by ' + v.by : '') + ', but it was changed outside Mothership afterwards. Check it before sharing it on.', 'warn', 12000);
+    }).catch(function () {});
+  });
+  Pub.stateOf = stateOf;
+})(window.MS);
+
+</script>
 <script>/* src/js/help.js */
 /* Help: a quick tour of the screen, hands-on tutorial lessons, and a searchable user guide. */
 (function (MS) {
@@ -7671,8 +8062,10 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       '<h3>⚖ Compare versions</h3><p><b>File › Compare</b> shows what changed between two saved versions, the dashboard now, or a file on this laptop: tabs added, renamed or removed, text changes (old crossed out, new in green), chart settings, data, KPI cards, filters, colours and comments. <b>Side by side</b> shows both dashboards next to each other. <b>Copy the list</b> for your change note.</p>' },
     { id: 'libraries', title: 'Chart libraries', html: '<table><tr><th>Library</th><th>What works</th></tr><tr><td>Chart.js, ECharts, Plotly</td><td>Everything: look, pop-ups, colours, order, data, drill-down, images, summaries.</td></tr><tr><td>Highcharts</td><td>Everything as above. Mothership uses the Highcharts already inside your dashboard (it is not free for commercial use, so Mothership doesn\'t include it).</td></tr><tr><td>D3 and other SVG charts</td><td>Names, pop-ups, colours, look (fonts), summaries, number check, image and comments. The page\'s own script draws them, so Mothership can\'t redraw them from other data or drill down: rebuild with <b>Insert › Chart</b> for that.</td></tr></table><p>Charts drawn as plain images can\'t be read; ask for the data behind them.</p>' },
     { id: 'theme', title: 'Mothership theme and search', html: "<p>Make Mothership itself easier on the eyes. Your dashboard is not affected.</p><ul><li><b>🎨</b> in the top bar, View › <b>Theme</b>, or the welcome screen: 8 ready-made looks (Classic, Daylight, Ocean, Forest, Saffron, Midnight, Slate dark, High contrast).</li><li>Pick light, dark, “Match Windows” or high contrast; any accent colour (or <b>Match brand</b> after loading a brand); a coloured or plain top bar; comfortable or compact spacing; text size; ribbon labels or icons only.</li><li>View › <b>Dark mode</b> switches in one click. Settings are saved in this browser.</li></ul><h3>🔍 Search everything</h3><p>Press " + K('Ctrl') + "+" + K('K') + " (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.</p>" },
+    { id: 'region', title: 'Region and currency', html: '<p>Mothership writes numbers in <b>US dollars, US style</b> ($1,234,567 and $1.23M) unless you choose otherwise. Change it in <b>Design › Region & currency</b>: pick a country (52 to choose from) and it fills in the currency and number style; then change the currency on its own if you need to (any currency, e.g. a UK dashboard in US $). <b>Big numbers</b> chooses K, M, B or lakh and crore. The preview shows what you will get.</p><table><tr><th>Choice</th><th>1234567 as currency</th><th>short</th></tr><tr><td>United States</td><td>$1,234,567</td><td>$1.23M</td></tr><tr><td>India</td><td>₹12,34,567</td><td>₹12.35 L</td></tr><tr><td>Germany</td><td>1.234.567 €</td><td>1,23 Mio. €</td></tr><tr><td>United Kingdom</td><td>£1,234,567</td><td>£1.23M</td></tr></table><h3>Where it applies</h3><ul><li>Pop-ups and axes set to <b>Currency</b>, <b>Currency short</b> or <b>Short</b> (<code>{value:cur}</code>, <code>{value:curshort}</code>, <code>{value:short}</code>).</li><li>KPI cards, chart summaries, the number check and the AI prompt rules.</li><li>The setting is saved inside the dashboard, so viewers see the same thing. It is one undo step.</li></ul><p>Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbers the dashboard\'s own script writes are not changed. If a dashboard clearly shows ₹, € or £, Mothership tells you in the status bar but doesn\'t switch on its own.</p>' },
+    { id: 'publish', title: 'Publishing and locking', html: '<p>Your working copy is for editing; a <b>published copy</b> is what you share.</p><h3>🛡 File › Ready to publish?</h3><p>A checklist before you share: script errors, charts with no numbers, untitled charts, KPI cards that don\'t match their charts, open must-fix comments, files that need the internet, file size and page title. Red means fix first; amber means take a look.</p><h3>🚀 File › Publish</h3><ul><li><b>Version and release note</b>: 1.0, 1.1… counts on by itself. Each publish adds to the release log.</li><li><b>Corner badge</b>: “Version 1.1 · Published 22 Oct 2026 · Data as of 30 Sep 2026”. Click it for the release notes. It is hidden when printing.</li><li><b>Comments left out</b> unless you tick Keep.</li><li><b>Tamper check</b>: the file carries a fingerprint of itself (SHA-256). If someone changes it in Notepad or another tool and it is opened in Mothership again, you get a warning.</li><li><b>Lock editing with a password</b>: Mothership asks for it before opening the file for editing. Viewers never need it. The password is not stored, only a salted key (PBKDF2).</li><li>If part of a published dashboard fails to load, viewers see a calm one-line message instead of a broken page.</li></ul><h3>What the lock can and can\'t do</h3><p>It is a <b>deterrent, not a vault</b>. An HTML file is text: anyone can open it in Notepad, and anything on screen can be copied or photographed. The lock stops casual edits in Mothership and the seal tells you if the file was changed. For real control use <b>SharePoint, OneDrive or Teams permissions</b> (view-only links, no download), your company\'s sensitivity labels, or a PDF. Keep confidential numbers out of files that leave the team.</p>' },
     { id: 'mcp', title: 'Use with AI assistants (MCP)', html: "<p><b>MCP</b> (Model Context Protocol) lets an AI assistant use Mothership for you: “open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it”. The assistant calls Mothership’s tools; nothing goes to the internet from Mothership.</p><pre>AI assistant ──▶ MCP server ──▶ Edge/Chrome ──▶ Mothership\n(any client)    (Python/Node)   (hidden)        (MS.api)</pre><h3>1. Pick the server that your laptop allows</h3><table><tr><th>You have</th><th>Run</th></tr><tr><td>Python 3.8+ (no pip needed)</td><td><code>python tools/mcp/mothership_mcp.py</code></td></tr><tr><td>Node.js 16+ (no npm install needed)</td><td><code>node tools/mcp/mothership-mcp.js</code></td></tr></table><p>Both need Edge or Chrome and offer the same ~75 tools. You don’t start them yourself: your AI assistant starts them.</p><h3>2. Connect your assistant</h3><dl><dt>Claude Desktop</dt><dd>Settings › Developer › Edit config, then add (change the path):<pre>{\n  \"mcpServers\": {\n    \"mothership\": {\n      \"command\": \"python\",\n      \"args\": [\"C:\\\\Users\\\\you\\\\HTML-Mothership\\\\tools\\\\mcp\\\\mothership_mcp.py\"],\n      \"env\": { \"MOTHERSHIP_OUT\": \"C:\\\\Users\\\\you\\\\Dashboards\" }\n    }\n  }\n}</pre>Restart Claude Desktop. Use <code>\"command\": \"node\"</code> and <code>mothership-mcp.js</code> for the Node server.</dd><dt>Claude Code</dt><dd><code>claude mcp add mothership -- python tools/mcp/mothership_mcp.py</code> (the repo’s <code>.mcp.json</code> does this for the Node server).</dd><dt>Your own Python script or agent</dt><dd><code>tools/mcp/python_client.py</code> has a ready <b>MothershipClient</b> with nothing to install:<pre>from python_client import MothershipClient\nwith MothershipClient() as ms:\n    ms.call(\"open_file\", path=\"sales.html\")\n    ms.call(\"category_order\", order=[\"North\", \"South\", \"East\", \"West\"])\n    ms.call(\"category_colors\", colors={\"Retail\": \"#16a34a\"})\n    print(ms.call(\"export_html\")[\"saved\"])</pre>With the official SDK (<code>pip install mcp</code>): <code>StdioServerParameters(command=\"python\", args=[\"tools/mcp/mothership_mcp.py\"])</code>. Any MCP-capable framework works the same way.</dd><dt>Any other MCP client</dt><dd>Command <code>python</code> (or <code>node</code>), argument: the server file. Transport: stdio.</dd></dl><h3>3. Ask in plain English</h3><ul><li>“Open C:\\Dashboards\\claims.html and tell me what is on each tab.”</li><li>“Use one order for regions on every chart: North, South, East, West. Make South green everywhere.”</li><li>“Add a Methodology tab from methodology.docx and a footer saying Source: Finance, FY 2024-25.”</li><li>“Take a screenshot of the Overview tab and check the numbers are in ₹ crore.”</li><li>“Apply my review comments” (paste a prompt from ✨ Prompt with “Mothership MCP” chosen).</li></ul><h3>Settings (optional “env”)</h3><table><tr><td><code>MOTHERSHIP_HEADLESS=0</code></td><td>Show the browser window so you can watch the edits.</td></tr><tr><td><code>MOTHERSHIP_ATTACH=9222</code></td><td>Work in <i>your</i> window: start Edge with <code>msedge --remote-debugging-port=9222</code>, open mothership.html, then connect.</td></tr><tr><td><code>MOTHERSHIP_OUT</code></td><td>Folder for exports, prompts and screenshots.</td></tr><tr><td><code>MOTHERSHIP_BROWSER</code></td><td>Full path to msedge.exe or chrome.exe if it isn’t found.</td></tr><tr><td><code>MOTHERSHIP_HTML</code></td><td>Use dist/mothership-standalone.html instead.</td></tr></table><p>Exports never overwrite your original: they are saved as <code>&lt;name&gt;-edited.html</code>. Every change can be undone (“undo the last three changes”).</p>" },
-    { id: 'faq', title: 'FAQ', html: "<dl><dt>Does Mothership send my data anywhere?</dt><dd>No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.</dd><dt>Do I need the internet or admin rights?</dt><dd>No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.</dd><dt>My laptop has Python but not Node (or the reverse).</dt><dd>Use the matching server: <code>tools/mcp/mothership_mcp.py</code> for Python, <code>tools/mcp/mothership-mcp.js</code> for Node. They have the same tools.</dd><dt>Neither Python nor Node is allowed.</dt><dd>Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.</dd><dt>The server says it can’t find Edge or Chrome.</dt><dd>Set <code>MOTHERSHIP_BROWSER</code> to the full path, e.g. <code>C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe</code>.</dd><dt>It says DevTools refused the connection, or the browser closes at once.</dt><dd>Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.</dd><dt>How do I see what the assistant is doing?</dt><dd>Set <code>MOTHERSHIP_HEADLESS=0</code> to show the window, or ask it for a <i>screenshot</i>. To edit in your own window, use <code>MOTHERSHIP_ATTACH</code> (see the MCP section).</dd><dt>Where are files saved? Can it overwrite my dashboard?</dt><dd>In <code>MOTHERSHIP_OUT</code> (or the folder the assistant was started in) unless the assistant gives a path. The default export name is <code>&lt;name&gt;-edited.html</code>, so the original is kept.</dd><dt>Which AI assistants work?</dt><dd>Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.</dd><dt>Can the assistant see my comments?</dt><dd>Yes: <i>list_comments</i> and <i>comments_prompt</i> give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.</dd><dt>Can I change how Mothership looks?</dt><dd>Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.</dd><dt>How do I find a command quickly?</dt><dd>" + K('Ctrl') + "+" + K('K') + " and type what you want.</dd><dt>Does it work with Highcharts or D3?</dt><dd>Yes. Highcharts works fully. D3 (and similar SVG) charts get names, pop-ups, colours, fonts, summaries, the number check and comments, but not new data or drill-down. See Chart libraries.</dd><dt>How do I check the numbers before sending?</dt><dd>Review › Number check. It flags KPI cards that don\u2019t match their chart and charts of the same measure that add up differently.</dd><dt>Can I track comments in Excel?</dt><dd>Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.</dd><dt>Will a KPI card turn red automatically?</dt><dd>Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.</dd></dl>" },
+    { id: 'faq', title: 'FAQ', html: "<dl><dt>Does Mothership send my data anywhere?</dt><dd>No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.</dd><dt>Do I need the internet or admin rights?</dt><dd>No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.</dd><dt>My laptop has Python but not Node (or the reverse).</dt><dd>Use the matching server: <code>tools/mcp/mothership_mcp.py</code> for Python, <code>tools/mcp/mothership-mcp.js</code> for Node. They have the same tools.</dd><dt>Neither Python nor Node is allowed.</dt><dd>Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.</dd><dt>The server says it can’t find Edge or Chrome.</dt><dd>Set <code>MOTHERSHIP_BROWSER</code> to the full path, e.g. <code>C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe</code>.</dd><dt>It says DevTools refused the connection, or the browser closes at once.</dt><dd>Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.</dd><dt>How do I see what the assistant is doing?</dt><dd>Set <code>MOTHERSHIP_HEADLESS=0</code> to show the window, or ask it for a <i>screenshot</i>. To edit in your own window, use <code>MOTHERSHIP_ATTACH</code> (see the MCP section).</dd><dt>Where are files saved? Can it overwrite my dashboard?</dt><dd>In <code>MOTHERSHIP_OUT</code> (or the folder the assistant was started in) unless the assistant gives a path. The default export name is <code>&lt;name&gt;-edited.html</code>, so the original is kept.</dd><dt>Which AI assistants work?</dt><dd>Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.</dd><dt>Can the assistant see my comments?</dt><dd>Yes: <i>list_comments</i> and <i>comments_prompt</i> give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.</dd><dt>Can I change how Mothership looks?</dt><dd>Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.</dd><dt>How do I find a command quickly?</dt><dd>" + K('Ctrl') + "+" + K('K') + " and type what you want.</dd><dt>Does it work with Highcharts or D3?</dt><dd>Yes. Highcharts works fully. D3 (and similar SVG) charts get names, pop-ups, colours, fonts, summaries, the number check and comments, but not new data or drill-down. See Chart libraries.</dd><dt>How do I check the numbers before sending?</dt><dd>Review › Number check. It flags KPI cards that don\u2019t match their chart and charts of the same measure that add up differently.</dd><dt>Can I track comments in Excel?</dt><dd>Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.</dd><dt>Can I change the currency from US $?</dt><dd>Yes: Design › Region & currency. Pick any country and any currency; it is saved in the dashboard.</dd><dt>Can I lock the dashboard so no one else edits it?</dt><dd>Partly. File › Publish can lock editing in Mothership with a password, and Mothership warns if the file was changed elsewhere. But no HTML file can be truly locked: it can always be opened in Notepad. Use SharePoint or Teams view-only permissions for real control. See Publishing and locking.</dd><dt>Will a KPI card turn red automatically?</dt><dd>Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.</dd></dl>" },
     { id: 'shortcuts', title: 'Keyboard shortcuts', html: '<table class="keys">' + [['Ctrl+K', 'Search commands, charts, tabs and help'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy, cut, paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete the selection'], ['Enter', 'Edit the selected text'], ['Esc', 'Deselect / cancel commenting'], ['Alt+↑', 'Select the parent'], ['Alt+→ / Alt+←', 'Next / previous tab'], ['Ctrl+F', 'Find & replace'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+Shift+E', 'Save as…'], ['Ctrl+O', 'Open'], ['Ctrl+wheel', 'Zoom the dashboard'], ['F5', 'Present']].map(function (r) { return '<tr><td><kbd>' + r[0] + '</kbd></td><td>' + r[1] + '</td></tr>'; }).join('') + '</table>' },
     { id: 'troubleshooting', title: 'Problems and fixes', html: '<dl><dt>Charts are blank</dt><dd>The dashboard loads its libraries or data from separate files or the internet. Use File › Open folder. If it needs the internet, turn off View › Network lock.</dd><dt>"Use this data" doesn\'t appear</dt><dd>The data isn\'t in the page (it may be fetched from a server). Use "the numbers drawn in this chart", or load a CSV/Excel export from the Data tab.</dd><dt>My text change came back after reload</dt><dd>That text is written by the page\'s script. Mothership re-applies your edit after the script runs; if the script writes it later, edit it in the source data instead.</dd><dt>Copy prompt didn\'t work</dt><dd>Some browsers block copying from local files. Click in the prompt box, press Ctrl+A then Ctrl+C, or use Save as .md.</dd><dt>Versions/autosave are off</dt><dd>The browser blocks storage for local files (some Firefox or locked-down setups). Export still works.</dd><dt>The page looks squashed</dt><dd>View › Draw at › Auto, then ⤢ Fit.</dd></dl>' }
   ];
@@ -8036,7 +8429,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     find: need(MS.edit.findReplace),
     present: needRt(function () { MS.present.start(false); }),
     presenter: needRt(function () { MS.present.start(true); }),
-    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state }); MS.ribbon.render(); },
+    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state, unlocked: true }); MS.ribbon.render(); },
     netLock: function () { MS.settings.netLock = !MS.settings.netLock; MS.prefs.set('netLock', MS.settings.netLock); MS.toast(MS.settings.netLock ? 'Network lock on: the dashboard can\'t load or send anything over the internet while editing. Online-only libraries (CDN) will not load.' : 'Network lock off.', 'ok', 7000); if (MS.child) MS.reload(); MS.ribbon.render(); }
   };
 
@@ -8053,6 +8446,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '🕘', label: 'Save version', title: 'Keep a named version in this browser (Ctrl+S)', run: MS.cmd.saveVersion },
         { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions },
         { icon: '⚖', label: 'Compare', title: 'What changed between two versions (or a file): tabs, text, charts, data. Side by side too.', run: function () { MS.compare.dialog(); } }] },
+      { name: 'Publish', items: [
+        { icon: '🛡', label: 'Ready to publish?', title: 'Check before sharing: script errors, empty charts, numbers that don\'t add up, open comments, internet files, size', run: need(function () { MS.preflight.dialog(); }) },
+        { icon: '🚀', label: 'Publish', title: 'Save a view-only copy with a version number, date and release note. Optionally lock editing with a password; Mothership warns if it is changed afterwards.', run: needRt(function () { MS.publish.dialog(); }) }] },
       { name: 'Output', items: [
         { icon: '🖨', label: 'Print / PDF', title: 'Print the dashboard, or choose "Save as PDF" in the print dialog. Each tab prints on its own page.', run: MS.cmd.print },
         { icon: '↻', label: 'Reload', title: 'Re-run the dashboard as it will look when exported', run: MS.cmd.reload }] }
@@ -8116,6 +8512,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '🖌', label: 'Edit theme', title: 'Colours, chart palette, fonts, logo', run: needRt(MS.brand.edit) },
         { icon: '📚', label: 'Library', title: 'Brands you have used before', run: needRt(MS.brand.library) },
         { icon: '🔤', label: 'Fonts', title: 'Upload brand font files (.woff2/.woff/.ttf/.otf). They are embedded, so they work offline.', run: needRt(function () { MS.pickFiles('.woff,.woff2,.ttf,.otf', { multiple: true }).then(function (fs) { if (fs.length) MS.brand.addFontFiles(fs); }); }) }] },
+      { name: 'Numbers', items: [
+        { icon: '🌍', label: 'Region & currency', title: 'Country, currency and number style (US $ by default) for pop-ups, axes, KPI cards and summaries', run: needRt(function () { MS.locale.dialog(); }) }] },
       { name: 'Check', items: [
         { icon: '✅', label: 'Brand check', title: 'Find off-brand colours and fonts, low contrast, and charts missing commentary', run: need(MS.brand.check) }] }
     ] },
@@ -8423,7 +8821,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '2.0.0';
+  MS.VERSION = '2.3.0';
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };

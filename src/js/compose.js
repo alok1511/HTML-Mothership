@@ -4,7 +4,7 @@
   'use strict';
   var Cp = MS.compose = {};
 
-  function today() { return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function today() { return new Date().toLocaleDateString(MS.locale ? MS.locale.get().locale : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }); }
 
   // Turn an HTML string into owned (export-kept) nodes inside the child.
   function make(html) {
@@ -98,7 +98,7 @@
 
   /* ---------------------------------------------------------- KPI cards */
   var AGGS = [{ value: 'sum', label: 'Sum' }, { value: 'avg', label: 'Average' }, { value: 'count', label: 'Count rows' }, { value: 'distinct', label: 'Count distinct' }, { value: 'min', label: 'Minimum' }, { value: 'max', label: 'Maximum' }];
-  var FORMATS = [{ value: '', label: 'Number (1,23,456.78)' }, { value: 'inr', label: '₹ (₹1,23,457)' }, { value: 'cr', label: '₹ crore' }, { value: 'lakh', label: '₹ lakh' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
+  var FORMATS = [{ value: '', label: 'Number (region style)' }, { value: 'cur', label: 'Currency (region, e.g. $1,234)' }, { value: 'curshort', label: 'Currency short ($1.2M)' }, { value: 'short', label: 'Short (1.2M)' }, { value: 'inr', label: '₹ (₹1,23,457)' }, { value: 'cr', label: '₹ crore' }, { value: 'lakh', label: '₹ lakh' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
   function kpiCard(id, label, value, note) {
     var c = make('<div class="ms-kpi"><div class="ms-kpi-label"></div><div class="ms-kpi-value"></div><div class="ms-kpi-note"></div></div>');
     if (id) c.setAttribute('data-ms-kpi', id);
@@ -124,7 +124,7 @@
           var fld = nums[i % (nums.length || 1)], id = rt.uid('k');
           specs[id] = fld ? { dataset: v.ds, measure: fld.name, agg: 'sum', format: '' } : { dataset: v.ds, agg: 'count', format: 'int' };
           row.appendChild(kpiCard(id, fld ? 'Total ' + fld.name : 'Records', '…', v.ds));
-        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), '₹0 Cr', 'vs last month'));
+        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), MS.rt() ? MS.rt().fmtNum(0, 'cur') : '$0', 'vs last month'));
       }
       MS.history.group('Insert KPI cards', function () {
         if (v.ds) MS.history.state('KPI settings', function (s) { Object.keys(specs).forEach(function (k) { s.kpis[k] = specs[k]; }); });
@@ -153,7 +153,7 @@
       { key: 'bad', label: 'Red (bad) at or beyond', type: 'number', value: st.bad != null ? st.bad : '' }
     ]);
     var body = MS.h('div', {}, [f, MS.h('h4', { 'class': 'rag-head', text: 'Status colours (red / amber / green)' }), rag,
-      MS.h('small', { 'class': 'hint', text: 'Use the raw numbers from the data, before ₹ crore or lakh formatting. In between is amber. The colour updates whenever filters change.' })]);
+      MS.h('small', { 'class': 'hint', text: 'Use the raw numbers from the data, before currency or K/M formatting. In between is amber. The colour updates whenever filters change.' })]);
     f.inputs.dataset.addEventListener('change', function () { f.inputs.measure.innerHTML = ''; fieldsOf(f.inputs.dataset.value).forEach(function (o) { f.inputs.measure.appendChild(MS.h('option', { value: o.value, text: o.label })); }); });
     MS.dialog({ title: 'KPI card', body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { var o = f.values(); o.rag = rag.values(); return o; } }] }).then(function (v) {
       if (!v) return;
@@ -233,7 +233,7 @@
 
   /* ---------------------------------------------------------- new dashboard */
   function blankHtml(title) {
-    return '<!DOCTYPE html>\n<html lang="en-IN">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + MS.esc(title) + '</title>\n' +
+    return '<!DOCTYPE html>\n<html lang="' + (MS.locale ? MS.locale.get().locale : 'en-US') + '">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + MS.esc(title) + '</title>\n' +
       '<style>\nbody{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:#1f2937;background:#f6f7fb}\n.page{padding:20px 24px;max-width:1400px;margin:0 auto}\n</style>\n</head>\n<body>\n<main class="page">\n' +
       '<header class="ms-banner"><h1>' + MS.esc(title) + '</h1><p>What this dashboard answers · Updated ' + today() + '</p></header>\n' +
       '<p>Start building from the <b>Insert</b> tab: sections, KPI cards, charts from your data, columns, callouts and a footer.</p>\n</main>\n</body>\n</html>\n';
