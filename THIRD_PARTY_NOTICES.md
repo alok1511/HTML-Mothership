@@ -1,6 +1,6 @@
 # Third-party notices
 
-Mothership bundles these open-source libraries in `vendor/` so it works offline. Each remains under its own licence.
+Mothership itself is under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`). That licence does **not** apply to the open-source libraries it bundles in `vendor/` so it works offline: each remains under its own licence, and the full texts are in [`licenses/`](licenses/). `dist/mothership-standalone.html` contains the same libraries, so share this file and `licenses/` with it.
 
 | Library | Version | Licence | Used for |
 |---|---|---|---|
@@ -16,3 +16,21 @@ Mothership bundles these open-source libraries in `vendor/` so it works offline.
 The chart libraries are used only by the files in `samples/`. Mothership itself works with whatever chart library the child dashboard already includes.
 
 **Test-only (not shipped).** `npm install` fetches [Highcharts](https://www.highcharts.com) 11.4.8 and [D3](https://github.com/d3/d3) 7.9.0 (ISC) as development dependencies so `tests/v4.test.js` can build test dashboards with them. Neither is copied into this repository or the zip. Highcharts is free for personal and non-commercial use only; Mothership never needs it, it simply works with the copy already inside a dashboard that uses it.
+
+## Copyright notices and licence texts
+
+| Library | Copyright | Licence text |
+|---|---|---|
+| marked | Copyright (c) 2018+, MarkedJS; Copyright (c) 2011-2018, Christopher Jeffrey | [`licenses/marked.LICENSE.md`](licenses/marked.LICENSE.md) |
+| mammoth.js | Copyright (c) 2013, Michael Williamson | [`licenses/mammoth.LICENSE.txt`](licenses/mammoth.LICENSE.txt) |
+| SheetJS Community Edition | Copyright (C) 2012-present SheetJS LLC | [`licenses/sheetjs.LICENSE.txt`](licenses/sheetjs.LICENSE.txt) |
+| JSZip | Copyright (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, António Afonso | [`licenses/jszip.LICENSE.md`](licenses/jszip.LICENSE.md) (used under MIT) |
+| PDF.js | Copyright 2023 Mozilla Foundation | [`licenses/pdfjs.LICENSE.txt`](licenses/pdfjs.LICENSE.txt) |
+| Chart.js | Copyright (c) 2014-2022 Chart.js Contributors | [`licenses/chartjs.LICENSE.md`](licenses/chartjs.LICENSE.md) |
+| Apache ECharts | Copyright 2017-2024 The Apache Software Foundation | [`licenses/echarts.LICENSE.txt`](licenses/echarts.LICENSE.txt), [`licenses/echarts.NOTICE.txt`](licenses/echarts.NOTICE.txt), and for the parts of d3 it includes, [`licenses/echarts.LICENSE-d3.txt`](licenses/echarts.LICENSE-d3.txt) |
+| Plotly.js | Copyright (c) 2021 Plotly, Inc | [`licenses/plotly.LICENSE.txt`](licenses/plotly.LICENSE.txt) |
+
+The licence files are copied unchanged from each project's repository at the version listed above. Minified builds such as mammoth, SheetJS and Plotly also contain small dependencies of their own under permissive licences; see each project's repository for that list.
+
+**Adding a library:** put the pinned file in `vendor/`, add a row to both tables, and copy its licence file (and any `NOTICE` file) into `licenses/`.
+
