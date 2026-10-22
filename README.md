@@ -23,7 +23,7 @@
 9. [How it works](#9-how-it-works)
 10. [Limitations and known gaps](#10-limitations-and-known-gaps)
 11. [Developing](#11-developing)
-12. [Connect an AI assistant (MCP)](#12-connect-an-ai-assistant-mcp)
+12. [Connect an AI assistant (MCP): Python or Node](#12-connect-an-ai-assistant-mcp)
 13. [Roadmap ideas](#13-roadmap-ideas)
 
 New to Mothership? Open it and click **Help › Guided tour** (2 minutes) or **Help › Tutorial** (7 short hands-on lessons). [`docs/TUTORIAL.md`](docs/TUTORIAL.md) has the same lessons on paper.
@@ -112,6 +112,20 @@ HTML-Mothership/
 | **Chart as image / chart data** | **Charts › Share** | PNG of a chart for PowerPoint or email; the chart's numbers or its linked data as CSV for Excel. |
 | **Refresh data from a file** | **Data › Manage › Refresh from file** | Replace last month's embedded data with this month's. Charts, KPI cards and filters keep their settings. |
 | **AI assistant connection (MCP)** | `tools/mcp/mothership-mcp.js` | Every feature above as a tool an AI assistant can use. See [§12](#12-connect-an-ai-assistant-mcp). |
+
+### New in v3
+
+| Feature | Where | What it does |
+|---|---|---|
+| **A polished editor** | Everywhere | Clean line icons instead of emoji, smoother pop-ups and menus, hover tips that show the keyboard shortcut, clearer messages with an icon and colour. |
+| **Mothership's own theme** | 🎨 in the top bar, **View › Theme**, welcome screen | 8 ready-made looks (Classic, Daylight, Ocean, Forest, Saffron, Midnight, Slate dark, High contrast), light / dark / match Windows, any accent colour or **Match brand**, coloured or plain top bar, compact spacing, text size, ribbon labels or icons only. Your dashboard is not affected. |
+| **Dark mode** | **View › Dark mode** | One click. |
+| **Search everything (Ctrl+K)** | Top bar search, Ctrl+K | Any ribbon command, chart (jump to it or open its settings), tab, dataset, comment or help topic. |
+| **A much better prompt builder** | **✨ Prompt**, or **Prompt for this one** on a comment | Each comment says exactly where it is: *Tab › Section › Card › Chart (kind) › KPI card 2 of 4*, what the chart shows and its current settings. Choose which comments (all, one tab, must-haves, or pick), the goal (apply, polish, review only, explain), who does it (chat assistant, coding agent, or an assistant with Mothership MCP) and the answer you want (finished file, list of changes, plan, or tickets). Every comment gets "Done when" checks. Live preview; copy, save `.md`, or export the file to attach. |
+| **KPI status colours** | Double-click a KPI value › **Status colours** | Red / amber / green from your thresholds ("higher is better" or "lower is better"). Recalculates when filters change, and works in the exported file. |
+| **Python MCP server** | `tools/mcp/mothership_mcp.py` | The same ~75 tools as the Node server, for laptops that have Python but not Node. Standard library only: no `pip install`. |
+| **Python client** | `tools/mcp/python_client.py` | Drive Mothership from your own Python script: `MothershipClient().call('open_file', path=...)`. |
+| **MCP how-to and FAQ** | **Help › Guide › Use with AI assistants (MCP)** and **FAQ** | Step-by-step set-up for Claude Desktop, Claude Code and Python, plus answers to office questions (IT policy, no admin, where files go). |
 
 ---
 
@@ -355,27 +369,53 @@ After changing `src/`, run `npm run build` so `dist/mothership-standalone.html` 
 The Model Context Protocol (MCP) lets an AI assistant such as Claude Desktop or Claude Code use Mothership directly: "open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it".
 
 ```
- AI assistant ──stdio──▶ mothership-mcp.js ──DevTools──▶ Edge/Chrome ──▶ mothership.html ──▶ MS.api
-   (Claude)               (Node, no packages)             (hidden window)    (the real editor)
+ AI assistant ──stdio──▶ MCP server ──DevTools──▶ Edge/Chrome ──▶ mothership.html ──▶ MS.api
+   (any client)          (Python or Node)          (hidden window)    (the real editor)
 ```
 
-**What you need:** Node.js 16 or newer, and Edge or Chrome (already on most office laptops). No `npm install`, no internet, no admin rights. If Node is not allowed on your laptop, the MCP server can't run, but everything else in Mothership still works.
+**Pick the server your laptop allows.** Both have the same tools and settings, and neither needs internet, admin rights or packages.
 
-**Claude Desktop:** *Settings › Developer › Edit Config* and add (change the path to where you unzipped Mothership):
+| You have | Server |
+|---|---|
+| Python 3.8 or newer | `python tools/mcp/mothership_mcp.py` |
+| Node.js 16 or newer | `node tools/mcp/mothership-mcp.js` |
+
+You also need Edge or Chrome (already on most office laptops). If neither Python nor Node is allowed, MCP can't run, but everything else in Mothership still works and **✨ Prompt** gives you instructions to paste into any assistant.
+
+**Claude Desktop:** *Settings › Developer › Edit Config* and add (change the paths to where you unzipped Mothership):
 
 ```json
 {
   "mcpServers": {
     "mothership": {
-      "command": "node",
-      "args": ["C:\\Users\\you\\Documents\\HTML-Mothership\\tools\\mcp\\mothership-mcp.js"],
+      "command": "python",
+      "args": ["C:\\Users\\you\\Documents\\HTML-Mothership\\tools\\mcp\\mothership_mcp.py"],
       "env": { "MOTHERSHIP_OUT": "C:\\Users\\you\\Documents\\Dashboards" }
     }
   }
 }
 ```
 
-**Claude Code:** the repo includes `.mcp.json`, so opening Claude Code in this folder offers the `mothership` server. Or run `claude mcp add mothership -- node tools/mcp/mothership-mcp.js`.
+For Node, use `"command": "node"` and `mothership-mcp.js`. If `python` is not found, use the full path, e.g. `C:\\Users\\you\\AppData\\Local\\Programs\\Python\\Python312\\python.exe`, or `py`.
+
+**Your own Python code** (no MCP client needed):
+
+```python
+import sys; sys.path.insert(0, r"C:\Users\you\Documents\HTML-Mothership\tools\mcp")
+from python_client import MothershipClient
+
+with MothershipClient() as ms:                      # starts the Python server
+    o = ms.call("open_file", path=r"C:\Dashboards\sales.html")
+    print([c["name"] for c in o["charts"]])
+    ms.call("category_order", order=["North", "South", "East", "West"])
+    ms.call("add_comment", chart=o["charts"][0]["name"], text="Show ₹ crore on the axis", priority="must")
+    print(ms.call("comments_prompt", assistant="mcp", scope="must")["prompt"])
+    print(ms.call("export_html")["saved"])
+```
+
+`python tools/mcp/python_client.py samples/sales-dashboard.html` runs a short demo. If your office allows `pip install mcp`, the official MCP SDK works as well (see `with_official_sdk()` in that file).
+
+**Claude Code:** the repo includes `.mcp.json`, so opening Claude Code in this folder offers the `mothership` server. Or run `claude mcp add mothership -- python tools/mcp/mothership_mcp.py` (or `-- node tools/mcp/mothership-mcp.js`).
 
 **Tools.** About 75, generated from `MS.api` (see [`docs/EXTENDING.md`](docs/EXTENDING.md#msapi-and-the-mcp-server)), so anything new added to `MS.api` appears automatically. The main ones:
 
@@ -384,11 +424,11 @@ The Model Context Protocol (MCP) lets an AI assistant such as Claude Desktop or 
 | Files | `open_file`, `open_folder`, `new_dashboard`, `export_html`, `screenshot`, `chart_image`, `insert_file`, `load_data`, `drill_data_file`, `load_brand`, `save_prompt` |
 | Look at it | `status`, `outline`, `find`, `get_element`, `list_comments`, `dataset_rows`, `brand_check` |
 | Text and style | `set_text`, `replace_text`, `set_style`, `set_popup`, `popup_style`, `move_element`, `duplicate`, `delete` |
-| Build | `insert_part`, `insert_text_block`, `insert_button`, `insert_kpis`, `insert_chart`, `insert_table`, `resize_block` |
+| Build | `insert_part`, `insert_text_block`, `insert_button`, `insert_kpis`, `kpi_status`, `insert_chart`, `insert_table`, `resize_block` |
 | Tabs | `layout`, `add_tab`, `rename_tab`, `move_tab`, `hide_tab`, `duplicate_tab`, `move_chart`, `tab_notes` |
 | Charts | `chart_settings` (commentary, pop-up text, look, data, drill), `chart_look_all`, `tooltip_all`, `category_order`, `category_colors`, `format_painter`, `find_chart_data`, `link_chart_data`, `drill`, `chart_data` |
 | Data | `discover_datasets`, `add_dataset`, `refresh_dataset`, `drill_data`, `filter_pane`, `set_filter` |
-| Review | `add_comment`, `update_comment`, `comments_prompt` |
+| Review | `add_comment`, `update_comment`, `list_comments` (with *Tab › Section › Chart* for each), `comments_prompt` (scope, goal, assistant, output) |
 | Anything else | `undo`, `redo`, `run_recipe`, `call` (any Mothership function by name) |
 
 **Settings** (optional `env` entries):
@@ -414,4 +454,8 @@ Not built yet, roughly in order of value:
 3. **Template gallery**: save a tab layout and reuse it across dashboards (partly covered by recipes today).
 4. **Accessibility pass**: alt-text prompts for images and charts, keyboard navigation audit of exports.
 5. **Scheduled refresh**: re-load a local CSV/Excel and re-export in one click (manual refresh exists under Data › Manage).
-6. **Conditional formatting** for KPI cards and tables (red/amber/green thresholds).
+6. **Conditional formatting for tables** (KPI cards have red/amber/green from v3).
+7. **Comment tracker export**: comments as an Excel sheet with owner, status and date, for review meetings.
+8. **Presenter notes from comments**: turn resolved comments into speaker notes for Present mode.
+9. **Number check**: flag KPI cards and chart totals that don't add up to the same figure.
+10. **Plain-language chart summaries**: one-line "what this chart says" for each chart, for screen readers and email.

@@ -116,3 +116,26 @@ It appears in `MS.api`, in the MCP tool list and in `api.run` automatically. Kee
 **How the server works.** It is plain Node with no packages. It starts Edge or Chrome (hidden) with `--remote-debugging-port`, opens `mothership.html`, and for each tool call runs `MS.api.run(name, args)` in the page via the DevTools protocol (`Runtime.evaluate`), using a small built-in WebSocket client. File tools (`open_file`, `open_folder`, `load_data`, `drill_data_file`, `load_brand`, `insert_file`) read the file in Node and pass it in as base64. `export_html`, `save_prompt` and `screenshot` write to disk in Node. Messages are newline-delimited JSON-RPC on stdin/stdout; logs go to stderr.
 
 `tests/mcp.test.js` drives the server exactly as an MCP client does.
+
+**Python.** `tools/mcp/mothership_mcp.py` is the same server in Python 3.8+ using only the standard library (its own WebSocket client, a reader thread for DevTools replies). It reads `MS.api.describe()` for the tool list, so a new `MS.api` entry appears in both servers. Only the file tools (`LOCAL` in each server) are written twice. `node tests/mcp.test.js --python` runs the same checks against it. `tools/mcp/python_client.py` (`MothershipClient`) is a small stdio client for scripts.
+
+## v3 building blocks
+
+**Comment locations and prompts** (`src/js/prompt.js`, extends `MS.review`):
+
+```js
+var loc = MS.review.locate(el);     // { tab, section, card, chart: {name, kind, labels, series}, kpi: {label, index, of}, position, filters }
+MS.review.trail(loc);               // 'Tab “Overview” › Section “Regional view” › Chart “Sales by region” (bar chart)'
+MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], goal: 'apply|polish|review|explain',
+  assistant: 'chat|agent|mcp', output: 'file|changes|plan|tickets', group: 'where|priority|order', detail: 'full|brief' });
+```
+
+`MS.api.run('comments_prompt', {...})` takes the same options. Comments made before v3 are located again when the prompt is built; a comment whose element has gone is flagged in the prompt.
+
+**Icons** (`src/js/icons.js`): `MS.icon('sparkles', 'solo')` returns an inline SVG. Emoji in editor UI text (`✨`, `🎨`, `📍`…) are swapped for icons automatically, so plugins can keep using emoji labels. Add an icon by adding its path to `P` and, optionally, its emoji to `E`.
+
+**Editor theme** (`src/js/uitheme.js`): `MS.ui.set({ mode: 'dark', accent: 'teal', density: 'compact' })`, `MS.ui.toggleDark()`, `MS.ui.get()`. Colours are CSS variables on `:root` (`--accent`, `--bg`, `--panel`, `--text`…), so plugin UI that uses them follows the theme.
+
+**Search** (`src/js/palette.js`): `MS.palette('sales')` opens Ctrl+K with a query. It lists ribbon items, so a plugin's ribbon buttons are searchable without extra work.
+
+**KPI status** (runtime): `kpis[id].status = { better: 'high'|'low', good: n, bad: n }` sets `data-ms-status="good|warn|bad"` on the card on every refresh; `MS.api.run('kpi_status', { ref, better, good, bad })` sets it.

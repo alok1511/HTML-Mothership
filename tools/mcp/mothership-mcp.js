@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.0.0';
+var VERSION = '2.1.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -336,9 +336,9 @@ var LOCAL = {
     run: function (a) { return api('drill_data', { file: b64file(a.path), link: a.link }); } },
   load_brand: { description: 'Apply a brand from a file: brand JSON, a brand SKILL.md, a .skill/.zip package, or a font file.', props: { path: ['string', 'File path', true] },
     run: function (a) { return api('apply_theme', { file: b64file(a.path) }); } },
-  save_prompt: { description: 'Turn all review comments into an AI prompt and save it as a Markdown file.', props: { path: ['string', 'Where to save (default: <name>-review-prompt.md)'], output: ['string', 'file (complete updated HTML, default) | changes | plan'], include_done: ['boolean', 'Include closed comments'], extra: ['string', 'Extra instruction'], embed_html: ['boolean', 'Paste the dashboard source into the prompt'] },
+  save_prompt: { description: 'Turn review comments into an AI prompt (each located by tab › section › chart) and save it as a Markdown file.', props: { path: ['string', 'Where to save (default: <name>-review-prompt.md)'], goal: ['string', 'apply | polish | review | explain'], assistant: ['string', 'chat | agent | mcp'], scope: ['string', 'all | tab | must'], output: ['string', 'file (complete updated HTML, default) | changes | plan | tickets'], include_done: ['boolean', 'Include closed comments'], extra: ['string', 'Extra instruction'], embed_html: ['boolean', 'Paste the dashboard source into the prompt'] },
     run: function (a) {
-      var args = { output: a.output, include_done: a.include_done, extra: a.extra, embed_html: a.embed_html };
+      var args = { goal: a.goal, assistant: a.assistant, scope: a.scope, tab: a.tab, output: a.output, include_done: a.include_done, extra: a.extra, embed_html: a.embed_html };
       return Promise.all([api('comments_prompt', args), api('outline', {})]).then(function (r) {
         var file = outPath(a.path, String(r[1].name || 'dashboard').replace(/\.html?$/i, '') + '-review-prompt.md');
         fs.writeFileSync(file, r[0].prompt, 'utf8'); return { saved: file, comments: r[1].comments, characters: r[0].prompt.length };

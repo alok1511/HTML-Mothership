@@ -60,10 +60,12 @@ The searchable version is under **Help › Guide**.
 
 Mothership opens an HTML dashboard and lets you edit it like a PowerPoint deck. Everything runs in this browser tab. Nothing is uploaded and nothing is installed.
 
-- **Open** a dashboard: File › Open, drag a file onto the window, or try File › Samples.
-- If its charts don't show, use **File › Open folder** and pick the folder with its .js/.css/.json files. Mothership bundles them into one file.
-- Or start from scratch with **File › New**.
-- When done, **Export HTML** (top right). You get one .html file that opens in any browser and reopens here for more edits.**Edit** mode (top right) is for changing things. **Interact** mode is for using the dashboard like your audience will.
+1. **Open** a dashboard: File › Open, drag a file onto the window, or try File › Samples.
+2. If its charts don't show, use **File › Open folder** and pick the folder with its .js/.css/.json files. Mothership bundles them into one file.
+3. Or start from scratch with **File › New**.
+4. When done, **Export HTML** (top right). You get one .html file that opens in any browser and reopens here for more edits.
+
+**Edit** mode (top right) is for changing things. **Interact** mode is for using the dashboard like your audience will.
 
 ## Zoom and fitting the screen
 
@@ -96,7 +98,9 @@ Double-click a chart (or select it and use the Charts tab). Chart settings has f
 - **Commentary & size**: title, subtitle and inference (the "so what"), width and height.
 - **Look**: font, text size and colour for axes and legend, legend position, and the hover pop-up's background, text, border, size and corners. Changes show on the chart straight away.
 - **Tooltip**: what the pop-up says. Use placeholders like {label}, {value:cr}, {pct:pct}. Presets cover ₹ crore, ₹ lakh and share of total.
-- **Data & drill-down**: see the next section.With a chart selected, the font box on the Home tab and the **Chart look** section of the right panel also style the chart. **Use on every chart** copies the look to all charts.
+- **Data & drill-down**: see the next section.
+
+With a chart selected, the font box on the Home tab and the **Chart look** section of the right panel also style the chart. **Use on every chart** copies the look to all charts.
 
 ## Drill-down and data
 
@@ -135,11 +139,24 @@ Design › **Load brand** reads colours, fonts and a logo from a brand skill fil
 
 ## Comments and AI prompts
 
-Use the 💬 buttons at the top (or the Review tab):
+Use the 💬 buttons at the top (or the Review tab) to leave comments:
 
-- **📍 Element**: click a part of the dashboard and write a comment. In Edit mode, the selected element is used.
-- **▭ Area**: drag a box over the screen. Mothership records what is inside it.
-- **⚡ Interaction**: comment on something you just did in Interact mode. Mothership remembers your recent steps (tabs, filters, drill-downs, pop-ups) and the current view; tick the steps that matter.Numbered pins mark each comment. Click a pin to edit, mark done or delete. **✨ Prompt** turns the comments into one clear set of instructions for any AI assistant (Claude, ChatGPT, Gemini, Copilot or your company tool). Attach the exported dashboard, or paste the file into the prompt when it is small. When exporting, you can leave the comments out of the file.
+- **📍 Element**: click a part of the dashboard. In Edit mode, the selected element is used.
+- **▭ Area**: drag a box over the screen. Mothership notes the charts and text inside it.
+- **⚡ Interaction**: comment on something you just did in Interact mode. Mothership remembers your recent steps (tabs, filters, drill-downs, pop-ups) and the current view.
+
+Every comment records exactly **where** it is: tab › section › card or chart › item, plus the data point you clicked and where it sits on the page. Numbered pins mark each one; click a pin to edit, close or delete it.
+
+### ✨ Prompt builder
+
+Press **✨ Prompt**. Pick, and the prompt rewrites itself as you go:
+
+1. **Which comments**: all open ones, only this tab, only must-fix, or pick by hand. A single comment also has **✨ Prompt for this one**.
+2. **What you want**: make the changes, polish for leadership, check the numbers first, or just a plan and questions.
+3. **Who will do it**: a **chat assistant** (you attach the file), a **coding agent** that has the file open, or an assistant connected to **Mothership over MCP**, which then uses Mothership’s own tools.
+4. **Answer as**: the whole updated file, only the changes, a plan, or a task list for a developer.
+
+Each comment in the prompt has its location, how to find it in the code, what the chart currently shows, and a **Done when** line so the assistant knows what success looks like. Copy it, save it as .md, or export the file to attach.
 
 ## Presenting
 
@@ -155,10 +172,171 @@ Use the 💬 buttons at the top (or the Review tab):
 
 Plugins (.js) add buttons to the Plugins tab. Recipes (.json) replay a list of edits (tabs, theme, tooltips, filters) on any dashboard, which is handy for a monthly refresh. See docs/EXTENDING.md in the Mothership folder.
 
+## Mothership theme and search
+
+Make Mothership itself easier on the eyes. Your dashboard is not affected.
+
+- **🎨** in the top bar, View › **Theme**, or the welcome screen: 8 ready-made looks (Classic, Daylight, Ocean, Forest, Saffron, Midnight, Slate dark, High contrast).
+- Pick light, dark, “Match Windows” or high contrast; any accent colour (or **Match brand** after loading a brand); a coloured or plain top bar; comfortable or compact spacing; text size; ribbon labels or icons only.
+- View › **Dark mode** switches in one click. Settings are saved in this browser.
+
+### 🔍 Search everything
+
+Press `Ctrl`+`K` (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.
+
+## Use with AI assistants (MCP)
+
+**MCP** (Model Context Protocol) lets an AI assistant use Mothership for you: “open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it”. The assistant calls Mothership’s tools; nothing goes to the internet from Mothership.
+
+```
+AI assistant ──▶ MCP server ──▶ Edge/Chrome ──▶ Mothership
+(any client)    (Python/Node)   (hidden)        (MS.api)
+```
+
+### 1. Pick the server that your laptop allows
+
+| You have | Run |
+|---|---|
+| Python 3.8+ (no pip needed) | `python tools/mcp/mothership_mcp.py` |
+| Node.js 16+ (no npm install needed) | `node tools/mcp/mothership-mcp.js` |
+
+Both need Edge or Chrome and offer the same ~75 tools. You don’t start them yourself: your AI assistant starts them.
+
+### 2. Connect your assistant
+
+**Claude Desktop**  
+Settings › Developer › Edit config, then add (change the path):
+
+```
+{
+  "mcpServers": {
+    "mothership": {
+      "command": "python",
+      "args": ["C:\\Users\\you\\HTML-Mothership\\tools\\mcp\\mothership_mcp.py"],
+      "env": { "MOTHERSHIP_OUT": "C:\\Users\\you\\Dashboards" }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. Use `"command": "node"` and `mothership-mcp.js` for the Node server.
+
+**Claude Code**  
+`claude mcp add mothership -- python tools/mcp/mothership_mcp.py` (the repo’s `.mcp.json` does this for the Node server).
+
+**Your own Python script or agent**  
+`tools/mcp/python_client.py` has a ready **MothershipClient** with nothing to install:
+
+```
+from python_client import MothershipClient
+with MothershipClient() as ms:
+    ms.call("open_file", path="sales.html")
+    ms.call("category_order", order=["North", "South", "East", "West"])
+    ms.call("category_colors", colors={"Retail": "#16a34a"})
+    print(ms.call("export_html")["saved"])
+```
+
+With the official SDK (`pip install mcp`): `StdioServerParameters(command="python", args=["tools/mcp/mothership_mcp.py"])`. Any MCP-capable framework works the same way.
+
+**Any other MCP client**  
+Command `python` (or `node`), argument: the server file. Transport: stdio.
+
+### 3. Ask in plain English
+
+- “Open C:\Dashboards\claims.html and tell me what is on each tab.”
+- “Use one order for regions on every chart: North, South, East, West. Make South green everywhere.”
+- “Add a Methodology tab from methodology.docx and a footer saying Source: Finance, FY 2024-25.”
+- “Take a screenshot of the Overview tab and check the numbers are in ₹ crore.”
+- “Apply my review comments” (paste a prompt from ✨ Prompt with “Mothership MCP” chosen).
+
+### Settings (optional “env”)
+
+| `MOTHERSHIP_HEADLESS=0` | Show the browser window so you can watch the edits. |
+|---|---|
+| `MOTHERSHIP_ATTACH=9222` | Work in *your* window: start Edge with `msedge --remote-debugging-port=9222`, open mothership.html, then connect. |
+| `MOTHERSHIP_OUT` | Folder for exports, prompts and screenshots. |
+| `MOTHERSHIP_BROWSER` | Full path to msedge.exe or chrome.exe if it isn’t found. |
+| `MOTHERSHIP_HTML` | Use dist/mothership-standalone.html instead. |
+
+Exports never overwrite your original: they are saved as `<name>-edited.html`. Every change can be undone (“undo the last three changes”).
+
+## FAQ
+
+**Does Mothership send my data anywhere?**  
+No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.
+
+**Do I need the internet or admin rights?**  
+No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.
+
+**My laptop has Python but not Node (or the reverse).**  
+Use the matching server: `tools/mcp/mothership_mcp.py` for Python, `tools/mcp/mothership-mcp.js` for Node. They have the same tools.
+
+**Neither Python nor Node is allowed.**  
+Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.
+
+**The server says it can’t find Edge or Chrome.**  
+Set `MOTHERSHIP_BROWSER` to the full path, e.g. `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
+
+**It says DevTools refused the connection, or the browser closes at once.**  
+Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.
+
+**How do I see what the assistant is doing?**  
+Set `MOTHERSHIP_HEADLESS=0` to show the window, or ask it for a *screenshot*. To edit in your own window, use `MOTHERSHIP_ATTACH` (see the MCP section).
+
+**Where are files saved? Can it overwrite my dashboard?**  
+In `MOTHERSHIP_OUT` (or the folder the assistant was started in) unless the assistant gives a path. The default export name is `<name>-edited.html`, so the original is kept.
+
+**Which AI assistants work?**  
+Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.
+
+**Can the assistant see my comments?**  
+Yes: *list_comments* and *comments_prompt* give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.
+
+**Can I change how Mothership looks?**  
+Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.
+
+**How do I find a command quickly?**  
+`Ctrl`+`K` and type what you want.
+
+**Will a KPI card turn red automatically?**  
+Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.
+
 ## Keyboard shortcuts
 
-`Ctrl+Z / Ctrl+Y`Undo / redo`Ctrl+C, X, V`Copy, cut, paste blocks`Ctrl+D`Duplicate`Delete`Delete the selection`Enter`Edit the selected text`Esc`Deselect / cancel commenting`Alt+↑`Select the parent`Alt+→ / Alt+←`Next / previous tab`Ctrl+F`Find & replace`Ctrl+S`Save a version`Ctrl+E`Export HTML`Ctrl+Shift+E`Save as…`Ctrl+O`Open`Ctrl+wheel`Zoom the dashboard`F5`Present
+| `Ctrl+K` | Search commands, charts, tabs and help |
+|---|---|
+| `Ctrl+Z / Ctrl+Y` | Undo / redo |
+| `Ctrl+C, X, V` | Copy, cut, paste blocks |
+| `Ctrl+D` | Duplicate |
+| `Delete` | Delete the selection |
+| `Enter` | Edit the selected text |
+| `Esc` | Deselect / cancel commenting |
+| `Alt+↑` | Select the parent |
+| `Alt+→ / Alt+←` | Next / previous tab |
+| `Ctrl+F` | Find & replace |
+| `Ctrl+S` | Save a version |
+| `Ctrl+E` | Export HTML |
+| `Ctrl+Shift+E` | Save as… |
+| `Ctrl+O` | Open |
+| `Ctrl+wheel` | Zoom the dashboard |
+| `F5` | Present |
 
 ## Problems and fixes
 
-Charts are blankThe dashboard loads its libraries or data from separate files or the internet. Use File › Open folder. If it needs the internet, turn off View › Network lock."Use this data" doesn't appearThe data isn't in the page (it may be fetched from a server). Use "the numbers drawn in this chart", or load a CSV/Excel export from the Data tab.My text change came back after reloadThat text is written by the page's script. Mothership re-applies your edit after the script runs; if the script writes it later, edit it in the source data instead.Copy prompt didn't workSome browsers block copying from local files. Click in the prompt box, press Ctrl+A then Ctrl+C, or use Save as .md.Versions/autosave are offThe browser blocks storage for local files (some Firefox or locked-down setups). Export still works.The page looks squashedView › Draw at › Auto, then ⤢ Fit.
+**Charts are blank**  
+The dashboard loads its libraries or data from separate files or the internet. Use File › Open folder. If it needs the internet, turn off View › Network lock.
+
+**"Use this data" doesn't appear**  
+The data isn't in the page (it may be fetched from a server). Use "the numbers drawn in this chart", or load a CSV/Excel export from the Data tab.
+
+**My text change came back after reload**  
+That text is written by the page's script. Mothership re-applies your edit after the script runs; if the script writes it later, edit it in the source data instead.
+
+**Copy prompt didn't work**  
+Some browsers block copying from local files. Click in the prompt box, press Ctrl+A then Ctrl+C, or use Save as .md.
+
+**Versions/autosave are off**  
+The browser blocks storage for local files (some Firefox or locked-down setups). Export still works.
+
+**The page looks squashed**  
+View › Draw at › Auto, then ⤢ Fit.

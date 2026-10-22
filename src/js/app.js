@@ -105,6 +105,8 @@
     MS.$$('[data-mode]').forEach(function (b) { b.addEventListener('click', function () { MS.setMode(b.getAttribute('data-mode')); }); });
     MS.$('#btn-export').addEventListener('click', MS.cmd.export);
     MS.$('#btn-present').addEventListener('click', MS.cmd.present);
+    MS.$('#btn-cmdk').addEventListener('click', function () { MS.palette(); });
+    MS.$('#btn-theme').addEventListener('click', function () { MS.ui.dialog(); });
     MS.$$('[data-act]').forEach(function (b) { b.addEventListener('click', function () { var a = b.getAttribute('data-act'); if (a === 'sample') MS.samples.open('sales'); else MS.cmd[a](); }); });
     // drag & drop files anywhere
     var dz = MS.$('#dropzone'), depth = 0;

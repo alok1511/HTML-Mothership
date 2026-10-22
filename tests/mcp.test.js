@@ -19,7 +19,10 @@ const check = (name, ok, detail) => { console.log((ok ? '  ✓ ' : '  ✗ ') + n
 
 const env = Object.assign({}, process.env, { MOTHERSHIP_OUT: OUT });
 if (process.env.CHROMIUM_PATH) env.MOTHERSHIP_BROWSER = process.env.CHROMIUM_PATH;
-const srv = cp.spawn(process.execPath, [path.join(ROOT, 'tools/mcp/mothership-mcp.js')], { env });
+// MOTHERSHIP_MCP=python tests the Python server instead of the Node one
+const PY = process.env.MOTHERSHIP_MCP === 'python' || process.argv.indexOf('--python') >= 0;
+const srv = PY ? cp.spawn(process.env.PYTHON || 'python3', [path.join(ROOT, 'tools/mcp/mothership_mcp.py')], { env }) : cp.spawn(process.execPath, [path.join(ROOT, 'tools/mcp/mothership-mcp.js')], { env });
+console.log('MCP server: ' + (PY ? 'Python' : 'Node'));
 let buf = '', id = 0; const pending = {};
 srv.stdout.on('data', d => {
   buf += d; let i;

@@ -146,8 +146,16 @@
       { key: 'format', label: 'Show as', type: 'select', options: FORMATS, value: k.format || '' },
       { key: 'note', label: 'Small note under the number', value: card.querySelector('.ms-kpi-note').textContent }
     ]);
+    var st = k.status || {};
+    var rag = MS.form([
+      { key: 'better', label: 'Which is better?', type: 'select', options: [{ value: '', label: 'No status colour' }, { value: 'high', label: 'Higher is better (sales, profit)' }, { value: 'low', label: 'Lower is better (cost, claims, delays)' }], value: k.status ? (st.better || 'high') : '' },
+      { key: 'good', label: 'Green (good) at or beyond', type: 'number', value: st.good != null ? st.good : '' },
+      { key: 'bad', label: 'Red (bad) at or beyond', type: 'number', value: st.bad != null ? st.bad : '' }
+    ]);
+    var body = MS.h('div', {}, [f, MS.h('h4', { 'class': 'rag-head', text: 'Status colours (red / amber / green)' }), rag,
+      MS.h('small', { 'class': 'hint', text: 'Use the raw numbers from the data, before ₹ crore or lakh formatting. In between is amber. The colour updates whenever filters change.' })]);
     f.inputs.dataset.addEventListener('change', function () { f.inputs.measure.innerHTML = ''; fieldsOf(f.inputs.dataset.value).forEach(function (o) { f.inputs.measure.appendChild(MS.h('option', { value: o.value, text: o.label })); }); });
-    MS.dialog({ title: 'KPI card', body: f, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
+    MS.dialog({ title: 'KPI card', body: body, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { var o = f.values(); o.rag = rag.values(); return o; } }] }).then(function (v) {
       if (!v) return;
       MS.history.group('KPI card', function () {
         var nid = id || rt.uid('k');
@@ -156,7 +164,7 @@
           var n = card.querySelector(p[0]), b = n.textContent; if (b === p[1]) return;
           n.textContent = p[1]; MS.history.push({ label: 'KPI text', undo: function () { n.textContent = b; }, redo: function () { n.textContent = p[1]; } }, true);
         });
-        MS.history.state('KPI settings', function (s) { s.kpis[nid] = { dataset: v.dataset, measure: v.measure, agg: v.agg, format: v.format }; });
+        MS.history.state('KPI settings', function (s) { s.kpis[nid] = { dataset: v.dataset, measure: v.measure, agg: v.agg, format: v.format }; var r = v.rag; if (r.better) s.kpis[nid].status = { better: r.better, good: r.good, bad: r.bad }; });
       });
     });
   };

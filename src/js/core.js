@@ -65,7 +65,7 @@ window.MS = window.MS || {};
   /* ---------- toast ---------- */
   MS.toast = function (msg, kind, ms) {
     var host = MS.$('#toasts');
-    var t = MS.h('div', { 'class': 'toast ' + (kind || '') }, [msg]);
+    var t = MS.h('div', { 'class': 'toast ' + (kind || '') }, [MS.icon ? MS.icon({ ok: 'checkCircle', warn: 'warning', error: 'xCircle' }[kind] || 'info') : null, MS.h('div', { 'class': 'grow' }, [msg])]);
     host.appendChild(t);
     setTimeout(function () { t.classList.add('out'); setTimeout(function () { t.remove(); }, 300); }, ms || (kind === 'error' ? 6000 : 3200));
   };

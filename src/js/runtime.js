@@ -918,8 +918,21 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       var val = aggregate(filteredRows(k.dataset), k.measure, k.agg || 'sum');
       var txt = val == null ? '–' : fmtNum(val, k.format || (k.agg === 'count' || k.agg === 'distinct' ? 'int' : ''));
       if (v.textContent !== txt) v.textContent = txt;
+      var st = kpiStatus(val, k.status);
+      if (st) { if (h.getAttribute('data-ms-status') !== st) h.setAttribute('data-ms-status', st); } else if (h.hasAttribute('data-ms-status')) h.removeAttribute('data-ms-status');
     });
   }
+  // red / amber / green: s = {better: 'high'|'low', good: n, bad: n}
+  function kpiStatus(val, s) {
+    if (!s || val == null) return '';
+    var g = s.good === '' || s.good == null ? NaN : Number(s.good), b = s.bad === '' || s.bad == null ? NaN : Number(s.bad);
+    if (isNaN(g) && isNaN(b)) return '';
+    var hi = s.better !== 'low';
+    if (!isNaN(g) && (hi ? val >= g : val <= g)) return 'good';
+    if (!isNaN(b) && (hi ? val <= b : val >= b)) return 'bad';
+    return isNaN(g) ? 'good' : isNaN(b) ? 'bad' : 'warn';
+  }
+  rt.kpiStatus = kpiStatus;
 
   /* ------------------------------------------------------------ hover pop-ups on any element ([data-ms-tip]) */
   var tipEl = null;
@@ -1057,6 +1070,10 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     '.ms-kpi-label{font-size:12px;color:var(--ms-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}',
     '.ms-kpi-value{font-size:26px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}',
     '.ms-kpi-note{font-size:12px;color:var(--ms-muted)}',
+    '.ms-kpi[data-ms-status=good]{border-top-color:#1a7f37}.ms-kpi[data-ms-status=warn]{border-top-color:#d4a106}.ms-kpi[data-ms-status=bad]{border-top-color:#c62828}',
+    '.ms-kpi[data-ms-status] .ms-kpi-value::before{content:"";display:inline-block;width:.42em;height:.42em;border-radius:50%;margin-right:.3em;vertical-align:.18em}',
+    '.ms-kpi[data-ms-status=good] .ms-kpi-value::before{background:#1a7f37}.ms-kpi[data-ms-status=warn] .ms-kpi-value::before{background:#d4a106}.ms-kpi[data-ms-status=bad] .ms-kpi-value::before{background:#c62828}',
+    '.ms-kpi[data-ms-status=bad] .ms-kpi-value{color:#c62828}',
     '[data-ms-chart]{position:relative;width:100%;height:100%}',
     '.ms-modal-wrap{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px}',
     '.ms-modal{background:var(--ms-surface);color:inherit;border-radius:12px;max-width:min(1100px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);min-width:320px}',
