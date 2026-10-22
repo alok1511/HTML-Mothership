@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.1.0';
+var VERSION = '2.2.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -344,11 +344,19 @@ var LOCAL = {
         fs.writeFileSync(file, r[0].prompt, 'utf8'); return { saved: file, comments: r[1].comments, characters: r[0].prompt.length };
       });
     } },
+  save_tracker: { description: 'Save every review comment as an Excel tracker (.xlsx) with tab, section, chart, comment, done-when, status, owner and due date.', props: { path: ['string', 'Where to save (default: <name> - review tracker.xlsx)'] },
+    run: function (a) {
+      return api('comments_tracker', {}).then(function (r) { var file = outPath(a.path, r.name); fs.writeFileSync(file, Buffer.from(r.b64, 'base64')); return { saved: file, comments: r.rows }; });
+    } },
+  load_tracker: { description: 'Update comments from an edited Excel tracker: status, priority, owner, due date, notes and wording (matched by the ID column).', props: { path: ['string', 'The .xlsx file', true] },
+    run: function (a) { return api('apply_tracker', { file: b64file(a.path) }); } },
+  compare_file: { description: 'What changed between a dashboard file on disk and what is open now (or a second file): tabs, text, chart settings, data, KPI cards, filters, colours, comments.', props: { path: ['string', 'The earlier .html file', true], after: ['string', 'A later .html file (default: the dashboard open now)'] },
+    run: function (a) { return api('compare_versions', { before_html: fs.readFileSync(resolvePath(a.path), 'utf8'), after_html: a.after ? fs.readFileSync(resolvePath(a.after), 'utf8') : undefined, after: a.after ? undefined : 'now' }); } },
   chart_image: { description: 'A PNG of one chart (shown to you, optionally saved).', props: { chart: ['string', 'Chart name or key', true], path: ['string', 'Also save it here'] },
     run: function (a) { return LOCAL.screenshot.run({ what: a.chart, path: a.path }); } }
 };
 // in-page tools that the file-system versions above replace
-var HIDDEN = { open_folder_files: 1, insert_content_file: 1 };
+var HIDDEN = { open_folder_files: 1, insert_content_file: 1, comments_tracker: 1, apply_tracker: 1 };
 
 function schemaOf(props) {
   var p = {}, req = [];

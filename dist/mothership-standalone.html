@@ -453,6 +453,41 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
 .rag-row { display: grid; grid-template-columns: 1fr 90px 90px 110px; gap: 8px; align-items: center; margin: 6px 0; }
 .rag-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
 
+/* ---------- chart summaries, number check, compare versions */
+.sum-list { display: flex; flex-direction: column; gap: 8px; max-height: 58vh; overflow: auto; padding-right: 4px; }
+.sum-row { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.sum-head { display: flex; align-items: center; gap: 8px; }
+.sum-head small { font-size: 11.5px; }
+.sum-text { margin: 6px 0 0; line-height: 1.5; color: var(--text-2); }
+.nc-sum { margin: 0 0 4px; font-size: 14px; }
+.nc-wrap { max-height: 56vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.nc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.nc-table th { position: sticky; top: 0; background: var(--panel-2, var(--panel)); text-align: left; font-weight: 600; padding: 7px 9px; border-bottom: 1px solid var(--line); }
+.nc-table td { padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.nc-table tr:last-child td { border-bottom: 0; }
+.nc-table tr.nc-diff td { background: var(--warn-weak); }
+.nc-table tr.nc-diff td:first-child { color: var(--warn); }
+.nc-table tr.nc-ok td:first-child { color: var(--ok); }
+.nc-table tr.nc-skip td { color: var(--muted); }
+.cmp-pick { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.cmp-pick .field { min-width: 220px; margin: 0; }
+.cmp-arrow { padding-bottom: 8px; color: var(--muted); }
+.cmp-list { max-height: 60vh; overflow: auto; padding-right: 4px; }
+.cmp-list h4 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.cmp-list h4:first-child { margin-top: 0; }
+.cmp-item { display: flex; gap: 10px; padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; border-left: 3px solid transparent; background: var(--panel); line-height: 1.45; }
+.cmp-add { border-left-color: var(--ok); background: var(--ok-weak); }
+.cmp-del { border-left-color: var(--danger); background: var(--danger-weak); }
+.cmp-chg { border-left-color: var(--warn); background: var(--warn-weak); }
+.cmp-op { font-weight: 700; width: 12px; flex: none; }
+.cmp-ba { font-size: 12px; margin-top: 2px; color: var(--text-2); word-break: break-word; }
+.cmp-ba del { color: var(--danger); } .cmp-ba ins { color: var(--ok); text-decoration: none; }
+.cmp-none { color: var(--muted); padding: 18px 4px; }
+.cmp-sbs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cmp-cap { font-size: 12px; margin-bottom: 4px; color: var(--text-2); }
+.cmp-frame { height: 58vh; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; position: relative; }
+.cmp-frame iframe { width: 200%; height: 200%; border: 0; transform: scale(.5); transform-origin: 0 0; }
+
 </style>
 </head>
 <body>
@@ -758,6 +793,10 @@ window.MS = window.MS || {};
     lineChart: 'M4 20h16 M4 16l5-5 4 3 7-8',
     pieChart: 'M12 3a9 9 0 1 0 9 9h-9z M15 3.5A9 9 0 0 1 20.5 9H15z',
     gauge: 'M12 14l4-4 M3.5 18a9 9 0 1 1 17 0',
+    calc: ['M8 7h8 M8 11h.01 M12 11h.01 M16 11h.01 M8 15h.01 M12 15h.01 M16 15v3 M8 18h.01 M12 18h.01', '<rect x="5" y="3" width="14" height="18" rx="2"/>'],
+    sheet: ['M4 9h16 M4 14h16 M10 9v11 M14 4l-3 3', '<rect x="4" y="4" width="16" height="16" rx="2"/>'],
+    compare: 'M12 3v18 M5 7h4 M15 7h4 M3 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M17 14l2-7 2 7a2.5 2.5 0 0 1-4 0z M8 21h8',
+    captions: ['M7 11h4 M13 11h4 M7 15h7 M16 15h1', '<rect x="3" y="5" width="18" height="14" rx="2"/>'],
     tabs: 'M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M3 8V5a1 1 0 0 1 1-1h5l2 4 M11 8V5a1 1 0 0 1 1-1h4l2 4',
     panelTop: ['M3 9h18', '<rect x="3" y="3" width="18" height="18" rx="2"/>'],
     panelLeft: ['M9 3v18', '<rect x="3" y="3" width="18" height="18" rx="2"/>'],
@@ -838,7 +877,7 @@ window.MS = window.MS || {};
     '📱': 'phone', '🛡': 'shield', '🔒': 'lock', '－': 'minus', '＋': 'plus', '⤢': 'fit', '▶': 'play', '🧩': 'puzzle', '📜': 'scroll', '📖': 'book',
     '🧭': 'compass', '🎓': 'graduation', '❓': 'help', 'ℹ': 'info', '⌨': 'keyboard', '📍': 'pin', '📌': 'pushpin', '⚡': 'zap', '☝': 'pointer',
     '✕': 'close', '✓': 'check', '🔗': 'link', '🗒': 'note', '👁': 'eye', '⚠': 'warning', '―': 'divider', '1:1': 'ruler', '▥': 'columns', '◆': 'diamond',
-    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '−': 'minus', '+': 'plus'
+    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '−': 'minus', '+': 'plus'
   };
   // symbols that are also ordinary characters: only swapped when they are the whole label
   var WHOLE_ONLY = { 'H': 1, '¶': 1, '≡': 1, '―': 1, '1:1': 1, '↕': 1, '⋯': 1, '－': 1, '＋': 1, '✓': 1, '✕': 1, '◆': 1, '⠿': 1, '▁': 1, '−': 1, '+': 1 };
@@ -1641,6 +1680,244 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     fill: function (e) { window.Plotly.relayout(e, { autosize: true }); },
     resize: function (e) { try { window.Plotly.Plots.resize(e); } catch (x) {} }
   };
+  // An <svg> drawn onto a white canvas, as a PNG (Highcharts and D3 charts).
+  function svgImage(svg, scale) {
+    return new Promise(function (res, rej) {
+      var r = svg.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+      var c = svg.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', w); c.setAttribute('height', h);
+      if (!c.getAttribute('viewBox') && !svg.getAttribute('viewBox')) c.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      var cs = getComputedStyle(svg); c.style.fontFamily = cs.fontFamily; c.style.fontSize = cs.fontSize;
+      var img = new Image(), s = scale || 2;
+      img.onload = function () {
+        var out = document.createElement('canvas'); out.width = w * s; out.height = h * s;
+        var x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.drawImage(img, 0, 0, out.width, out.height);
+        res(out.toDataURL('image/png'));
+      };
+      img.onerror = function () { rej(new Error('The chart could not be drawn as an image.')); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
+    });
+  }
+  rt.svgImage = svgImage;
+
+  A.highcharts = {
+    list: function () {
+      var H = window.Highcharts;
+      if (!H || !H.charts) return [];
+      return H.charts.filter(function (c) { return c && c.renderTo && c.renderTo.isConnected; }).map(function (c) { return { el: c.renderTo, inst: c }; });
+    },
+    pie: function (c) { var s = c.series[0]; return !!s && /pie|funnel|pyramid|variablepie/.test(s.type); },
+    labelsOf: function (c) {
+      var ax = c.xAxis && c.xAxis[0], s = c.series[0];
+      if (!this.pie(c) && ax && ax.categories && ax.categories.length) return ax.categories.slice();
+      return s ? (s.options.data || []).map(function (d, j) { var p = s.points && s.points[j]; return String(p && p.name != null ? p.name : (d && d.name != null ? d.name : (Array.isArray(d) && typeof d[0] === 'string' ? d[0] : (p && p.category != null ? p.category : j + 1)))); }) : [];
+    },
+    info: function (c) {
+      var o = c.options || {}, t = o.title && o.title.text;
+      return { type: (o.chart && o.chart.type) || (c.series[0] && c.series[0].type) || 'line', title: t || '', labels: this.labelsOf(c).slice(0, 200), series: c.series.map(function (s) { return s.name || ''; }) };
+    },
+    data: function (c, now) {
+      var O = !now && c.__msOrig, labels = O ? O.labels : this.labelsOf(c);
+      var src = O ? O.series : c.series.map(function (s) { return { name: s.name, data: s.options.data || [] }; });
+      return { labels: labels, series: src.map(function (s, k) { return { name: s.name || ('Series ' + (k + 1)), values: (s.data || []).map(function (d) { return num(Array.isArray(d) ? d[d.length - 1] : d); }) }; }) };
+    },
+    colors: function (c, labels) {
+      var out = {};
+      if (c.series.length > 1 && !this.pie(c)) c.series.forEach(function (s) { if (s.name && typeof s.color === 'string') out[s.name] = s.color; });
+      else if (c.series[0]) (c.series[0].points || []).forEach(function (p, j) { if (typeof p.color === 'string') out[labels[j]] = p.color; });
+      return out;
+    },
+    snapshot: function (c) {
+      if (c.__msOrig) return;
+      var tt = c.options.tooltip || {};
+      c.__msOrig = { labels: this.labelsOf(c), series: c.series.map(function (s) { return { name: s.name, data: deepClone(s.options.data || []), color: s.options.color, colors: deepClone(s.options.colors) }; }), formatter: tt.formatter, useHTML: tt.useHTML, colors: deepClone(c.options.colors) };
+    },
+    setTooltip: function (c, fn) {
+      this.snapshot(c);
+      var O = c.__msOrig;
+      if (!fn) { c.update({ tooltip: { formatter: O.formatter || function () { return this.defaultFormatter.call(this, this.series.chart.tooltip); }, useHTML: !!O.useHTML } }, true, false, false); return; }
+      c.update({ tooltip: { useHTML: true, formatter: function () {
+        var p = this.point || {}, s = this.series || p.series || {};
+        var vals = (s.points || []).map(function (q) { return q.y; });
+        var label = p.name != null ? p.name : (this.key != null ? this.key : p.category);
+        return esc(fn({ label: label, series: s.name, value: this.y, index: p.index, total: this.total != null && !/pie/.test(s.type) ? this.total : sum(vals) })).replace(/\n/g, '<br>');
+      } } }, true, false, false);
+    },
+    setCatColors: function (c, map) {
+      var labels = this.labelsOf(c);
+      if (c.series.length > 1 && !this.pie(c)) c.series.forEach(function (s) { var col = map[s.name]; if (col) s.update({ color: col }, false); });
+      else if (c.series[0]) (c.series[0].points || []).forEach(function (p, j) { var col = map[labels[j]]; if (col) p.update({ color: col }, false, false); });
+      c.redraw(false);
+    },
+    image: function (c) { return svgImage(c.container.querySelector('svg')); },
+    setPalette: function (c, colors) {
+      this.snapshot(c);
+      var O = c.__msOrig, pie = this.pie(c);
+      c.update({ colors: colors || O.colors || window.Highcharts.getOptions().colors }, false);
+      c.series.forEach(function (s, k) {
+        var o = O.series[k] || {};
+        if (pie) { s.update({ colors: colors || o.colors || undefined }, false); (s.points || []).forEach(function (p, j) { var pal = colors || o.colors || window.Highcharts.getOptions().colors; p.update({ color: pal[j % pal.length] }, false, false); }); }
+        else s.update({ color: colors ? colors[k % colors.length] : (o.color || (O.colors || window.Highcharts.getOptions().colors)[k % 10]) }, false);
+      });
+      c.redraw(false);
+    },
+    setData: function (c, labels, series) {
+      this.snapshot(c);
+      var O = c.__msOrig, pie = this.pie(c), ax = c.xAxis && c.xAxis[0];
+      if (!labels) {
+        if (ax && !pie && O.labels.length) ax.setCategories(O.labels.slice(), false);
+        O.series.forEach(function (o, k) { var s = c.series[k]; if (s) { s.setData(deepClone(o.data), false); s.update({ name: o.name }, false); } });
+        while (c.series.length > O.series.length) c.series[c.series.length - 1].remove(false);
+        c.redraw(); return;
+      }
+      if (ax && !pie) ax.setCategories(labels.slice(), false);
+      series.forEach(function (sr, k) {
+        var data = pie ? labels.map(function (l, j) { return { name: l, y: sr.values[j] }; }) : sr.values.slice();
+        var s = c.series[k];
+        if (s) { s.setData(data, false); if (sr.name) s.update({ name: sr.name }, false); }
+        else c.addSeries({ name: sr.name, data: data, type: c.series[0] && c.series[0].type }, false);
+      });
+      while (c.series.length > series.length) c.series[c.series.length - 1].remove(false);
+      c.redraw();
+    },
+    setStyle: function (c, st) {
+      var o = c.options;
+      var grab = function (x) { return x ? deepClone(x) : {}; };
+      if (!c.__msStyleOrig) {
+        var tt = o.tooltip || {};
+        c.__msStyleOrig = { style: grab(o.chart && o.chart.style), title: grab(o.title && o.title.style), legend: { enabled: o.legend ? o.legend.enabled !== false : true, align: (o.legend || {}).align || 'center', verticalAlign: (o.legend || {}).verticalAlign || 'bottom', layout: (o.legend || {}).layout || 'horizontal', itemStyle: grab((o.legend || {}).itemStyle) },
+          tip: { backgroundColor: tt.backgroundColor, borderColor: tt.borderColor, borderRadius: tt.borderRadius, style: grab(tt.style) },
+          x: (c.xAxis || []).map(function (a) { return { labels: { style: grab(a.options.labels && a.options.labels.style), formatter: a.options.labels && a.options.labels.formatter } }; }),
+          y: (c.yAxis || []).map(function (a) { return { labels: { style: grab(a.options.labels && a.options.labels.style), formatter: a.options.labels && a.options.labels.formatter } }; }) };
+      }
+      var B = deepClone(c.__msStyleOrig), u = { chart: { style: B.style }, title: { style: B.title }, legend: B.legend, tooltip: B.tip };
+      var axes = function (list, isY) { return list.map(function (a) { a = deepClone(a); if (!a.labels.formatter) a.labels.formatter = function () { return this.axis.defaultLabelFormatter.call(this); }; if (st) { if (st.size) a.labels.style.fontSize = st.size + 'px'; if (st.color) a.labels.style.color = st.color; if (isY && st.axisFormat) a.labels.formatter = function () { return fmtNum(this.value, st.axisFormat); }; } return a; }); };
+      if (st) {
+        if (st.font) u.chart.style.fontFamily = st.font;
+        if (st.color) { u.title.style.color = st.color; u.legend.itemStyle.color = st.color; }
+        if (st.size) u.legend.itemStyle.fontSize = st.size + 'px';
+        if (st.legend === 'none') u.legend.enabled = false;
+        else if (st.legend) {
+          u.legend.enabled = true;
+          var side = st.legend === 'left' || st.legend === 'right';
+          u.legend.layout = side ? 'vertical' : 'horizontal'; u.legend.align = side ? st.legend : 'center'; u.legend.verticalAlign = side ? 'middle' : st.legend;
+        }
+        if (st.tipBg) u.tooltip.backgroundColor = st.tipBg;
+        if (st.tipBorder) u.tooltip.borderColor = st.tipBorder;
+        if (st.tipColor) u.tooltip.style.color = st.tipColor;
+        if (st.tipSize) u.tooltip.style.fontSize = st.tipSize + 'px';
+        if (st.tipRadius !== undefined && st.tipRadius !== '') u.tooltip.borderRadius = +st.tipRadius;
+      }
+      if (B.x.length) u.xAxis = axes(B.x, false);
+      if (B.y.length) u.yAxis = axes(B.y, true);
+      c.update(u, true, false, false);
+    },
+    onDbl: function (elm, c, cb) {
+      elm.addEventListener('dblclick', function () {
+        var p = c.hoverPoint; if (!p) return;
+        cb({ label: p.name != null ? p.name : p.category, index: p.index, series: p.series.index });
+      });
+    },
+    clone: function (c, target) { var H = window.Highcharts; return H.chart(target, H.merge(c.userOptions, { chart: { renderTo: target } })); },
+    fill: function (c) { try { c.update({ chart: { height: null } }, false); c.reflow(); } catch (e) {} },
+    resize: function (c) { try { c.reflow(); } catch (e) {} }
+  };
+
+  /* D3 (or any script) drawing an SVG whose marks carry their data. Basic support:
+     names, pop-ups, colours, look, summaries, image and comments; the data itself is the page's own. */
+  A.d3 = {
+    basic: true,
+    marks: function (svg) {
+      return Array.prototype.filter.call(svg.querySelectorAll('rect,path,circle,ellipse,polygon'), function (m) {
+        var d = m.__data__; if (d == null || typeof d !== 'object') return false;
+        if (m.closest('.domain,.tick,[class*=axis],[class*=legend]')) return false;
+        return A.d3.valueOf(d) != null;
+      });
+    },
+    pick: function (d, want) { // first string (label) / number (value) field of a datum
+      if (d && d.data && typeof d.data === 'object' && d.startAngle != null) d = d.data; // d3.pie()
+      if (Array.isArray(d)) return want === 'str' ? (typeof d[0] === 'string' ? d[0] : null) : (typeof d[1] === 'number' ? d[1] : null);
+      var pref = want === 'str' ? ['label', 'name', 'category', 'key', 'region', 'x'] : ['value', 'y', 'amount', 'total', 'count', 'v'];
+      for (var i = 0; i < pref.length; i++) { var v = d[pref[i]]; if (want === 'str' ? (typeof v === 'string' || v instanceof Date) : (typeof v === 'number' && isFinite(v))) return v instanceof Date ? v.toLocaleDateString('en-IN') : v; }
+      for (var k in d) { var x = d[k]; if (want === 'str' ? typeof x === 'string' : (typeof x === 'number' && isFinite(x) && !/^(index|id|x0|x1|y0|y1|startAngle|endAngle|padAngle)$/.test(k))) return x; }
+      return null;
+    },
+    labelOf: function (d, j) { var l = this.pick(d, 'str'); return l == null ? String(j + 1) : String(l); },
+    valueOf: function (d) { return this.pick(d, 'num'); },
+    list: function () {
+      if (!window.d3) return [];
+      var out = [];
+      Array.prototype.forEach.call(D.querySelectorAll('svg'), function (svg) {
+        if (svg.closest('.highcharts-container,.js-plotly-plot,[_echarts_instance_],[data-ms-editor]') || (svg.parentNode && svg.parentNode.closest && svg.parentNode.closest('svg'))) return;
+        var r = svg.getBoundingClientRect();
+        if ((r.width && r.width < 120) || (r.height && r.height < 80)) return;
+        if (A.d3.marks(svg).length >= 2) out.push({ el: svg, inst: svg });
+      });
+      return out;
+    },
+    kind: function (svg, marks) {
+      var m = marks[0], d = m.__data__;
+      if (d && d.startAngle != null) return 'pie';
+      if (m.tagName === 'circle' || m.tagName === 'ellipse') return 'scatter';
+      if (m.tagName === 'rect') { var b0 = m.getBBox(); return b0.width > b0.height * 1.5 && marks.length > 1 && Math.abs(marks[0].getBBox().x - marks[1].getBBox().x) < 1 ? 'hbar' : 'bar'; }
+      return 'line';
+    },
+    titleOf: function (svg) {
+      var t = svg.querySelector('title'), a = svg.getAttribute('aria-label');
+      if (a) return a;
+      if (t && t.parentNode === svg) return t.textContent;
+      var big = Array.prototype.filter.call(svg.querySelectorAll('text'), function (x) { return /title/i.test(x.getAttribute('class') || ''); })[0];
+      return big ? big.textContent : '';
+    },
+    info: function (svg) {
+      var ms = this.marks(svg), self = this;
+      return { type: this.kind(svg, ms), title: this.titleOf(svg), labels: ms.map(function (m, j) { return self.labelOf(m.__data__, j); }).slice(0, 200), series: [''] };
+    },
+    data: function (svg) {
+      var ms = this.marks(svg), self = this;
+      var d0 = ms[0] && ms[0].__data__, v0 = d0 && this.valueOf(d0), src = d0 && d0.startAngle != null ? d0.data : d0, nm = 'Value';
+      if (src && typeof src === 'object' && !Array.isArray(src)) Object.keys(src).some(function (k) { if (src[k] === v0) { nm = k.charAt(0).toUpperCase() + k.slice(1); return true; } return false; });
+      return { labels: ms.map(function (m, j) { return self.labelOf(m.__data__, j); }), series: [{ name: nm, values: ms.map(function (m) { return self.valueOf(m.__data__); }) }] };
+    },
+    colors: function (svg, labels) {
+      var out = {};
+      this.marks(svg).forEach(function (m, j) { var f = getComputedStyle(m).fill; if (f && f !== 'none') out[labels[j]] = f; });
+      return out;
+    },
+    snapshot: function () {},
+    setTooltip: function (svg, fn) {
+      var ms = this.marks(svg), self = this, vals = ms.map(function (m) { return self.valueOf(m.__data__); }), tot = sum(vals);
+      ms.forEach(function (m, j) {
+        if (!fn) { m.removeAttribute('data-ms-tip'); return; }
+        m.setAttribute('data-ms-tip', fn({ label: self.labelOf(m.__data__, j), series: '', value: vals[j], index: j, total: tot }));
+      });
+    },
+    paint: function (svg, colorOf) {
+      this.marks(svg).forEach(function (m, j) {
+        var c = colorOf(m, j);
+        var line = m.tagName === 'path' && getComputedStyle(m).fill === 'none';
+        if (c) { if (line) m.style.stroke = c; else m.style.fill = c; } else { m.style.fill = ''; m.style.stroke = ''; }
+      });
+    },
+    setCatColors: function (svg, map) { var self = this; this.paint(svg, function (m, j) { return map[self.labelOf(m.__data__, j)] || m.style.fill || m.style.stroke || null; }); },
+    setPalette: function (svg, colors) { var pie = this.kind(svg, this.marks(svg)) === 'pie'; this.paint(svg, function (m, j) { return colors ? colors[pie ? j % colors.length : 0] : null; }); },
+    setData: function () {},
+    setStyle: function (svg, st) {
+      Array.prototype.forEach.call(svg.querySelectorAll('text'), function (t) {
+        t.style.fontFamily = st && st.font || ''; t.style.fontSize = st && st.size ? st.size + 'px' : ''; t.style.fill = st && st.color || '';
+      });
+    },
+    onDbl: function (svg, i, cb) {
+      var self = this;
+      svg.addEventListener('dblclick', function (e) {
+        var ms = self.marks(svg), j = ms.indexOf(e.target);
+        if (j >= 0) cb({ label: self.labelOf(ms[j].__data__, j), index: j, series: 0 });
+      });
+    },
+    image: function (svg) { return svgImage(svg); },
+    clone: function (svg, target) { var c = svg.cloneNode(true); c.style.maxWidth = '100%'; target.appendChild(c); return c; },
+    fill: function () {},
+    resize: function () {}
+  };
   rt.adapters = A;
 
   /* ------------------------------------------------------------ chart registry */
@@ -1672,19 +1949,20 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   };
   // The numbers a chart was drawn with (before any binding), as labels + series.
   function num(v) { var n = Number(v && typeof v === 'object' ? (v.y != null ? v.y : v.value != null ? (Array.isArray(v.value) ? v.value[v.value.length - 1] : v.value) : v.x) : v); return isNaN(n) ? null : n; }
-  rt.chartData = function (key) {
+  rt.chartData = function (key, now) {
     var c = rt.chart(key); if (!c) return null;
     var i = c.inst, labels = [], series = [];
-    if (c.lib === 'chartjs') {
-      var O = i.__msOrig;
+    if (c.a.data) { var dd = c.a.data(i, now); labels = dd.labels; series = dd.series; }
+    else if (c.lib === 'chartjs') {
+      var O = !now && i.__msOrig;
       labels = (O ? O.labels : i.data.labels) || [];
       series = (O ? O.datasets : i.data.datasets).map(function (d, k) { return { name: d.label || ('Series ' + (k + 1)), values: (d.data || []).map(num) }; });
     } else if (c.lib === 'echarts') {
-      var o = i.__msOrig || i.getOption(), ax = A.echarts.cat(o), ss = o.series || [];
+      var o = (!now && i.__msOrig) || i.getOption(), ax = A.echarts.cat(o), ss = o.series || [];
       labels = ax ? (o[ax][0].data || []).map(function (x) { return x && typeof x === 'object' ? x.value : x; }) : ((ss[0] || {}).data || []).map(function (d) { return d && d.name; });
       series = ss.map(function (x, k) { return { name: x.name || ('Series ' + (k + 1)), values: (x.data || []).map(num) }; });
     } else {
-      var tr = i.__msOrig || i.data;
+      var tr = (!now && i.__msOrig) || i.data;
       labels = [].slice.call(A.plotly.lv(tr[0] || {}).l);
       series = tr.map(function (t, k) { return { name: t.name || ('Series ' + (k + 1)), values: [].map.call(A.plotly.lv(t).v, num) }; });
     }
@@ -1730,7 +2008,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var c = rt.chart(key); if (!c) return {};
     var info = c.a.info(c.inst), out = {}, labels = info.labels || [], series = info.series || [];
     try {
-      if (c.lib === 'chartjs') {
+      if (c.a.colors) out = c.a.colors(c.inst, labels);
+      else if (c.lib === 'chartjs') {
         var ds = c.inst.data.datasets, radial = /pie|doughnut|polarArea/.test(c.inst.config.type);
         if (ds.length > 1 && !radial) ds.forEach(function (d) { var b = d.borderColor || d.backgroundColor; if (d.label && typeof b === 'string') out[d.label] = b; });
         else { var bg = ds[0] && ds[0].backgroundColor; labels.forEach(function (l, j) { var v = Array.isArray(bg) ? bg[j % bg.length] : bg; if (typeof v === 'string') out[l] = v; }); }
@@ -1747,6 +2026,82 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     Object.keys(out).forEach(function (k) { if (!out[k] || typeof out[k] !== 'string') delete out[k]; });
     return out;
   };
+  /* ------------------------------------------------------------ plain-language chart summaries */
+  var MONTHS = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b|^(q[1-4]|h[12])\b|^(fy|cy)\s?'?\d{2}|^\d{4}([-\/]\d{1,2})?([-\/]\d{1,2})?$|^w(ee)?k\s?\d+/i;
+  function words(n) { return n === 1 ? '' : 's'; }
+  function sumFmt(st, hint) {
+    var f = st && st.axisFormat;
+    if (f) return function (v) { return fmtNum(v, f); };
+    var money = /₹|rs\.?\b|inr|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
+    var pct = /%|percent|ratio|rate|share|margin %/i.test(hint);
+    return function (v) {
+      if (v == null) return '–';
+      var a = Math.abs(v), IN = function (x, d) { return x.toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: 0 }); };
+      if (pct && a <= 100) return IN(v, 1) + '%';
+      if (a >= 1e7) return (money ? '₹' : '') + IN(v / 1e7, 2) + (money ? ' Cr' : ' crore');
+      if (a >= 1e5) return (money ? '₹' : '') + IN(v / 1e5, 2) + (money ? ' L' : ' lakh');
+      return (money ? '₹' : '') + IN(v, a < 10 ? 2 : 0);
+    };
+  }
+  function pctOf(v, t) { return t ? Math.round(v / t * 100) + '%' : ''; }
+  rt.summarize = function (key, name) {
+    var c = rt.chart(key); if (!c) return '';
+    var d = rt.chartData(key, true), info = c.a.info(c.inst) || {};
+    if (!d || !d.labels.length || !d.series.length) return '';
+    var type = String(info.type || ''), cs = rt.state.charts[key] || {};
+    var f = sumFmt(cs.style, [name, info.title, d.series.map(function (s) { return s.name; }).join(' ')].join(' '));
+    var L = d.labels, n = L.length, S = d.series.filter(function (s) { return s.values.some(function (v) { return v != null; }); });
+    if (!S.length) return '';
+    var lead = name ? name + ': ' : '';
+    var trend = /line|area/.test(type) || (n >= 4 && L.filter(function (l) { return MONTHS.test(String(l).trim()); }).length >= n * 0.6);
+    var pts = function (s) { return L.map(function (l, j) { return { l: l, v: s.values[j] }; }).filter(function (p) { return p.v != null; }); };
+    var tot = function (s) { return s.values.reduce(function (a, v) { return a + (v || 0); }, 0); };
+    var out = [];
+    if (S.length === 1 || /pie|doughnut|funnel/.test(type)) {
+      var s = S[0], p = pts(s), T = tot(s);
+      if (!p.length) return '';
+      var hi = p.reduce(function (a, b) { return b.v > a.v ? b : a; }), lo = p.reduce(function (a, b) { return b.v < a.v ? b : a; });
+      if (trend && p.length >= 2) {
+        var a0 = p[0], z = p[p.length - 1], ch = a0.v ? (z.v - a0.v) / Math.abs(a0.v) * 100 : null;
+        out.push(lead + (z.v > a0.v ? 'Rose' : z.v < a0.v ? 'Fell' : 'Flat') + ' from ' + f(a0.v) + ' in ' + a0.l + ' to ' + f(z.v) + ' in ' + z.l + (ch != null && z.v !== a0.v ? ' (' + (ch > 0 ? '+' : '') + Math.round(ch) + '%)' : '') + '.');
+        out.push('Highest ' + f(hi.v) + ' in ' + hi.l + '; lowest ' + f(lo.v) + ' in ' + lo.l + '.');
+      } else if (/pie|doughnut|funnel/.test(type)) {
+        var by = p.slice().sort(function (a, b) { return b.v - a.v; });
+        out.push(lead + by[0].l + ' is the largest share at ' + f(by[0].v) + ' (' + pctOf(by[0].v, T) + ')' + (by[1] ? ', followed by ' + by[1].l + ' (' + pctOf(by[1].v, T) + ')' : '') + '.');
+        if (by.length > 2) out.push('The smallest is ' + by[by.length - 1].l + ' (' + pctOf(by[by.length - 1].v, T) + '). Total ' + f(T) + '.');
+      } else {
+        var srt = p.slice().sort(function (a, b) { return b.v - a.v; }), top = srt.slice(0, Math.min(3, srt.length - 1));
+        out.push(lead + p.length + ' item' + words(p.length) + ', total ' + f(T) + '. ' + hi.l + ' is highest at ' + f(hi.v) + (T > 0 ? ' (' + pctOf(hi.v, T) + ')' : '') + '; ' + lo.l + ' is lowest at ' + f(lo.v) + '.');
+        if (p.length >= 5 && T > 0) out.push('The top ' + top.length + ' make up ' + pctOf(top.reduce(function (a, b) { return a + b.v; }, 0), T) + ' of the total.');
+      }
+    } else {
+      var tots = S.map(function (s) { return { s: s.name, t: tot(s) }; }).sort(function (a, b) { return b.t - a.t; });
+      if (trend) {
+        out.push(lead + S.length + ' series from ' + L[0] + ' to ' + L[n - 1] + '.');
+        S.slice(0, 4).forEach(function (s) { var p = pts(s); if (p.length < 2) return; var a0 = p[0].v, z = p[p.length - 1].v; out.push(s.name + ' ' + (z > a0 ? 'rose' : z < a0 ? 'fell' : 'was flat') + ' from ' + f(a0) + ' to ' + f(z) + '.'); });
+      } else {
+        out.push(lead + S.length + ' series across ' + n + ' categor' + (n === 1 ? 'y' : 'ies') + '. ' + tots.slice(0, 3).map(function (x) { return x.s + ' totals ' + f(x.t); }).join(', ') + '.');
+        var best = S[0], bp = pts(best);
+        if (bp.length) { var bh = bp.reduce(function (a, b) { return b.v > a.v ? b : a; }); out.push(best.name + ' is highest in ' + bh.l + ' (' + f(bh.v) + ').'); }
+      }
+    }
+    var fl = []; Object.keys(rt.filterValues || {}).forEach(function (ds) { var fv = rt.filterValues[ds]; Object.keys(fv).forEach(function (k) { if (fv[k] !== '' && fv[k] != null) fl.push(k + ' = ' + fv[k]); }); });
+    if (fl.length && cs.binding) out.push('Filtered to ' + fl.join(', ') + '.');
+    return out.join(' ');
+  };
+  function renderSummary(c) {
+    var cs = rt.state.charts[c.key] || {}, sm = cs.summary, host = c.el.closest('.ms-visual') || (c.el.tagName === 'CANVAS' && c.el.parentNode !== D.body ? c.el.parentNode : c.el);
+    var cap = host.parentNode && host.parentNode.querySelector(':scope > .ms-summary[data-for="' + c.key.replace(/"/g, '') + '"]');
+    if (!sm) { if (cap) cap.remove(); if (c.el.__msAria) { c.el.removeAttribute('aria-label'); c.el.removeAttribute('role'); c.el.__msAria = false; } return; }
+    var text = rt.summarize(c.key, sm.name);
+    if (!text) return;
+    if (c.el.tagName !== 'CANVAS' || !c.el.getAttribute('aria-label') || c.el.__msAria) { c.el.setAttribute('role', 'img'); c.el.setAttribute('aria-label', text); c.el.__msAria = true; }
+    if (sm.show === 'caption') {
+      if (!cap) { cap = el('p', { 'class': 'ms-summary', 'data-for': c.key }); host.parentNode.insertBefore(cap, host.nextSibling); }
+      if (cap.textContent !== text) cap.textContent = text;
+    } else if (cap) cap.remove();
+  }
+  rt.renderSummary = renderSummary;
   rt.setChart = function (key, patch) {
     var cs = rt.state.charts[key] = rt.state.charts[key] || {};
     Object.keys(patch).forEach(function (k) { if (patch[k] === null) delete cs[k]; else cs[k] = patch[k]; });
@@ -1999,6 +2354,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       }
       if (!c.el.__msDbl) { c.el.__msDbl = true; c.a.onDbl(c.el, c.inst, function (hit) { onChartDbl(rt.chart(c.key) || c, hit); }); }
       if (c.el.closest('.ms-block:not(.ms-inline) .ms-visual') && !c.inst.__msFill) { c.inst.__msFill = true; c.a.fill(c.inst); }
+      renderSummary(c);
     } catch (e) { console.warn('[Mothership] chart apply failed', c.key, e); }
   }
 
@@ -2244,6 +2600,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     '.ms-kpi-label{font-size:12px;color:var(--ms-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}',
     '.ms-kpi-value{font-size:26px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}',
     '.ms-kpi-note{font-size:12px;color:var(--ms-muted)}',
+    '.ms-summary{font-size:12.5px;line-height:1.45;color:var(--ms-muted);margin:6px 2px 0}',
     '.ms-kpi[data-ms-status=good]{border-top-color:#1a7f37}.ms-kpi[data-ms-status=warn]{border-top-color:#d4a106}.ms-kpi[data-ms-status=bad]{border-top-color:#c62828}',
     '.ms-kpi[data-ms-status] .ms-kpi-value::before{content:"";display:inline-block;width:.42em;height:.42em;border-radius:50%;margin-right:.3em;vertical-align:.18em}',
     '.ms-kpi[data-ms-status=good] .ms-kpi-value::before{background:#1a7f37}.ms-kpi[data-ms-status=warn] .ms-kpi-value::before{background:#d4a106}.ms-kpi[data-ms-status=bad] .ms-kpi-value::before{background:#c62828}',
@@ -4320,7 +4677,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     dsSel.addEventListener('change', function () { levels = []; drawData(); drawSuggest(); });
     drawData();
     drawSuggest();
-    var dataPane = MS.h('div', {}, [suggest, MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
+    var dataPane = c.a.basic ? MS.h('div', {}, [MS.h('p', { 'class': 'hint', html: 'This chart is drawn by the page\'s own script (D3 or similar), so Mothership can\'t redraw it from other data. You can still change its pop-up, colours, look and commentary, save it as an image, and comment on it. To drill down, rebuild it with <b>Insert › Chart</b> from the same data.' })])
+      : MS.h('div', {}, [suggest, MS.h('label', { 'class': 'field' }, [MS.h('span', { text: 'Dataset' }), dsSel]), dynamic]);
 
     /* -- layout & commentary pane -- */
     var head = block && block.querySelector('.ms-head');
@@ -5210,6 +5568,31 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       MS.history.state('KPI status colours', function (s) { if (!s.kpis[id]) return; if (a.better) s.kpis[id].status = { better: a.better, good: a.good, bad: a.bad }; else delete s.kpis[id].status; });
       return settle(150).then(function () { return { ref: refOf(card), status: card.getAttribute('data-ms-status') || null, value: (card.querySelector('.ms-kpi-value') || {}).textContent }; });
     } };
+  A.chart_summaries = { d: 'Plain-language summaries of the charts ("West is highest at ₹4.2 Cr (38%)…"), written from the numbers on screen. Optionally add them as captions under the charts or for screen readers.', p: { chart: ['string', 'One chart (default: all)'], show: ['string', 'caption | aria (screen readers only) | off; leave out to just read them'] },
+    f: function (a) {
+      var keys = a.chart ? [chartKey(a.chart)] : rt().charts().map(function (c) { return c.key; });
+      if (a.show) MS.summaries.set(keys, a.show);
+      return settle(200).then(function () { return MS.summaries.list().filter(function (x) { return keys.indexOf(x.key) >= 0; }).map(function (x) { return { chart: x.name, kind: x.kind, summary: x.summary, shown: x.show }; }); });
+    } };
+  A.number_check = { d: 'Check that KPI cards match the totals of the charts that show the same measure, and that charts of the same measure add up alike. Returns differences first.', p: { add_comments: ['boolean', 'Add a review comment for each difference'] },
+    f: function (a) {
+      var res = MS.numcheck.run();
+      if (a.add_comments) res.filter(function (x) { return x.status === 'diff'; }).forEach(function (x) { A.add_comment.f({ ref: x.el ? refOf(x.el) : null, chart: x.el ? null : x.chart, text: 'Numbers don\'t add up: ' + x.what + ' shows ' + x.shown + ' but ' + x.against + ' adds up to ' + x.expected + '. ' + (x.note || ''), type: 'bug', priority: 'must' }); });
+      return res.map(function (x) { return { status: x.status, item: x.what, shows: x.shown, against: x.against || null, addsUpTo: x.expected || null, note: x.note || null }; });
+    } };
+  A.comments_tracker = { d: 'All review comments as an Excel tracker (tab, section, chart, comment, done-when, status, owner, due). Returns the .xlsx as base64; the save_tracker tool writes it to disk.', p: {},
+    f: function () { return MS.tracker.build().then(function (r) { var b = '', u = new Uint8Array(r.bytes); for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { name: r.name, rows: r.rows, b64: btoa(b) }; }); } };
+  A.apply_tracker = { d: 'Update comments from an edited tracker (.xlsx): status, priority, owner, due, notes and wording, matched by the ID column.', p: { file: ['object', '{name, b64}', true] },
+    f: function (a) { return MS.readFile(fileOf(a.file), 'buffer').then(function (b) { return MS.tracker.apply(b); }); } };
+  A.compare_versions = { d: 'What changed between two versions: tabs, text, chart settings, data, KPI cards, filters, colours and comments. Compares saved versions by name, the dashboard now ("now"), or HTML you pass.', p: { before: ['string', 'Saved version name, or "now"'], after: ['string', 'Saved version name, or "now" (default)'], before_html: ['string', 'Or the HTML of the earlier file'], after_html: ['string', 'Or the HTML of the later file'] },
+    f: function (a) {
+      return MS.compare.sources().then(function (src) {
+        var pick = function (n, html) { if (html) return html; n = n || 'now'; var x = src.filter(function (s) { return s.id === n || (n === 'now' && s.id === 'now') || s.name.split(' · ')[0].toLowerCase() === String(n).toLowerCase(); })[0]; if (!x) throw new Error('No version called "' + n + '". Versions: ' + src.map(function (s) { return s.name.split(' · ')[0]; }).join(', ')); return x.get(); };
+        if (!a.before && !a.before_html) throw new Error('Say what to compare from: before (a version name) or before_html.');
+        var r = MS.compare.compare(pick(a.before, a.before_html), pick(a.after, a.after_html));
+        return { changes: r.changes, sections: r.sections };
+      });
+    } };
   A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], sort: ['string', 'desc | asc | "" (by label)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
     f: function (a) {
       if (a.into) MS.edit.select(elOf(a.into)); else MS.edit.select(null);
@@ -5413,6 +5796,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     } };
 
   MS.api = {};
+  MS.api.refOf = refOf;
   Object.keys(A).forEach(function (k) { MS.api[k] = function (args) { return A[k].f(args || {}); }; });
   // tool descriptions with JSON Schemas, for MCP and docs
   MS.api.describe = function () {
@@ -5856,6 +6240,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       if (c.lib === 'chartjs') { var tt = c.inst.tooltip; if (tt && tt.opacity && tt.body) return clip([].concat(tt.title || []).join(' ') + ' ' + tt.body.map(function (b) { return b.lines.join(' '); }).join(' · '), 160); }
       if (c.lib === 'echarts') { var dv = Array.prototype.filter.call(c.el.querySelectorAll('div'), function (d) { return /z-index:\s*9999999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && d.style.opacity !== '0'; })[0]; if (dv) return clip(dv.textContent, 160); }
       if (c.lib === 'plotly') { var hl = c.el.querySelector('.hoverlayer'); if (hl && hl.textContent.trim()) return clip(hl.textContent, 160); }
+      if (c.lib === 'highcharts') { var ht = MS.$$('.highcharts-tooltip', c.el).map(function (x) { return x.textContent.trim(); }).filter(Boolean).join(' '); if (ht && c.inst.tooltip && !c.inst.tooltip.isHidden) return clip(ht, 160); }
+      if (c.lib === 'd3') { var tp = cdoc().querySelector('.ms-hovertip'); if (tp && tp.style.display !== 'none' && tp.textContent) return clip(tp.textContent, 160); }
     } catch (e) {}
     return '';
   }
@@ -5863,6 +6249,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     try {
       if (c.lib === 'chartjs') { var p = c.inst.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)[0]; if (p) return String(c.inst.data.labels[p.index]); }
       if (c.lib === 'plotly' && c.el._hoverdata && c.el._hoverdata[0]) { var q = c.el._hoverdata[0]; return String(q.label != null ? q.label : q.x); }
+      if (c.lib === 'highcharts' && c.inst.hoverPoint) { var hp = c.inst.hoverPoint; return String(hp.name != null ? hp.name : hp.category); }
+      if (c.lib === 'd3' && e && e.target && e.target.__data__) { var ms = c.a.marks(c.el), j = ms.indexOf(e.target); if (j >= 0) return c.a.labelOf(e.target.__data__, j); }
     } catch (x) {}
     return '';
   }
@@ -6201,7 +6589,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       var charts = r.charts();
       if (charts.length) {
         L.push('- Charts (' + charts.length + '):');
-        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly' }[c.lib];
+        charts.forEach(function (c) { var info = r.chartInfo(c.key) || {}, sec = c.el.closest('section.ms-tab'), lib = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly', highcharts: 'Highcharts', d3: 'D3 (SVG)' }[c.lib];
           L.push('  - “' + MS.charts.nameOf(c.key) + '”: ' + MS.charts.kindName(info.type).toLowerCase() + ' drawn with ' + lib + (sec ? ', on the “' + sec.getAttribute('data-ms-title') + '” tab' : '') + (c.el.id ? ', element `#' + c.el.id + '`' : '') + '.'); });
       }
       var ds = Object.keys(r.state.datasets);
@@ -6298,7 +6686,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   function rt() { return MS.rt(); }
   function clip(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   function q(s) { return '“' + s + '”'; }
-  var LIB = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly' };
+  var LIB = { chartjs: 'Chart.js', echarts: 'ECharts', plotly: 'Plotly', highcharts: 'Highcharts', d3: 'D3 (SVG)' };
 
   /* ---------------------------------------------------------- where is this element? */
   var CARDISH = /(^|[-_ ])(card|panel|tile|widget|box|kpi|metric|chart-?wrap|chart-?box|chart-?container|ms-block)([-_ ]|$)/i;
@@ -6422,6 +6810,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     }
     return { c: c, n: n, loc: loc || {}, alive: c.kind !== 'element' || !!el, topics: topicsOf(c.text) };
   }
+  R.resolveComment = resolve;
+
 
   /* ---------------------------------------------------------- the map of the dashboard */
   function mapOf(r, only) {
@@ -6701,6 +7091,420 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 })(window.MS);
 
 </script>
+<script>/* src/js/insights.js */
+/* Checks and reports: plain-language chart summaries, number check (KPI vs chart totals),
+   review comments as an Excel tracker (and back), and comparing two versions. */
+(function (MS) {
+  'use strict';
+  var h = MS.h;
+  function rt() { return MS.rt(); }
+  function need() { if (!MS.child) { MS.toast('Open a dashboard first.', 'warn'); return false; } if (!rt()) { MS.toast('Turn off Safe mode (View tab) first.', 'warn'); return false; } return true; }
+  function close() { var w = MS.$('.dlg-wrap'); if (w) w.remove(); }
+  function copy(text) {
+    var done = function () { MS.toast('Copied. Paste it into an email, Word or PowerPoint.', 'ok'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    fallback();
+    function fallback() { var t = h('textarea', { style: 'position:fixed;left:-9999px' }); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { MS.toast('Select the text and press Ctrl+C.', 'warn'); } t.remove(); }
+  }
+  var IN = function (x, d) { return Number(x).toLocaleString('en-IN', { maximumFractionDigits: d == null ? 2 : d }); };
+
+  /* ================================================================ chart summaries */
+  var S = MS.summaries = {};
+  S.list = function () {
+    var r = rt(); if (!r) return [];
+    return r.charts().map(function (c) {
+      var name = MS.charts.nameOf(c.key), cs = r.state.charts[c.key] || {};
+      return { key: c.key, name: name, kind: MS.charts.kindName((r.chartInfo(c.key) || {}).type), summary: r.summarize(c.key, name), show: cs.summary ? cs.summary.show || 'aria' : 'off' };
+    });
+  };
+  // show: 'caption' (text under the chart + screen readers), 'aria' (screen readers only), 'off'
+  S.set = function (keys, show) {
+    MS.history.state(show === 'off' ? 'Remove chart summaries' : 'Chart summaries', function (s) {
+      keys.forEach(function (k) {
+        var cs = s.charts[k] = s.charts[k] || {};
+        if (show === 'off') delete cs.summary; else cs.summary = { show: show, name: MS.charts.nameOf(k) };
+      });
+    });
+  };
+  S.text = function () { return S.list().filter(function (x) { return x.summary; }).map(function (x) { return x.name + '\n' + x.summary; }).join('\n\n'); };
+  S.dialog = function () {
+    if (!need()) return;
+    var items = S.list();
+    if (!items.length) return MS.toast('No charts found in this dashboard.', 'warn');
+    var OPTS = [{ value: 'off', label: 'Not added' }, { value: 'aria', label: 'Screen readers only' }, { value: 'caption', label: 'Caption under the chart' }];
+    var rows = items.map(function (x) {
+      var sel = h('select', { 'class': 'inp sm', onchange: function () { S.set([x.key], sel.value); } }, OPTS.map(function (o) { var e = h('option', { value: o.value, text: o.label }); if (o.value === x.show) e.selected = true; return e; }));
+      return h('div', { 'class': 'sum-row' }, [
+        h('div', { 'class': 'sum-head' }, [h('strong', { text: x.name }), h('small', { 'class': 'muted', text: x.kind }), h('span', { 'class': 'grow' }), sel]),
+        h('p', { 'class': 'sum-text', text: x.summary || 'Nothing to summarise (no numbers found).' })
+      ]);
+    });
+    var body = h('div', {}, [
+      h('p', { 'class': 'hint', text: 'One or two plain sentences per chart, written from the numbers on screen. Use them in emails, as captions, or for colleagues using screen readers. Captions update when filters change and stay in the exported file.' }),
+      h('div', { 'class': 'sum-list' }, rows)
+    ]);
+    MS.dialog({ title: 'Chart summaries', wide: true, body: body, buttons: [
+      { label: 'Close', value: null },
+      { label: 'Captions on all charts', value: function () { S.set(items.map(function (x) { return x.key; }), 'caption'); MS.toast('Captions added under ' + items.length + ' chart(s). Ctrl+Z undoes.', 'ok'); return null; } },
+      { label: 'Copy all', primary: true, value: function () { copy(S.text()); return false; } }
+    ] });
+  };
+
+  /* ================================================================ number check */
+  var N = MS.numcheck = {};
+  var STOP = { total: 1, overall: 1, sum: 1, the: 1, and: 1, for: 1, by: 1, of: 1, in: 1, ytd: 1, mtd: 1, qtd: 1, all: 1, value: 1, values: 1, amount: 1, chart: 1, series: 1, vs: 1, per: 1, to: 1, fy: 1, inr: 1, crore: 1, lakh: 1, cr: 1, rs: 1 };
+  function tokens(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !STOP[w] && !/^\d+$/.test(w); }).map(function (w) { return w.replace(/(ies)$/, 'y').replace(/s$/, ''); }); }
+  function overlap(a, b) { var n = 0; a.forEach(function (w) { if (b.indexOf(w) >= 0) n++; }); return n; }
+  // "₹1.25 Cr" -> { v: 12500000, tol: 50000, pct: false }
+  N.parse = function (text) {
+    var t = String(text || '').replace(/ /g, ' ').trim();
+    var m = t.replace(/,/g, '').match(/(-?\d+(?:\.\d+)?)\s*(crores?|cr\b|lakhs?|lacs?|l\b|k\b|mn\b|m\b|bn\b|b\b|%)?/i);
+    if (!m) return null;
+    var num = parseFloat(m[1]), unit = (m[2] || '').toLowerCase(), dec = (m[1].split('.')[1] || '').length;
+    var scale = /^cr/.test(unit) ? 1e7 : /^(lakh|lac|l$)/.test(unit) ? 1e5 : unit === 'k' ? 1e3 : /^(m|mn)$/.test(unit) ? 1e6 : /^(bn|b)$/.test(unit) ? 1e9 : 1;
+    return { v: num * scale, tol: 0.5 * Math.pow(10, -dec) * scale, pct: unit === '%', unit: unit, text: t };
+  };
+  function kpis() {
+    var d = MS.child.doc, out = [], seen = [];
+    MS.$$('.ms-kpi', d).forEach(function (k) {
+      var v = k.querySelector('.ms-kpi-value'), l = k.querySelector('.ms-kpi-label');
+      if (v) { out.push({ el: k, valueEl: v, label: l ? l.textContent.trim() : '', shown: v.textContent.trim(), spec: k.getAttribute('data-ms-kpi') && rt().state.kpis[k.getAttribute('data-ms-kpi')] }); seen.push(k); }
+    });
+    MS.$$('[class*=kpi],[class*=metric],[class*=stat],[class*=tile]', d).forEach(function (k) {
+      if (seen.some(function (s) { return s.contains(k) || k.contains(s); }) || k.closest('[data-ms-editor]')) return;
+      var vs = MS.$$('[class*=value],[class*=number],[class*=figure],[class*=amount]', k); if (vs.length !== 1) return; // a row of cards, not one card
+      var v = vs[0], l = MS.$$('[class*=label],[class*=title],[class*=name],[class*=caption]', k)[0];
+      if (!v || !l || v.contains(l) || l.contains(v) || !/\d/.test(v.textContent) || v.textContent.length > 40) return;
+      out.push({ el: k, valueEl: v, label: l.textContent.trim(), shown: v.textContent.trim() }); seen.push(k);
+    });
+    return out.filter(function (k) { return k.el.offsetParent !== null || k.el.closest('section.ms-tab'); });
+  }
+  function fmtLike(p, v) {
+    if (!p) return IN(v);
+    var s = p.unit;
+    if (/^cr/.test(s)) return '₹' + IN(v / 1e7) + ' Cr';
+    if (/^(lakh|lac|l$)/.test(s)) return '₹' + IN(v / 1e5) + ' L';
+    if (s === 'k') return IN(v / 1e3, 1) + 'K';
+    if (/^(m|mn)$/.test(s)) return IN(v / 1e6) + 'M';
+    return (/₹/.test(p.text) ? '₹' : '') + IN(v, 2);
+  }
+  function big(v) { var a = Math.abs(v); return a >= 1e7 ? IN(v / 1e7) + ' crore' : a >= 1e5 ? IN(v / 1e5) + ' lakh' : IN(v); }
+  function seriesOf(r, key) {
+    var d = r.chartData(key, true); if (!d) return [];
+    return d.series.map(function (s) {
+      var vals = s.values.filter(function (v) { return v != null; });
+      return { name: s.name, total: vals.reduce(function (a, b) { return a + b; }, 0), avg: vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null, n: vals.length };
+    });
+  }
+  N.run = function () {
+    var r = rt(), charts = r.charts().map(function (c) { var b = (r.state.charts[c.key] || {}).binding; return { key: c.key, name: MS.charts.nameOf(c.key), series: seriesOf(r, c.key), binding: b }; }).filter(function (c) { return c.series.length; });
+    var filtered = Object.keys(r.filterValues || {}).some(function (ds) { var fv = r.filterValues[ds]; return Object.keys(fv).some(function (k) { return fv[k] !== '' && fv[k] != null; }); });
+    var results = [];
+    kpis().forEach(function (k) {
+      var p = N.parse(k.shown), kt = tokens(k.label + ' ' + (k.spec && k.spec.measure || ''));
+      var res = { kind: 'kpi', what: 'KPI “' + (k.label || k.shown) + '”', shown: k.shown, el: k.valueEl || k.el };
+      if (!p) { results.push(Object.assign(res, { status: 'skip', note: 'No number to check.' })); return; }
+      if (p.pct) { results.push(Object.assign(res, { status: 'skip', note: 'A percentage: it is not a total of a chart.' })); return; }
+      if (k.spec && /^(count|distinct|min|max)$/.test(k.spec.agg || '')) { results.push(Object.assign(res, { status: 'skip', note: 'Counts rows (' + k.spec.agg + '), not a chart total.' })); return; }
+      var best = null;
+      charts.forEach(function (c) {
+        c.series.forEach(function (s) {
+          var sc = overlap(kt, tokens(c.name + ' ' + s.name));
+          if (k.spec && c.binding && c.binding.dataset === k.spec.dataset && c.binding.measure && c.binding.measure === k.spec.measure) sc += 3;
+          if (c.series.length > 1 && !overlap(kt, tokens(s.name)) && sc < 3) return; // a grouped chart: only the matching series
+          if (sc > 0 && (!best || sc > best.sc)) best = { sc: sc, c: c, s: s };
+        });
+      });
+      if (!best) { results.push(Object.assign(res, { status: 'skip', note: 'No chart shows the same measure (compared by name).' })); return; }
+      var avg = /avg|average|mean|per\b/i.test(k.label) || (k.spec && k.spec.agg === 'avg');
+      var target = avg ? best.s.avg : best.s.total, diff = p.v - target, tol = Math.max(p.tol, Math.abs(target) * 0.005);
+      res.against = 'chart “' + best.c.name + '”' + (best.c.series.length > 1 ? ' › ' + best.s.name : '') + (avg ? ' (average)' : ' (total)');
+      res.chart = best.c.key; res.expected = fmtLike(p, target);
+      if (Math.abs(diff) <= tol) res.status = 'ok';
+      else {
+        res.status = 'diff';
+        res.note = 'Differs by ' + fmtLike(p, Math.abs(diff)) + (target ? ' (' + IN(Math.abs(diff) / Math.abs(target) * 100, 1) + '%)' : '') + '.' + (filtered && !(k.spec && best.c.binding) ? ' A filter is on: one of them may not follow it.' : '');
+      }
+      results.push(res);
+    });
+    // charts that show the same measure should add up to the same total
+    var bySeries = {};
+    charts.forEach(function (c) { c.series.forEach(function (s) { var n = String(s.name || '').trim().toLowerCase(); if (!n || /^(series \d+|value|data|count|y)$/.test(n) || /target|budget|plan|last year|ly|prior/i.test(n)) return; (bySeries[n] = bySeries[n] || []).push({ c: c, s: s }); }); });
+    Object.keys(bySeries).forEach(function (n) {
+      var list = bySeries[n]; if (list.length < 2) return;
+      var a = list[0];
+      list.slice(1).forEach(function (b) {
+        var diff = a.s.total - b.s.total, tol = Math.max(Math.abs(a.s.total), 1) * 0.005;
+        var res = { kind: 'charts', what: 'chart “' + a.c.name + '”', against: 'chart “' + b.c.name + '” (' + a.s.name + ')', shown: big(a.s.total), expected: big(b.s.total), chart: b.c.key };
+        if (Math.abs(diff) <= tol) res.status = 'ok';
+        else { res.status = 'diff'; res.note = 'Both show “' + a.s.name + '” but add up differently (' + IN(Math.abs(diff) / Math.max(Math.abs(b.s.total), 1) * 100, 1) + '% apart). One may be filtered, rounded or missing a category.'; }
+        results.push(res);
+      });
+    });
+    var rank = { diff: 0, ok: 1, skip: 2 };
+    return results.sort(function (x, y) { return rank[x.status] - rank[y.status]; });
+  };
+  N.dialog = function () {
+    if (!need()) return;
+    var res = N.run();
+    if (!res.length) return MS.toast('No KPI cards or charts with numbers to compare.', 'warn');
+    var diffs = res.filter(function (x) { return x.status === 'diff'; }), oks = res.filter(function (x) { return x.status === 'ok'; });
+    var ICON = { ok: '✅', diff: '⚠', skip: '–' };
+    var table = h('table', { 'class': 'nc-table' }, [h('tr', {}, ['', 'Number', 'Shows', 'Compared with', 'Adds up to', 'Result'].map(function (t) { return h('th', { text: t }); }))].concat(res.map(function (x) {
+      return h('tr', { 'class': 'nc-' + x.status }, [h('td', { text: ICON[x.status] }), h('td', { text: x.what }), h('td', { text: x.shown || '' }), h('td', { text: x.against || '' }), h('td', { text: x.expected || '' }), h('td', { text: x.status === 'ok' ? 'Matches' : x.note || '' })]);
+    })));
+    var head = h('p', { 'class': 'nc-sum', html: diffs.length ? '<b>' + diffs.length + ' number(s) don\'t add up</b> · ' + oks.length + ' match' : '<b>Everything that could be checked matches</b> (' + oks.length + ' check' + (oks.length === 1 ? '' : 's') + ').' });
+    MS.dialog({ title: 'Number check', wide: true, body: h('div', {}, [head, h('p', { 'class': 'hint', text: 'Each KPI card is compared with the chart that shows the same measure (matched by name, or by data for calculated cards), and charts showing the same measure are compared with each other. Rounding on the card is allowed for.' }), h('div', { 'class': 'nc-wrap' }, [table])]),
+      buttons: [{ label: 'Close', value: null }].concat(diffs.length ? [{ label: 'Add ' + diffs.length + ' as review comments', primary: true, value: 'cmt' }] : []) }).then(function (v) {
+      if (v !== 'cmt') return;
+      diffs.forEach(function (x) {
+        var text = 'Numbers don\'t add up: ' + x.what + ' shows ' + x.shown + ' but ' + x.against + ' adds up to ' + x.expected + '. ' + (x.note || '') + ' Make them consistent or explain the difference.';
+        if (x.el) MS.api.run('add_comment', { ref: MS.api.refOf ? MS.api.refOf(x.el) : null, text: text, type: 'bug', priority: 'must' }).catch(function () {});
+        else MS.api.run('add_comment', { chart: x.chart, text: text, type: 'bug', priority: 'must' }).catch(function () {});
+      });
+      MS.toast(diffs.length + ' comment(s) added. ✨ Prompt turns them into instructions.', 'ok');
+    });
+  };
+
+  /* ================================================================ comments as an Excel tracker */
+  var T = MS.tracker = {};
+  var STATUS = ['Open', 'In progress', 'Done', 'Won\'t do'];
+  T.rows = function () {
+    var R = MS.review, list = R.list();
+    return list.map(function (c, i) {
+      var x = R.resolveComment ? R.resolveComment(c, i + 1) : { loc: c.loc || {}, topics: [] }, l = x.loc || {};
+      var chart = l.chart ? l.chart.name : (l.charts && l.charts.length ? l.charts.join(', ') : '');
+      return {
+        'No.': i + 1, 'Status': c.status || (c.done ? 'Done' : 'Open'), 'Priority': { must: 'Must', should: 'Should', nice: 'Nice to have' }[c.prio] || 'Should',
+        'Type': { change: 'Change', bug: 'Bug', question: 'Question', idea: 'Idea' }[c.type] || 'Change',
+        'Tab': l.tab || (c.tab && c.tab.title) || '', 'Section': l.section || (l.sections || []).join(', '), 'Chart': chart,
+        'Item': l.kpi ? 'KPI card “' + l.kpi.label + '”' : (l.item || (c.target && c.target.what) || (c.kind === 'area' ? 'screen area' : c.kind === 'interaction' ? 'interaction' : '')),
+        'Where': R.trail ? R.trail(l) : '', 'Comment': c.text || '',
+        'Done when': (x.topics || []).map(function (t) { return t.done; }).join('; '),
+        'Owner': c.owner || '', 'Due': c.due || '', 'Notes': c.notes || '',
+        'Added': c.created ? new Date(c.created).toLocaleDateString('en-IN') : '', 'ID': c.id
+      };
+    });
+  };
+  T.build = function () {
+    return MS.lib('xlsx').then(function (X) {
+      var rows = T.rows(), wb = X.utils.book_new();
+      var ws = X.utils.json_to_sheet(rows.length ? rows : [{ 'No.': '', Status: '', Priority: '', Type: '', Tab: '', Section: '', Chart: '', Item: '', Where: '', Comment: 'No comments yet', 'Done when': '', Owner: '', Due: '', Notes: '', Added: '', ID: '' }]);
+      ws['!cols'] = [5, 11, 12, 9, 16, 18, 24, 22, 40, 50, 40, 14, 11, 30, 11, 12].map(function (w) { return { wch: w }; });
+      ws['!autofilter'] = { ref: ws['!ref'] };
+      X.utils.book_append_sheet(wb, ws, 'Comments');
+      var count = function (key) { var m = {}; rows.forEach(function (r) { var k = r[key] || '(none)'; m[k] = m[k] || { open: 0, done: 0 }; if (/done|won/i.test(r.Status)) m[k].done++; else m[k].open++; }); return Object.keys(m).map(function (k) { return [k, m[k].open, m[k].done, m[k].open + m[k].done]; }); };
+      var aoa = [['Review tracker: ' + (MS.doc && MS.doc.name || 'dashboard')], ['Made ' + new Date().toLocaleString('en-IN') + '. Edit Status, Priority, Owner, Due and Notes, then load it back with Review › Tracker › Update from tracker. Keep the ID column.'], [],
+        ['By tab', 'Open', 'Closed', 'All']].concat(count('Tab')).concat([[], ['By priority', 'Open', 'Closed', 'All']]).concat(count('Priority')).concat([[], ['Status values', STATUS.join(', ')]]);
+      var ss = X.utils.aoa_to_sheet(aoa); ss['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+      X.utils.book_append_sheet(wb, ss, 'Summary');
+      var out = X.write(wb, { type: 'array', bookType: 'xlsx' });
+      return { bytes: out, rows: rows.length, name: (MS.doc && MS.doc.name || 'dashboard').replace(/\.html?$/i, '') + ' - review tracker.xlsx' };
+    });
+  };
+  T.exportFile = function () {
+    if (!need()) return;
+    if (!MS.review.list().length) return MS.toast('There are no comments yet. Add some from the Review tab.', 'warn');
+    T.build().then(function (r) {
+      MS.download(r.name, new Blob([r.bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      MS.toast('Saved ' + r.name + ' with ' + r.rows + ' comment(s). Opens in Excel.', 'ok', 6000);
+    }).catch(function (e) { MS.toast('Could not make the tracker: ' + e.message, 'error'); });
+  };
+  // Apply an edited tracker: status, priority, owner, due, notes and comment text, matched by ID.
+  T.apply = function (buf) {
+    return MS.lib('xlsx').then(function (X) {
+      var wb = X.read(buf, { type: 'array' }), ws = wb.Sheets.Comments || wb.Sheets[wb.SheetNames[0]];
+      var rows = X.utils.sheet_to_json(ws, { defval: '', raw: false });
+      var byId = {}; rows.forEach(function (r) { if (r.ID) byId[String(r.ID).trim()] = r; });
+      var changed = 0, unknown = rows.filter(function (r) { return !r.ID && String(r.Comment || '').trim(); }).length;
+      var PR = { must: 'must', 'should': 'should', 'nice to have': 'nice', nice: 'nice' };
+      MS.history.state('Update comments from tracker', function (s) {
+        (s.comments || []).forEach(function (c) {
+          var r = byId[c.id]; if (!r) return;
+          var before = JSON.stringify(c);
+          var st = String(r.Status || '').trim();
+          var cur = c.status || (c.done ? 'Done' : 'Open');
+          if (st && st.toLowerCase() !== cur.toLowerCase()) { var m = STATUS.filter(function (x) { return x.toLowerCase() === st.toLowerCase(); })[0] || st; c.status = m; c.done = /^(done|won't do|closed|resolved)$/i.test(m); }
+          var p = PR[String(r.Priority || '').trim().toLowerCase()]; if (p) c.prio = p;
+          ['Owner', 'Due', 'Notes'].forEach(function (k) { var v = String(r[k] || '').trim(); if (v) c[k.toLowerCase()] = v; else delete c[k.toLowerCase()]; });
+          var t = String(r.Comment || '').trim(); if (t) c.text = t;
+          if (JSON.stringify(c) !== before) changed++;
+        });
+      });
+      MS.emit('comments');
+      return { updated: changed, notFound: Object.keys(byId).filter(function (id) { return !MS.review.list().some(function (c) { return c.id === id; }); }).length, newRowsIgnored: unknown };
+    });
+  };
+  T.importFile = function () {
+    if (!need()) return;
+    MS.pickFiles('.xlsx,.xls,.csv').then(function (f) {
+      if (!f[0]) return;
+      MS.readFile(f[0], 'buffer').then(function (b) { return T.apply(b); }).then(function (r) {
+        MS.toast(r.updated + ' comment(s) updated from the tracker.' + (r.notFound ? ' ' + r.notFound + ' row(s) belong to comments that no longer exist.' : '') + (r.newRowsIgnored ? ' ' + r.newRowsIgnored + ' new row(s) without an ID were skipped: add those in Mothership.' : ''), 'ok', 8000);
+      }).catch(function (e) { MS.toast('Could not read the tracker: ' + e.message, 'error'); });
+    });
+  };
+
+  /* ================================================================ compare two versions */
+  var V = MS.compare = {};
+  var TEXT_SEL = 'h1,h2,h3,h4,h5,h6,p,li,td,th,figcaption,label,button,summary,dt,dd,.ms-kpi-label,.ms-kpi-value,.ms-kpi-note,.ms-title,.ms-sub,.ms-inference';
+  function parse(html) { return new DOMParser().parseFromString(html || '', 'text/html'); }
+  V.snapshot = function (html, nameOf) {
+    var d = parse(html), st = {};
+    try { st = JSON.parse((d.getElementById('ms-state') || {}).textContent || '{}'); } catch (e) {}
+    var tabs = Array.prototype.map.call(d.querySelectorAll('section.ms-tab'), function (s) { return { id: s.getAttribute('data-ms-tab'), title: s.getAttribute('data-ms-title') || 'Untitled', hidden: s.hasAttribute('data-ms-hidden') }; });
+    var texts = [];
+    Array.prototype.forEach.call(d.body ? d.body.querySelectorAll(TEXT_SEL) : [], function (e) {
+      if (e.closest('script,style,svg,canvas,[data-ms-editor],#ms-filter-pane') || e.querySelector(TEXT_SEL)) return;
+      var t = e.textContent.replace(/\s+/g, ' ').trim(); if (!t) return;
+      var tab = e.closest('section.ms-tab');
+      texts.push({ t: t, tab: tab ? tab.getAttribute('data-ms-title') : '' });
+    });
+    var chartName = function (key) {
+      var n = nameOf && nameOf(key); if (n) return n;
+      var e = d.querySelector('[data-ms-id="' + key + '"],[data-ms-chart="' + key + '"],#' + String(key).replace(/^#/, '').replace(/[^\w-]/g, '')), b = e && e.closest('.ms-block'), tt = b && b.querySelector('.ms-title');
+      return tt ? tt.textContent.trim() : key;
+    };
+    return { state: st, tabs: tabs, texts: texts, chartName: chartName };
+  };
+  // Longest-common-subsequence diff of two string lists -> [{op:'=',a},{op:'-',a},{op:'+',b}]
+  function lcs(a, b) {
+    var n = a.length, m = b.length;
+    if (n * m > 4e6) { var A = {}, Bm = {}; a.forEach(function (x) { A[x] = 1; }); b.forEach(function (x) { Bm[x] = 1; }); return a.filter(function (x) { return !Bm[x]; }).map(function (x) { return { op: '-', a: x }; }).concat(b.filter(function (x) { return !A[x]; }).map(function (x) { return { op: '+', b: x }; })); }
+    var dp = new Array(n + 1); for (var i = 0; i <= n; i++) dp[i] = new Uint32Array(m + 1);
+    for (i = n - 1; i >= 0; i--) for (var j = m - 1; j >= 0; j--) dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    var out = []; i = 0; j = 0;
+    while (i < n && j < m) { if (a[i] === b[j]) { out.push({ op: '=', a: a[i] }); i++; j++; } else if (dp[i + 1][j] >= dp[i][j + 1]) out.push({ op: '-', a: a[i++] }); else out.push({ op: '+', b: b[j++] }); }
+    while (i < n) out.push({ op: '-', a: a[i++] }); while (j < m) out.push({ op: '+', b: b[j++] });
+    return out;
+  }
+  var SETTING = { tooltip: 'Pop-up text', style: 'Look', binding: 'Data & drill-down', summary: 'Summary', native: 'Chart type and data', drill: 'Drill-down' };
+  function short(v) { if (v == null) return '(none)'; var s = typeof v === 'string' ? v : JSON.stringify(v); return s.length > 90 ? s.slice(0, 87) + '…' : s; }
+  V.diff = function (A, B) {
+    var secs = [], add = function (title, items) { if (items.length) secs.push({ title: title, items: items }); };
+    // tabs
+    var it = [], aT = {}, bT = {};
+    A.tabs.forEach(function (t) { aT[t.id] = t; }); B.tabs.forEach(function (t) { bT[t.id] = t; });
+    B.tabs.forEach(function (t) { if (!aT[t.id]) it.push({ op: '+', text: 'Tab “' + t.title + '” added' }); else if (aT[t.id].title !== t.title) it.push({ op: '~', text: 'Tab renamed', before: aT[t.id].title, after: t.title }); else if (aT[t.id].hidden !== t.hidden) it.push({ op: '~', text: 'Tab “' + t.title + '” ' + (t.hidden ? 'hidden' : 'shown again') }); });
+    A.tabs.forEach(function (t) { if (!bT[t.id]) it.push({ op: '-', text: 'Tab “' + t.title + '” removed' }); });
+    var common = function (L, M) { return L.filter(function (t) { return M[t.id]; }).map(function (t) { return t.id; }).join(); };
+    if (!it.length && common(A.tabs, bT) !== common(B.tabs, aT)) it.push({ op: '~', text: 'Tabs reordered', before: A.tabs.map(function (t) { return t.title; }).join(' · '), after: B.tabs.map(function (t) { return t.title; }).join(' · ') });
+    if (!A.tabs.length && B.tabs.length) it.unshift({ op: '+', text: 'Turned into a tabbed layout' });
+    add('Tabs', it);
+    // text
+    var d = lcs(A.texts.map(function (x) { return x.t; }), B.texts.map(function (x) { return x.t; })), tx = [];
+    for (var i = 0; i < d.length; i++) {
+      if (d[i].op === '-' && d[i + 1] && d[i + 1].op === '+') { tx.push({ op: '~', text: 'Text changed', before: d[i].a, after: d[i + 1].b }); i++; }
+      else if (d[i].op === '-') tx.push({ op: '-', text: d[i].a });
+      else if (d[i].op === '+') tx.push({ op: '+', text: d[i].b });
+    }
+    add('Text', tx.slice(0, 300));
+    // charts
+    var ac = A.state.charts || {}, bc = B.state.charts || {}, ch = [];
+    Object.keys(bc).forEach(function (k) {
+      var nm = B.chartName(k) || A.chartName(k);
+      if (!ac[k]) { if (bc[k].native) ch.push({ op: '+', text: 'Chart “' + nm + '” added' }); else ch.push({ op: '~', text: 'Chart “' + nm + '”: settings added (' + Object.keys(bc[k]).map(function (s) { return SETTING[s] || s; }).join(', ') + ')' }); return; }
+      Object.keys(SETTING).concat(Object.keys(bc[k]), Object.keys(ac[k])).filter(function (s, j, all) { return all.indexOf(s) === j; }).forEach(function (s) {
+        if (JSON.stringify(ac[k][s]) !== JSON.stringify(bc[k][s])) ch.push({ op: '~', text: 'Chart “' + nm + '”: ' + (SETTING[s] || s), before: short(ac[k][s]), after: short(bc[k][s]) });
+      });
+    });
+    Object.keys(ac).forEach(function (k) { if (!bc[k]) ch.push({ op: ac[k].native ? '-' : '~', text: ac[k].native ? 'Chart “' + A.chartName(k) + '” removed' : 'Chart “' + A.chartName(k) + '”: Mothership settings removed' }); });
+    add('Charts', ch);
+    // data, KPI cards, filters, consistency, theme
+    var dt = [], ad = A.state.datasets || {}, bd = B.state.datasets || {};
+    var rowsOf = function (x) { return x && x.rows ? x.rows.length : null; };
+    Object.keys(bd).forEach(function (n) { if (!ad[n]) dt.push({ op: '+', text: 'Dataset “' + n + '” added' + (rowsOf(bd[n]) != null ? ' (' + IN(rowsOf(bd[n]), 0) + ' rows)' : '') }); else if (JSON.stringify(ad[n]) !== JSON.stringify(bd[n])) dt.push({ op: '~', text: 'Dataset “' + n + '” changed', before: rowsOf(ad[n]) != null ? IN(rowsOf(ad[n]), 0) + ' rows' : '', after: rowsOf(bd[n]) != null ? IN(rowsOf(bd[n]), 0) + ' rows' : '' }); });
+    Object.keys(ad).forEach(function (n) { if (!bd[n]) dt.push({ op: '-', text: 'Dataset “' + n + '” removed' }); });
+    var ak = A.state.kpis || {}, bk = B.state.kpis || {};
+    Object.keys(bk).forEach(function (n) { if (!ak[n]) dt.push({ op: '+', text: 'Calculated KPI card added (' + (bk[n].measure || bk[n].agg) + ')' }); else if (JSON.stringify(ak[n]) !== JSON.stringify(bk[n])) dt.push({ op: '~', text: 'KPI card settings changed (' + (bk[n].measure || bk[n].agg) + ')', before: short(ak[n]), after: short(bk[n]) }); });
+    Object.keys(ak).forEach(function (n) { if (!bk[n]) dt.push({ op: '-', text: 'Calculated KPI card removed (' + (ak[n].measure || ak[n].agg) + ')' }); });
+    var fl = function (s) { return (s.filters || []).map(function (f) { return f.label || f.field; }).join(', '); };
+    if (fl(A.state) !== fl(B.state)) dt.push({ op: '~', text: 'Filter pane', before: fl(A.state) || '(none)', after: fl(B.state) || '(none)' });
+    var L1 = A.state.layout || {}, L2 = B.state.layout || {};
+    if (JSON.stringify(L1.orders || []) !== JSON.stringify(L2.orders || [])) dt.push({ op: '~', text: 'Category order', before: (L1.orders || []).map(function (o) { return o.join(' › '); }).join('; ') || '(none)', after: (L2.orders || []).map(function (o) { return o.join(' › '); }).join('; ') || '(none)' });
+    if (JSON.stringify(L1.colors || {}) !== JSON.stringify(L2.colors || {})) dt.push({ op: '~', text: 'Category colours', before: short(L1.colors), after: short(L2.colors) });
+    if (JSON.stringify(A.state.theme || null) !== JSON.stringify(B.state.theme || null)) dt.push({ op: '~', text: 'Brand / theme', before: short(A.state.theme && (A.state.theme.name || A.state.theme.primary)), after: short(B.state.theme && (B.state.theme.name || B.state.theme.primary)) });
+    add('Data, KPI cards, filters and design', dt);
+    var ca = (A.state.comments || []), cb = (B.state.comments || []);
+    var cm = [];
+    if (ca.length !== cb.length) cm.push({ op: '~', text: 'Review comments', before: ca.length + '', after: cb.length + '' });
+    var doneA = ca.filter(function (c) { return c.done; }).length, doneB = cb.filter(function (c) { return c.done; }).length;
+    if (doneA !== doneB) cm.push({ op: '~', text: 'Comments marked done', before: doneA + '', after: doneB + '' });
+    add('Review comments', cm);
+    var n = 0; secs.forEach(function (s) { n += s.items.length; });
+    return { sections: secs, changes: n };
+  };
+  V.sources = function () {
+    return MS.store.all('versions').catch(function () { return []; }).then(function (list) {
+      list.sort(function (a, b) { return b.key - a.key; });
+      var out = MS.child ? [{ id: 'now', name: 'Now (on screen)', get: function () { return MS.exportHtml(); } }] : [];
+      return out.concat(list.map(function (x) { var v = x.value; return { id: String(x.key), name: v.name + ' · ' + new Date(v.created).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), get: function () { return v.html; } }; }));
+    });
+  };
+  V.compare = function (htmlA, htmlB) {
+    var nameOf = function (k) { try { return rt() && rt().chart(k) ? MS.charts.nameOf(k) : ''; } catch (e) { return ''; } };
+    return V.diff(V.snapshot(htmlA, nameOf), V.snapshot(htmlB, nameOf));
+  };
+  V.asText = function (r, an, bn) {
+    var L = ['Changes from ' + an + ' to ' + bn + ' (' + r.changes + ')', ''];
+    r.sections.forEach(function (s) { L.push(s.title.toUpperCase()); s.items.forEach(function (x) { L.push((x.op === '+' ? '+ ' : x.op === '-' ? '− ' : '~ ') + x.text + (x.before != null ? ': ' + x.before + ' → ' + x.after : '')); }); L.push(''); });
+    return L.join('\n');
+  };
+  V.dialog = function () {
+    V.sources().then(function (src) {
+      var files = {};
+      var mk = function (pick) {
+        var s = h('select', { 'class': 'inp' }, src.map(function (x, i) { var o = h('option', { value: x.id, text: x.name }); if (i === pick) o.selected = true; return o; }).concat([h('option', { value: 'file', text: 'A file on this laptop…' })]));
+        s.addEventListener('change', function () {
+          if (s.value !== 'file') return;
+          MS.pickFiles('.html,.htm').then(function (f) {
+            if (!f[0]) { s.selectedIndex = 0; return; }
+            MS.readFile(f[0]).then(function (t) { var id = 'f' + Date.now(); files[id] = { name: f[0].name, html: t }; s.insertBefore(h('option', { value: id, text: f[0].name }), s.lastChild); s.value = id; go(); });
+          });
+        });
+        return s;
+      };
+      if (src.length < 1) return MS.toast('Open a dashboard or save a version first (Ctrl+S).', 'warn');
+      var a = mk(Math.min(1, src.length - 1)), b = mk(0);
+      a.addEventListener('change', function () { if (a.value !== 'file') go(); }); b.addEventListener('change', function () { if (b.value !== 'file') go(); });
+      var get = function (s) { var x = files[s.value]; if (x) return { name: x.name, html: x.html }; var y = src.filter(function (q) { return q.id === s.value; })[0]; return y ? { name: y.name.split(' · ')[0], html: y.get() } : null; };
+      var list = h('div', { 'class': 'cmp-list' }), sbs = h('div', { 'class': 'cmp-sbs' }), last = '';
+      var seg = h('div', { 'class': 'seg' }, [h('button', { 'class': 'seg-btn on', text: 'What changed', onclick: function () { show(0); } }), h('button', { 'class': 'seg-btn', text: 'Side by side', onclick: function () { show(1); } })]);
+      function show(n) { MS.$$('button', seg).forEach(function (x, i) { x.classList.toggle('on', i === n); }); list.style.display = n ? 'none' : ''; sbs.style.display = n ? '' : 'none'; if (n) frames(); }
+      var A0, B0;
+      function frames() {
+        sbs.innerHTML = '';
+        [[A0, 'Before'], [B0, 'After']].forEach(function (p) {
+          if (!p[0]) return;
+          var f = h('iframe', { sandbox: 'allow-scripts', title: p[1] }); f.srcdoc = p[0].html;
+          sbs.appendChild(h('div', { 'class': 'cmp-pane' }, [h('div', { 'class': 'cmp-cap' }, [h('b', { text: p[1] + ': ' }), p[0].name]), h('div', { 'class': 'cmp-frame' }, [f])]));
+        });
+      }
+      function go() {
+        A0 = get(a); B0 = get(b); if (!A0 || !B0) return;
+        var r = V.compare(A0.html, B0.html);
+        last = V.asText(r, A0.name, B0.name);
+        list.innerHTML = '';
+        if (!r.changes) list.appendChild(h('p', { 'class': 'cmp-none', text: A0.html === B0.html ? 'These are the same.' : 'No visible changes found (only invisible details differ).' }));
+        r.sections.forEach(function (s) {
+          list.appendChild(h('h4', { text: s.title + ' (' + s.items.length + ')' }));
+          s.items.forEach(function (x) {
+            list.appendChild(h('div', { 'class': 'cmp-item cmp-' + ({ '+': 'add', '-': 'del', '~': 'chg' })[x.op] }, [h('span', { 'class': 'cmp-op', text: x.op === '~' ? '±' : x.op === '-' ? '−' : '+' }),
+              h('div', { 'class': 'grow' }, [h('div', { text: x.text })].concat(x.before != null ? [h('div', { 'class': 'cmp-ba' }, [h('del', { text: x.before || '(empty)' }), h('span', { text: ' → ' }), h('ins', { text: x.after || '(empty)' })])] : []))]));
+          });
+        });
+        if (sbs.style.display !== 'none') frames();
+      }
+      sbs.style.display = 'none';
+      var body = h('div', { 'class': 'cmp' }, [h('div', { 'class': 'cmp-pick' }, [h('label', { 'class': 'field' }, [h('span', { text: 'Before' }), a]), h('span', { 'class': 'cmp-arrow', text: '→' }), h('label', { 'class': 'field' }, [h('span', { text: 'After' }), b]), h('span', { 'class': 'grow' }), seg]), list, sbs]);
+      MS.dialog({ title: 'Compare versions', wide: true, body: body, buttons: [{ label: 'Close', value: null }, { label: 'Copy the list', primary: true, value: function () { copy(last); return false; } }] });
+      var dl = MS.$('.dlg-wrap .dlg'); if (dl) dl.classList.add('xwide');
+      go();
+    });
+  };
+})(window.MS);
+
+</script>
 <script>/* src/js/help.js */
 /* Help: a quick tour of the screen, hands-on tutorial lessons, and a searchable user guide. */
 (function (MS) {
@@ -6861,9 +7665,14 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     { id: 'present', title: 'Presenting', html: '<p>▶ <b>Present</b> (' + K('F5') + ') shows the dashboard full screen, one tab at a time. ' + K('→') + ' / ' + K('←') + ' change tabs, ' + K('L') + ' laser pointer, ' + K('B') + ' blank screen, ' + K('Esc') + ' ends. View › Presenter view opens a second window with notes, a timer and the next tab.</p>' },
     { id: 'save', title: 'Saving, versions and export', html: '<ul><li><b>Export HTML</b> (' + K('Ctrl') + '+' + K('E') + ') saves one standalone file. In Chrome/Edge later exports overwrite the same file.</li><li><b>Save version</b> (' + K('Ctrl') + '+' + K('S') + ') keeps a named copy in this browser. <b>Versions</b> restores one. Mothership also autosaves.</li><li>Print / PDF prints each tab on its own page.</li></ul>' },
     { id: 'extend', title: 'Plugins, recipes and brand skills', html: '<p>Plugins (.js) add buttons to the Plugins tab. Recipes (.json) replay a list of edits (tabs, theme, tooltips, filters) on any dashboard, which is handy for a monthly refresh. See docs/EXTENDING.md in the Mothership folder.</p>' },
+    { id: 'checks', title: 'Summaries, number check, tracker and compare', html: '<h3>📰 Chart summaries</h3><p><b>Charts › Summaries</b> writes one or two plain sentences per chart from the numbers on screen, e.g. <i>“West is highest at ₹4.2 Cr (38%); East is lowest at ₹1.2 Cr.”</i> Trends say what rose or fell and by how much. For each chart choose <b>Caption under the chart</b>, <b>Screen readers only</b> or nothing. Captions follow the filters and stay in the exported file. <b>Copy all</b> gives you the lot for an email.</p>' +
+      '<h3>🧮 Number check</h3><p><b>Review › Number check</b> compares each KPI card with the chart that shows the same measure (by name, or by data for cards that calculate), and charts of the same measure with each other. Rounding on the card (₹16.2 Cr) is allowed for. Differences can be turned into review comments in one click. Percentages and row counts are not added up.</p>' +
+      '<h3>📗 Excel tracker</h3><p><b>Review › Excel tracker</b> saves every comment as a spreadsheet: number, status, priority, tab, section, chart, where exactly, the comment, what “done” means, owner, due date and notes, plus a summary sheet by tab and priority. Use it in the review meeting, then <b>Update from tracker</b> loads status, priority, owner, due date, notes and wording back. Keep the ID column.</p>' +
+      '<h3>⚖ Compare versions</h3><p><b>File › Compare</b> shows what changed between two saved versions, the dashboard now, or a file on this laptop: tabs added, renamed or removed, text changes (old crossed out, new in green), chart settings, data, KPI cards, filters, colours and comments. <b>Side by side</b> shows both dashboards next to each other. <b>Copy the list</b> for your change note.</p>' },
+    { id: 'libraries', title: 'Chart libraries', html: '<table><tr><th>Library</th><th>What works</th></tr><tr><td>Chart.js, ECharts, Plotly</td><td>Everything: look, pop-ups, colours, order, data, drill-down, images, summaries.</td></tr><tr><td>Highcharts</td><td>Everything as above. Mothership uses the Highcharts already inside your dashboard (it is not free for commercial use, so Mothership doesn\'t include it).</td></tr><tr><td>D3 and other SVG charts</td><td>Names, pop-ups, colours, look (fonts), summaries, number check, image and comments. The page\'s own script draws them, so Mothership can\'t redraw them from other data or drill down: rebuild with <b>Insert › Chart</b> for that.</td></tr></table><p>Charts drawn as plain images can\'t be read; ask for the data behind them.</p>' },
     { id: 'theme', title: 'Mothership theme and search', html: "<p>Make Mothership itself easier on the eyes. Your dashboard is not affected.</p><ul><li><b>🎨</b> in the top bar, View › <b>Theme</b>, or the welcome screen: 8 ready-made looks (Classic, Daylight, Ocean, Forest, Saffron, Midnight, Slate dark, High contrast).</li><li>Pick light, dark, “Match Windows” or high contrast; any accent colour (or <b>Match brand</b> after loading a brand); a coloured or plain top bar; comfortable or compact spacing; text size; ribbon labels or icons only.</li><li>View › <b>Dark mode</b> switches in one click. Settings are saved in this browser.</li></ul><h3>🔍 Search everything</h3><p>Press " + K('Ctrl') + "+" + K('K') + " (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.</p>" },
     { id: 'mcp', title: 'Use with AI assistants (MCP)', html: "<p><b>MCP</b> (Model Context Protocol) lets an AI assistant use Mothership for you: “open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it”. The assistant calls Mothership’s tools; nothing goes to the internet from Mothership.</p><pre>AI assistant ──▶ MCP server ──▶ Edge/Chrome ──▶ Mothership\n(any client)    (Python/Node)   (hidden)        (MS.api)</pre><h3>1. Pick the server that your laptop allows</h3><table><tr><th>You have</th><th>Run</th></tr><tr><td>Python 3.8+ (no pip needed)</td><td><code>python tools/mcp/mothership_mcp.py</code></td></tr><tr><td>Node.js 16+ (no npm install needed)</td><td><code>node tools/mcp/mothership-mcp.js</code></td></tr></table><p>Both need Edge or Chrome and offer the same ~75 tools. You don’t start them yourself: your AI assistant starts them.</p><h3>2. Connect your assistant</h3><dl><dt>Claude Desktop</dt><dd>Settings › Developer › Edit config, then add (change the path):<pre>{\n  \"mcpServers\": {\n    \"mothership\": {\n      \"command\": \"python\",\n      \"args\": [\"C:\\\\Users\\\\you\\\\HTML-Mothership\\\\tools\\\\mcp\\\\mothership_mcp.py\"],\n      \"env\": { \"MOTHERSHIP_OUT\": \"C:\\\\Users\\\\you\\\\Dashboards\" }\n    }\n  }\n}</pre>Restart Claude Desktop. Use <code>\"command\": \"node\"</code> and <code>mothership-mcp.js</code> for the Node server.</dd><dt>Claude Code</dt><dd><code>claude mcp add mothership -- python tools/mcp/mothership_mcp.py</code> (the repo’s <code>.mcp.json</code> does this for the Node server).</dd><dt>Your own Python script or agent</dt><dd><code>tools/mcp/python_client.py</code> has a ready <b>MothershipClient</b> with nothing to install:<pre>from python_client import MothershipClient\nwith MothershipClient() as ms:\n    ms.call(\"open_file\", path=\"sales.html\")\n    ms.call(\"category_order\", order=[\"North\", \"South\", \"East\", \"West\"])\n    ms.call(\"category_colors\", colors={\"Retail\": \"#16a34a\"})\n    print(ms.call(\"export_html\")[\"saved\"])</pre>With the official SDK (<code>pip install mcp</code>): <code>StdioServerParameters(command=\"python\", args=[\"tools/mcp/mothership_mcp.py\"])</code>. Any MCP-capable framework works the same way.</dd><dt>Any other MCP client</dt><dd>Command <code>python</code> (or <code>node</code>), argument: the server file. Transport: stdio.</dd></dl><h3>3. Ask in plain English</h3><ul><li>“Open C:\\Dashboards\\claims.html and tell me what is on each tab.”</li><li>“Use one order for regions on every chart: North, South, East, West. Make South green everywhere.”</li><li>“Add a Methodology tab from methodology.docx and a footer saying Source: Finance, FY 2024-25.”</li><li>“Take a screenshot of the Overview tab and check the numbers are in ₹ crore.”</li><li>“Apply my review comments” (paste a prompt from ✨ Prompt with “Mothership MCP” chosen).</li></ul><h3>Settings (optional “env”)</h3><table><tr><td><code>MOTHERSHIP_HEADLESS=0</code></td><td>Show the browser window so you can watch the edits.</td></tr><tr><td><code>MOTHERSHIP_ATTACH=9222</code></td><td>Work in <i>your</i> window: start Edge with <code>msedge --remote-debugging-port=9222</code>, open mothership.html, then connect.</td></tr><tr><td><code>MOTHERSHIP_OUT</code></td><td>Folder for exports, prompts and screenshots.</td></tr><tr><td><code>MOTHERSHIP_BROWSER</code></td><td>Full path to msedge.exe or chrome.exe if it isn’t found.</td></tr><tr><td><code>MOTHERSHIP_HTML</code></td><td>Use dist/mothership-standalone.html instead.</td></tr></table><p>Exports never overwrite your original: they are saved as <code>&lt;name&gt;-edited.html</code>. Every change can be undone (“undo the last three changes”).</p>" },
-    { id: 'faq', title: 'FAQ', html: "<dl><dt>Does Mothership send my data anywhere?</dt><dd>No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.</dd><dt>Do I need the internet or admin rights?</dt><dd>No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.</dd><dt>My laptop has Python but not Node (or the reverse).</dt><dd>Use the matching server: <code>tools/mcp/mothership_mcp.py</code> for Python, <code>tools/mcp/mothership-mcp.js</code> for Node. They have the same tools.</dd><dt>Neither Python nor Node is allowed.</dt><dd>Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.</dd><dt>The server says it can’t find Edge or Chrome.</dt><dd>Set <code>MOTHERSHIP_BROWSER</code> to the full path, e.g. <code>C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe</code>.</dd><dt>It says DevTools refused the connection, or the browser closes at once.</dt><dd>Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.</dd><dt>How do I see what the assistant is doing?</dt><dd>Set <code>MOTHERSHIP_HEADLESS=0</code> to show the window, or ask it for a <i>screenshot</i>. To edit in your own window, use <code>MOTHERSHIP_ATTACH</code> (see the MCP section).</dd><dt>Where are files saved? Can it overwrite my dashboard?</dt><dd>In <code>MOTHERSHIP_OUT</code> (or the folder the assistant was started in) unless the assistant gives a path. The default export name is <code>&lt;name&gt;-edited.html</code>, so the original is kept.</dd><dt>Which AI assistants work?</dt><dd>Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.</dd><dt>Can the assistant see my comments?</dt><dd>Yes: <i>list_comments</i> and <i>comments_prompt</i> give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.</dd><dt>Can I change how Mothership looks?</dt><dd>Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.</dd><dt>How do I find a command quickly?</dt><dd>" + K('Ctrl') + "+" + K('K') + " and type what you want.</dd><dt>Will a KPI card turn red automatically?</dt><dd>Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.</dd></dl>" },
+    { id: 'faq', title: 'FAQ', html: "<dl><dt>Does Mothership send my data anywhere?</dt><dd>No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.</dd><dt>Do I need the internet or admin rights?</dt><dd>No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.</dd><dt>My laptop has Python but not Node (or the reverse).</dt><dd>Use the matching server: <code>tools/mcp/mothership_mcp.py</code> for Python, <code>tools/mcp/mothership-mcp.js</code> for Node. They have the same tools.</dd><dt>Neither Python nor Node is allowed.</dt><dd>Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.</dd><dt>The server says it can’t find Edge or Chrome.</dt><dd>Set <code>MOTHERSHIP_BROWSER</code> to the full path, e.g. <code>C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe</code>.</dd><dt>It says DevTools refused the connection, or the browser closes at once.</dt><dd>Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.</dd><dt>How do I see what the assistant is doing?</dt><dd>Set <code>MOTHERSHIP_HEADLESS=0</code> to show the window, or ask it for a <i>screenshot</i>. To edit in your own window, use <code>MOTHERSHIP_ATTACH</code> (see the MCP section).</dd><dt>Where are files saved? Can it overwrite my dashboard?</dt><dd>In <code>MOTHERSHIP_OUT</code> (or the folder the assistant was started in) unless the assistant gives a path. The default export name is <code>&lt;name&gt;-edited.html</code>, so the original is kept.</dd><dt>Which AI assistants work?</dt><dd>Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.</dd><dt>Can the assistant see my comments?</dt><dd>Yes: <i>list_comments</i> and <i>comments_prompt</i> give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.</dd><dt>Can I change how Mothership looks?</dt><dd>Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.</dd><dt>How do I find a command quickly?</dt><dd>" + K('Ctrl') + "+" + K('K') + " and type what you want.</dd><dt>Does it work with Highcharts or D3?</dt><dd>Yes. Highcharts works fully. D3 (and similar SVG) charts get names, pop-ups, colours, fonts, summaries, the number check and comments, but not new data or drill-down. See Chart libraries.</dd><dt>How do I check the numbers before sending?</dt><dd>Review › Number check. It flags KPI cards that don\u2019t match their chart and charts of the same measure that add up differently.</dd><dt>Can I track comments in Excel?</dt><dd>Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.</dd><dt>Will a KPI card turn red automatically?</dt><dd>Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.</dd></dl>" },
     { id: 'shortcuts', title: 'Keyboard shortcuts', html: '<table class="keys">' + [['Ctrl+K', 'Search commands, charts, tabs and help'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy, cut, paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete the selection'], ['Enter', 'Edit the selected text'], ['Esc', 'Deselect / cancel commenting'], ['Alt+↑', 'Select the parent'], ['Alt+→ / Alt+←', 'Next / previous tab'], ['Ctrl+F', 'Find & replace'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+Shift+E', 'Save as…'], ['Ctrl+O', 'Open'], ['Ctrl+wheel', 'Zoom the dashboard'], ['F5', 'Present']].map(function (r) { return '<tr><td><kbd>' + r[0] + '</kbd></td><td>' + r[1] + '</td></tr>'; }).join('') + '</table>' },
     { id: 'troubleshooting', title: 'Problems and fixes', html: '<dl><dt>Charts are blank</dt><dd>The dashboard loads its libraries or data from separate files or the internet. Use File › Open folder. If it needs the internet, turn off View › Network lock.</dd><dt>"Use this data" doesn\'t appear</dt><dd>The data isn\'t in the page (it may be fetched from a server). Use "the numbers drawn in this chart", or load a CSV/Excel export from the Data tab.</dd><dt>My text change came back after reload</dt><dd>That text is written by the page\'s script. Mothership re-applies your edit after the script runs; if the script writes it later, edit it in the source data instead.</dd><dt>Copy prompt didn\'t work</dt><dd>Some browsers block copying from local files. Click in the prompt box, press Ctrl+A then Ctrl+C, or use Save as .md.</dd><dt>Versions/autosave are off</dt><dd>The browser blocks storage for local files (some Firefox or locked-down setups). Export still works.</dd><dt>The page looks squashed</dt><dd>View › Draw at › Auto, then ⤢ Fit.</dd></dl>' }
   ];
@@ -7242,7 +8051,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '⬇', label: 'Export HTML', title: 'Save the edited dashboard as one standalone .html file on this laptop (Ctrl+E)', run: MS.cmd.export },
         { icon: '📝', label: 'Save as…', title: 'Choose a new file name and location', run: MS.cmd.exportAs },
         { icon: '🕘', label: 'Save version', title: 'Keep a named version in this browser (Ctrl+S)', run: MS.cmd.saveVersion },
-        { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions }] },
+        { icon: '📚', label: 'Versions', title: 'Restore, download or delete versions', run: MS.cmd.versions },
+        { icon: '⚖', label: 'Compare', title: 'What changed between two versions (or a file): tabs, text, charts, data. Side by side too.', run: function () { MS.compare.dialog(); } }] },
       { name: 'Output', items: [
         { icon: '🖨', label: 'Print / PDF', title: 'Print the dashboard, or choose "Save as PDF" in the print dialog. Each tab prints on its own page.', run: MS.cmd.print },
         { icon: '↻', label: 'Reload', title: 'Re-run the dashboard as it will look when exported', run: MS.cmd.reload }] }
@@ -7322,7 +8132,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '🎨', label: 'Category colours', title: 'Give each category or series one colour on every chart', run: needRt(MS.catColors.dialog) }] },
       { name: 'Share', items: [
         { icon: '🖼', label: 'As image', title: 'Save the selected chart as a PNG for PowerPoint, Word or email', run: needRt(function () { MS.chartOut.image(); }) },
-        { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) }] },
+        { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) },
+        { icon: '📰', label: 'Summaries', title: 'A plain-English summary of every chart: for emails, captions and screen readers', run: needRt(function () { MS.summaries.dialog(); }) }] },
       { name: 'All charts', items: [
         { icon: '💬', label: 'Tooltips', title: 'Set one tooltip format for every chart', run: needRt(MS.charts.tooltipAll) },
         { icon: '🎨', label: 'Look', title: 'One font, legend and pop-up style for every chart', run: needRt(function () {
@@ -7375,6 +8186,11 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       { name: 'Comments', items: [
         { icon: '📌', label: 'Pins', title: 'Show or hide the numbered comment pins on the dashboard', run: function () { MS.review.togglePins(); }, toggle: function () { return MS.review.showPins; } },
         { icon: '🗑', label: 'Clear all', title: 'Delete all comments (Ctrl+Z to undo)', run: function () { MS.review.clear(); } }] },
+      { name: 'Tracker', items: [
+        { icon: '📗', label: 'Excel tracker', title: 'Save every comment as an Excel sheet with tab, chart, status, owner and due date, for review meetings', run: function () { MS.tracker.exportFile(); } },
+        { icon: '⬆', label: 'Update from tracker', title: 'Load the edited Excel tracker back: status, priority, owner, due date and notes', run: function () { MS.tracker.importFile(); } }] },
+      { name: 'Check', items: [
+        { icon: '🧮', label: 'Number check', title: 'Do the KPI cards match the chart totals? Do charts of the same measure add up alike?', run: function () { MS.numcheck.dialog(); } }] },
       { name: 'AI prompt', items: [
         { icon: '✨', label: 'Make prompt', title: 'Turn every comment into one prompt you can paste into an AI assistant', run: function () { MS.review.prompt(); } }] }
     ] },

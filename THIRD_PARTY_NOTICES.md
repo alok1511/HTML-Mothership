@@ -14,3 +14,5 @@ Mothership bundles these open-source libraries in `vendor/` so it works offline.
 | [Plotly.js (basic dist)](https://github.com/plotly/plotly.js) | 2.30.0 | MIT | Sample dashboard only |
 
 The chart libraries are used only by the files in `samples/`. Mothership itself works with whatever chart library the child dashboard already includes.
+
+**Test-only (not shipped).** `npm install` fetches [Highcharts](https://www.highcharts.com) 11.4.8 and [D3](https://github.com/d3/d3) 7.9.0 (ISC) as development dependencies so `tests/v4.test.js` can build test dashboards with them. Neither is copied into this repository or the zip. Highcharts is free for personal and non-commercial use only; Mothership never needs it, it simply works with the copy already inside a dashboard that uses it.

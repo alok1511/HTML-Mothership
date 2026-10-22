@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '2.1.0'
+VERSION = '2.2.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -507,6 +507,29 @@ def t_save_prompt(a):
     return {'saved': full, 'comments': o.get('comments'), 'characters': len(p['prompt'])}
 
 
+
+def t_save_tracker(a):
+    r = B.api('comments_tracker', {})
+    full = out_path(a.get('path'), r['name'])
+    with open(full, 'wb') as f:
+        f.write(base64.b64decode(r['b64']))
+    return {'saved': full, 'comments': r['rows']}
+
+
+def read_text(p):
+    with open(resolve_path(p), encoding='utf-8', errors='replace') as f:
+        return f.read()
+
+
+def t_compare_file(a):
+    args = {'before_html': read_text(a.get('path'))}
+    if a.get('after'):
+        args['after_html'] = read_text(a['after'])
+    else:
+        args['after'] = 'now'
+    return B.api('compare_versions', args)
+
+
 LOCAL = {
     'status': ('Is Mothership running? Which browser, which editor file, and what is open.', {}, t_status),
     'open_file': ('Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline.',
@@ -532,10 +555,16 @@ LOCAL = {
                     {'path': ['string', 'Where to save (default: <name>-review-prompt.md)'], 'goal': ['string', 'apply | polish | review | explain'],
                      'assistant': ['string', 'chat | agent | mcp'], 'scope': ['string', 'all | tab | must'], 'output': ['string', 'file | changes | plan | tickets'],
                      'include_done': ['boolean', 'Include closed comments'], 'extra': ['string', 'Extra instruction']}, t_save_prompt),
+    'save_tracker': ('Save every review comment as an Excel tracker (.xlsx) with tab, section, chart, comment, done-when, status, owner and due date.',
+                     {'path': ['string', 'Where to save (default: <name> - review tracker.xlsx)']}, t_save_tracker),
+    'load_tracker': ('Update comments from an edited Excel tracker: status, priority, owner, due date, notes and wording (matched by the ID column).',
+                     {'path': ['string', 'The .xlsx file', True]}, lambda a: B.api('apply_tracker', {'file': b64file(a.get('path'))})),
+    'compare_file': ('What changed between a dashboard file on disk and what is open now (or a second file): tabs, text, chart settings, data, KPI cards, filters, colours, comments.',
+                     {'path': ['string', 'The earlier .html file', True], 'after': ['string', 'A later .html file (default: the dashboard open now)']}, t_compare_file),
     'chart_image': ('A PNG of one chart (shown to you, optionally saved).', {'chart': ['string', 'Chart name or key', True], 'path': ['string', 'Also save it here']},
                     lambda a: t_screenshot({'what': a.get('chart'), 'path': a.get('path')})),
 }
-HIDDEN = {'open_folder_files', 'insert_content_file'}
+HIDDEN = {'open_folder_files', 'insert_content_file', 'comments_tracker', 'apply_tracker'}
 
 
 def schema_of(props):

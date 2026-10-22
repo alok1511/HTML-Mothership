@@ -172,6 +172,34 @@ Each comment in the prompt has its location, how to find it in the code, what th
 
 Plugins (.js) add buttons to the Plugins tab. Recipes (.json) replay a list of edits (tabs, theme, tooltips, filters) on any dashboard, which is handy for a monthly refresh. See docs/EXTENDING.md in the Mothership folder.
 
+## Summaries, number check, tracker and compare
+
+### 📰 Chart summaries
+
+**Charts › Summaries** writes one or two plain sentences per chart from the numbers on screen, e.g. *“West is highest at ₹4.2 Cr (38%); East is lowest at ₹1.2 Cr.”* Trends say what rose or fell and by how much. For each chart choose **Caption under the chart**, **Screen readers only** or nothing. Captions follow the filters and stay in the exported file. **Copy all** gives you the lot for an email.
+
+### 🧮 Number check
+
+**Review › Number check** compares each KPI card with the chart that shows the same measure (by name, or by data for cards that calculate), and charts of the same measure with each other. Rounding on the card (₹16.2 Cr) is allowed for. Differences can be turned into review comments in one click. Percentages and row counts are not added up.
+
+### 📗 Excel tracker
+
+**Review › Excel tracker** saves every comment as a spreadsheet: number, status, priority, tab, section, chart, where exactly, the comment, what “done” means, owner, due date and notes, plus a summary sheet by tab and priority. Use it in the review meeting, then **Update from tracker** loads status, priority, owner, due date, notes and wording back. Keep the ID column.
+
+### ⚖ Compare versions
+
+**File › Compare** shows what changed between two saved versions, the dashboard now, or a file on this laptop: tabs added, renamed or removed, text changes (old crossed out, new in green), chart settings, data, KPI cards, filters, colours and comments. **Side by side** shows both dashboards next to each other. **Copy the list** for your change note.
+
+## Chart libraries
+
+| Library | What works |
+|---|---|
+| Chart.js, ECharts, Plotly | Everything: look, pop-ups, colours, order, data, drill-down, images, summaries. |
+| Highcharts | Everything as above. Mothership uses the Highcharts already inside your dashboard (it is not free for commercial use, so Mothership doesn't include it). |
+| D3 and other SVG charts | Names, pop-ups, colours, look (fonts), summaries, number check, image and comments. The page's own script draws them, so Mothership can't redraw them from other data or drill down: rebuild with **Insert › Chart** for that. |
+
+Charts drawn as plain images can't be read; ask for the data behind them.
+
 ## Mothership theme and search
 
 Make Mothership itself easier on the eyes. Your dashboard is not affected.
@@ -297,6 +325,15 @@ Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your 
 
 **How do I find a command quickly?**  
 `Ctrl`+`K` and type what you want.
+
+**Does it work with Highcharts or D3?**  
+Yes. Highcharts works fully. D3 (and similar SVG) charts get names, pop-ups, colours, fonts, summaries, the number check and comments, but not new data or drill-down. See Chart libraries.
+
+**How do I check the numbers before sending?**  
+Review › Number check. It flags KPI cards that don’t match their chart and charts of the same measure that add up differently.
+
+**Can I track comments in Excel?**  
+Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.
 
 **Will a KPI card turn red automatically?**  
 Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.
