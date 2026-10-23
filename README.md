@@ -164,6 +164,41 @@ HTML-Mothership/
 | **Brand skills that behave the same everywhere** | **Design › Load brand** | A `.zip` is read in full and always in the same order (SKILL.md first). Before applying, a **preview** lists each colour the dashboard uses and the brand colour it becomes (main colour and shades → primary, backgrounds → background/card, text → text, lines → border; red/green status colours kept). Untick or change any row and watch the dashboard update. Optional: brand fonts everywhere (icons keep theirs). |
 | **MCP tools** | Both servers | `page_tabs` (list, show, add, rename, move, delete); `set_mode` takes `comment`; `update_comment` takes `reply`; `list_comments` returns replies; `apply_theme` reports the colours it swapped. |
 
+### New in v3.4: copy and paste anywhere, chart size, data and legends, better pop-ups
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Copy, cut and paste anywhere** | Ctrl+C / Ctrl+X / Ctrl+V, right-click, **Home › Paste / Paste inside / Duplicate** | Works on one-page dashboards and on dashboards with their own tabs (no tab ribbon needed). Copying a chart copies its whole card; the copy lands right after what you selected and its chart is live. **Paste inside** drops it into the selected card or section. Cut removes the part at once (Ctrl+Z puts it back). |
+| **Paste between dashboards** | Copy in one Mothership window, paste in another | Charts are rebuilt from their numbers in the other dashboard, so they keep working. |
+| **Paste from Excel, Word or the web** | Ctrl+V | A copied Excel range or HTML table becomes a styled table; a copied image becomes a picture; other text becomes paragraphs. |
+| **Resize charts** | Drag the corner handle, or **Size** in the right panel | Width (grid columns or %) and height. The size is kept in the exported file. |
+| **Chart data** | Right-click a chart › **Chart data…**, or **Charts › Data** | An editable grid: type, paste from Excel, or upload a CSV/Excel file for just this chart. Download the chart's numbers as CSV. **Reset** goes back to the original. |
+| **Legends** | Right-click › **Legend**, or **Data & legend** in the right panel | Show or hide, and put it at the top, bottom, left or right. Hides the page's own HTML legend too. |
+| **Table colour rules** | Click a table cell › **Data › Colour rules** | Like Excel conditional formatting: red/amber/green thresholds, colour scales, data bars, top/bottom N, "if the value is…". Rules follow filters and stay in the export. |
+| **Templates** | **Insert › Templates** | Three starters (KPI row and two charts, Chart with commentary, Notes and definitions), plus your own: save a selection or a whole tab and reuse it in any dashboard. Import and export as `.json`. |
+| **Refresh data** | **Data › Refresh** | Pick this month's files: Mothership matches them to the datasets by file name (dates in the name are ignored) or sheet, shows what changes, and offers **Export now**. Remembers the files where the browser allows it. |
+| **Accessibility check** | **Review › Accessibility** | Language, title, image alt text, table headings, button names, keyboard tabs and text contrast (WCAG). One-click fixes for most. |
+| **Presenter notes from comments** | **Review › Present › Notes from comments**, or a tab's ⋯ › **Speaker notes…** | Resolved comments become talking points in Present mode; write your own notes per tab. |
+| **Better pop-ups and menus** | Everywhere | Pop-ups can be dragged, peeked through (👁), show errors inline instead of an alert, keep keyboard focus inside and return it on close. Menus have icons, shortcuts, sub-menus and arrow keys. Messages at the bottom have a close button and pause while you read them. |
+| **MCP tools** | Both servers | `copy`, `paste`, `chart_size`, `chart_legend`, `set_chart_data`, `table_rules`, `templates`, `refresh_data`, `accessibility_check`, `set_alt_text`, `presenter_notes`; file tools `chart_data_file`, `refresh_data_files`. |
+
+### New in v3.5: ready for clients
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Firm template, locked** | **Design › Firm template** | Your firm's logo, fonts, chart palette and disclaimer footer in one template that any dashboard snaps to in one click. Locked by default: brand, theme, fonts and chart colours can't be changed until someone unlocks it (optionally with a password). Share it as a `.firm.json` file; Mothership offers it for every new dashboard. |
+| **PDF** | **File › PDF** | One page per tab, fitted to A4 landscape, with the firm logo, tab title, date, stage, footer, "Client confidential" and page numbers. Uses the browser's own "Save as PDF", so nothing to install. |
+| **PowerPoint** | **File › PowerPoint** | One slide per tab (or per story step) with an editable title, the page as a picture and the firm footer. Opens in PowerPoint, LibreOffice and Google Slides. |
+| **Annotations** | Right-click a chart point › **Annotate this point**, or **Charts › Annotate** | Callouts, arrows and "So what" boxes pinned to a data point. They follow the point when the data, filters or size change. Drag to place; double-click to edit. |
+| **Storyline** | **Review › Storyline**, **View › Play story**, right-click › **Add to the story** | Steps through chosen charts and sections like slides: each step lights up one part and shows its headline. "Draft one step per chart" gets you started. Exported files get a **▶ Play the story** button. |
+| **Review workflow** | Comments pane, **Review › Stage** | Assign a comment to someone (initials) or @mention them; **For me** shows yours. **Draft / In review / Client-ready** stamp on the dashboard; client-ready warns about open comments and charts without a source. |
+| **Source and "as of" on every chart** | Right-click a chart › **Source and date**, **Charts › Source** | "Source: … · As of …" under the chart; one entry can fill every chart. **Charts › Footnotes** adds a "Notes and sources" block with every source and the disclaimer. |
+| **Client confidential** | **Design › Confidential** | A watermark on every page (screen and print) and a label in the footer. |
+| **Remove client names** | **Design › Remove names** | Replaces client or people names in the text, chart labels, data, comments, settings and the page's own scripts. Save a cleaned copy, or clean this dashboard (a version is kept first). Tells you if any mention is left inside a word or a picture. |
+| **Colour-blind check** | **Design › Colour-blind**, also in **Review › Accessibility** | Finds chart colours that red-, green- or blue-blind readers can't tell apart, previews the dashboard as they see it, and switches to a colour-blind safe palette (Okabe–Ito) in one click. |
+| **Change log in the file** | **Review › Change log** | Who changed what and when, saved inside the dashboard file and kept across versions. Download as CSV. |
+| **MCP tools** | Both servers | `firm_template`, `stage`, `confidential`, `scrub_names`, `change_log`, `colour_blind_check`, `annotate`, `chart_source`, `insert_footnotes`, `story`, `print_layout`, `export_pptx`; `add_comment` / `update_comment` take `to`. File tools `save_pdf`, `save_pptx`, `scrubbed_copy`. |
+
 ---
 
 ## 3. How-to guide
@@ -367,6 +402,8 @@ Stated plainly so nothing surprises you:
 - **PowerPoint import** keeps text, tables, pictures and notes, not exact slide layout or native PowerPoint charts. Use PDF import "as images" when you need it pixel-identical.
 - **The publish lock is a deterrent, not security.** An HTML file is text: anyone can open it in Notepad, change it, or copy what is on screen. The lock stops edits in Mothership and the seal reveals changes, but only when the file is opened in Mothership. For real control use SharePoint/OneDrive/Teams view-only permissions, sensitivity labels, or send a PDF.
 - **Region & currency changes Mothership's numbers only**: pop-ups and axes set to Currency/Short, KPI cards and summaries. Numbers the dashboard's own script writes (and formats picked by name, like ₹ crore) are not converted, and no exchange rates are applied.
+- **PDF and PowerPoint show each tab as a picture of the page.** A very tall tab is shrunk to fit one page or slide; for one chart per slide, build a story and export "PowerPoint from the story". PowerPoint titles are editable, the charts are not native PowerPoint charts.
+- **The firm lock and "Remove names" are about consistency and care, not secrecy.** The lock stops changes in Mothership (anyone can still edit the file in Notepad). "Remove names" changes text, data and scripts, but not words inside pictures or a logo: check the result it reports.
 - **Very large datasets** (more than about 50k rows) embedded via *Load data* make exports large and drill-downs slower. Link to the page's own data where possible (*Find data*).
 
 ---
@@ -495,17 +532,14 @@ Exports never overwrite your original: the default name is `<name>-edited.html`.
 
 ## 13. Roadmap ideas
 
-Not built yet, roughly in order of value:
+Not built yet, roughly in order of value (v3.4 delivered templates, refresh, table colour rules, presenter notes and the accessibility check; v3.5 the client-work features):
 
-1. **Template gallery**: save a tab layout and reuse it across dashboards (partly covered by recipes today).
-2. **Scheduled refresh**: re-load a local CSV/Excel and re-export in one click (manual refresh exists under Data › Manage).
-3. **Conditional formatting for tables** (KPI cards have red/amber/green from v3).
-4. **Presenter notes from comments**: turn resolved comments into speaker notes for Present mode.
-5. **Accessibility pass**: alt text for images and a keyboard check of exports (chart summaries cover charts from v3.1).
-6. **Full D3 support**: redraw D3 charts from new data, which needs knowing how each chart was built.
-7. **Real access control and signing** (needs company systems, not a file): view-only SharePoint/Teams links, sensitivity labels, and signing published files with the company's certificate instead of a self-check.
-8. **Usage analytics** (who opened which tab): needs a server, so it is out of scope for an offline file.
-9. **Currency conversion** with a rate table you supply, for dashboards that mix currencies.
+1. **Full D3 support**: redraw D3 charts from new data, which needs knowing how each chart was built.
+2. **Real access control and signing** (needs company systems, not a file): view-only SharePoint/Teams links, sensitivity labels, and signing published files with the company's certificate instead of a self-check.
+3. **Usage analytics** (who opened which tab): needs a server, so it is out of scope for an offline file.
+4. **Currency conversion** with a rate table you supply, for dashboards that mix currencies.
+5. **Editable PowerPoint charts** (native chart objects instead of pictures).
+6. **Scheduled refresh without a click**: browsers can't run on a timer when closed; today it is one click under Data › Refresh.
 
 ---
 

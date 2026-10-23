@@ -63,45 +63,94 @@ window.MS = window.MS || {};
   MS.ext = function (name) { var m = /\.([^.]+)$/.exec(name || ''); return m ? m[1].toLowerCase() : ''; };
 
   /* ---------- toast ---------- */
-  MS.toast = function (msg, kind, ms) {
-    var host = MS.$('#toasts');
-    var t = MS.h('div', { 'class': 'toast ' + (kind || '') }, [MS.icon ? MS.icon({ ok: 'checkCircle', warn: 'warning', error: 'xCircle' }[kind] || 'info') : null, MS.h('div', { 'class': 'grow' }, [msg])]);
+  // MS.toast(msg, kind, ms, {action: {label, run}}): hover keeps it open, ✕ closes it.
+  MS.toast = function (msg, kind, ms, opt) {
+    var host = MS.$('#toasts'); if (!host) return;
+    var old = MS.$$('.toast', host); if (old.length > 3) old.slice(0, old.length - 3).forEach(function (x) { x.remove(); });
+    var timer, gone = false;
+    var close = function () { if (gone) return; gone = true; clearTimeout(timer); t.classList.add('out'); setTimeout(function () { t.remove(); }, 300); };
+    var act = opt && opt.action ? MS.h('button', { 'class': 'toast-act', onclick: function () { close(); opt.action.run(); } }, [opt.action.label]) : null;
+    var t = MS.h('div', { 'class': 'toast ' + (kind || ''), role: kind === 'error' ? 'alert' : 'status' }, [MS.icon ? MS.icon({ ok: 'checkCircle', warn: 'warning', error: 'xCircle' }[kind] || 'info') : null, MS.h('div', { 'class': 'grow' }, [msg]), act,
+      MS.h('button', { 'class': 'toast-x', title: 'Close', 'aria-label': 'Close', onclick: close }, ['✕'])]);
     host.appendChild(t);
-    setTimeout(function () { t.classList.add('out'); setTimeout(function () { t.remove(); }, 300); }, ms || (kind === 'error' ? 6000 : 3200));
+    var life = ms || (kind === 'error' ? 6000 : act ? 6000 : 3200);
+    var arm = function () { clearTimeout(timer); timer = setTimeout(close, life); };
+    t.addEventListener('mouseenter', function () { clearTimeout(timer); }); t.addEventListener('mouseleave', function () { life = 1500; arm(); });
+    arm();
+    return { close: close };
   };
   MS.status = function (msg) { var s = MS.$('#status-msg'); if (s) s.textContent = msg; };
 
   /* ---------- dialogs ---------- */
-  // MS.dialog({title, body: Node|string, buttons:[{label, value, primary}], wide}) -> Promise<value|null>
+  // MS.dialog({title, sub, body: Node|string, buttons:[{label, value, primary, danger}], wide, enterSubmits}) -> Promise<value|null>
+  // A button whose value function returns false keeps the dialog open; MS.dialogError(msg) explains why.
   MS.dialog = function (o) {
     return new Promise(function (resolve) {
+      var back = document.activeElement;
       var wrap = MS.h('div', { 'class': 'dlg-wrap' });
       var body = typeof o.body === 'string' ? MS.h('div', { html: o.body }) : (o.body || MS.h('div'));
-      var close = function (v) { wrap.remove(); document.removeEventListener('keydown', key, true); resolve(v); };
+      var close = function (v) {
+        document.removeEventListener('keydown', key, true);
+        wrap.remove();
+        try { if (back && back.focus && back.isConnected && !MS.$('.dlg-wrap')) back.focus(); } catch (e) {}
+        resolve(v);
+      };
       var btns = (o.buttons || [{ label: 'Cancel', value: null }, { label: 'OK', value: true, primary: true }]).map(function (b) {
         return MS.h('button', { 'class': 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''), onclick: function () {
           var v = typeof b.value === 'function' ? b.value() : b.value;
-          if (v === false) return; // validation failed, keep open
+          if (v === false) { if (!err.textContent) shake(); return; } // validation failed, keep open
           close(v);
         } }, [b.label]);
       });
-      var dlg = MS.h('div', { 'class': 'dlg' + (o.wide ? ' wide' : ''), role: 'dialog' }, [
-        MS.h('div', { 'class': 'dlg-head' }, [MS.h('strong', { text: o.title || '' }), MS.h('button', { 'class': 'icon-btn', title: 'Close', onclick: function () { close(null); } }, ['✕'])]),
-        MS.h('div', { 'class': 'dlg-body' }, [body]),
-        MS.h('div', { 'class': 'dlg-foot' }, btns)
+      var err = MS.h('div', { 'class': 'dlg-err', role: 'alert', hidden: true });
+      var primary = btns.filter(function (b) { return b.classList.contains('primary'); })[0];
+      var hint = primary && o.enterSubmits !== false && !btns.some(function (b) { return b.classList.contains('danger') && !b.classList.contains('primary'); }) ? MS.h('span', { 'class': 'dlg-hint' }, [MS.h('kbd', { text: 'Enter' }), ' ' + primary.textContent.trim() + ' · ', MS.h('kbd', { text: 'Esc' }), ' close']) : null;
+      var peek = MS.h('button', { 'class': 'icon-btn dlg-peek', title: 'Hold to see the dashboard behind this window', 'aria-label': 'See behind' }, ['👁']);
+      var head = MS.h('div', { 'class': 'dlg-head' }, [MS.h('div', { 'class': 'grow' }, [MS.h('strong', { text: o.title || '' }), o.sub ? MS.h('div', { 'class': 'dlg-sub', text: o.sub }) : null]),
+        MS.h('button', { 'class': 'icon-btn dlg-x', title: 'Close (Esc)', 'aria-label': 'Close', onclick: function () { close(null); } }, ['✕']), peek]);
+      var dlg = MS.h('div', { 'class': 'dlg' + (o.wide ? ' wide' : '') + (o.xwide ? ' xwide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': o.title || 'Dialog' }, [
+        head, MS.h('div', { 'class': 'dlg-body' }, [err, body]), MS.h('div', { 'class': 'dlg-foot' }, (hint ? [hint] : []).concat(btns))
       ]);
+      dlg.__err = err;
+      function shake() { dlg.classList.remove('shake'); void dlg.offsetWidth; dlg.classList.add('shake'); }
       function key(e) {
-        if (e.key === 'Escape') { e.stopPropagation(); close(null); }
-        if (e.key === 'Enter' && !/textarea|select/i.test(e.target.tagName) && o.enterSubmits !== false) {
-          var p = btns.filter(function (b) { return b.classList.contains('primary'); })[0]; if (p) { e.preventDefault(); p.click(); }
+        if (wrap !== MS.$$('.dlg-wrap').pop()) return;
+        if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(null); return; }
+        if (e.key === 'Enter' && !/textarea|select|button/i.test(e.target.tagName) && o.enterSubmits !== false && primary) { e.preventDefault(); primary.click(); return; }
+        if (e.key === 'Tab') {
+          var f = MS.$$('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"]),a[href]', dlg).filter(function (x) { return x.offsetParent !== null; });
+          if (!f.length) return;
+          if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+          else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+          else if (!dlg.contains(document.activeElement)) { e.preventDefault(); f[0].focus(); }
         }
       }
+      // drag the window by its title bar
+      head.addEventListener('mousedown', function (e) {
+        if (e.button !== 0 || e.target.closest('button,input,select')) return;
+        e.preventDefault();
+        var x0 = e.clientX, y0 = e.clientY, m = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(dlg.style.transform || ''), dx = m ? +m[1] : 0, dy = m ? +m[2] : 0;
+        var mv = function (ev) { dlg.style.transform = 'translate(' + (dx + ev.clientX - x0) + 'px, ' + (dy + ev.clientY - y0) + 'px)'; };
+        var up = function () { document.removeEventListener('mousemove', mv, true); document.removeEventListener('mouseup', up, true); };
+        document.addEventListener('mousemove', mv, true); document.addEventListener('mouseup', up, true);
+      });
+      var unpeek = function () { wrap.classList.remove('peek'); document.removeEventListener('mouseup', unpeek, true); };
+      peek.addEventListener('mousedown', function (e) { e.preventDefault(); wrap.classList.add('peek'); document.addEventListener('mouseup', unpeek, true); });
       document.addEventListener('keydown', key, true);
       wrap.appendChild(dlg);
-      wrap.addEventListener('mousedown', function (e) { if (e.target === wrap) close(null); });
+      var downOnWrap = false;
+      wrap.addEventListener('mousedown', function (e) { downOnWrap = e.target === wrap; });
+      wrap.addEventListener('mouseup', function (e) { if (downOnWrap && e.target === wrap) close(null); downOnWrap = false; });
       document.body.appendChild(wrap);
-      var f = dlg.querySelector('input,select,textarea'); if (f) setTimeout(function () { f.focus(); if (f.select) f.select(); }, 30);
+      var f = dlg.querySelector('.dlg-body input:not([type=checkbox]):not([type=color]),.dlg-body select,.dlg-body textarea') || primary;
+      if (f) setTimeout(function () { f.focus(); if (f.select && f.tagName === 'INPUT') f.select(); }, 30);
     });
+  };
+  // Show (or clear, with '') a message at the top of the open dialog.
+  MS.dialogError = function (msg) {
+    var d = MS.$$('.dlg-wrap .dlg').pop(); if (!d || !d.__err) return msg ? MS.toast(msg, 'warn') : null;
+    d.__err.textContent = msg || ''; d.__err.hidden = !msg;
+    if (msg) { d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake'); }
   };
   MS.prompt = function (title, value, label) {
     var inp = MS.h('input', { type: 'text', 'class': 'inp', value: value || '' });
@@ -109,7 +158,7 @@ window.MS = window.MS || {};
       buttons: [{ label: 'Cancel', value: null }, { label: 'OK', primary: true, value: function () { return inp.value; } }] });
   };
   MS.confirm = function (title, msg, okLabel, danger) {
-    return MS.dialog({ title: title, body: MS.h('p', { text: msg }), buttons: [{ label: 'Cancel', value: false }, { label: okLabel || 'OK', value: true, primary: true, danger: danger }] })
+    return MS.dialog({ title: (danger ? '⚠ ' : '') + title, body: MS.h('p', { 'class': 'dlg-msg', text: msg }), buttons: [{ label: 'Cancel', value: false }, { label: okLabel || 'OK', value: true, primary: true, danger: danger }] })
       .then(function (v) { return !!v; });
   };
   // Simple form builder: fields [{key,label,type:'text'|'number'|'select'|'textarea'|'checkbox'|'color', options:[{value,label}], value, hint}]

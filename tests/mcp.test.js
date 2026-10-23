@@ -106,6 +106,14 @@ const call = async (name, args) => {
   check('open_file: a locked file needs its password', !!lockedOpen.error && /locked/i.test(lockedOpen.error), lockedOpen);
   const unlocked = pb.json ? await call('open_file', { path: pb.json.saved, password: 'secret12' }) : { error: 'x' };
   check('open_file: the right password opens it, seal intact', unlocked.json && unlocked.json.published && unlocked.json.published.ok === true, unlocked.error || (unlocked.json && unlocked.json.published));
+  const pdf = await call('save_pdf', {});
+  const pdfOk = pdf.json && fs.existsSync(pdf.json.saved) && fs.readFileSync(pdf.json.saved).slice(0, 4).toString() === '%PDF';
+  check('save_pdf writes a PDF, one page per tab', pdfOk && pdf.json.pages.length >= 1, pdf.error || pdf.json);
+  const ppt = await call('save_pptx', {});
+  check('save_pptx writes a PowerPoint', ppt.json && fs.existsSync(ppt.json.saved) && fs.readFileSync(ppt.json.saved).slice(0, 2).toString() === 'PK' && ppt.json.slides >= 1, ppt.error || ppt.json);
+  const scr = await call('scrubbed_copy', { names: [{ from: 'Risk review', to: 'Client review' }] });
+  const scrHtml = scr.json && fs.existsSync(scr.json.saved) ? fs.readFileSync(scr.json.saved, 'utf8') : '';
+  check('scrubbed_copy saves a copy without the names', scr.json && scr.json.replaced[0].n >= 1 && !/Risk review/.test(scrHtml) && /Client review/.test(scrHtml), scr.error || scr.json);
   const bad = await call('no_such_tool', {});
   check('unknown tool is an error, not a crash', !!bad.error, bad);
 

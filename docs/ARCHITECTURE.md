@@ -16,6 +16,10 @@
 │ ribbon.js  panels.js  app.js        UI                                    │
 │ childedit.js  data.js  brand.js     editing commands (all go via history) │
 │ compose.js  arrange.js  review.js   build, order/colours/painter, comments│
+│ clipboard.js chartkit.js tables.js  copy/paste, chart size/data/legend,   │
+│ templates.js a11y.js                colour rules, templates, accessibility│
+│ consult.js annotate.js story.js     firm, stage, names, log, colour-blind,│
+│ deliver.js                          notes, sources, story, PDF, PowerPoint│
 │ help.js                             tour, tutorial, guide                 │
 │ api.js                              MS.api: every feature as JSON (MCP)   │
 │ importers.js  plugins.js            files in, extensions                  │

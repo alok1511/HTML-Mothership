@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '2.4.0'
+VERSION = '2.6.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -514,6 +514,62 @@ def t_save_prompt(a):
 
 
 
+def print_pdf(html):
+    t = B.cdp('Target.createTarget', {'url': 'about:blank'}, None)
+    target = t['targetId']
+    try:
+        sid = B.cdp('Target.attachToTarget', {'targetId': target, 'flatten': True}, None)['sessionId']
+        B.cdp('Page.enable', {}, sid)
+        ft = B.cdp('Page.getFrameTree', {}, sid)
+        B.cdp('Page.setDocumentContent', {'frameId': ft['frameTree']['frame']['id'], 'html': html}, sid)
+        time.sleep(0.9)
+        B.cdp('Runtime.evaluate', {'expression': 'typeof msFit==="function"&&msFit()'}, sid)
+        return B.cdp('Page.printToPDF', {'printBackground': True, 'preferCSSPageSize': True, 'landscape': True}, sid)['data']
+    finally:
+        try:
+            B.cdp('Target.closeTarget', {'targetId': target}, None)
+        except Exception:
+            pass
+
+
+def base_name(suffix=''):
+    o = B.api('outline', {})
+    return re.sub(r'\.html?$', '', o.get('name') or 'dashboard', flags=re.I) + suffix
+
+
+def t_save_pdf(a):
+    r = B.api('print_layout', {'from': a.get('from')})
+    base = base_name('-story' if a.get('from') == 'story' else '')
+    try:
+        pdf = print_pdf(r['html'])
+    except Exception as e:
+        p = a.get('path')
+        full = out_path(re.sub(r'\.pdf$', '-print.html', p, flags=re.I) if p else None, base + '-print.html')
+        with open(full, 'w', encoding='utf-8') as f:
+            f.write(r['html'])
+        return {'saved': full, 'pages': r['pages'], 'note': 'The browser could not make the PDF itself (%s). Open the saved print layout and choose Print, then Save as PDF.' % e}
+    full = out_path(a.get('path'), base + '.pdf')
+    with open(full, 'wb') as f:
+        f.write(base64.b64decode(pdf))
+    return {'saved': full, 'pages': r['pages']}
+
+
+def t_save_pptx(a):
+    r = B.api('export_pptx', {'from': a.get('from')})
+    full = out_path(a.get('path'), r['name'])
+    with open(full, 'wb') as f:
+        f.write(base64.b64decode(r['b64']))
+    return {'saved': full, 'slides': r['slides']}
+
+
+def t_scrubbed_copy(a):
+    r = B.api('scrub_names', {'names': a.get('names') or [], 'where': 'copy'})
+    full = out_path(a.get('path'), base_name('-cleaned.html'))
+    with open(full, 'w', encoding='utf-8') as f:
+        f.write(r['html'])
+    return {'saved': full, 'replaced': r['replaced'], 'left': r['left']}
+
+
 def t_save_tracker(a):
     r = B.api('comments_tracker', {})
     full = out_path(a.get('path'), r['name'])
@@ -564,12 +620,24 @@ LOCAL = {
     'drill_data_file': ('Embed drill-down (double-click) detail from a Markdown, Excel, CSV or JSON file and link each table to its chart automatically. In Markdown, put each | table | under a heading naming the chart.',
                         {'path': ['string', 'File path', True], 'link': ['boolean', 'Link to matching charts (default true)']},
                         lambda a: B.api('drill_data', {'file': b64file(a.get('path')), 'link': a.get('link')})),
+    'chart_data_file': ('Give one chart new numbers from a CSV or Excel file on disk: labels in the first column, one column per series (or Category / Series / Value).',
+                        {'chart': ['string', 'Chart name or key', True], 'path': ['string', 'File path', True]},
+                        lambda a: B.api('set_chart_data', {'chart': a.get('chart'), 'file': b64file(a.get('path'))})),
+    'refresh_data_files': ("One-click refresh: re-read this month's CSV / Excel files for every dataset (matched by file name, then sheet or dataset name). Charts, KPI cards and filters keep their settings. Then export_html.",
+                           {'paths': ['array', 'File paths', True], 'apply': ['boolean', 'Apply (default true); false only lists the matches']},
+                           lambda a: B.api('refresh_data', {'files': [b64file(x) for x in (a.get('paths') or [])], 'apply': a.get('apply')})),
     'load_brand': ('Apply a brand from a file: brand JSON, a brand SKILL.md, a .skill/.zip package, or a font file.',
                    {'path': ['string', 'File path', True]}, lambda a: B.api('apply_theme', {'file': b64file(a.get('path'))})),
     'save_prompt': ('Turn review comments into an AI prompt (each located by tab › section › chart) and save it as a Markdown file.',
                     {'path': ['string', 'Where to save (default: <name>-review-prompt.md)'], 'goal': ['string', 'apply | polish | review | explain'],
                      'assistant': ['string', 'chat | agent | mcp'], 'scope': ['string', 'all | tab | must'], 'output': ['string', 'file | changes | plan | tickets'],
                      'include_done': ['boolean', 'Include closed comments'], 'extra': ['string', 'Extra instruction']}, t_save_prompt),
+    'save_pdf': ('Save a client-ready PDF: one page per tab (or per story step) with the firm header and footer, fitted to A4 landscape.',
+                 {'path': ['string', 'Where to save (default: <name>.pdf)'], 'from': ['string', 'tabs (default) | story']}, t_save_pdf),
+    'save_pptx': ('Save a PowerPoint: one slide per tab (or per story step), editable titles, each page as a picture, firm footer.',
+                  {'path': ['string', 'Where to save (default: <name>.pptx)'], 'from': ['string', 'tabs (default) | story']}, t_save_pptx),
+    'scrubbed_copy': ('Save a copy with client or people names taken out (text, chart labels, data, comments, settings). The open dashboard is unchanged.',
+                      {'names': ['array', '[{from, to}] e.g. [{from: "Acme Insurance", to: "Client"}]', True], 'path': ['string', 'Where to save (default: <name>-cleaned.html)']}, t_scrubbed_copy),
     'save_tracker': ('Save every review comment as an Excel tracker (.xlsx) with tab, section, chart, comment, done-when, status, owner and due date.',
                      {'path': ['string', 'Where to save (default: <name> - review tracker.xlsx)']}, t_save_tracker),
     'publish_html': ('Publish a view-only copy to disk: version number, date, release note and corner badge; optionally locked for editing with a password, and sealed so Mothership warns if it is changed later. Run publish_check first.',

@@ -120,7 +120,11 @@
     wand: 'M15 4V2 M15 10V8 M11.5 6h-2 M20.5 6h-2 M18 3.5l-1 1 M13 8.5l-1 1 M18 8.5l-1-1 M3 21l9.5-9.5 M11 13l1.5-1.5',
     robot: ['M12 3v3 M9 13h.01 M15 13h.01 M9.5 17h5', '<rect x="4" y="6" width="16" height="14" rx="3"/>'],
     server: ['M7 7h.01 M7 17h.01', '<rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/>'],
-    lightning: 'M13 2L4 14h7l-1 8 9-12h-7z'
+    lightning: 'M13 2L4 14h7l-1 8 9-12h-7z',
+    star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z',
+    arrowUp: 'M12 19V5 M5 12l7-7 7 7',
+    legend: ['M10 7h10 M10 12h10 M10 17h10', '<rect x="3" y="5" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="3" y="15" width="4" height="4" rx="1"/>'],
+    accessibility: ['M5 8l7 2 7-2 M12 10v5 M9 21l3-6 3 6', '<circle cx="12" cy="4.5" r="1.5"/>']
   };
   P.lightning = P.zap;
 
@@ -136,7 +140,7 @@
     '📱': 'phone', '🛡': 'shield', '🔒': 'lock', '－': 'minus', '＋': 'plus', '⤢': 'fit', '▶': 'play', '🧩': 'puzzle', '📜': 'scroll', '📖': 'book',
     '🧭': 'compass', '🎓': 'graduation', '❓': 'help', 'ℹ': 'info', '⌨': 'keyboard', '📍': 'pin', '📌': 'pushpin', '⚡': 'zap', '☝': 'pointer',
     '✕': 'close', '✓': 'check', '🔗': 'link', '🗒': 'note', '👁': 'eye', '⚠': 'warning', '―': 'divider', '1:1': 'ruler', '▥': 'columns', '◆': 'diamond',
-    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '🌍': 'globe', '🚀': 'send', '−': 'minus', '+': 'plus'
+    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '🌍': 'globe', '🚀': 'send', '−': 'minus', '+': 'plus', '⭐': 'star', '⬆️': 'arrowUp', '🔑': 'legend', '♿': 'accessibility'
   };
   // symbols that are also ordinary characters: only swapped when they are the whole label
   var WHOLE_ONLY = { 'H': 1, '¶': 1, '≡': 1, '―': 1, '1:1': 1, '↕': 1, '⋯': 1, '－': 1, '＋': 1, '✓': 1, '✕': 1, '◆': 1, '⠿': 1, '▁': 1, '−': 1, '+': 1 };

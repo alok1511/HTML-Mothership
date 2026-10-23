@@ -1,10 +1,9 @@
 /* Direct editing inside the child: selection, text editing, styles, blocks,
-   drag & drop, resizing grips, clipboard. */
+   drag & drop, resizing grips. Cut / copy / paste is in clipboard.js. */
 (function (MS) {
   'use strict';
   MS.sel = null;
   MS.mode = 'edit'; // 'edit' | 'interact'
-  MS.clip = null;
   var E = MS.edit = {};
 
   var EDITOR_CSS = [
@@ -132,6 +131,7 @@
     if (MS.mode !== 'edit') return;
     var t = e.target, r = MS.rt();
     if (t.closest && t.closest('[contenteditable="true"]')) return;
+    if (t.closest && t.closest('.ms-annot,#ms-story,#ms-story-btn')) return;
     if (r && r.ptClicking) return;
     // the dashboard's own tabs switch in Edit mode too (and get selected, so they can be renamed or styled)
     var pt = r && r.pageTabOf && t.nodeType === 1 ? r.pageTabOf(t) : null;
@@ -153,6 +153,7 @@
     if (MS.mode !== 'edit') return;
     var t = e.target;
     if (t.closest && t.closest('[contenteditable="true"]')) return;
+    if (t.closest && t.closest('.ms-annot,#ms-story')) return;
     e.preventDefault(); e.stopPropagation();
     if (t.closest && t.closest('#ms-ribbon .ms-tabbtn')) { var id = t.closest('.ms-tabbtn').getAttribute('data-ms-tabbtn'); return MS.tabs.rename(id); }
     var ptb = MS.rt() && t.nodeType === 1 && MS.rt().pageTabOf ? MS.rt().pageTabOf(t) : null;
@@ -190,7 +191,8 @@
   function chartUnit(el) {
     // walk up while the parent only wraps this element (a chart's own container)
     var u = el;
-    while (u.parentElement && !/^(BODY|SECTION|MAIN)$/.test(u.parentElement.tagName) && u.parentElement.children.length === 1 &&
+    var kids = function (p) { return Array.prototype.filter.call(p.children, function (k) { return !k.classList.contains('ms-crumbs') && !k.classList.contains('ms-source') && !k.classList.contains('ms-summary') && !k.classList.contains('ms-annot-layer') && !k.hasAttribute('data-ms-editor') && !k.classList.contains('ms-grip') && !k.classList.contains('ms-drag'); }).length; };
+    while (u.parentElement && !/^(BODY|SECTION|MAIN)$/.test(u.parentElement.tagName) && kids(u.parentElement) === 1 &&
       !u.parentElement.classList.contains('ms-visual') && !u.parentElement.classList.contains('ms-grid') && u.parentElement.id !== 'ms-main') u = u.parentElement;
     return u;
   }
@@ -269,6 +271,7 @@
     // a legend swatch written in the page: recolour the chart instead, and the swatch follows
     var bgv = props.backgroundColor || props.background, lg = bgv && MS.rt() && MS.rt().legendOf ? MS.rt().legendOf(el) : null;
     if (lg) { var m = {}; m[lg.name] = bgv; return MS.catColors.set(m, 'Colour of “' + lg.name + '”'); }
+    if (MS.firm && MS.firm.blocksStyle(props, null, 'text colours and fonts')) return false;
     if (E.isGenerated(el)) MS.toast('This element is drawn by the dashboard\'s script, so style changes may not survive a reload.', 'warn', 5000);
     MS.history.attrs(label || 'Style', el, ['style'], function (x) {
       Object.keys(props).forEach(function (k) {
@@ -330,13 +333,15 @@
     if (c && size.height > 40 && inline === false) b.querySelector('.ms-visual').style.setProperty('--ms-h', Math.round(size.height) + 'px');
     return b;
   };
+  // the element before `unit`, skipping drill-down breadcrumbs the runtime put there
+  function prevOf(unit) { var p = unit.previousElementSibling; while (p && p.classList.contains('ms-crumbs')) p = p.previousElementSibling; return p; }
   function headingFor(unit) {
-    var p = unit.previousElementSibling;
+    var p = prevOf(unit);
     if (p && (/^H[1-6]$/.test(p.tagName) || /(^|[-_\s])(title|heading|header)([-_\s]|$)/i.test(p.className)) && !p.querySelector('canvas,svg,img,table') && p.textContent.trim().length < 140 && !p.closest('.ms-block')) return p;
     return null;
   }
   function guessTitle(unit) {
-    var p = unit.previousElementSibling;
+    var p = prevOf(unit);
     if (p && /^H[1-6]$/.test(p.tagName) && p.textContent.length < 120) return p.textContent.trim();
     var par = unit.parentElement, h = par && par.querySelector('h1,h2,h3,h4,h5,h6');
     if (h && h.textContent.length < 120 && !h.closest('.ms-block')) return h.textContent.trim();
@@ -368,7 +373,7 @@
     var host = kind === 'content' ? (sec.querySelector('.ms-doc') || sec) : ensureGrid(sec);
     MS.history.group((copy ? 'Copy' : 'Move') + ' to ' + sec.getAttribute('data-ms-title'), function () {
       var node, from = (B.of(block) || block).parentNode;
-      if (copy) node = B.duplicate(block, true);
+      if (copy) node = MS.clipboard.fit(B.duplicate(block, true), host);
       else {
         node = block.classList.contains('ms-block') ? block : B.wrap(block, false);
         if (node.classList.contains('ms-inline')) MS.history.attrs('Grid block', node, ['class'], function (x) { x.classList.remove('ms-inline'); });
@@ -381,6 +386,7 @@
   };
 
   // After moving a chart out of its card, remove the card if nothing is left in it.
+  B.removeIfEmpty = function (n) { removeIfEmpty(n); };
   function removeIfEmpty(n) {
     while (n && n.nodeType === 1 && !/^(BODY|MAIN|SECTION)$/.test(n.tagName) && !n.classList.contains('ms-grid') && !n.classList.contains('ms-visual') && !n.id.match(/^ms-/) &&
       !n.children.length && !n.textContent.trim()) {
@@ -390,39 +396,10 @@
     }
   }
 
-  // Clone a block. Charts are re-created from the source chart (data-ms-copyof), content is deep-cloned.
-  B.duplicate = function (block, detached) {
-    var rt = MS.rt();
-    if (!block.classList.contains('ms-block')) block = B.wrap(block, false);
-    var key = B.chartKey(block);
-    var head = block.querySelector('.ms-head');
-    var nb = B.create({ title: head ? head.querySelector('.ms-title').textContent : '', sub: head ? head.querySelector('.ms-sub').textContent : '', inf: head ? head.querySelector('.ms-inf').textContent : '' });
-    nb.style.cssText = block.style.cssText;
-    nb.classList.remove('ms-inline');
-    var vis = nb.querySelector('.ms-visual'), srcVis = block.querySelector('.ms-visual');
-    vis.style.cssText = srcVis.style.cssText;
-    if (key) {
-      var srcHost = block.querySelector('[data-ms-copyof]');
-      var origin = srcHost ? srcHost.getAttribute('data-ms-copyof') : key;
-      var holder = newEl('div', '');
-      holder.removeAttribute('data-ms-own');
-      holder.setAttribute('data-ms-id', MS.nextId());
-      holder.setAttribute('data-ms-copyof', origin);
-      holder.style.cssText = 'width:100%;height:100%';
-      vis.appendChild(holder);
-      if (rt && rt.state.charts[key]) {
-        var copyState = JSON.parse(JSON.stringify(rt.state.charts[key]));
-        var newKey = holder.getAttribute('data-ms-id');
-        MS.history.state('Copy chart settings', function (s) { s.charts[newKey] = copyState; });
-      }
-    } else {
-      vis.innerHTML = srcVis.innerHTML;
-      MS.$$('[data-ms-id]', vis).forEach(function (n) { n.removeAttribute('data-ms-id'); });
-      MS.$$('*', vis).forEach(function (n) { n.setAttribute('data-ms-own', ''); });
-      nb.classList.add('ms-content-block');
-    }
-    if (!detached) MS.history.move('Duplicate', nb, function () { block.parentNode.insertBefore(nb, block.nextSibling); });
-    return nb;
+  // Copy a block, chart or any part (see clipboard.js): charts become live copies, nothing is changed in the original.
+  B.duplicate = function (el, detached) {
+    if (!detached) return MS.clipboard.duplicate(el);
+    return MS.clipboard.clone(MS.clipboard.unitOf(el) || el);
   };
 
   B.remove = function (el) {
@@ -441,32 +418,6 @@
       if (span != null) MS.history.attrs('Width', block, ['style'], function (x) { x.style.gridColumn = 'span ' + span; });
       if (height != null && vis) MS.history.attrs('Height', vis, ['style'], function (x) { x.style.setProperty('--ms-h', height + 'px'); });
     });
-  };
-
-  /* ------------------------------------------------------------ clipboard */
-  MS.clipboard = {
-    copy: function (cut) {
-      if (!MS.sel) return MS.toast('Select a chart or block first.');
-      MS.clip = { node: MS.sel, cut: !!cut };
-      MS.toast((cut ? 'Cut' : 'Copied') + '. Switch tab and press Ctrl+V to paste.', 'ok');
-    },
-    paste: function () {
-      var rt = MS.rt(); if (!MS.clip || !rt) return MS.toast('Clipboard is empty.');
-      if (!rt.layoutEnabled()) return MS.toast('Turn on tabbed layout first (Layout tab).', 'warn');
-      var node = MS.clip.node;
-      if (!node.isConnected) return MS.toast('The copied element no longer exists.', 'warn');
-      var target = rt.activeTab;
-      var sel = MS.sel && B.of(MS.sel);
-      MS.history.group('Paste', function () {
-        var nb;
-        if (MS.clip.cut) { nb = node.classList.contains('ms-block') ? node : B.wrap(node, false); nb.classList.remove('ms-inline'); }
-        else nb = B.duplicate(node.classList.contains('ms-block') ? node : (B.of(node) || B.wrap(node, false)), true);
-        var sec = rt.tabEl(target), host = sec.getAttribute('data-ms-kind') === 'content' ? sec.querySelector('.ms-doc') : ensureGrid(sec);
-        MS.history.move('Place', nb, function () { if (sel && sel.parentNode === host) host.insertBefore(nb, sel.nextSibling); else host.appendChild(nb); });
-        E.select(nb);
-      });
-      if (MS.clip.cut) MS.clip = null;
-    }
   };
 
   /* ------------------------------------------------------------ drag & drop */
@@ -511,7 +462,7 @@
     e.preventDefault();
     if (d.tab) return B.sendToTab(node, d.tab.getAttribute('data-ms-tabbtn'), copy);
     MS.history.group(copy ? 'Copy block' : 'Move block', function () {
-      var n = copy ? B.duplicate(node, true) : node;
+      var n = copy ? MS.clipboard.fit(B.duplicate(node, true), d.grid || d.block.parentNode) : node;
       if (node.classList.contains('ms-inline') && (d.grid || (d.block && d.block.parentElement.classList.contains('ms-grid')))) MS.history.attrs('Grid block', n, ['class'], function (x) { x.classList.remove('ms-inline'); });
       MS.history.move('Place', n, function () {
         if (d.block) d.block.parentNode.insertBefore(n, d.after ? d.block.nextSibling : d.block);
