@@ -430,7 +430,7 @@
         MS.h('span', { 'class': 'tag ' + i.kind.replace(/\W/g, '').toLowerCase(), text: i.kind }),
         MS.h('div', { 'class': 'grow' }, [MS.h('div', { text: i.msg }), i.text ? MS.h('small', { 'class': 'muted', text: '“' + i.text + '”' }) : null]),
         i.el ? MS.h('button', { 'class': 'btn sm', onclick: function () { MS.edit.reveal(i.el); } }, ['Show']) : null,
-        i.fix ? MS.h('button', { 'class': 'btn sm', onclick: function (e) { MS.edit.style(i.el, i.fix, 'Brand fix'); e.target.disabled = true; e.target.textContent = 'Fixed'; } }, ['Fix']) : null,
+        i.fix ? MS.h('button', { 'class': 'btn sm', onclick: function (e) { (MS.firm ? MS.firm.allow : function (f) { return f(); })(function () { MS.edit.style(i.el, i.fix, 'Brand fix'); }); e.target.disabled = true; e.target.textContent = 'Fixed'; } }, ['Fix']) : null,
         i.wrap ? MS.h('button', { 'class': 'btn sm', onclick: function (e) { MS.blocks.wrap(i.el, true); e.target.disabled = true; } }, ['Add']) : null
       ]);
     }));
@@ -438,7 +438,7 @@
     MS.dialog({ title: 'Brand & quality check', wide: true, body: MS.h('div', {}, [summary, list]), buttons: [
       { label: 'Fix all ' + fixable.length + ' colour/font issues', value: 'fix' }, { label: 'Close', primary: true, value: null }] }).then(function (v) {
       if (v !== 'fix') return;
-      MS.history.group('Fix brand issues', function () { fixable.forEach(function (i) { MS.edit.style(i.el, i.fix, 'Brand fix'); }); });
+      (MS.firm ? MS.firm.allow : function (f) { return f(); })(function () { MS.history.group('Fix brand issues', function () { fixable.forEach(function (i) { MS.edit.style(i.el, i.fix, 'Brand fix'); }); }); });
       MS.toast('Fixed ' + fixable.length + ' issue(s). Undo with Ctrl+Z.', 'ok');
     });
   };

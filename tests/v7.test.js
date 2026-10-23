@@ -279,16 +279,18 @@ const b64 = s => Buffer.from(s, 'utf8').toString('base64');
 
     /* ---------------- accessibility */
     const ax = await page.evaluate(async () => {
+      // a second place with the same pale colours: one finding, and the fix must reach both
+      MS.child.doc.body.insertAdjacentHTML('beforeend', '<p class="pale" id="pale2">Figures are unaudited.</p>');
       const list = await MS.api.run('accessibility_check', {});
       const kinds = list.map(x => x.kind).sort().join(',');
       const fixed = await MS.api.run('accessibility_check', { fix: true });
       const img = MS.child.doc.querySelector('#c3 img');
       await MS.api.run('set_alt_text', { ref: '#c3 img', text: 'Company logo' });
       const last = await MS.api.run('accessibility_check', {});
-      return { kinds, fixed: fixed.map(x => x.kind).sort().join(','), lang: MS.child.doc.documentElement.lang, title: MS.child.doc.title, pale: getComputedStyle(MS.child.doc.querySelector('.pale')).color, alt: img.alt, left: last.length, th: MS.child.doc.querySelectorAll('#perf th').length };
+      return { kinds, fixed: fixed.map(x => x.kind).sort().join(','), lang: MS.child.doc.documentElement.lang, title: MS.child.doc.title, pale: getComputedStyle(MS.child.doc.querySelector('.pale')).color, pale2: getComputedStyle(MS.child.doc.getElementById('pale2')).color, alt: img.alt, left: last.length, th: MS.child.doc.querySelectorAll('#perf th').length };
     });
     check('accessibility: finds missing alt text, pale text, a table without headings, no language or title', ['alt', 'contrast', 'lang', 'th', 'title'].every(k => ax.kinds.indexOf(k) >= 0), ax.kinds);
-    check('accessibility: one-click fixes (language, title, readable colour, table headings) and alt text', ax.fixed === 'alt' && ax.lang && ax.title === 'Regional review' && ax.pale !== 'rgb(201, 204, 211)' && ax.th === 3 && ax.alt === 'Company logo' && ax.left === 0, ax);
+    check('accessibility: one-click fixes (language, title, readable colour, table headings) and alt text', ax.fixed === 'alt' && ax.lang && ax.title === 'Regional review' && ax.pale !== 'rgb(201, 204, 211)' && ax.pale2 !== 'rgb(201, 204, 211)' && ax.th === 3 && ax.alt === 'Company logo' && ax.left === 0, ax);
 
     /* ---------------- speaker notes from comments */
     await open(pages.owntabs(), 'owntabs.html');

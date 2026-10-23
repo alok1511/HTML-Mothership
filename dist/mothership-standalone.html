@@ -4246,6 +4246,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     // a legend swatch written in the page: recolour the chart instead, and the swatch follows
     var bgv = props.backgroundColor || props.background, lg = bgv && MS.rt() && MS.rt().legendOf ? MS.rt().legendOf(el) : null;
     if (lg) { var m = {}; m[lg.name] = bgv; return MS.catColors.set(m, 'Colour of “' + lg.name + '”'); }
+    if (MS.firm && MS.firm.blocksStyle(props, null, 'text colours and fonts')) return false;
     if (E.isGenerated(el)) MS.toast('This element is drawn by the dashboard\'s script, so style changes may not survive a reload.', 'warn', 5000);
     MS.history.attrs(label || 'Style', el, ['style'], function (x) {
       Object.keys(props).forEach(function (k) {
@@ -5608,9 +5609,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       var size = parseFloat(cs.fontSize), bold = +cs.fontWeight >= 700, large = size >= 24 || bold && size >= 18.66, need = large ? 3 : 4.5;
       var ratio = A.ratio(fg, bg);
       if (ratio >= need) continue;
-      var k = cs.color + '|' + bg.r + ',' + bg.g + ',' + bg.b;
-      if (seen[k]) { seen[k].count++; continue; }
-      var f = { kind: 'contrast', el: el, msg: 'Text is hard to read: contrast ' + ratio.toFixed(1) + ':1, needs ' + need + ':1 (“' + tn.nodeValue.trim().slice(0, 40) + '”).', fix: 'contrast', count: 1, ratio: ratio, need: need, bg: bg };
+      var k = cs.color + '|' + bg.r + ',' + bg.g + ',' + bg.b + '|' + need;
+      if (seen[k]) { if (seen[k].els.indexOf(el) < 0) { seen[k].els.push(el); seen[k].count++; } continue; }
+      var f = { kind: 'contrast', el: el, els: [el], msg: 'Text is hard to read: contrast ' + ratio.toFixed(1) + ':1, needs ' + need + ':1 (“' + tn.nodeValue.trim().slice(0, 40) + '”).', fix: 'contrast', count: 1, ratio: ratio, need: need, bg: bg };
       seen[k] = f; out.push(f);
     }
     out.forEach(function (f) { if (f.count > 1) f.msg += ' Same colours in ' + (f.count - 1) + ' more place(s).'; });
@@ -5620,8 +5621,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   };
 
   // The darker (or lighter) version of the text colour that passes on that background.
-  function fixColor(f) {
-    var w = MS.child.win, c = rgba(w.getComputedStyle(f.el).color), dark = lum(f.bg) > 0.4, k;
+  function fixColor(f, el) {
+    var w = MS.child.win, c = rgba(w.getComputedStyle(el || f.el).color), dark = lum(f.bg) > 0.4, k;
     for (k = 0; k <= 20; k++) {
       var t = k / 20, x = { r: Math.round(c.r + ((dark ? 0 : 255) - c.r) * t), g: Math.round(c.g + ((dark ? 0 : 255) - c.g) * t), b: Math.round(c.b + ((dark ? 0 : 255) - c.b) * t) };
       if (A.ratio(x, f.bg) >= f.need + 0.1) return '#' + [x.r, x.g, x.b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
@@ -5641,7 +5642,10 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
           MS.history.move('Heading cell', th, function () { row.insertBefore(th, c); }); MS.history.move('Heading cell', c, function () { c.remove(); });
         });
       });
-      case 'contrast': return MS.edit.style(f.el, { color: fixColor(f) }, 'Readable text colour');
+      case 'contrast':
+        // every place the finding counted, not just the first (the colours are worked out before any change)
+        var els = (f.els || [f.el]).filter(function (x) { return x.isConnected; }), cols = els.map(function (x) { return fixColor(f, x); });
+        return MS.history.group('Readable text colour', function () { els.forEach(function (x, i) { MS.edit.style(x, { color: cols[i] }, 'Readable text colour'); }); });
       case 'cvd': return MS.cvd.fix();
     }
   };
@@ -5744,6 +5748,20 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     MS.toast('The brand is locked to the "' + Fm.current().name + '" firm template, so ' + (what || 'colours and fonts') + ' can\'t change. Design › Firm template › Unlock.', 'warn', 6500);
     return true;
   };
+  // The style fields the template owns: colours and font families (size, weight and layout stay free).
+  Fm.BRAND_KEY = /colou?r$|^background|^font(Family)?$|^tip(Bg|Border)$/i;
+  // For the shared style setters: blocks (with the message) when a locked brand field would change.
+  // With `before`, only fields whose value differs count, so re-saving a whole look is fine.
+  Fm.blocksStyle = function (next, before, what) {
+    if (Fm.applying || !Fm.locked() || !next) return false;
+    var str = function (v) { return v == null ? '' : String(v); };
+    var keys = Object.keys(next).concat(before ? Object.keys(before) : []);
+    var hit = keys.some(function (k) { return Fm.BRAND_KEY.test(k) && (!before || str(next[k]) !== str(before[k])); });
+    return hit ? Fm.blocks(what) : false;
+  };
+  // Run fn with the lock lifted, for fixes that move the page toward the brand.
+  Fm.allow = function (fn) { var was = Fm.applying; Fm.applying = true; try { return fn(); } finally { Fm.applying = was; } };
+  Fm.lockedError = function () { return new Error('The brand is locked to the "' + Fm.current().name + '" firm template. Unlock it first (firm_template action "unlock").'); };
   // A template from what the dashboard has now: its theme (colours, fonts, chart palette, logo) and the footer text.
   Fm.fromDashboard = function (o) {
     o = o || {};
@@ -5873,7 +5891,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       if (!rt() || Fm.current() || MS.prefs.get('firmOffer', true) === false) return;
       Fm.saved().then(function (list) {
         if (!list.length || !rt() || Fm.current()) return;
-        MS.toast('Snap this dashboard to your firm template "' + list[0].name + '"?', '', 9000, { action: { label: 'Apply', on: function () { Fm.apply(list[0]); } } });
+        MS.toast('Snap this dashboard to your firm template "' + list[0].name + '"?', '', 9000, { action: { label: 'Apply', run: function () { Fm.apply(list[0]); } } });
       });
     }, 1200);
   });
@@ -7049,7 +7067,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         MS.h('span', { 'class': 'tag ' + i.kind.replace(/\W/g, '').toLowerCase(), text: i.kind }),
         MS.h('div', { 'class': 'grow' }, [MS.h('div', { text: i.msg }), i.text ? MS.h('small', { 'class': 'muted', text: '“' + i.text + '”' }) : null]),
         i.el ? MS.h('button', { 'class': 'btn sm', onclick: function () { MS.edit.reveal(i.el); } }, ['Show']) : null,
-        i.fix ? MS.h('button', { 'class': 'btn sm', onclick: function (e) { MS.edit.style(i.el, i.fix, 'Brand fix'); e.target.disabled = true; e.target.textContent = 'Fixed'; } }, ['Fix']) : null,
+        i.fix ? MS.h('button', { 'class': 'btn sm', onclick: function (e) { (MS.firm ? MS.firm.allow : function (f) { return f(); })(function () { MS.edit.style(i.el, i.fix, 'Brand fix'); }); e.target.disabled = true; e.target.textContent = 'Fixed'; } }, ['Fix']) : null,
         i.wrap ? MS.h('button', { 'class': 'btn sm', onclick: function (e) { MS.blocks.wrap(i.el, true); e.target.disabled = true; } }, ['Add']) : null
       ]);
     }));
@@ -7057,7 +7075,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     MS.dialog({ title: 'Brand & quality check', wide: true, body: MS.h('div', {}, [summary, list]), buttons: [
       { label: 'Fix all ' + fixable.length + ' colour/font issues', value: 'fix' }, { label: 'Close', primary: true, value: null }] }).then(function (v) {
       if (v !== 'fix') return;
-      MS.history.group('Fix brand issues', function () { fixable.forEach(function (i) { MS.edit.style(i.el, i.fix, 'Brand fix'); }); });
+      (MS.firm ? MS.firm.allow : function (f) { return f(); })(function () { MS.history.group('Fix brand issues', function () { fixable.forEach(function (i) { MS.edit.style(i.el, i.fix, 'Brand fix'); }); }); });
       MS.toast('Fixed ' + fixable.length + ' issue(s). Undo with Ctrl+Z.', 'ok');
     });
   };
@@ -7957,6 +7975,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   C.cleanStyle = clean;
   C.setStyle = function (key, patch, label, replace) {
     var rt = MS.rt(); if (!rt || !key) return;
+    var was = (rt.state.charts[key] || {}).style || {};
+    if (MS.firm && MS.firm.blocksStyle(Object.assign({}, replace ? {} : was, patch), was, 'chart colours and fonts')) return false;
     MS.history.state(label || 'Chart style', function (s) {
       var cs = s.charts[key] = s.charts[key] || {};
       var st = clean(Object.assign({}, replace ? {} : cs.style, patch));
@@ -7965,6 +7985,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   };
   C.styleAll = function (style) {
     var rt = MS.rt(); if (!rt) return;
+    if (MS.firm && rt.charts().some(function (c) { var was = (rt.state.charts[c.key] || {}).style || {}; return MS.firm.blocksStyle(clean(style) || {}, was, 'chart colours and fonts'); })) return false;
     MS.history.state('Style on all charts', function (s) {
       rt.charts().forEach(function (c) { var cs = s.charts[c.key] = s.charts[c.key] || {}; var st = clean(style); if (st) cs.style = JSON.parse(JSON.stringify(st)); else delete cs.style; });
     });
@@ -8390,6 +8411,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ================================================================ category colours */
   var Co = MS.catColors = {};
   Co.set = function (map, label, replace) {
+    if (MS.firm && MS.firm.blocks('chart colours')) return false;
     MS.history.state(label || 'Category colours', function (s) {
       var m = replace ? {} : Object.assign({}, s.layout.colors);
       Object.keys(map).forEach(function (k) { if (map[k]) m[k] = map[k]; else delete m[k]; });
@@ -8728,12 +8750,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   A.set_text = { d: 'Change the text (or HTML) of an element. Undoable; survives the page\'s own scripts.', p: { ref: ['string', 'Element ref or selector', true], text: ['string', 'Plain text'], html: ['string', 'HTML instead of text'] },
     f: function (a) { var el = elOf(a.ref), before = el.innerHTML, after = a.html != null ? MS.sanitize(a.html) : MS.esc(a.text || ''); MS.edit.commitText(el, before, after); return done(); } };
   A.set_style = { d: 'Set CSS on an element, e.g. {"fontSize":"18px","color":"#0b3d91","fontFamily":"Georgia"}. Empty string removes a property.', p: { ref: ['string', 'Element ref or selector', true], css: ['object', 'CSS properties (camelCase or --custom)', true] },
-    f: function (a) { MS.edit.style(elOf(a.ref), a.css, 'Style'); return done(); } };
+    f: function (a) { if (MS.edit.style(elOf(a.ref), a.css, 'Style') === false) throw MS.firm.lockedError(); return done(); } };
   A.set_popup = { d: 'Give any element a hover pop-up note (empty text removes it).', p: { ref: ['string', 'Element ref or selector', true], text: ['string', 'Pop-up text', true] },
     f: function (a) { var el = elOf(a.ref), v = String(a.text || '').trim(); MS.history.attrs('Hover pop-up', el, ['data-ms-tip'], function (x) { if (v) x.setAttribute('data-ms-tip', v); else x.removeAttribute('data-ms-tip'); }); return done(); } };
   A.popup_style = { d: 'One style for every hover pop-up on the page.', p: { bg: ['string', 'Background colour'], color: ['string', 'Text colour'], border: ['string', 'Border colour'], size: ['number', 'Text size px'], radius: ['number', 'Corner radius px'], width: ['number', 'Max width px'], charts_too: ['boolean', 'Also apply to chart pop-ups'] },
     f: function (a) {
       var r = rt();
+      if (a.charts_too && MS.firm.blocksStyle(MS.charts.cleanStyle({ tipBg: a.bg, tipColor: a.color, tipBorder: a.border }) || {}, null, 'chart pop-up colours')) throw MS.firm.lockedError();
       MS.history.state('Pop-up style', function (s) { ['bg', 'color', 'border', 'size', 'radius', 'width'].forEach(function (k) { if (a[k] != null) s.layout.tip[k] = a[k]; }); });
       if (a.charts_too) MS.history.state('Chart pop-ups', function (s) { r.charts().forEach(function (c) { var cs = s.charts[c.key] = s.charts[c.key] || {}; cs.style = Object.assign({}, cs.style, MS.charts.cleanStyle({ tipBg: a.bg, tipColor: a.color, tipBorder: a.border, tipSize: a.size, tipRadius: a.radius })); }); });
       return done();
@@ -8902,6 +8925,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       data: ['object', '{dataset, levels:[col,...], measure, agg, series, sort, top} (null = unlink)'], double_click: ['string', 'levels | details | crossfilter | none'], columns: ['array', 'Columns in the records view'] },
     f: function (a) {
       var r = rt(), key = chartKey(a.chart), c = r.chart(key);
+      if (a.look !== undefined) { var was = (r.state.charts[key] || {}).style || {}; if (MS.firm.blocksStyle((a.look && MS.charts.cleanStyle(a.look)) || {}, was, 'chart colours and fonts')) throw MS.firm.lockedError(); }
       MS.history.group('Chart settings', function () {
         MS.history.state('Chart', function (s) {
           var cs = s.charts[key] = s.charts[key] || {};
@@ -8921,7 +8945,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       r.drill[key] = [];
       return settle(200).then(function () { return chartSummary(r.chart(key) || c); });
     } };
-  A.chart_look_all = { d: 'One look (fonts, legend, pop-up colours, axis format) for every chart.', p: { look: ['object', 'Same fields as chart_settings.look', true] }, f: function (a) { MS.charts.styleAll(a.look); return done(); } };
+  A.chart_look_all = { d: 'One look (fonts, legend, pop-up colours, axis format) for every chart.', p: { look: ['object', 'Same fields as chart_settings.look', true] }, f: function (a) { if (MS.charts.styleAll(a.look) === false) throw MS.firm.lockedError(); return done(); } };
   A.tooltip_all = { d: 'One pop-up template for every chart ("" restores each chart\'s own).', p: { template: ['string', 'Template', true] },
     f: function (a) { var r = rt(); MS.history.state('Tooltip on all charts', function (s) { r.charts().forEach(function (c) { s.charts[c.key] = s.charts[c.key] || {}; if (a.template) s.charts[c.key].tooltip = a.template; else delete s.charts[c.key].tooltip; }); }); return done(); } };
   A.add_commentary_all = { d: 'Give every chart a title / subtitle / inference header.', p: {}, f: function () { MS.blocks.wrapAll(); return done(); } };
@@ -8953,7 +8977,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   A.category_order = { d: 'One category order for every chart that shows those categories (e.g. ["North","South","East","West"]), or copy one chart\'s order with from_chart. Empty order removes it.', p: { order: ['array', 'Categories in order'], from_chart: ['string', 'Use this chart\'s current order'] },
     f: function (a) { if (a.from_chart) MS.order.fromChart(chartKey(a.from_chart)); else if (a.order && a.order.length) MS.order.set(a.order.map(String)); else MS.order.remove([]); return { orders: rt().state.layout.orders }; } };
   A.category_colors = { d: 'Give categories or series one colour on every chart, e.g. {"North":"#1f77b4","South":"#ff7f0e"}. "" removes one.', p: { colors: ['object', 'name → colour', true], replace: ['boolean', 'Replace all existing ones'] },
-    f: function (a) { MS.catColors.set(a.colors, 'Category colours', !!a.replace); return { colors: rt().state.layout.colors }; } };
+    f: function (a) { if (MS.catColors.set(a.colors, 'Category colours', !!a.replace) === false) throw MS.firm.lockedError(); return { colors: rt().state.layout.colors }; } };
   A.format_painter = { d: 'Copy one chart\'s look, category colours, order and/or pop-up text onto other charts.', p: { from: ['string', 'Source chart', true], to: ['string', '"same" (charts with the same categories, default), "all", or a chart name'], look: ['boolean', 'Fonts/legend/pop-up style (default true)'], colors: ['boolean', 'Category colours (default true)'], order: ['boolean', 'Category order'], tooltip: ['boolean', 'Pop-up text template'] },
     f: function (a) {
       var r = rt(), k = chartKey(a.from), cs = r.state.charts[k] || {}, info = r.chartInfo(k) || {};

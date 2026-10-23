@@ -52,6 +52,22 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     });
     check('firm: the template sets brand colours, palette and a footer with the disclaimer', /Contoso Advisory/.test(fm.foot) && /Not for third parties/.test(fm.foot) && fm.palette[0] === '#7c3aed', fm);
     check('firm: locked, the brand can\'t be changed; the password unlocks it', fm.blocked && fm.wrong === false && fm.stillLocked && fm.right === true && fm.allowed && fm.locked, fm);
+    const fl = await page.evaluate(async () => {
+      // every way to restyle colours or fonts respects the lock; sizes and layout stay free
+      const rt = MS.rt(), kpi = MS.child.doc.querySelector('.kpi'), key = rt.charts()[0].key;
+      const colourBefore = kpi.style.color;
+      const textColour = MS.edit.style(kpi, { color: '#ff0000' }, 'Text colour') === false && kpi.style.color === colourBefore;
+      MS.edit.style(kpi, { fontSize: '19px' }, 'Font size'); const size = kpi.style.fontSize === '19px'; MS.history.undo();
+      const chartColour = MS.charts.setStyle(key, { color: '#ff0000' }, 'Chart text colour') === false && !((rt.state.charts[key] || {}).style || {}).color;
+      MS.charts.setStyle(key, { legend: 'bottom' }, 'Legend'); const legend = ((rt.state.charts[key] || {}).style || {}).legend === 'bottom';
+      const sameLook = MS.charts.setStyle(key, rt.state.charts[key].style, 'Chart look', true) !== false; MS.history.undo();
+      const all = MS.charts.styleAll({ font: 'Comic Sans MS' }) === false;
+      const cats = MS.catColors.set({ North: '#ff0000' }, 'Colour') === false && !(rt.state.layout.colors || {}).North;
+      const api = await MS.api.run('category_colors', { colors: { North: '#ff0000' } }).then(() => 'ran', e => e.message);
+      const apiLook = await MS.api.run('chart_settings', { chart: key, look: { color: '#ff0000' } }).then(() => 'ran', e => e.message);
+      return { textColour, size, chartColour, legend, sameLook, all, cats, api, apiLook };
+    });
+    check('firm: the lock also covers text colours, chart looks and category colours (in the editor and the API)', fl.textColour && fl.size && fl.chartColour && fl.legend && fl.sameLook && fl.all && fl.cats && /locked/.test(fl.api) && /locked/.test(fl.apiLook), fl);
 
     /* ---------------- stage, confidential, change log */
     const sg = await page.evaluate(async () => {
@@ -202,6 +218,16 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     check('PowerPoint: one slide per tab with an editable title and the page as a picture (opens in python-pptx)', Array.isArray(deck) && deck.map(s => s.title).join('|') === 'Overview|Claims|Notes' && deck.every(s => s.pics >= 1), deck);
     check('PowerPoint: one slide per story step too', px.s === 4, px.s);
     fs.unlinkSync(file);
+
+    /* ---------------- a new dashboard is offered the last firm template */
+    await open(pages.owntabs(), 'fresh.html');
+    const of = await page.evaluate(async () => {
+      const btn = [...document.querySelectorAll('.toast-act')].filter(b => b.textContent === 'Apply').pop();
+      if (btn) btn.click();
+      await new Promise(r => setTimeout(r, 300));
+      return { offered: !!btn, firm: MS.firm.current() && MS.firm.current().name };
+    });
+    check('firm: a new dashboard offers the last template, and Apply applies it', of.offered && of.firm === 'Contoso Advisory', of);
 
     check('editor: no script errors', errors.length === 0, errors);
     await ctx.close();

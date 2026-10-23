@@ -110,12 +110,13 @@
   A.set_text = { d: 'Change the text (or HTML) of an element. Undoable; survives the page\'s own scripts.', p: { ref: ['string', 'Element ref or selector', true], text: ['string', 'Plain text'], html: ['string', 'HTML instead of text'] },
     f: function (a) { var el = elOf(a.ref), before = el.innerHTML, after = a.html != null ? MS.sanitize(a.html) : MS.esc(a.text || ''); MS.edit.commitText(el, before, after); return done(); } };
   A.set_style = { d: 'Set CSS on an element, e.g. {"fontSize":"18px","color":"#0b3d91","fontFamily":"Georgia"}. Empty string removes a property.', p: { ref: ['string', 'Element ref or selector', true], css: ['object', 'CSS properties (camelCase or --custom)', true] },
-    f: function (a) { MS.edit.style(elOf(a.ref), a.css, 'Style'); return done(); } };
+    f: function (a) { if (MS.edit.style(elOf(a.ref), a.css, 'Style') === false) throw MS.firm.lockedError(); return done(); } };
   A.set_popup = { d: 'Give any element a hover pop-up note (empty text removes it).', p: { ref: ['string', 'Element ref or selector', true], text: ['string', 'Pop-up text', true] },
     f: function (a) { var el = elOf(a.ref), v = String(a.text || '').trim(); MS.history.attrs('Hover pop-up', el, ['data-ms-tip'], function (x) { if (v) x.setAttribute('data-ms-tip', v); else x.removeAttribute('data-ms-tip'); }); return done(); } };
   A.popup_style = { d: 'One style for every hover pop-up on the page.', p: { bg: ['string', 'Background colour'], color: ['string', 'Text colour'], border: ['string', 'Border colour'], size: ['number', 'Text size px'], radius: ['number', 'Corner radius px'], width: ['number', 'Max width px'], charts_too: ['boolean', 'Also apply to chart pop-ups'] },
     f: function (a) {
       var r = rt();
+      if (a.charts_too && MS.firm.blocksStyle(MS.charts.cleanStyle({ tipBg: a.bg, tipColor: a.color, tipBorder: a.border }) || {}, null, 'chart pop-up colours')) throw MS.firm.lockedError();
       MS.history.state('Pop-up style', function (s) { ['bg', 'color', 'border', 'size', 'radius', 'width'].forEach(function (k) { if (a[k] != null) s.layout.tip[k] = a[k]; }); });
       if (a.charts_too) MS.history.state('Chart pop-ups', function (s) { r.charts().forEach(function (c) { var cs = s.charts[c.key] = s.charts[c.key] || {}; cs.style = Object.assign({}, cs.style, MS.charts.cleanStyle({ tipBg: a.bg, tipColor: a.color, tipBorder: a.border, tipSize: a.size, tipRadius: a.radius })); }); });
       return done();
@@ -284,6 +285,7 @@
       data: ['object', '{dataset, levels:[col,...], measure, agg, series, sort, top} (null = unlink)'], double_click: ['string', 'levels | details | crossfilter | none'], columns: ['array', 'Columns in the records view'] },
     f: function (a) {
       var r = rt(), key = chartKey(a.chart), c = r.chart(key);
+      if (a.look !== undefined) { var was = (r.state.charts[key] || {}).style || {}; if (MS.firm.blocksStyle((a.look && MS.charts.cleanStyle(a.look)) || {}, was, 'chart colours and fonts')) throw MS.firm.lockedError(); }
       MS.history.group('Chart settings', function () {
         MS.history.state('Chart', function (s) {
           var cs = s.charts[key] = s.charts[key] || {};
@@ -303,7 +305,7 @@
       r.drill[key] = [];
       return settle(200).then(function () { return chartSummary(r.chart(key) || c); });
     } };
-  A.chart_look_all = { d: 'One look (fonts, legend, pop-up colours, axis format) for every chart.', p: { look: ['object', 'Same fields as chart_settings.look', true] }, f: function (a) { MS.charts.styleAll(a.look); return done(); } };
+  A.chart_look_all = { d: 'One look (fonts, legend, pop-up colours, axis format) for every chart.', p: { look: ['object', 'Same fields as chart_settings.look', true] }, f: function (a) { if (MS.charts.styleAll(a.look) === false) throw MS.firm.lockedError(); return done(); } };
   A.tooltip_all = { d: 'One pop-up template for every chart ("" restores each chart\'s own).', p: { template: ['string', 'Template', true] },
     f: function (a) { var r = rt(); MS.history.state('Tooltip on all charts', function (s) { r.charts().forEach(function (c) { s.charts[c.key] = s.charts[c.key] || {}; if (a.template) s.charts[c.key].tooltip = a.template; else delete s.charts[c.key].tooltip; }); }); return done(); } };
   A.add_commentary_all = { d: 'Give every chart a title / subtitle / inference header.', p: {}, f: function () { MS.blocks.wrapAll(); return done(); } };
@@ -335,7 +337,7 @@
   A.category_order = { d: 'One category order for every chart that shows those categories (e.g. ["North","South","East","West"]), or copy one chart\'s order with from_chart. Empty order removes it.', p: { order: ['array', 'Categories in order'], from_chart: ['string', 'Use this chart\'s current order'] },
     f: function (a) { if (a.from_chart) MS.order.fromChart(chartKey(a.from_chart)); else if (a.order && a.order.length) MS.order.set(a.order.map(String)); else MS.order.remove([]); return { orders: rt().state.layout.orders }; } };
   A.category_colors = { d: 'Give categories or series one colour on every chart, e.g. {"North":"#1f77b4","South":"#ff7f0e"}. "" removes one.', p: { colors: ['object', 'name → colour', true], replace: ['boolean', 'Replace all existing ones'] },
-    f: function (a) { MS.catColors.set(a.colors, 'Category colours', !!a.replace); return { colors: rt().state.layout.colors }; } };
+    f: function (a) { if (MS.catColors.set(a.colors, 'Category colours', !!a.replace) === false) throw MS.firm.lockedError(); return { colors: rt().state.layout.colors }; } };
   A.format_painter = { d: 'Copy one chart\'s look, category colours, order and/or pop-up text onto other charts.', p: { from: ['string', 'Source chart', true], to: ['string', '"same" (charts with the same categories, default), "all", or a chart name'], look: ['boolean', 'Fonts/legend/pop-up style (default true)'], colors: ['boolean', 'Category colours (default true)'], order: ['boolean', 'Category order'], tooltip: ['boolean', 'Pop-up text template'] },
     f: function (a) {
       var r = rt(), k = chartKey(a.from), cs = r.state.charts[k] || {}, info = r.chartInfo(k) || {};

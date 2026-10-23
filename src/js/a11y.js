@@ -52,9 +52,9 @@
       var size = parseFloat(cs.fontSize), bold = +cs.fontWeight >= 700, large = size >= 24 || bold && size >= 18.66, need = large ? 3 : 4.5;
       var ratio = A.ratio(fg, bg);
       if (ratio >= need) continue;
-      var k = cs.color + '|' + bg.r + ',' + bg.g + ',' + bg.b;
-      if (seen[k]) { seen[k].count++; continue; }
-      var f = { kind: 'contrast', el: el, msg: 'Text is hard to read: contrast ' + ratio.toFixed(1) + ':1, needs ' + need + ':1 (“' + tn.nodeValue.trim().slice(0, 40) + '”).', fix: 'contrast', count: 1, ratio: ratio, need: need, bg: bg };
+      var k = cs.color + '|' + bg.r + ',' + bg.g + ',' + bg.b + '|' + need;
+      if (seen[k]) { if (seen[k].els.indexOf(el) < 0) { seen[k].els.push(el); seen[k].count++; } continue; }
+      var f = { kind: 'contrast', el: el, els: [el], msg: 'Text is hard to read: contrast ' + ratio.toFixed(1) + ':1, needs ' + need + ':1 (“' + tn.nodeValue.trim().slice(0, 40) + '”).', fix: 'contrast', count: 1, ratio: ratio, need: need, bg: bg };
       seen[k] = f; out.push(f);
     }
     out.forEach(function (f) { if (f.count > 1) f.msg += ' Same colours in ' + (f.count - 1) + ' more place(s).'; });
@@ -64,8 +64,8 @@
   };
 
   // The darker (or lighter) version of the text colour that passes on that background.
-  function fixColor(f) {
-    var w = MS.child.win, c = rgba(w.getComputedStyle(f.el).color), dark = lum(f.bg) > 0.4, k;
+  function fixColor(f, el) {
+    var w = MS.child.win, c = rgba(w.getComputedStyle(el || f.el).color), dark = lum(f.bg) > 0.4, k;
     for (k = 0; k <= 20; k++) {
       var t = k / 20, x = { r: Math.round(c.r + ((dark ? 0 : 255) - c.r) * t), g: Math.round(c.g + ((dark ? 0 : 255) - c.g) * t), b: Math.round(c.b + ((dark ? 0 : 255) - c.b) * t) };
       if (A.ratio(x, f.bg) >= f.need + 0.1) return '#' + [x.r, x.g, x.b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
@@ -85,7 +85,10 @@
           MS.history.move('Heading cell', th, function () { row.insertBefore(th, c); }); MS.history.move('Heading cell', c, function () { c.remove(); });
         });
       });
-      case 'contrast': return MS.edit.style(f.el, { color: fixColor(f) }, 'Readable text colour');
+      case 'contrast':
+        // every place the finding counted, not just the first (the colours are worked out before any change)
+        var els = (f.els || [f.el]).filter(function (x) { return x.isConnected; }), cols = els.map(function (x) { return fixColor(f, x); });
+        return MS.history.group('Readable text colour', function () { els.forEach(function (x, i) { MS.edit.style(x, { color: cols[i] }, 'Readable text colour'); }); });
       case 'cvd': return MS.cvd.fix();
     }
   };

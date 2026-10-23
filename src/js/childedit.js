@@ -271,6 +271,7 @@
     // a legend swatch written in the page: recolour the chart instead, and the swatch follows
     var bgv = props.backgroundColor || props.background, lg = bgv && MS.rt() && MS.rt().legendOf ? MS.rt().legendOf(el) : null;
     if (lg) { var m = {}; m[lg.name] = bgv; return MS.catColors.set(m, 'Colour of “' + lg.name + '”'); }
+    if (MS.firm && MS.firm.blocksStyle(props, null, 'text colours and fonts')) return false;
     if (E.isGenerated(el)) MS.toast('This element is drawn by the dashboard\'s script, so style changes may not survive a reload.', 'warn', 5000);
     MS.history.attrs(label || 'Style', el, ['style'], function (x) {
       Object.keys(props).forEach(function (k) {

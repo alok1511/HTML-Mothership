@@ -18,6 +18,20 @@
     MS.toast('The brand is locked to the "' + Fm.current().name + '" firm template, so ' + (what || 'colours and fonts') + ' can\'t change. Design › Firm template › Unlock.', 'warn', 6500);
     return true;
   };
+  // The style fields the template owns: colours and font families (size, weight and layout stay free).
+  Fm.BRAND_KEY = /colou?r$|^background|^font(Family)?$|^tip(Bg|Border)$/i;
+  // For the shared style setters: blocks (with the message) when a locked brand field would change.
+  // With `before`, only fields whose value differs count, so re-saving a whole look is fine.
+  Fm.blocksStyle = function (next, before, what) {
+    if (Fm.applying || !Fm.locked() || !next) return false;
+    var str = function (v) { return v == null ? '' : String(v); };
+    var keys = Object.keys(next).concat(before ? Object.keys(before) : []);
+    var hit = keys.some(function (k) { return Fm.BRAND_KEY.test(k) && (!before || str(next[k]) !== str(before[k])); });
+    return hit ? Fm.blocks(what) : false;
+  };
+  // Run fn with the lock lifted, for fixes that move the page toward the brand.
+  Fm.allow = function (fn) { var was = Fm.applying; Fm.applying = true; try { return fn(); } finally { Fm.applying = was; } };
+  Fm.lockedError = function () { return new Error('The brand is locked to the "' + Fm.current().name + '" firm template. Unlock it first (firm_template action "unlock").'); };
   // A template from what the dashboard has now: its theme (colours, fonts, chart palette, logo) and the footer text.
   Fm.fromDashboard = function (o) {
     o = o || {};
@@ -147,7 +161,7 @@
       if (!rt() || Fm.current() || MS.prefs.get('firmOffer', true) === false) return;
       Fm.saved().then(function (list) {
         if (!list.length || !rt() || Fm.current()) return;
-        MS.toast('Snap this dashboard to your firm template "' + list[0].name + '"?', '', 9000, { action: { label: 'Apply', on: function () { Fm.apply(list[0]); } } });
+        MS.toast('Snap this dashboard to your firm template "' + list[0].name + '"?', '', 9000, { action: { label: 'Apply', run: function () { Fm.apply(list[0]); } } });
       });
     }, 1200);
   });

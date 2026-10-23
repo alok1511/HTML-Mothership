@@ -573,6 +573,8 @@
   C.cleanStyle = clean;
   C.setStyle = function (key, patch, label, replace) {
     var rt = MS.rt(); if (!rt || !key) return;
+    var was = (rt.state.charts[key] || {}).style || {};
+    if (MS.firm && MS.firm.blocksStyle(Object.assign({}, replace ? {} : was, patch), was, 'chart colours and fonts')) return false;
     MS.history.state(label || 'Chart style', function (s) {
       var cs = s.charts[key] = s.charts[key] || {};
       var st = clean(Object.assign({}, replace ? {} : cs.style, patch));
@@ -581,6 +583,7 @@
   };
   C.styleAll = function (style) {
     var rt = MS.rt(); if (!rt) return;
+    if (MS.firm && rt.charts().some(function (c) { var was = (rt.state.charts[c.key] || {}).style || {}; return MS.firm.blocksStyle(clean(style) || {}, was, 'chart colours and fonts'); })) return false;
     MS.history.state('Style on all charts', function (s) {
       rt.charts().forEach(function (c) { var cs = s.charts[c.key] = s.charts[c.key] || {}; var st = clean(style); if (st) cs.style = JSON.parse(JSON.stringify(st)); else delete cs.style; });
     });

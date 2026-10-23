@@ -82,6 +82,7 @@
   /* ================================================================ category colours */
   var Co = MS.catColors = {};
   Co.set = function (map, label, replace) {
+    if (MS.firm && MS.firm.blocks('chart colours')) return false;
     MS.history.state(label || 'Category colours', function (s) {
       var m = replace ? {} : Object.assign({}, s.layout.colors);
       Object.keys(map).forEach(function (k) { if (map[k]) m[k] = map[k]; else delete m[k]; });
