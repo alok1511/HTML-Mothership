@@ -36,6 +36,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     s.tableRules = s.tableRules || {}; // colour rules per table: {tableKey: [{col, type, ...}]}
     s.pageNotes = s.pageNotes || {};   // speaker notes for the dashboard's own tabs, by tab title
     s.annotations = s.annotations || []; // notes pinned to chart points: [{id, chart, label, series, kind, text, dx, dy, fx, fy, color}]
+    s.shapes = s.shapes || []; // drawn on charts: [{id, chart, kind, a:{fx,fy}|{label,series}, b, text, color, width, dash, fill, head, lift, show}]
     s.layout = s.layout || {};
     var L = s.layout;
     L.ribbon = L.ribbon || {};
@@ -755,10 +756,22 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   };
   A.echarts.point = function (i, idx, s) {
     try {
-      var l = i.getModel().getSeriesByIndex(s || 0).getData().getItemLayout(idx); if (!l) return null;
+      var se = i.getModel().getSeriesByIndex(s || 0), dt = se.getData(), l = dt.getItemLayout(idx);
+      if (!l) { var pts = dt.getLayout && dt.getLayout('points'); if (pts && pts.length > idx * 2 + 1) return { x: pts[idx * 2], y: pts[idx * 2 + 1] }; }
+      if (!l) { try { var px = i.convertToPixel({ seriesIndex: s || 0 }, [idx, dt.get(dt.mapDimension('y') || 'y', idx)]); if (px && isFinite(px[0]) && isFinite(px[1])) return { x: px[0], y: px[1] }; } catch (e) {} return null; }
       if (Array.isArray(l)) return { x: l[0], y: l[1] };
       if (l.cx != null) { var a = (l.startAngle + l.endAngle) / 2, r = ((l.r0 || 0) + l.r) / 2; return { x: l.cx + Math.cos(a) * r, y: l.cy + Math.sin(a) * r }; }
       return { x: l.x + l.width / 2, y: Math.min(l.y, l.y + l.height) };
+    } catch (e) { return null; }
+  };
+  A.plotly.point = function (gd, idx, s) {
+    try {
+      var cd = gd.calcdata && gd.calcdata[s || 0], p = cd && cd[idx], tr = cd && cd[0].trace, fl = gd._fullLayout; if (!p || !tr || tr.type === 'pie') return null;
+      var xa = fl[(tr.xaxis || 'x').replace('x', 'xaxis')], ya = fl[(tr.yaxis || 'y').replace('y', 'yaxis')];
+      var bar = tr.type === 'bar', h = bar && tr.orientation === 'h';
+      var cx = bar ? (h ? p.s + (p.b || 0) : p.p) : p.x, cy = bar ? (h ? p.p : p.s + (p.b || 0)) : p.y;
+      var x = xa._offset + xa.c2p(cx), y = ya._offset + ya.c2p(cy);
+      return isFinite(x) && isFinite(y) ? { x: x, y: y } : null;
     } catch (e) { return null; }
   };
   A.highcharts.point = function (c, idx, s) {
@@ -1988,7 +2001,15 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     '#ms-story .ms-st-foot{display:flex;align-items:center;gap:8px;margin-top:10px}#ms-story .ms-st-dots{flex:1;display:flex;gap:4px}#ms-story .ms-st-dots i{width:18px;height:4px;border-radius:2px;background:#cbd5e1}#ms-story .ms-st-dots i.on{background:var(--ms-primary,#4f46e5)}',
     '#ms-story button{border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:5px 12px;font:inherit;cursor:pointer;color:inherit}#ms-story button.pri{background:var(--ms-primary,#4f46e5);border-color:transparent;color:#fff}#ms-story button:disabled{opacity:.4;cursor:default}',
     '#ms-story-btn{position:fixed;left:12px;bottom:12px;z-index:9990;border:0;border-radius:999px;padding:8px 14px;background:var(--ms-primary,#4f46e5);color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.2);cursor:pointer}',
-    '@media print{#ms-story,#ms-story-spot,#ms-story-btn{display:none!important}#ms-stamp{position:absolute}}'
+    '.ms-shape-svg{position:absolute;left:0;top:0;overflow:visible}',
+    '.ms-shape-txt{position:absolute;box-sizing:border-box;font:600 12.5px/1.35 var(--ms-font-body,system-ui,sans-serif);color:#0f172a;white-space:pre-wrap;overflow-wrap:anywhere}',
+    '.ms-shape-txt.ms-sh-callout{background:#fff;border:1.5px solid;border-radius:6px;padding:5px 9px;box-shadow:0 2px 8px rgba(0,0,0,.12);width:max-content;max-width:240px}',
+    '.ms-shape-txt.ms-sh-pill{width:max-content;max-width:200px;padding:3px 10px;border-radius:999px;color:#fff;font-weight:700;font-size:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}',
+    '.ms-shape-txt.ms-sh-text{padding:2px 4px}',
+    'body.ms-edit-mode .ms-shape-hit{pointer-events:stroke;cursor:move}body.ms-edit-mode .ms-shape-fill{pointer-events:visiblePainted;cursor:move}body.ms-edit-mode .ms-shape-txt{pointer-events:auto;cursor:move}',
+    'body.ms-edit-mode .ms-shape-handle{pointer-events:all;cursor:grab}.ms-shape-handle{fill:#fff;stroke:#4f46e5;stroke-width:2}',
+    '.ms-shape.ms-shape-on .ms-shape-outline{stroke:#4f46e5;stroke-width:1;stroke-dasharray:4 3;fill:none}',
+    '@media print{#ms-story,#ms-story-spot,#ms-story-btn{display:none!important}#ms-stamp{position:absolute}.ms-shape-handle,.ms-shape-outline{display:none}}'
   ].join('\n');
   function onlyRuntime(n) { return /^(SCRIPT|STYLE|TEMPLATE|LINK)$/.test(n.tagName) || n.hasAttribute('data-ms-editor') || /^ms-(badge|errbar|stamp|watermark|story|story-spot|story-btn|state|runtime|vfs)$/.test(n.id || ''); }
   function lastReal(host) { var n = host.lastElementChild; while (n && onlyRuntime(n)) n = n.previousElementSibling; return n; }
@@ -2090,7 +2111,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     });
     bx.addEventListener('dblclick', function (e) { e.preventDefault(); e.stopPropagation(); window.dispatchEvent(new CustomEvent('ms:annot-edit', { detail: { id: a.id } })); });
   }
-  function drawAnnots(c, as) {
+  function drawAnnots(c, as, shs) {
+    as = as || []; shs = shs || [];
     var par = c.el.parentNode; if (!par) return;
     var k = c.key.replace(/"/g, ''), L = par.querySelector(':scope > .ms-annot-layer[data-for="' + k + '"]');
     if (!L) { L = el('div', { 'class': 'ms-annot-layer', 'data-for': c.key }); par.appendChild(L); }
@@ -2123,12 +2145,177 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       if (kind !== 'arrow') { svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 5, fill: '#fff', stroke: col, 'stroke-width': 2.5 })); }
       annDrag(bx, a);
     });
+    if (shs.length) drawShapes(c, shs, L, r);
   }
+
+  /* shapes drawn on a chart: lines, arrows, boxes, circles, text, callouts, and the consulting
+     classics, a growth (CAGR) arrow and a difference bracket, both pinned to data points */
+  rt.shapeSel = null;
+  var shLive = {};
+  function shapePt(c, p, labels) {
+    if (!p) return null;
+    if (p.label != null && c.a.point) {
+      var i = labels.indexOf(String(p.label));
+      if (i >= 0) { var q = c.a.point(c.inst, i, p.series || 0); if (q) return { x: q.x, y: q.y, i: i }; }
+    }
+    var r = c.el.getBoundingClientRect();
+    return p.fx != null ? { x: p.fx * r.width, y: p.fy * r.height } : null;
+  }
+  function valueAt(c, p) {
+    if (!p || p.label == null) return null;
+    var d = rt.chartData(c.key, true) || { labels: [], series: [] }, i = d.labels.indexOf(String(p.label)), s = d.series[p.series || 0];
+    return i >= 0 && s ? { v: s.values[i], i: i } : null;
+  }
+  function sign(n, txt) { return (n > 0 ? '+' : n < 0 ? '−' : '') + txt.replace(/^-|^−/, ''); }
+  // The label a growth arrow or difference bracket shows (unless the text was typed).
+  rt.shapeLabel = function (key, sh) {
+    var c = rt.chart(key); if (!c) return sh.text || '';
+    if (sh.text) return sh.text;
+    var A1 = valueAt(c, sh.a), B1 = valueAt(c, sh.b);
+    if (!A1 || !B1 || A1.v == null || B1.v == null) return sh.kind === 'cagr' ? 'CAGR' : 'Change';
+    var spec = ((rt.state.charts[key] || {}).style || {}).axisFormat || 'short';
+    if (sh.kind === 'cagr') {
+      var n = sh.periods || Math.abs(B1.i - A1.i) || 1;
+      if (A1.v <= 0 || B1.v <= 0) return 'CAGR n/a';
+      var g = Math.pow(B1.v / A1.v, 1 / n) - 1;
+      return sign(g, fmtNum(Math.abs(g) * 100, '0.0') + '%') + ' CAGR';
+    }
+    var dv = B1.v - A1.v, pct = A1.v ? dv / Math.abs(A1.v) * 100 : null, show = sh.show || 'both';
+    var abs = sign(dv, fmtNum(Math.abs(dv), spec)), rel = pct == null ? '' : sign(pct, fmtNum(Math.abs(pct), '0.0') + '%');
+    return show === 'pct' ? rel || abs : show === 'abs' ? abs : abs + (rel ? ' (' + rel + ')' : '');
+  };
+  function head(svg, x1, y1, x2, y2, col, w) {
+    var ang = Math.atan2(y2 - y1, x2 - x1), s = 7 + w * 2, a1 = ang + Math.PI - 0.45, a2 = ang + Math.PI + 0.45;
+    svg.appendChild(svgEl('polygon', { points: x2 + ',' + y2 + ' ' + (x2 + Math.cos(a1) * s) + ',' + (y2 + Math.sin(a1) * s) + ' ' + (x2 + Math.cos(a2) * s) + ',' + (y2 + Math.sin(a2) * s), fill: col }));
+    return s * 0.8;
+  }
+  function trim(x1, y1, x2, y2, by) { var ang = Math.atan2(y2 - y1, x2 - x1); return { x: x2 - Math.cos(ang) * by, y: y2 - Math.sin(ang) * by }; }
+  function dashOf(sh) { return sh.dash === 'dash' ? '7 5' : sh.dash === 'dot' ? '1.5 4' : ''; }
+  function txtBox(L, cls, sh, txt, x, y, col, center) {
+    var t = el('div', { 'class': 'ms-shape-txt ' + cls, 'data-shape': sh.id });
+    t.textContent = txt;
+    if (cls === 'ms-sh-pill') t.style.background = col;
+    else if (cls === 'ms-sh-callout') t.style.borderColor = col;
+    else t.style.color = sh.textColor || col;
+    if (sh.size) t.style.fontSize = sh.size + 'px';
+    L.appendChild(t);
+    var w = t.offsetWidth, hh = t.offsetHeight;
+    t.style.left = (center ? x - w / 2 : x) + 'px'; t.style.top = (center ? y - hh / 2 : y) + 'px';
+    return { w: w, h: hh, el: t };
+  }
+  function drawShapes(c, shs, L, r) {
+    var svg = svgEl('svg', { 'class': 'ms-shape-svg', width: r.width, height: r.height }); L.appendChild(svg);
+    var labels = (rt.chartData(c.key, true) || {}).labels || [];
+    shs.forEach(function (sh0) {
+      var sh = shLive[sh0.id] || sh0, kind = sh.kind || 'arrow', col = sh.color || '#0f172a', w = +sh.width || 2;
+      var a = shapePt(c, sh.a, labels), b = shapePt(c, sh.b, labels); if (!a) return;
+      if (!b) b = { x: a.x + 80, y: a.y };
+      var g = svgEl('g', { 'class': 'ms-shape' + (rt.shapeSel === sh.id ? ' ms-shape-on' : ''), 'data-shape': sh.id }); svg.appendChild(g);
+      var dash = dashOf(sh), st = { stroke: col, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }; if (dash) st['stroke-dasharray'] = dash;
+      var hit = function (d) { var x = svgEl('path', { d: d, stroke: 'transparent', 'stroke-width': 14, fill: 'none', 'class': 'ms-shape-hit', 'data-shape': sh.id }); g.appendChild(x); };
+      var handles = [{ k: 'a', x: a.x, y: a.y }, { k: 'b', x: b.x, y: b.y }];
+      if (kind === 'line' || kind === 'arrow' || kind === 'darrow') {
+        var e1 = { x: a.x, y: a.y }, e2 = { x: b.x, y: b.y };
+        if (kind !== 'line') { var hb = head(g, a.x, a.y, b.x, b.y, col, w); e2 = trim(a.x, a.y, b.x, b.y, hb); }
+        if (kind === 'darrow') { var ha = head(g, b.x, b.y, a.x, a.y, col, w); e1 = trim(b.x, b.y, a.x, a.y, ha); }
+        g.insertBefore(svgEl('line', Object.assign({ x1: e1.x, y1: e1.y, x2: e2.x, y2: e2.y }, st)), g.firstChild);
+        hit('M' + a.x + ' ' + a.y + 'L' + b.x + ' ' + b.y);
+        if (sh.text) txtBox(L, 'ms-sh-text', sh, sh.text, (a.x + b.x) / 2, (a.y + b.y) / 2 - 12, col, true);
+      } else if (kind === 'rect' || kind === 'ellipse') {
+        var x = Math.min(a.x, b.x), y = Math.min(a.y, b.y), W = Math.abs(b.x - a.x), H = Math.abs(b.y - a.y);
+        var fill = sh.fill ? sh.fill : 'none', att = Object.assign({}, st, { fill: fill, 'fill-opacity': sh.fill ? (sh.opacity != null ? sh.opacity : 0.14) : 0, 'class': 'ms-shape-fill', 'data-shape': sh.id });
+        g.appendChild(kind === 'rect' ? svgEl('rect', Object.assign({ x: x, y: y, width: W, height: H, rx: sh.round != null ? sh.round : 6 }, att)) : svgEl('ellipse', Object.assign({ cx: x + W / 2, cy: y + H / 2, rx: W / 2, ry: H / 2 }, att)));
+        if (!sh.fill) hit(kind === 'rect' ? 'M' + x + ' ' + y + 'h' + W + 'v' + H + 'h' + (-W) + 'z' : 'M' + x + ' ' + (y + H / 2) + 'a' + W / 2 + ' ' + H / 2 + ' 0 1 0 ' + W + ' 0a' + W / 2 + ' ' + H / 2 + ' 0 1 0 ' + (-W) + ' 0');
+        if (sh.text) txtBox(L, 'ms-sh-text', sh, sh.text, x + W / 2, y - 12, col, true);
+      } else if (kind === 'text') {
+        var tb = txtBox(L, 'ms-sh-text', sh, sh.text || 'Text', a.x, a.y, col, false);
+        if (sh.width2) tb.el.style.width = sh.width2 + 'px';
+        handles = [{ k: 'a', x: a.x, y: a.y }];
+      } else if (kind === 'callout') {
+        var cb = txtBox(L, 'ms-sh-callout', sh, sh.text || 'Callout', b.x, b.y, col, true);
+        var sx = Math.max(b.x - cb.w / 2, Math.min(a.x, b.x + cb.w / 2)), sy = Math.max(b.y - cb.h / 2, Math.min(a.y, b.y + cb.h / 2));
+        if (Math.abs(sx - a.x) + Math.abs(sy - a.y) > 6) { var tt = trim(sx, sy, a.x, a.y, 4); g.appendChild(svgEl('line', Object.assign({ x1: sx, y1: sy, x2: tt.x, y2: tt.y }, st))); hit('M' + sx + ' ' + sy + 'L' + a.x + ' ' + a.y); }
+        g.appendChild(svgEl('circle', { cx: a.x, cy: a.y, r: 4, fill: '#fff', stroke: col, 'stroke-width': 2 }));
+      } else if (kind === 'cagr' || kind === 'delta') {
+        var lift = sh.lift != null ? +sh.lift : 26, txt = rt.shapeLabel(c.key, sh);
+        if (kind === 'cagr') {
+          var p1 = { x: a.x, y: a.y - lift }, p2 = { x: b.x, y: b.y - lift };
+          // clear the bars in between: raise the arrow until it passes above each of them
+          if (a.i != null && b.i != null && c.a.point) {
+            var up = 0, lo = Math.min(a.i, b.i), hi = Math.max(a.i, b.i);
+            for (var k = lo + 1; k < hi; k++) {
+              var q = c.a.point(c.inst, k, sh.a.series || 0); if (!q || p2.x === p1.x) continue;
+              var yl = p1.y + (p2.y - p1.y) * (q.x - p1.x) / (p2.x - p1.x), need = yl - (q.y - lift * 0.8);
+              if (need > up) up = need;
+            }
+            p1.y -= up; p2.y -= up;
+          }
+          var hb2 = head(g, p1.x, p1.y, p2.x, p2.y, col, w), q2 = trim(p1.x, p1.y, p2.x, p2.y, hb2);
+          g.insertBefore(svgEl('line', Object.assign({ x1: p1.x, y1: p1.y, x2: q2.x, y2: q2.y }, st)), g.firstChild);
+          hit('M' + p1.x + ' ' + p1.y + 'L' + p2.x + ' ' + p2.y);
+          txtBox(L, 'ms-sh-pill', sh, txt, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - 2, col, true);
+          handles = [{ k: 'a', x: p1.x, y: p1.y }, { k: 'b', x: p2.x, y: p2.y }];
+        } else {
+          var top = Math.min(a.y, b.y) - lift, gap = 6;
+          var d = 'M' + a.x + ' ' + (a.y - gap) + 'V' + top + 'H' + b.x + 'V' + (b.y - gap - 7 - w * 2);
+          g.appendChild(svgEl('path', Object.assign({ d: d }, st)));
+          head(g, b.x, top, b.x, b.y - gap, col, w);
+          hit(d);
+          txtBox(L, 'ms-sh-pill', sh, txt, (a.x + b.x) / 2, top, col, true);
+          handles = [{ k: 'a', x: a.x, y: a.y - gap }, { k: 'b', x: b.x, y: b.y - gap }];
+        }
+      }
+      if (EDITOR && rt.shapeSel === sh.id) handles.forEach(function (hd) { g.appendChild(svgEl('circle', { cx: hd.x, cy: hd.y, r: 5.5, 'class': 'ms-shape-handle', 'data-shape': sh.id, 'data-end': hd.k })); });
+    });
+  }
+  // Editor: select, move and reshape shapes with the mouse (the editor records the change).
+  function chartOfLayer(n) { var L = n.closest('.ms-annot-layer'); return L && rt.chart(L.getAttribute('data-for')); }
+  if (EDITOR) D.addEventListener('mousedown', function (e) {
+    if (e.button !== 0 || !window.__MS_EDIT_MODE) return;
+    var t = e.target, id = t.getAttribute && t.getAttribute('data-shape'); if (!id) { var tx = t.closest && t.closest('.ms-shape-txt'); id = tx && tx.getAttribute('data-shape'); }
+    if (!id) return;
+    var c = chartOfLayer(t); if (!c) return;
+    var sh = (rt.state.shapes || []).filter(function (x) { return x.id === id; })[0]; if (!sh) return;
+    e.preventDefault(); e.stopPropagation();
+    if (rt.shapeSel !== id) { rt.shapeSel = id; renderAnnots(); window.dispatchEvent(new CustomEvent('ms:shape-select', { detail: { id: id } })); }
+    var end = t.getAttribute('data-end'), r = c.el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, moved = false;
+    var labels = (rt.chartData(c.key, true) || {}).labels || [];
+    var pa = shapePt(c, sh.a, labels), pb = shapePt(c, sh.b, labels) || (pa && { x: pa.x + 80, y: pa.y });
+    var pinned = sh.kind === 'cagr' || sh.kind === 'delta';
+    function frac(p) { return { fx: +(p.x / r.width).toFixed(4), fy: +(p.y / r.height).toFixed(4) }; }
+    function mv(ev) {
+      var dx = ev.clientX - sx, dy = ev.clientY - sy; if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return; moved = true;
+      var n = JSON.parse(JSON.stringify(sh));
+      if (pinned) {
+        if (end) { var np = rt.nearestPoint(c.key, ev.clientX, ev.clientY); if (np && np.label != null) n[end] = { label: np.label, series: np.series }; }
+        else n.lift = Math.max(-200, Math.round((sh.lift != null ? +sh.lift : 26) - dy));
+      } else if (end) n[end] = frac({ x: (end === 'a' ? pa : pb).x + dx, y: (end === 'a' ? pa : pb).y + dy });
+      else { n.a = frac({ x: pa.x + dx, y: pa.y + dy }); n.b = frac({ x: pb.x + dx, y: pb.y + dy }); }
+      shLive[id] = n; renderAnnots();
+    }
+    function up() {
+      D.removeEventListener('mousemove', mv, true); D.removeEventListener('mouseup', up, true);
+      var n = shLive[id]; delete shLive[id];
+      if (moved && n) window.dispatchEvent(new CustomEvent('ms:shape-move', { detail: { id: id, a: n.a, b: n.b, lift: n.lift } }));
+      else renderAnnots();
+    }
+    D.addEventListener('mousemove', mv, true); D.addEventListener('mouseup', up, true);
+  }, true);
+  if (EDITOR) D.addEventListener('dblclick', function (e) {
+    var t = e.target, n = t.closest && (t.closest('[data-shape]')); if (!n || !window.__MS_EDIT_MODE) return;
+    e.preventDefault(); e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('ms:shape-edit', { detail: { id: n.getAttribute('data-shape') } }));
+  }, true);
+  rt.shapePreview = function (sh) { if (sh) shLive[sh.id] = sh; renderAnnots(); };
+  rt.shapePreviewEnd = function (id) { delete shLive[id]; renderAnnots(); };
+
   function renderAnnots() {
-    var by = {};
+    var by = {}, sb = {};
     (rt.state.annotations || []).forEach(function (a) { (by[a.chart] = by[a.chart] || []).push(a); });
+    (rt.state.shapes || []).forEach(function (x) { (sb[x.chart] = sb[x.chart] || []).push(x); });
+    Object.keys(shLive).forEach(function (id) { var x = shLive[id]; if (!(rt.state.shapes || []).some(function (y) { return y.id === id; })) (sb[x.chart] = sb[x.chart] || []).push(x); });
     var cs = rt.charts(), live = {};
-    cs.forEach(function (c) { if (by[c.key]) { live[c.key] = 1; try { drawAnnots(c, by[c.key]); } catch (e) { console.warn('[Mothership] annotations', e); } } });
+    cs.forEach(function (c) { if (by[c.key] || sb[c.key]) { live[c.key] = 1; try { drawAnnots(c, by[c.key], sb[c.key]); } catch (e) { console.warn('[Mothership] annotations', e); } } });
     Array.prototype.forEach.call(D.querySelectorAll('.ms-annot-layer'), function (L) { if (!live[L.getAttribute('data-for')]) L.remove(); });
   }
   rt.renderAnnots = renderAnnots;
@@ -2269,7 +2456,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     rt.charts().forEach(function (c) { applyChart(c, force); });
     rt.charts().forEach(function (c) { try { renderSource(c); } catch (e) {} });
     try { applyTableRules(); } catch (e) { console.warn('[Mothership] table rules', e); }
-    if ((rt.state.annotations || []).length || D.querySelector('.ms-annot-layer')) { renderAnnots(); setTimeout(renderAnnots, 650); }
+    if ((rt.state.annotations || []).length || (rt.state.shapes || []).length || D.querySelector('.ms-annot-layer')) { renderAnnots(); setTimeout(renderAnnots, 650); }
     try { tabKeys(); } catch (e) {}
     try { window.dispatchEvent(new CustomEvent('ms:refresh')); } catch (e) {}
   };

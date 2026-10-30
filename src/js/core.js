@@ -60,6 +60,14 @@ window.MS = window.MS || {};
     document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   };
+  // Modules loaded before api.js queue their tools here; api.js adds them.
+  MS.api = { _queue: [], add: function (name, def) { MS.api._queue.push([name, def]); } };
+  // Copy text to the clipboard (falls back to a hidden text box). → Promise
+  MS.copyText = function (text) {
+    function fallback() { var t = MS.h('textarea', { style: 'position:fixed;left:-9999px' }); t.value = text; document.body.appendChild(t); t.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} t.remove(); if (!ok) throw new Error('Copy was blocked. Select the text and press Ctrl+C.'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).catch(fallback);
+    return Promise.resolve().then(fallback);
+  };
   MS.ext = function (name) { var m = /\.([^.]+)$/.exec(name || ''); return m ? m[1].toLowerCase() : ''; };
 
   /* ---------- toast ---------- */

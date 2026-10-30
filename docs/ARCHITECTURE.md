@@ -159,3 +159,13 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 **Colour sync.** Chart.js 4 does not redraw new dataset colours after `update('none')`, so colour changes use a full update with animation turned off for that one call. HTML legends are found per chart (`rt.legendItems`) and repainted after colours apply.
 
 **Brand mapping** runs in the runtime, so exported files keep it: `theme.map` is turned into override rules with the same selectors (and `@media` wrappers) as the page's own rules that use those colours, placed after them, plus inline style swaps. Removing the theme removes the rules and puts inline colours back.
+
+## v3.6 additions
+
+**Moving with the mouse** runs in the editor only (`src/js/move.js`): capture-phase `mousedown` / `mousemove` / `mouseup` on the child document, a 6 px threshold so a click still selects, and the click that ends a drag is swallowed (`MS.move.swallowClick()` in `childedit.js`). The drop target comes from `elementFromPoint` and the siblings' layout (side by side or stacked), so the marker bar lies along the gap where the part will land. All markers are `data-ms-editor` and never export. The `#stage-frame-host` box is pinned at scroll 0, because `scrollIntoView` inside the dashboard otherwise scrolls that clipped box too and hides the top of the page.
+
+**Shapes** are state (`state.shapes`), drawn by the runtime into the same `.ms-annot-layer` as annotations, so they export, follow data points through filters and resizes, and print. Editing is message-based: the runtime only fires `ms:shape-*` events in the editor (`__MS_EDIT_MODE`), and the editor turns them into `MS.history` steps.
+
+**Pictures** reuse the PowerPoint pipeline: a static clone of the card (canvases become images, annotation layers re-placed) drawn into an SVG `foreignObject`, then onto a canvas at 2×. The clipboard needs a focused window, so the copy goes through whichever window has the focus (the dashboard's, after a right-click in it).
+
+**Testing** (`src/js/testing.js`) is a small Playwright-like driver inside the editor. It acts on the child through synthetic pointer, mouse and keyboard events after actionability checks; the MCP servers add real browser input (`Input.dispatchMouseEvent`) and screenshots (`Page.captureScreenshot` with a clip from `ui_locate`). The plan lives in `state.tests`, so it travels with the dashboard file and every edit is undoable. Results record the step log (`✓ / ✗ / •` lines) in `actual`.

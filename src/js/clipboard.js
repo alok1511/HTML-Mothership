@@ -417,6 +417,8 @@
       { icon: '📋', label: el ? 'Paste after this' : 'Paste', key: 'Ctrl+V', disabled: !has, run: function () { Cb.paste(); } },
       el && (isContainer(el) || el.children.length) ? { icon: '⤵', label: 'Paste inside', key: 'Ctrl+Shift+V', disabled: !has, run: function () { Cb.paste({ inside: true }); } } : null,
       { icon: '⧉', label: 'Duplicate', key: 'Ctrl+D', disabled: !el, run: function () { Cb.duplicate(el); } },
+      el ? { icon: '🖼', label: 'Copy as picture', key: 'Ctrl+Shift+C', title: 'Paste it into PowerPoint, Word, Outlook or Teams', run: function () { MS.picture.copy(el); } } : null,
+      el ? { icon: '⬇', label: 'Save as picture (PNG)', run: function () { MS.picture.save(el); } } : null,
       '-'
     ];
     if (key) items = items.concat([
@@ -424,6 +426,7 @@
       { icon: '⛁', label: 'Chart data…', run: function () { MS.chartKit.dataDialog(key); } },
       { icon: '🔑', label: 'Legend', sub: MS.chartKit.legendItems(key) },
       { icon: '📌', label: 'Annotate this point…', run: function () { MS.annotate.dialog(key, Cb.lastMenu); } },
+      { icon: '✎', label: 'Draw on the chart', sub: MS.shapes.menuItems(key) },
       { icon: '🧾', label: 'Source and date…', run: function () { MS.sources.dialog(key); } },
       { icon: '⤢', label: 'Size…', run: function () { MS.chartKit.sizeDialog(el); } },
       '-'
@@ -435,7 +438,7 @@
       { icon: '⭐', label: 'Save as template…', run: function () { MS.templates.saveSelection(); } },
       { icon: '⬆️', label: 'Select parent', key: 'Alt+↑', disabled: !el.parentElement || /^(BODY|HTML)$/.test(el.parentElement.tagName), run: function () { MS.edit.select(el.parentElement); } },
       { icon: '💬', label: 'Comment on this', run: function () { MS.review.addElement ? MS.review.addElement(el) : MS.setMode('comment'); } },
-      { icon: '🎬', label: 'Add to the story', run: function () { MS.story.add(el); MS.toast('Added as step ' + MS.story.steps().length + ' of the story (Review › Storyline).', 'ok'); } },
+      { icon: '🎬', label: 'Add to the story', run: function () { MS.story.add(el); MS.toast('Added as step ' + MS.story.steps().length + ' of the story (Consulting › Storyline).', 'ok'); } },
       '-',
       { icon: '🗑', label: 'Delete', key: 'Del', danger: true, run: function () { MS.blocks.remove(el); } }
     ]);

@@ -45,6 +45,7 @@
     n.style.display = 'block';
     return n;
   }
+  Dv.staticClone = staticClone;
   function pageStyles() {
     return MS.$$('style', MS.child.doc).filter(function (x) { return !x.hasAttribute('data-ms-editor'); }).map(function (x) { return x.textContent; }).join('\n');
   }
@@ -134,7 +135,7 @@
 
   /* ---------------------------------------------------------------- PowerPoint */
   // A picture of a part, drawn by the browser itself (an SVG holding the HTML). Falls back to null.
-  Dv.picture = function (html, width) {
+  Dv.picture = function (html, width, scale) {
     width = width || Dv.WIDTH;
     var host = h('iframe', { style: { position: 'fixed', left: '-20000px', top: '0', width: width + 'px', height: '900px', border: '0' } });
     var css = pageStyles();
@@ -144,11 +145,12 @@
       var d = host.contentDocument, node = d.getElementById('mp'), H = Math.max(40, Math.ceil(node.scrollHeight));
       var xml = new XMLSerializer().serializeToString(node);
       var style = css.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + H + '"><foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="' + esc(MS.child.doc.body.className || '') + '" style="width:' + width + 'px;background:#fff;margin:0"><style>' + style + '\n#mp{width:' + width + 'px;padding:8px;box-sizing:border-box}#mp&gt;*{display:block!important}</style>' + xml + '</div></foreignObject></svg>';
+      var bcs = MS.child.win.getComputedStyle(MS.child.doc.body), base = 'font-family:' + esc(bcs.fontFamily) + ';color:' + bcs.color + ';font-size:' + bcs.fontSize + ';line-height:' + bcs.lineHeight + ';';
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + H + '"><foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="' + esc(MS.child.doc.body.className || '') + '" style="' + base + 'width:' + width + 'px;background:#fff;margin:0"><style>' + style + '\n#mp{width:' + width + 'px;padding:8px;box-sizing:border-box}#mp&gt;*{display:block!important}</style>' + xml + '</div></foreignObject></svg>';
       return new Promise(function (res) {
         var img = new Image();
         img.onload = function () {
-          var s = 1.5, c = document.createElement('canvas'); c.width = Math.round(width * s); c.height = Math.round(H * s);
+          var s = scale || 1.5, c = document.createElement('canvas'); c.width = Math.round(width * s); c.height = Math.round(H * s);
           var x = c.getContext('2d'); x.scale(s, s); x.fillStyle = '#fff'; x.fillRect(0, 0, width, H); x.drawImage(img, 0, 0);
           try { res({ src: c.toDataURL('image/png'), w: width, h: H }); } catch (e) { res(null); }
         };

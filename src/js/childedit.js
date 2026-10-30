@@ -129,9 +129,10 @@
 
   function onClick(e) {
     if (MS.mode !== 'edit') return;
+    if (MS.move && MS.move.swallowClick()) { e.preventDefault(); e.stopPropagation(); return; }
     var t = e.target, r = MS.rt();
     if (t.closest && t.closest('[contenteditable="true"]')) return;
-    if (t.closest && t.closest('.ms-annot,#ms-story,#ms-story-btn')) return;
+    if (t.closest && t.closest('.ms-annot,.ms-shape,.ms-shape-txt,#ms-story,#ms-story-btn,.ms-floatbar')) return;
     if (r && r.ptClicking) return;
     // the dashboard's own tabs switch in Edit mode too (and get selected, so they can be renamed or styled)
     var pt = r && r.pageTabOf && t.nodeType === 1 ? r.pageTabOf(t) : null;
@@ -153,7 +154,7 @@
     if (MS.mode !== 'edit') return;
     var t = e.target;
     if (t.closest && t.closest('[contenteditable="true"]')) return;
-    if (t.closest && t.closest('.ms-annot,#ms-story')) return;
+    if (t.closest && t.closest('.ms-annot,.ms-shape,.ms-shape-txt,#ms-story,.ms-floatbar')) return;
     e.preventDefault(); e.stopPropagation();
     if (t.closest && t.closest('#ms-ribbon .ms-tabbtn')) { var id = t.closest('.ms-tabbtn').getAttribute('data-ms-tabbtn'); return MS.tabs.rename(id); }
     var ptb = MS.rt() && t.nodeType === 1 && MS.rt().pageTabOf ? MS.rt().pageTabOf(t) : null;

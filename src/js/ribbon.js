@@ -114,13 +114,8 @@
         { icon: '🔤', label: 'Fonts', title: 'Upload brand font files (.woff2/.woff/.ttf/.otf). They are embedded, so they work offline.', run: needRt(function () { MS.pickFiles('.woff,.woff2,.ttf,.otf', { multiple: true }).then(function (fs) { if (fs.length) MS.brand.addFontFiles(fs); }); }) }] },
       { name: 'Numbers', items: [
         { icon: '🌍', label: 'Region & currency', title: 'Country, currency and number style (US $ by default) for pop-ups, axes, KPI cards and summaries', run: needRt(function () { MS.locale.dialog(); }) }] },
-      { name: 'Firm', items: [
-        { icon: '🏢', label: 'Firm template', title: 'Your firm\'s logo, fonts, palette and disclaimer, locked so dashboards stay on brand. Share it as a .firm.json file.', run: needRt(function () { MS.firm.dialog(); }), toggle: function () { return MS.firm.locked(); } },
-        { icon: '🔒', label: 'Confidential', title: 'Mark as "Client confidential": a watermark on every page and a label in the footer', run: needRt(function () { MS.confidential.toggle(); }), toggle: function () { var c = MS.confidential.get(); return !!(c && c.on); } },
-        { icon: '🕶', label: 'Remove names', title: 'Take client and people names out of the text, charts, data and comments (or save a cleaned copy)', run: need(function () { MS.confidential.scrubDialog(); }) }] },
       { name: 'Check', items: [
-        { icon: '✅', label: 'Brand check', title: 'Find off-brand colours and fonts, low contrast, and charts missing commentary', run: need(MS.brand.check) },
-        { icon: '👁', label: 'Colour-blind', title: 'Check that chart colours can be told apart by colour-blind readers, and preview the dashboard as they see it', run: needRt(function () { MS.a11y.cvdDialog(); }) }] }
+        { icon: '✅', label: 'Brand check', title: 'Find off-brand colours and fonts, low contrast, and charts missing commentary', run: need(MS.brand.check) }] }
     ] },
     { tab: 'Charts', groups: [
       { name: 'Selected chart', items: [
@@ -129,10 +124,6 @@
         { icon: '⤓', label: 'Drill-down', title: 'Bind to data and choose what double-click does', run: needRt(function () { MS.charts.settings(null, 'Data & drill-down'); }) },
         { icon: '🎨', label: 'Look', title: 'Fonts, text colour, legend and hover pop-up style for the selected chart', run: needRt(function () { MS.charts.settings(null, 'Look'); }) },
         { icon: '✎', label: 'Commentary', title: 'Add a title / subtitle / inference header', run: sel(function (el) { MS.edit.select(MS.blocks.wrap(el, true)); }) }] },
-      { name: 'Notes', items: [
-        { icon: '📌', label: 'Annotate', title: 'Pin a callout, arrow or "so what" box to a point on the selected chart (or right-click the point)', run: needRt(function () { var k = MS.charts.requireKey(); if (k) MS.annotate.manage(k); }) },
-        { icon: '🧾', label: 'Source', title: 'Source and "data as of" date shown under the selected chart', run: needRt(function () { var k = MS.charts.requireKey(); if (k) MS.sources.dialog(k); }) },
-        { icon: '📑', label: 'Footnotes', title: 'A "Notes and sources" block listing every chart\'s source and your disclaimer', run: needRt(function () { MS.sources.insertFootnotes(); }) }] },
       { name: 'Data, legend, size', items: [
         { icon: '⛁', label: 'Chart data', title: 'Give the selected chart its own numbers: upload CSV or Excel, paste from Excel, or type them', run: needRt(function () { MS.chartKit.dataDialog(); }) },
         { icon: '🔑', label: 'Legend', title: 'Show the legend at the top, bottom, left or right, or hide it', run: needRt(function (e) { var k = MS.charts.requireKey(); if (k) MS.menu(e.currentTarget, MS.chartKit.legendItems(k)); }) },
@@ -142,7 +133,8 @@
         { icon: '⇅', label: 'Category order', title: 'One order (e.g. North, South, East, West) on every chart that shows those categories', run: needRt(function () { MS.order.dialog(MS.charts.selectedKey()); }) },
         { icon: '🎨', label: 'Category colours', title: 'Give each category or series one colour on every chart', run: needRt(MS.catColors.dialog) }] },
       { name: 'Share', items: [
-        { icon: '🖼', label: 'As image', title: 'Save the selected chart as a PNG for PowerPoint, Word or email', run: needRt(function () { MS.chartOut.image(); }) },
+        { icon: '🖼', label: 'Copy picture', title: 'Copy the selected chart (with its title, notes and shapes) as a picture to paste into PowerPoint, Word, Outlook or Teams (Ctrl+Shift+C)', run: sel(function (el) { MS.picture.copy(el); }) },
+        { icon: '⬇', label: 'Save picture', title: 'Save the selected chart as a PNG', run: sel(function (el) { MS.picture.save(el); }) },
         { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) },
         { icon: '📰', label: 'Summaries', title: 'A plain-English summary of every chart: for emails, captions and screen readers', run: needRt(function () { MS.summaries.dialog(); }) }] },
       { name: 'All charts', items: [
@@ -152,6 +144,36 @@
           MS.dialog({ title: 'Same look for every chart', body: ed, buttons: [{ label: 'Cancel', value: null }, { label: 'Apply to all', primary: true, value: 'ok' }] }).then(function (v) { if (v) MS.charts.styleAll(st); });
         }) },
         { icon: '✎', label: 'Commentary', title: 'Add commentary headers to every chart', run: needRt(MS.blocks.wrapAll) }] }
+    ] },
+    { tab: 'Consulting', groups: [
+      { name: 'Firm', items: [
+        { icon: '🏢', label: 'Firm template', title: 'Your firm\'s logo, fonts, palette and disclaimer, locked so dashboards stay on brand. Share it as a .firm.json file.', run: needRt(function () { MS.firm.dialog(); }), toggle: function () { return MS.firm.locked(); } },
+        { icon: '🔒', label: 'Confidential', title: 'Mark as "Client confidential": a watermark on every page and a label in the footer', run: needRt(function () { MS.confidential.toggle(); }), toggle: function () { var c = MS.confidential.get(); return !!(c && c.on); } },
+        { icon: '🕶', label: 'Remove names', title: 'Take client and people names out of the text, charts, data and comments (or save a cleaned copy)', run: need(function () { MS.confidential.scrubDialog(); }) }] },
+      { name: 'Draw on chart', items: [
+        { icon: '↗', label: 'Growth (CAGR)', title: 'An arrow over the bars from one period to another, labelled with the compound annual growth rate', run: needRt(function () { MS.shapes.start('cagr'); }) },
+        { icon: '⊓', label: 'Difference', title: 'A bracket between two bars, labelled with the change, e.g. +$1.2M (+15%)', run: needRt(function () { MS.shapes.start('delta'); }) },
+        { icon: '➝', label: 'Arrow', title: 'Drag on a chart to draw an arrow (hold Shift for straight)', run: needRt(function () { MS.shapes.start('arrow'); }) },
+        { icon: '▭', label: 'Box', title: 'Drag on a chart to put a box around something', run: needRt(function () { MS.shapes.start('rect'); }) },
+        { icon: '◯', label: 'Circle', title: 'Drag on a chart to circle a point or bar', run: needRt(function () { MS.shapes.start('ellipse'); }) },
+        { icon: '💬', label: 'Callout', title: 'A text box with a line to the spot it is about', run: needRt(function () { MS.shapes.start('callout'); }) },
+        { icon: '⋯', label: 'More', title: 'Line, double arrow, text', run: needRt(function (e) { MS.menu(e.currentTarget, MS.shapes.menuItems(MS.charts.selectedKey())); }) }] },
+      { name: 'Notes', items: [
+        { icon: '📌', label: 'Annotate', title: 'Pin a callout, arrow or "so what" box to a point on the selected chart (or right-click the point)', run: needRt(function () { var k = MS.charts.requireKey(); if (k) MS.annotate.manage(k); }) },
+        { icon: '🧾', label: 'Source', title: 'Source and "data as of" date shown under the selected chart', run: needRt(function () { var k = MS.charts.requireKey(); if (k) MS.sources.dialog(k); }) },
+        { icon: '📑', label: 'Footnotes', title: 'A "Notes and sources" block listing every chart\'s source and your disclaimer', run: needRt(function () { MS.sources.insertFootnotes(); }) }] },
+      { name: 'Story', items: [
+        { icon: '🎬', label: 'Storyline', title: 'Step through charts like slides, each with a headline. The exported file gets a "Play the story" button.', run: needRt(function () { MS.story.dialog(); }) },
+        { icon: '▶', label: 'Play', title: 'Play the storyline full screen', run: needRt(function () { if (MS.story.steps().length) MS.story.play(0, true); else MS.story.dialog(); }) }] },
+      { name: 'Quality', items: [
+        { icon: '🏷', label: 'Stage', title: 'Draft, In review or Client-ready: a stamp on the dashboard (none on client-ready). Warns about open comments first.', run: needRt(function (e) { MS.menu(e.currentTarget, MS.stage.menuItems()); }) },
+        { icon: '👁', label: 'Colour-blind', title: 'Check that chart colours can be told apart by colour-blind readers, and preview the dashboard as they see it', run: needRt(function () { MS.a11y.cvdDialog(); }) },
+        { icon: '🧮', label: 'Number check', title: 'Do the KPI cards match the chart totals?', run: function () { MS.numcheck.dialog(); } },
+        { icon: '🕘', label: 'Change log', title: 'Who changed what and when, saved inside the file', run: need(function () { MS.audit.dialog(); }) }] },
+      { name: 'Deliver', items: [
+        { icon: '🖨', label: 'PDF', title: 'Client-ready PDF: one page per tab, with your firm header and footer', run: needRt(function () { MS.deliver.print(); }) },
+        { icon: '📊', label: 'PowerPoint', title: 'One slide per tab (or per story step) with editable titles', run: needRt(function (e) { MS.deliver.menu(e.currentTarget); }) },
+        { icon: '🖼', label: 'Copy picture', title: 'Copy the selected chart or part as a picture (Ctrl+Shift+C)', run: sel(function (el) { MS.picture.copy(el); }) }] }
     ] },
     { tab: 'Data', groups: [
       { name: 'Datasets', items: [
@@ -169,7 +191,6 @@
     { tab: 'View', groups: [
       { name: 'Present', items: [
         { icon: '▶', label: 'Present', title: 'Full screen, tab by tab (F5)', run: MS.cmd.present },
-        { icon: '🎬', label: 'Play story', title: 'Play the storyline full screen (Review › Storyline to build it)', run: needRt(function () { if (MS.story.steps().length) MS.story.play(0, true); else MS.story.dialog(); }) },
         { icon: '🗒', label: 'Presenter view', title: 'Present with a separate window for notes, timer and next tab', run: MS.cmd.presenter }] },
       { name: 'Zoom', items: [
         { icon: '⤢', label: 'Fit', title: 'Fit the whole width of the dashboard in the window', run: function () { MS.view.setZoom('fit'); } },
@@ -184,7 +205,8 @@
         { icon: '⋯', label: 'Other', title: 'Full HD, 1440 px or the panel width', run: function (e) { MS.view.menu(e.currentTarget); } }] },
       { name: 'Panels', items: [
         { icon: '◧', label: 'Outline', run: function () { document.body.classList.toggle('no-left'); } },
-        { icon: '◨', label: 'Inspector', run: function () { document.body.classList.toggle('no-right'); } }] },
+        { icon: '◨', label: 'Inspector', run: function () { document.body.classList.toggle('no-right'); } },
+        { icon: '⠿', label: 'Toolbar', title: 'The small toolbar that floats above what you select (move, draw, picture, duplicate, delete)', run: function () { MS.move.toggleBar(); MS.ribbon.render(); }, toggle: function () { return MS.move.barOn; } }] },
       { name: 'Mothership', items: [
         { icon: '🎨', label: 'Theme', title: 'Mothership\'s own look: light or dark, accent colour, spacing and text size', run: MS.cmd.theme },
         { icon: '🌙', label: 'Dark mode', title: 'Switch Mothership between light and dark', run: function () { MS.cmd.darkMode(); MS.ribbon.render(); }, toggle: function () { return MS.ui.isDark(); } },
@@ -207,14 +229,22 @@
       { name: 'Check', items: [
         { icon: '🧮', label: 'Number check', title: 'Do the KPI cards match the chart totals? Do charts of the same measure add up alike?', run: function () { MS.numcheck.dialog(); } },
         { icon: '♿', label: 'Accessibility', title: 'Alt text for pictures, readable text colours, table headings, keyboard access. Most fixes are one click.', run: need(function () { MS.a11y.dialog(); }) }] },
-      { name: 'Stage', items: [
-        { icon: '🏷', label: 'Stage', title: 'Draft, In review or Client-ready: a stamp on the dashboard (none on client-ready). Warns about open comments first.', run: needRt(function (e) { MS.menu(e.currentTarget, MS.stage.menuItems()); }) },
-        { icon: '🕘', label: 'Change log', title: 'Who changed what and when, saved inside the file', run: need(function () { MS.audit.dialog(); }) }] },
       { name: 'Present', items: [
-        { icon: '🎬', label: 'Storyline', title: 'Step through charts like slides, each with a headline. The exported file gets a "Play the story" button.', run: needRt(function () { MS.story.dialog(); }) },
         { icon: '🗒', label: 'Notes from comments', title: 'Use comments as speaker notes in Presenter view: none, resolved ones (talking points), or all', run: needRt(function (e) { MS.present.notesMenu(e.currentTarget); }) }] },
       { name: 'AI prompt', items: [
         { icon: '✨', label: 'Make prompt', title: 'Turn every comment into one prompt you can paste into an AI assistant', run: function () { MS.review.prompt(); } }] }
+    ] },
+    { tab: 'Testing', groups: [
+      { name: 'Plan', items: [
+        { icon: '☑', label: 'Test cases', title: 'Plan, run and record tests of this dashboard: scenarios, steps, expected results and status', run: needRt(function () { MS.qa.dialog(); }) },
+        { icon: '✨', label: 'Draft tests', title: 'Mothership writes a full set of test cases from the dashboard: tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility', run: needRt(function () { var n = MS.qa.draft(); MS.toast(n ? n + ' test cases drafted. Testing › Test cases to see them.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); }) }] },
+      { name: 'Run', items: [
+        { icon: '▷', label: 'Run all', title: 'Run the automatic steps of every test case and record the results; steps to check by eye are marked "Needs a person"', run: needRt(function () { var t = MS.toast('Running the tests…', '', 60000); MS.qa.run().then(function (res) { t.close(); var f = res.filter(function (x) { return x.status === 'Fail'; }).length; MS.toast(res.length + ' run: ' + res.filter(function (x) { return x.status === 'Pass'; }).length + ' passed, ' + f + ' failed, ' + res.filter(function (x) { return x.status === 'Needs a person'; }).length + ' need a person.', f ? 'warn' : 'ok', 7000, { action: { label: 'See results', run: function () { MS.qa.dialog(); } } }); }, function (e) { t.close(); MS.toast(e.message, 'error'); }); }) },
+        { icon: '🐞', label: 'Script errors', title: 'Script and console errors since the dashboard opened', run: needRt(function () { var e = MS.qa.drv.errors(false), all = e.scriptErrors.concat(e.consoleErrors); MS.toast(all.length ? all.length + ' error(s): ' + all.slice(0, 3).join(' · ') : 'No script errors since the dashboard opened.', all.length ? 'warn' : 'ok', 8000); }) }] },
+      { name: 'Export', items: [
+        { icon: '📝', label: 'Test document', title: 'A complete test document: purpose, scope, approach, test cases with steps and expected results, results, defect log, sign-off', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(0, 4)); }) },
+        { icon: '🤖', label: 'AI tester', title: 'Copy a prompt that has another AI test the dashboard, with or without the MCP server', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(5)); }) },
+        { icon: '🔌', label: 'Connect AI', title: 'Let an AI assistant drive the dashboard like Playwright (click, hover, type, check, screenshot) through the Mothership MCP server', run: function () { MS.help.guide('mcp'); } }] }
     ] },
     { tab: 'Plugins', groups: function () {
       var gs = [{ name: 'Manage', items: [
@@ -309,6 +339,7 @@
     if (mod && k === 'f') { e.preventDefault(); return MS.cmd.find(); }
     if (!MS.child || MS.mode !== 'edit') return;
     // the browser's own copy / cut / paste events do the work (they carry pictures and Excel ranges); see clipboard.js
+    if (mod && k === 'c' && e.shiftKey) { e.preventDefault(); if (MS.sel) MS.picture.copy(MS.sel); return; }
     if (mod && (k === 'c' || k === 'x') && !e.shiftKey) { if (MS.sel) MS.clipboard.key(k, false); return; }
     if (mod && k === 'v') { MS.clipboard.key('v', e.shiftKey); return; }
     if (mod && k === 'd') { e.preventDefault(); return MS.cmd.dup(); }

@@ -54,7 +54,7 @@
       if (ratio >= need) continue;
       var k = cs.color + '|' + bg.r + ',' + bg.g + ',' + bg.b + '|' + need;
       if (seen[k]) { if (seen[k].els.indexOf(el) < 0) { seen[k].els.push(el); seen[k].count++; } continue; }
-      var f = { kind: 'contrast', el: el, els: [el], msg: 'Text is hard to read: contrast ' + ratio.toFixed(1) + ':1, needs ' + need + ':1 (“' + tn.nodeValue.trim().slice(0, 40) + '”).', fix: 'contrast', count: 1, ratio: ratio, need: need, bg: bg };
+      var f = { kind: 'contrast', el: el, els: [el], msg: 'Text is hard to read: contrast ' + (Math.floor(ratio * 10) / 10).toFixed(1) + ':1, needs ' + need + ':1 (“' + tn.nodeValue.trim().slice(0, 40) + '”).', fix: 'contrast', count: 1, ratio: ratio, need: need, bg: bg };
       seen[k] = f; out.push(f);
     }
     out.forEach(function (f) { if (f.count > 1) f.msg += ' Same colours in ' + (f.count - 1) + ' more place(s).'; });
