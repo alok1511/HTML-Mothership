@@ -76,7 +76,7 @@
         return MS.openHtml(html, name, Object.assign({}, opts, { unlocked: true }));
       });
     }
-    MS.doc = { name: name || 'dashboard.html', source: html, folder: !!opts.folder };
+    MS.doc = { name: name || 'dashboard.html', source: html, folder: !!opts.folder, reloaded: !!opts.reload };
     var probe = new DOMParser().parseFromString(html, 'text/html');
     var rel = opts.folder ? [] : relativeRefs(probe);
     var prepared = MS.prepareSource(html, { editor: true, state: opts.state });
@@ -110,7 +110,37 @@
   MS.reload = function (keepState) {
     if (!MS.doc) return;
     var html = MS.exportHtml({ keepEditor: false });
-    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder, unlocked: true });
+    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder, unlocked: true, reload: true });
+  };
+
+  /* ---------------------------------------------------------- close */
+  // Close the open dashboard and go back to the start screen. Unsaved changes: export, discard or cancel.
+  MS.closeDoc = function (opts) {
+    opts = opts || {};
+    if (!MS.doc && !MS.child) return Promise.resolve(true);
+    var name = MS.doc ? MS.doc.name : 'the dashboard';
+    var ask = MS.dirty && !opts.force ? MS.dialog({ title: 'Close "' + name + '"?', body: MS.h('p', { 'class': 'dlg-msg', text: 'It has changes that are not exported yet. Export them to a file first, or close without saving (the last autosave stays in File › Versions until you discard it).' }),
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Close without saving', danger: true, value: 'discard' }, { label: 'Export, then close', primary: true, value: 'save' }] }) : Promise.resolve('discard');
+    return ask.then(function (v) {
+      if (!v) return false;
+      if (v === 'save') {
+        var off = MS.on('saved', function () { off(); MS.closeDoc({ force: true }); });
+        MS.versions.exportFile(false);
+        return false;
+      }
+      if (MS.present && MS.present.on && MS.present.stop) try { MS.present.stop(); } catch (e) {}
+      if (MS.mode !== 'edit') MS.setMode('edit');
+      MS.edit.select(null);
+      var host = MS.$('#stage-frame-host'); host.innerHTML = '';
+      MS.child = null; MS.doc = null; MS.sel = null; MS.dirty = false;
+      MS.history.clear();
+      document.title = 'Mothership';
+      var dn = MS.$('#doc-name'); dn.textContent = 'No dashboard open'; dn.classList.remove('dirty');
+      MS.$('#empty').style.display = '';
+      MS.emit('doc-closed');
+      MS.status('Closed ' + name);
+      return true;
+    });
   };
 
   MS.openFileObj = function (file) {

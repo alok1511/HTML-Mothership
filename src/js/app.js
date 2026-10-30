@@ -1,7 +1,7 @@
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '2.7.0';
+  MS.VERSION = '2.8.0';
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };
@@ -109,6 +109,7 @@
     MS.$('#btn-present').addEventListener('click', MS.cmd.present);
     MS.$('#btn-cmdk').addEventListener('click', function () { MS.palette(); });
     MS.$('#btn-theme').addEventListener('click', function () { MS.ui.dialog(); });
+    MS.appbar.boot();
     MS.$$('[data-act]').forEach(function (b) { b.addEventListener('click', function () { var a = b.getAttribute('data-act'); if (a === 'sample') MS.samples.open('sales'); else MS.cmd[a](); }); });
     // drag & drop files anywhere
     var dz = MS.$('#dropzone'), depth = 0;

@@ -17,6 +17,7 @@
     tour: function () { MS.help.tour(); }, tutorial: function () { MS.help.tutorial(); }, guide: function () { MS.help.guide(); }, newDoc: function () { MS.compose.newDoc(); },
     print: need(function () { MS.child.win.focus(); MS.child.win.print(); }),
     reload: need(function () { MS.reload(); }),
+    close: function () { if (!MS.doc) return MS.toast('No dashboard is open.', 'warn'); MS.closeDoc(); },
     undo: function () { MS.history.undo(); }, redo: function () { MS.history.redo(); },
     copy: sel(function () { MS.clipboard.copy(false); }), cut: sel(function () { MS.clipboard.copy(true); }), paste: needRt(function () { MS.clipboard.paste(); }),
     pasteInside: needRt(function () { MS.clipboard.paste({ inside: true }); }),
@@ -35,7 +36,8 @@
         { icon: '✨', label: 'New', title: 'Start a new dashboard from scratch', run: function () { MS.compose.newDoc(); } },
         { icon: '📂', label: 'Open', title: 'Open a dashboard (.html), a Mothership export, a brand skill, a recipe (.json) or a plugin (Ctrl+O)', run: MS.cmd.open },
         { icon: '🗂', label: 'Open folder', title: 'Open a dashboard together with its scripts, styles, images and data files. Everything is bundled into one file.', run: MS.cmd.openFolder },
-        { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } }] },
+        { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } },
+        { icon: '✕', label: 'Close', title: 'Close this dashboard and go back to the start screen. Asks first if there are changes you have not exported.', run: MS.cmd.close }] },
       { name: 'Save', items: [
         { icon: '⬇', label: 'Export HTML', title: 'Save the edited dashboard as one standalone .html file on this laptop (Ctrl+E)', run: MS.cmd.export },
         { icon: '📝', label: 'Save as…', title: 'Choose a new file name and location', run: MS.cmd.exportAs },
@@ -239,11 +241,13 @@
         { icon: '☑', label: 'Test cases', title: 'Plan, run and record tests of this dashboard: scenarios, steps, expected results and status', run: needRt(function () { MS.qa.dialog(); }) },
         { icon: '✨', label: 'Draft tests', title: 'Mothership writes a full set of test cases from the dashboard: tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility', run: needRt(function () { var n = MS.qa.draft(); MS.toast(n ? n + ' test cases drafted. Testing › Test cases to see them.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); }) }] },
       { name: 'Run', items: [
-        { icon: '▷', label: 'Run all', title: 'Run the automatic steps of every test case and record the results; steps to check by eye are marked "Needs a person"', run: needRt(function () { var t = MS.toast('Running the tests…', '', 60000); MS.qa.run().then(function (res) { t.close(); var f = res.filter(function (x) { return x.status === 'Fail'; }).length; MS.toast(res.length + ' run: ' + res.filter(function (x) { return x.status === 'Pass'; }).length + ' passed, ' + f + ' failed, ' + res.filter(function (x) { return x.status === 'Needs a person'; }).length + ' need a person.', f ? 'warn' : 'ok', 7000, { action: { label: 'See results', run: function () { MS.qa.dialog(); } } }); }, function (e) { t.close(); MS.toast(e.message, 'error'); }); }) },
+        { icon: '▷', label: 'Run all', title: 'Run every test case while you watch: a pointer shows each click and hover, and a progress card shows the case, the step and the results so far. Steps to check by eye are marked "Needs a person".', run: needRt(function () { MS.qa.live.start(); }) },
+        { icon: '↻', label: 'Rerun failed', title: 'Run only the cases that failed last time', run: needRt(function () { var f = MS.qa.failed(); if (!f.length) return MS.toast('No failed test cases.', 'ok'); MS.qa.live.start(f.map(function (x) { return x.id; })); }) },
         { icon: '🐞', label: 'Script errors', title: 'Script and console errors since the dashboard opened', run: needRt(function () { var e = MS.qa.drv.errors(false), all = e.scriptErrors.concat(e.consoleErrors); MS.toast(all.length ? all.length + ' error(s): ' + all.slice(0, 3).join(' · ') : 'No script errors since the dashboard opened.', all.length ? 'warn' : 'ok', 8000); }) }] },
       { name: 'Export', items: [
         { icon: '📝', label: 'Test document', title: 'A complete test document: purpose, scope, approach, test cases with steps and expected results, results, defect log, sign-off', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(0, 4)); }) },
-        { icon: '🤖', label: 'AI tester', title: 'Copy a prompt that has another AI test the dashboard, with or without the MCP server', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(5)); }) },
+        { icon: '🤖', label: 'AI tester', title: 'Copy a prompt that has another AI test the dashboard, with or without the MCP server', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(5, 7)); }) },
+        { icon: '✨', label: 'Fix failures', title: 'A prompt built from the failed tests, for an AI assistant: find the cause, fix the dashboard or the test, and test again', run: needRt(function () { MS.qa.live.promptDialog(); }) },
         { icon: '🔌', label: 'Connect AI', title: 'Let an AI assistant drive the dashboard like Playwright (click, hover, type, check, screenshot) through the Mothership MCP server', run: function () { MS.help.guide('mcp'); } }] }
     ] },
     { tab: 'Plugins', groups: function () {
@@ -334,6 +338,7 @@
     if (mod && k === 'o') { e.preventDefault(); return MS.cmd.open(); }
     if (e.key === 'F5') { e.preventDefault(); return MS.cmd.present(); }
     if (typing) return;
+    if (e.altKey && !mod && /^Digit[123]$/.test(e.code || '')) { e.preventDefault(); return MS.appbar.cycle(+e.code.slice(5) - 1); }
     if (mod && k === 'z' && !e.shiftKey) { e.preventDefault(); return MS.history.undo(); }
     if (mod && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); return MS.history.redo(); }
     if (mod && k === 'f') { e.preventDefault(); return MS.cmd.find(); }

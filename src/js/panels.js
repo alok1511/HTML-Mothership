@@ -152,7 +152,7 @@
     host.appendChild(dSec);
     host.appendChild(MS.review.outlineSection());
   };
-  ['structure', 'child-loaded', 'tab-shown', 'theme', 'changed', 'comments'].forEach(function (ev) { MS.on(ev, MS.debounce(O.render, 60)); });
+  ['structure', 'child-loaded', 'tab-shown', 'theme', 'changed', 'comments', 'doc-closed'].forEach(function (ev) { MS.on(ev, MS.debounce(O.render, 60)); });
 
   /* ============================================================ INSPECTOR */
   var Ins = MS.inspector = {};
@@ -165,9 +165,9 @@
     if (!el || !el.isConnected) {
       return host.appendChild(h('div', { 'class': 'pad' }, [
         h('h3', { text: MS.doc.name }),
-        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : MS.mode === 'comment' ? 'Comment mode: click anything to comment on it, or drag a box around an area. The Comments tab (above) lists every comment.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top right) to make changes.' }),
+        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : MS.mode === 'comment' ? 'Comment mode: click anything to comment on it, or drag a box around an area. The Comments tab (above) lists every comment.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top centre, or Alt+1) to make changes.' }),
         h('h4', { text: 'Shortcuts' }),
-        h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste anything, also between dashboards'], ['Ctrl+Shift+V', 'Paste inside the selected section, card or tab'], ['Right-click', 'Menu for the part under the mouse'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
+        h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Alt+1 / 2 / 3', 'Edit / Comment / Interact mode'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste anything, also between dashboards'], ['Ctrl+Shift+V', 'Paste inside the selected section, card or tab'], ['Right-click', 'Menu for the part under the mouse'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
       ]));
     }
     var w = MS.child.win, cs = w.getComputedStyle(el), rt = MS.rt();
@@ -351,6 +351,7 @@
   }
   MS.on('selection', Ins.render);
   MS.on('child-loaded', Ins.render);
+  MS.on('doc-closed', Ins.render);
   MS.on('mode', Ins.render);
   MS.on('changed', MS.debounce(function () { if (!MS.editingText) Ins.render(); }, 80));
 })(window.MS);

@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '2.7.0'
+VERSION = '2.8.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -545,7 +545,7 @@ def t_ui_mouse(a):
 
 
 def t_save_test_document(a):
-    r = B.api('test_document', {'format': a.get('format') or 'markdown'})
+    r = B.api('test_document', {'format': a.get('format') or 'markdown', 'goal': a.get('goal')})
     full = out_path(a.get('path'), r['name'])
     if r.get('b64'):
         with open(full, 'wb') as f:
@@ -703,8 +703,8 @@ LOCAL = {
                       {'target': ['string', 'The part (default: the whole dashboard on screen)'], 'path': ['string', 'Also save the PNG here']}, t_ui_screenshot),
     'ui_mouse': ("Testing: real mouse input, as a person would do it (the browser's own events, like Playwright). action: click (default), dblclick, hover, right_click. For a chart, point = a category. Returns what changed and the pop-up text. ui_click / ui_hover do the same with page events and work everywhere; use ui_mouse when a dashboard ignores those.",
                  {'target': ['string', 'The part: a ref, text=…, button=…, chart=…, kpi=…, tab=… or a CSS selector', True], 'action': ['string', 'click | dblclick | hover | right_click'], 'point': ['string', 'A chart category'], 'series': ['number', 'Which series (0 = first)']}, t_ui_mouse),
-    'save_test_document': ('Testing: save the test document with the results: markdown (default), html (prints to PDF), xlsx (Excel tracker of the cases), json, or prompt (instructions for another AI tester).',
-                           {'format': ['string', 'markdown | html | xlsx | json | prompt'], 'path': ['string', 'Where to save (default: <name> - test plan.<ext>)']}, t_save_test_document),
+    'save_test_document': ('Testing: save the test document with the results: markdown (default), html (prints to PDF), xlsx (Excel tracker of the cases), json, prompt (instructions for another AI tester) or failures (a prompt built from the failed cases: find the cause, fix, test again).',
+                           {'format': ['string', 'markdown | html | xlsx | json | prompt | failures'], 'goal': ['string', 'For failures: fix (default) or retest'], 'path': ['string', 'Where to save (default: <name> - test plan.<ext>)']}, t_save_test_document),
     'chart_image': ('A PNG of one chart (shown to you, optionally saved).', {'chart': ['string', 'Chart name or key', True], 'path': ['string', 'Also save it here']},
                     lambda a: t_screenshot({'what': a.get('chart'), 'path': a.get('path')})),
 }

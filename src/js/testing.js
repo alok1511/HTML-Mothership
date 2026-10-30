@@ -86,6 +86,7 @@
       if (!el && !kind) el = byText(v)[0];
     }
     if (!el && !opts.quiet) throw new Error('Nothing matches "' + t + '". Use ui_snapshot to see the parts and their refs.');
+    if (el) D._lastEl = el;
     return el;
   };
   D.findAll = function (target) {
@@ -137,6 +138,9 @@
     var o = Object.assign({ bubbles: !/enter|leave/.test(type), cancelable: true, composed: true, view: w, clientX: x, clientY: y, screenX: x, screenY: y, button: 0, buttons: /down|move/.test(type) && extra && extra.held ? 1 : (/down/.test(type) ? 1 : 0), detail: extra && extra.detail || 1 }, isP ? { pointerId: 1, pointerType: 'mouse', isPrimary: true } : {});
     return target.dispatchEvent(new C(type, o));
   }
+  // While the Testing runner is on screen, a pointer moves to each part before it is used, so you can follow along.
+  function show(el, p, verb) { return Q.live && Q.live.show ? Q.live.show(el, p, verb) : Promise.resolve(); }
+  D.show = show;
   function hitAt(el, p, force) {
     var hit = cdoc().elementFromPoint(p.x, p.y);
     if (!force && hit && hit !== el && !el.contains(hit) && !hit.contains(el)) {
@@ -149,6 +153,8 @@
     var el = D.find(target), pt = null;
     return ready(el, true).then(function () {
       pt = o.point != null ? D.chartPoint(el, o.point, o.series) : center(el);
+      return show(el, pt, 'Hover');
+    }).then(function () {
       var t = hitAt(el, pt, true);
       if (D._over !== t) leave(); D._over = t;
       ['pointerover', 'pointerenter', 'mouseover', 'mouseenter', 'pointermove', 'mousemove'].forEach(function (k) { fire(t, k, pt.x, pt.y); });
@@ -160,6 +166,8 @@
     var el = D.find(target), pt = null, before = D.state();
     return ready(el, o.force).then(function () {
       pt = o.point != null ? D.chartPoint(el, o.point, o.series) : center(el);
+      return show(el, pt, o.double ? 'Double-click' : 'Click');
+    }).then(function () {
       var t = hitAt(el, pt, o.force || o.point != null);
       if (D._over !== t) leave(); D._over = t;
       ['pointerover', 'mouseover', 'pointermove', 'mousemove'].forEach(function (k) { fire(t, k, pt.x, pt.y); });
@@ -178,7 +186,7 @@
   D.type = function (target, text, o) {
     o = o || {}; D.interact();
     var el = D.find(target);
-    return ready(el, false).then(function () {
+    return ready(el, false).then(function () { return show(el, center(el), 'Type'); }).then(function () {
       if (!/^(INPUT|TEXTAREA)$/.test(el.tagName) && !el.isContentEditable) throw new Error(describe(el) + ' is not a text box.');
       el.focus();
       var w = cwin(), set = function (v) {
@@ -201,7 +209,7 @@
     D.interact();
     var el = D.find(target);
     if (el.tagName !== 'SELECT') { var inner = el.querySelector && el.querySelector('select'); if (inner) el = inner; else throw new Error(describe(el) + ' is not a drop-down list.'); }
-    return ready(el, false).then(function () {
+    return ready(el, false).then(function () { return show(el, center(el), 'Pick'); }).then(function () {
       var opts = Array.prototype.slice.call(el.options), q = low(value);
       var o = opts.filter(function (x) { return low(x.value) === q || low(x.textContent) === q; })[0] || opts.filter(function (x) { return low(x.textContent).indexOf(q) >= 0; })[0];
       if (!o) throw new Error('“' + value + '” is not in the list. Options: ' + opts.map(function (x) { return norm(x.textContent); }).join(', '));
@@ -418,7 +426,7 @@
   function nextId(list) { var n = 0; list.forEach(function (c) { var m = /(\d+)$/.exec(c.id || ''); if (m) n = Math.max(n, +m[1]); }); return 'TC-' + String(n + 1).padStart(3, '0'); }
   function clean(c) {
     var x = { id: c.id, scenario: norm(c.scenario || 'General'), title: norm(c.title || 'Untitled test'), type: Q.TYPES.indexOf(c.type) >= 0 ? c.type : 'Interaction', priority: Q.PRIORITIES.indexOf(c.priority) >= 0 ? c.priority : 'Medium', pre: c.pre || '', steps: (c.steps || []).map(function (s) { var y = { do: s.do || s.action || 'manual' }; ['target', 'value', 'point'].forEach(function (k) { if (s[k] != null && s[k] !== '') y[k] = s[k]; }); return y; }), expected: c.expected || '', status: Q.STATUSES.indexOf(c.status) >= 0 ? c.status : 'Not run' };
-    ['actual', 'notes', 'by', 'at', 'area'].forEach(function (k) { if (c[k]) x[k] = c[k]; });
+    ['actual', 'notes', 'by', 'at', 'area', 'ms'].forEach(function (k) { if (c[k]) x[k] = c[k]; });
     x.auto = x.steps.length > 0 && x.steps.every(function (s) { return s.do !== 'manual'; });
     return x;
   }
@@ -541,32 +549,71 @@
   }
   Q.runCase = function (id) {
     var c = Q.get(id); if (!c) return Promise.reject(new Error('No test case ' + id));
-    var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width;
-    D.errors(false);
-    c.steps.forEach(function (s) { chain = chain.then(function () { return runStep(s, log); }); });
+    var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width, t0 = Date.now();
+    D.errors(false); D._lastEl = null;
+    c.steps.forEach(function (s, i) {
+      chain = chain.then(function () {
+        if (Q.stopping) throw Object.assign(new Error('Stopped'), { stopped: true });
+        MS.emit('qa-step', { id: id, index: i, total: c.steps.length, text: stepWords(s), step: s });
+        return runStep(s, log);
+      });
+    });
     return chain.then(function () {
       var manual = log.some(function (x) { return x.ok === null; });
       return { status: manual ? 'Needs a person' : 'Pass', log: log };
     }, function (e) {
+      if (e.stopped) return { stopped: true, log: log };
       if (!e.stepFail) log.push({ step: '(error)', ok: false, note: e.message });
       return { status: 'Fail', log: log, error: e.message };
     }).then(function (res) {
       if (MS.view.width !== width) MS.view.setWidth(width, true);
       if (was !== MS.mode && was !== 'interact') MS.setMode(was);
+      if (res.stopped) return { id: id, title: c.title, status: 'Stopped', steps: res.log };
+      var ms = Date.now() - t0, failed = res.status === 'Fail' ? D._lastEl : null;
       var actual = res.log.map(function (x) { return (x.ok === false ? '✗ ' : x.ok ? '✓ ' : '• ') + x.step + (x.note ? ' → ' + x.note : ''); }).join('\n');
-      Q.update(id, { status: res.status, actual: actual, at: new Date().toISOString(), by: 'Mothership' }, 'Test run ' + id);
-      return { id: id, title: c.title, status: res.status, steps: res.log };
+      Q.update(id, { status: res.status, actual: actual, at: new Date().toISOString(), by: 'Mothership', ms: ms }, 'Test run ' + id);
+      var out = { id: id, title: c.title, status: res.status, ms: ms, steps: res.log };
+      if (failed && Q.live && Q.live.evidence) return Q.live.evidence(id, failed).then(function () { return out; }, function () { return out; });
+      return out;
     });
   };
-  Q.run = function (ids) {
+  // Run cases one after another. o.onProgress is told about each case; Q.stop() ends the run after the current step.
+  Q.running = null;
+  Q.stop = function () { if (Q.running) { Q.stopping = true; MS.emit('qa-run', { phase: 'stopping' }); } };
+  Q.run = function (ids, o) {
+    o = o || {};
+    if (Q.running) return Promise.reject(new Error('Tests are already running.'));
     var list = (ids && ids.length ? ids : Q.cases().map(function (c) { return c.id; })).filter(function (id) { return Q.get(id); });
-    var out = [], chain = Promise.resolve();
-    list.forEach(function (id) { chain = chain.then(function () { return Q.runCase(id).then(function (r) { out.push(r); MS.status('Testing… ' + out.length + ' of ' + list.length); }); }); });
-    return chain.then(function () { MS.status(''); return out; });
+    var out = [], chain = Promise.resolve(), t0 = Date.now();
+    Q.stopping = false; Q.running = { ids: list, total: list.length, started: t0, results: out };
+    MS.emit('qa-run', { phase: 'start', ids: list, total: list.length });
+    list.forEach(function (id, i) {
+      chain = chain.then(function () {
+        if (Q.stopping) return;
+        MS.emit('qa-run', { phase: 'case', id: id, index: i, total: list.length, title: Q.get(id).title });
+        return Q.runCase(id).then(function (r) {
+          if (r.status !== 'Stopped') out.push(r);
+          MS.status('Testing… ' + out.length + ' of ' + list.length);
+          MS.emit('qa-run', { phase: 'result', result: r, index: i, total: list.length });
+        });
+      });
+    });
+    var end = function (err) {
+      var stopped = Q.stopping; Q.running = null; Q.stopping = false; MS.status('');
+      var rec = { at: new Date().toISOString(), ms: Date.now() - t0, total: list.length, ran: out.length, stopped: !!stopped };
+      ['Pass', 'Fail', 'Needs a person'].forEach(function (k) { rec[k === 'Needs a person' ? 'person' : k.toLowerCase()] = out.filter(function (r) { return r.status === k; }).length; });
+      if (out.length) edit('Test run', function (T) { T.runs = (T.runs || []).concat([rec]).slice(-20); });
+      MS.emit('qa-run', { phase: 'end', results: out, run: rec, error: err ? err.message : null });
+      return rec;
+    };
+    return chain.then(function () { end(); return out; }, function (e) { end(e); throw e; });
   };
+  Q.runs = function () { return plan().runs || []; };
+  Q.failed = function () { return Q.cases().filter(function (c) { return c.status === 'Fail'; }); };
   Q.summary = function () {
     var cs = Q.cases(), by = {}; Q.STATUSES.forEach(function (s) { by[s] = 0; }); cs.forEach(function (c) { by[c.status] = (by[c.status] || 0) + 1; });
-    return { total: cs.length, automatic: cs.filter(function (c) { return c.auto; }).length, byStatus: by };
+    var last = Q.runs().slice(-1)[0] || null;
+    return { total: cs.length, automatic: cs.filter(function (c) { return c.auto; }).length, byStatus: by, lastRun: last };
   };
 
   /* ---------------------------------------------------------------- the test document */
@@ -697,55 +744,140 @@
     return head.join('\n') + Q.document();
   };
 
+  // A prompt built from what failed, to hand to an AI: find the cause, fix it (or the test), test again.
+  // o.mcp: the AI has the Mothership MCP tools · o.goal: 'fix' (default) | 'retest' · o.person: include "Needs a person" cases
+  Q.failPrompt = function (o) {
+    o = o || {};
+    var mcp = o.mcp !== false, goal = o.goal === 'retest' ? 'retest' : 'fix';
+    var I = docInfo(), fails = Q.failed(), people = o.person === false ? [] : Q.cases().filter(function (c) { return c.status === 'Needs a person'; });
+    var last = Q.runs().slice(-1)[0], S = Q.summary();
+    var L = [];
+    if (!fails.length && !people.length) return 'Every test case of ' + I.name + ' passed' + (S.byStatus['Not run'] ? ' (' + S.byStatus['Not run'] + ' not run yet)' : '') + '. Nothing to fix.\n';
+    L.push('You are a senior front-end developer and QA engineer. A business dashboard (one HTML file, "' + I.name + '") was tested with HTML Mothership' + (last ? ' on ' + last.at.slice(0, 16).replace('T', ' ') : '') + '. ' + fails.length + ' test case' + (fails.length === 1 ? '' : 's') + ' failed' + (people.length ? ' and ' + people.length + ' need a person to check by eye' : '') + '. Details are below.', '');
+    L.push('## Your task', '');
+    if (mcp) {
+      L.push('You are connected to the Mothership MCP server, which has the dashboard open.', '');
+      L.push('1. For each failed case, run it again with `test_run {"ids": ["<id>"]}` to see if it still fails.');
+      L.push('2. Investigate on screen: `ui_snapshot` to see the parts and refs, `ui_read` / `ui_expect` to check values, `ui_hover` for pop-ups, `ui_errors` for script errors, and `ui_screenshot` to look at it.');
+      L.push('3. Decide which it is: **a bug in the dashboard**, **a wrong or out-of-date test** (e.g. it looks for text that was renamed), or **cannot reproduce**.');
+      if (goal === 'fix') L.push('4. Fix it. A dashboard bug: change the dashboard with the Mothership tools (`set_text`, `set_style`, `chart_settings`, `set_chart_data`, `replace_text`, …; `outline` and `get_element` show what is there), never by hand-editing the file. A wrong test: correct it with `test_plan {"action": "update", "id": …, "case": …}` and say why.', '5. Run the case again until it passes, then record the result with `test_record` (status, what actually happened, and in notes: cause and fix).');
+      else L.push('4. Do not change the dashboard. Record what you found with `test_record` (status, what actually happened, and in notes: the likely cause, severity and steps to reproduce).');
+      if (people.length) L.push((goal === 'fix' ? '6' : '5') + '. For the "needs a person" cases, look with `ui_screenshot`, judge them, and record Pass or Fail with `test_record`.');
+      L.push('', 'Finish with `save_test_document {"format": "markdown"}` and a short report.');
+    } else {
+      L.push('You cannot run the dashboard yourself. The dashboard file is attached (or pasted below the test details). For each failed case:', '');
+      L.push('1. Find the most likely cause in the HTML, CSS or JavaScript, quoting the exact lines.', '2. Say whether it is **a bug in the dashboard** or **a wrong or out-of-date test**.');
+      L.push(goal === 'fix' ? '3. Give the exact change: the code before and after, small and safe. Do not rewrite unrelated parts.' : '3. Describe how a person can confirm it, step by step, and what they should see.');
+      if (people.length) L.push('4. For the "needs a person" cases, give a short checklist a person can follow, with what good looks like.');
+    }
+    L.push('', 'Report as a table: | Case | Verdict (dashboard bug / test is wrong / cannot reproduce) | Cause | ' + (goal === 'fix' ? 'Fix' : 'How to confirm') + ' | Severity (Critical, Major, Minor, Trivial) | Result after retest |', 'Report only what you actually checked. If something cannot be done, say so plainly.', '');
+    L.push('## The dashboard', '', '- File: ' + I.name + (I.title ? ' (“' + I.title + '”)' : ''));
+    if (I.tabs.length) L.push('- Tabs: ' + I.tabs.join(', '));
+    if (I.charts.length) L.push('- Charts: ' + I.charts.map(function (c) { return c.name + (c.tab ? ' (' + c.tab + ')' : ''); }).join(', '));
+    if (I.kpis.length) L.push('- KPI cards: ' + I.kpis.map(function (k) { return k.label + ' = ' + k.value; }).join('; '));
+    if (I.filters.length) L.push('- Filters: ' + I.filters.join(', '));
+    L.push('- Results: ' + Q.STATUSES.filter(function (s) { return S.byStatus[s]; }).map(function (s) { return s + ' ' + S.byStatus[s]; }).join(' · '));
+    function caseBlock(c, failed) {
+      L.push('', '### ' + c.id + ': ' + c.title, '', '*' + c.scenario + ' · ' + c.type + ' · ' + c.priority + ' priority' + (c.area ? ' · ' + c.area : '') + '*', '');
+      if (c.pre) L.push('Before you start: ' + c.pre, '');
+      var lines = (c.actual || '').split('\n'), byStep = {};
+      lines.forEach(function (l) { var m = /^([✓✗•]) (.*?)(?: → (.*))?$/.exec(l); if (m) byStep[m[2]] = { mark: m[1], note: m[3] || '' }; });
+      L.push('Steps:');
+      c.steps.forEach(function (st, i) {
+        var r = byStep[Q.stepText(st)], tail = '';
+        if (r) tail = r.mark === '✗' ? '  **✗ FAILED: ' + r.note + '**' : r.mark === '✓' ? '  ✓' + (r.note ? ' (' + r.note + ')' : '') : '  • ' + (r.note || 'check by eye');
+        else if (failed && lines.some(function (l) { return /^✗/.test(l); })) tail = '  (not reached)';
+        L.push((i + 1) + '. ' + stepWords(st) + '  `' + Q.stepText(st) + '`' + tail);
+      });
+      var err = lines.filter(function (l) { return /^✗ \(error\)/.test(l); });
+      if (err.length) L.push('', 'Error: ' + err.join(' ').replace(/^✗ \(error\) → /, ''));
+      L.push('', 'Expected: ' + (c.expected || '—'));
+      if (c.notes) L.push('', 'Notes: ' + c.notes);
+    }
+    if (fails.length) { L.push('', '## Failed (' + fails.length + ')'); fails.sort(function (a, b) { return Q.PRIORITIES.indexOf(a.priority) - Q.PRIORITIES.indexOf(b.priority); }).forEach(function (c) { caseBlock(c, true); }); }
+    if (people.length) { L.push('', '## Needs a person (' + people.length + ')'); people.forEach(function (c) { caseBlock(c, false); }); }
+    if (mcp) L.push('', '## Tools', '', TOOLS.map(function (t) { return '- `' + t[0] + '`: ' + t[1]; }).join('\n'));
+    return L.join('\n') + '\n';
+  };
+
   /* ================================================================ the Testing window */
   var STATUS_CLS = { 'Pass': 'ok', 'Fail': 'bad', 'Blocked': 'warn', 'Skipped': '', 'Needs a person': 'info', 'Not run': '' };
-  Q.dialog = function () {
+  Q.dialog = function (o) {
+    o = o || {};
     if (!rt()) return MS.toast('Turn off Safe mode to plan tests.', 'warn');
     var body = h('div', { 'class': 'qa' }), list = h('div', { 'class': 'qa-list' }), stats = h('div', { 'class': 'qa-stats' });
-    var filt = { text: '', status: '' };
+    var filt = { text: '', status: o.status || '' }, live = Q.live;
     var search = h('input', { 'class': 'inp', placeholder: 'Find a test…' }); search.addEventListener('input', function () { filt.text = low(search.value); draw(); });
-    var stSel = h('select', { 'class': 'inp' }, [h('option', { value: '', text: 'All statuses' })].concat(Q.STATUSES.map(function (s) { return h('option', { value: s, text: s }); }))); stSel.addEventListener('change', function () { filt.status = stSel.value; draw(); });
     // The run log: failed steps shown, the rest folded away.
     function logOf(c) {
       var lines = c.actual.split('\n'), bad = lines.filter(function (l) { return /^✗/.test(l); });
       var when = c.at ? ' · ' + c.at.slice(0, 16).replace('T', ' ') + (c.by ? ' by ' + c.by : '') : '';
+      var pic = live && live.evid[c.id];
       return h('div', {}, bad.map(function (l) { return h('div', { 'class': 'qa-bad', text: l.replace(/^✗\s*/, '') }); }).concat([
+        pic && c.status === 'Fail' ? h('button', { 'class': 'qa-shot', title: 'What the failed step was looking at. Click to copy the picture.', onclick: function () { copyPic(pic); } }, [h('img', { src: pic, alt: 'Picture of the part that failed' })]) : null,
         h('details', { 'class': 'qa-log' }, [h('summary', { text: 'Run log: ' + lines.length + ' step' + (lines.length === 1 ? '' : 's') + when }), h('pre', { 'class': 'qa-actual', text: c.actual })])]));
+    }
+    function copyPic(url) {
+      var bin = atob(url.split(',')[1]), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      var blob = new Blob([u], { type: 'image/png' });
+      Promise.resolve().then(function () { return navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]); })
+        .then(function () { MS.toast('Picture copied.', 'ok'); }, function () { MS.download('test-failure.png', url); });
+    }
+    function setFilter(s) { filt.status = filt.status === s ? '' : s; draw(); }
+    function head() {
+      var S = Q.summary(), by = S.byStatus, ran = S.total - (by['Not run'] || 0);
+      var lr = S.lastRun, tr = live && live.trend();
+      var chips = h('div', { 'class': 'qa-chips' }, Q.STATUSES.filter(function (s) { return by[s]; }).map(function (s) {
+        return h('button', { 'class': 'qa-chip ' + (STATUS_CLS[s] || '') + (filt.status === s ? ' on' : ''), title: filt.status === s ? 'Show all' : 'Show only "' + s + '"', onclick: function () { setFilter(s); } }, [h('i', { 'class': 'qa-sw', style: 'background:' + (live ? live.COLORS[s] : '') }), s + ' ', h('b', { text: String(by[s]) })]);
+      }));
+      return h('div', { 'class': 'qa-sum' }, [
+        live ? live.ring(by, 76, [h('b', { text: ran ? Math.round((by.Pass || 0) / ran * 100) + '%' : '–' }), h('small', { text: ran ? 'passed' : 'not run' })]) : null,
+        h('div', { 'class': 'grow' }, [
+          h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : '')]),
+          chips]),
+        tr ? h('div', { 'class': 'qa-trend-box' }, [tr, h('small', { 'class': 'muted', text: 'Pass rate by run' })]) : null]);
     }
     function draw() {
       var S = Q.summary(); stats.innerHTML = '';
-      stats.appendChild(h('span', { 'class': 'qa-total', text: S.total + ' test case' + (S.total === 1 ? '' : 's') + ' · ' + S.automatic + ' automatic' }));
-      Q.STATUSES.forEach(function (s) { if (S.byStatus[s]) stats.appendChild(h('span', { 'class': 'qa-chip ' + (STATUS_CLS[s] || '') }, [s + ' ' + S.byStatus[s]])); });
+      if (S.total) stats.appendChild(head());
+      var fails = S.byStatus.Fail || 0, people = S.byStatus['Needs a person'] || 0;
+      fixBtns.forEach(function (b) { b.style.display = fails || people ? '' : 'none'; });
+      rerun.style.display = fails ? '' : 'none';
       list.innerHTML = '';
       var cs = Q.cases().filter(function (c) { return (!filt.status || c.status === filt.status) && (!filt.text || low(c.id + ' ' + c.title + ' ' + c.scenario + ' ' + c.type).indexOf(filt.text) >= 0); });
-      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('button', { 'class': 'btn primary', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Draft test cases'])])); return; }
+      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('button', { 'class': 'btn primary', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Draft test cases'])])); return; }
+      if (!cs.length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('p', { 'class': 'muted', text: 'No test case matches.' }), h('button', { 'class': 'btn sm', onclick: function () { filt.status = ''; filt.text = ''; search.value = ''; draw(); } }, ['Show all'])])); return; }
       var groups = []; cs.forEach(function (c) { if (groups.indexOf(c.scenario) < 0) groups.push(c.scenario); });
       groups.forEach(function (g) {
-        list.appendChild(h('div', { 'class': 'qa-group', text: g }));
-        cs.filter(function (c) { return c.scenario === g; }).forEach(function (c) {
+        var inG = cs.filter(function (c) { return c.scenario === g; }), gp = inG.filter(function (c) { return c.status === 'Pass'; }).length, gf = inG.filter(function (c) { return c.status === 'Fail'; }).length;
+        list.appendChild(h('div', { 'class': 'qa-group' }, [h('span', { text: g }), h('span', { 'class': 'qa-gcount' + (gf ? ' bad' : gp === inG.length ? ' ok' : ''), text: gp + '/' + inG.length })]));
+        inG.forEach(function (c) {
           var st = h('select', { 'class': 'inp sm qa-st ' + (STATUS_CLS[c.status] || ''), title: 'Result' }, Q.STATUSES.map(function (s) { return h('option', { value: s, text: s, selected: s === c.status }); }));
           st.addEventListener('change', function () { Q.record(c.id, { status: st.value, by: 'Me' }); draw(); });
-          var row = h('div', { 'class': 'qa-row' + (c.status === 'Fail' ? ' fail' : '') }, [
+          var row = h('div', { 'class': 'qa-row st-' + (STATUS_CLS[c.status] || 'none') + (c.status === 'Fail' ? ' fail' : '') }, [
             h('span', { 'class': 'qa-id', text: c.id }),
-            h('div', { 'class': 'grow' }, [h('div', { 'class': 'qa-title', text: c.title }), h('div', { 'class': 'qa-meta' }, [h('span', { text: c.type }), h('span', { 'class': 'qa-pri ' + low(c.priority), text: c.priority }), h('span', { text: c.steps.length + ' step' + (c.steps.length === 1 ? '' : 's') + (c.auto ? ' · automatic' : ' · some by eye') })]),
+            h('div', { 'class': 'grow' }, [h('div', { 'class': 'qa-title', text: c.title }), h('div', { 'class': 'qa-meta' }, [h('span', { text: c.type }), h('span', { 'class': 'qa-pri ' + low(c.priority), text: c.priority }), h('span', { text: c.steps.length + ' step' + (c.steps.length === 1 ? '' : 's') + (c.auto ? ' · automatic' : ' · some by eye') }), c.ms ? h('span', { 'class': 'qa-ms', title: 'How long the last run took', text: live ? live.secs(c.ms) : c.ms + ' ms' }) : null]),
               c.actual ? logOf(c) : null]),
             st,
-            h('button', { 'class': 'icon-btn', title: 'Run the automatic steps', onclick: function (e) { var b = e.currentTarget; b.disabled = true; Q.runCase(c.id).then(function () { draw(); }, function (er) { MS.toast(er.message, 'error'); draw(); }); } }, ['▶']),
+            h('button', { 'class': 'icon-btn qa-play', title: 'Run this case (you can watch it)', onclick: function () { if (live) live.start([c.id]); } }, ['▶']),
             h('button', { 'class': 'icon-btn', title: 'Edit', onclick: function () { Q.editDialog(c).then(draw); } }, ['✎']),
             h('button', { 'class': 'icon-btn', title: 'Delete', onclick: function () { Q.remove(c.id); draw(); } }, ['🗑'])]);
           list.appendChild(row);
         });
       });
     }
-    var tools = h('div', { 'class': 'row gap wrap qa-tools' }, [search, stSel, h('span', { 'class': 'grow' }),
+    var fixBtns = [h('button', { 'class': 'btn sm qa-fix', title: 'A prompt for an AI assistant, built from the failed cases: find the cause, fix it, test again', onclick: function () { if (live) live.promptDialog(); } }, ['✨ Prompt from failures'])];
+    var rerun = h('button', { 'class': 'btn sm', title: 'Run only the cases that failed', onclick: function () { if (live) live.start(Q.failed().map(function (x) { return x.id; })); } }, ['↻ Rerun failed']);
+    var tools = h('div', { 'class': 'row gap wrap qa-tools' }, [search, h('span', { 'class': 'grow' }),
       h('button', { 'class': 'btn sm', onclick: function () { var n = Q.draft(); MS.toast(n ? n + ' new test case(s) drafted.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); draw(); } }, ['✨ Draft']),
       h('button', { 'class': 'btn sm', onclick: function () { Q.editDialog(null).then(draw); } }, ['＋ Add case']),
-      h('button', { 'class': 'btn sm primary', onclick: function (e) { var b = e.currentTarget; b.disabled = true; var t = MS.toast('Running the tests…', '', 60000); Q.run().then(function (res) { t.close(); var f = res.filter(function (x) { return x.status === 'Fail'; }).length; MS.toast(res.length + ' run: ' + res.filter(function (x) { return x.status === 'Pass'; }).length + ' passed, ' + f + ' failed, ' + res.filter(function (x) { return x.status === 'Needs a person'; }).length + ' need a person.', f ? 'warn' : 'ok', 7000); b.disabled = false; draw(); }, function (er) { t.close(); b.disabled = false; MS.toast(er.message, 'error'); }); } }, ['▶ Run all']),
-      h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export'])]);
+      fixBtns[0], rerun,
+      h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export']),
+      h('button', { 'class': 'btn sm primary', title: 'Run every case. The window closes so you can watch the steps on the dashboard.', onclick: function () { if (live) live.start(); } }, ['▶ Run all'])]);
     body.appendChild(tools); body.appendChild(stats); body.appendChild(list);
     draw();
     var off = MS.on('tests', function () { if (body.isConnected) draw(); });
-    MS.dialog({ title: '☑ Test cases', sub: 'Plan, run and record tests of this dashboard. Automatic steps run here; “check by eye” steps need a person, or an AI through the MCP server. Export a full test document or a prompt for another AI.', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Close', primary: true, value: null }] }).then(function () { if (typeof off === 'function') off(); });
+    MS.dialog({ title: '☑ Test cases', sub: 'Plan, run and record tests of this dashboard. Automatic steps run here while you watch; “check by eye” steps need a person, or an AI through the MCP server. Export a full test document, or a prompt built from what failed.', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Close', primary: true, value: null }] }).then(function () { if (typeof off === 'function') off(); });
   };
   Q.exportItems = function () {
     var base = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'dashboard') + ' - test plan';
@@ -756,7 +888,8 @@
       { icon: '⬇', label: 'Test cases (JSON)', run: function () { MS.download(base + '.json', JSON.stringify(Q.json(), null, 2), 'application/json'); } },
       '-',
       { icon: '🤖', label: 'Copy a prompt for an AI tester (with MCP)', run: function () { MS.copyText(Q.prompt({ mcp: true })).then(function () { MS.toast('Copied. Paste it into an AI assistant that is connected to the Mothership MCP server.', 'ok', 6000); }); } },
-      { icon: '✨', label: 'Copy a prompt for an AI tester (no MCP)', run: function () { MS.copyText(Q.prompt({ mcp: false })).then(function () { MS.toast('Copied. Paste it into any AI assistant; it will give you step-by-step instructions.', 'ok', 6000); }); } }
+      { icon: '✨', label: 'Copy a prompt for an AI tester (no MCP)', run: function () { MS.copyText(Q.prompt({ mcp: false })).then(function () { MS.toast('Copied. Paste it into any AI assistant; it will give you step-by-step instructions.', 'ok', 6000); }); } },
+      { icon: '🐞', label: 'Prompt from failed tests…', run: function () { if (Q.live) Q.live.promptDialog(); } }
     ];
   };
   Q.editDialog = function (c) {
@@ -813,12 +946,13 @@
     } });
   api('test_run', { d: 'Testing: run test cases (all, or the ids given). Automatic steps run; “manual” steps are left for you and the case is marked "Needs a person". Records each result in the plan.', p: { ids: ['array', 'Test case ids (default: all)'] }, f: function (a) { return Q.run(a.ids).then(function (res) { return { summary: Q.summary(), results: res }; }); } });
   api('test_record', { d: 'Testing: record the result of a test case: status (Pass, Fail, Blocked, Skipped, Needs a person, Not run), what actually happened, notes, who tested.', p: { id: ['string', 'Test case id', true], status: ['string', 'Pass | Fail | Blocked | Skipped', true], actual: ['string', 'What actually happened'], notes: ['string', 'Notes, defect details, severity'], by: ['string', 'Tester'] }, f: function (a) { return Q.record(a.id, a); } });
-  api('test_document', { d: 'Testing: the full test document (purpose, scope, what is tested, approach, test cases with steps and expected results, results, traceability, MCP how-to, defect log, sign-off). format: markdown (default) | html | json | xlsx (base64) | prompt (a prompt for an AI tester).', p: { format: ['string', 'markdown | html | json | xlsx | prompt'], mcp: ['boolean', 'For prompt: the AI has the MCP tools (default true)'] },
+  api('test_document', { d: 'Testing: the full test document (purpose, scope, what is tested, approach, test cases with steps and expected results, results, traceability, MCP how-to, defect log, sign-off). format: markdown (default) | html | json | xlsx (base64) | prompt (a prompt for an AI tester) | failures (a prompt built from the failed cases: find the cause, fix, test again).', p: { format: ['string', 'markdown | html | json | xlsx | prompt | failures'], mcp: ['boolean', 'For prompt / failures: the AI has the MCP tools (default true)'], goal: ['string', 'For failures: fix (default) or retest (find the cause only)'], person: ['boolean', 'For failures: include the "needs a person" cases (default true)'] },
     f: function (a) {
       var f = a.format || 'markdown', base = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'dashboard') + ' - test plan';
       if (f === 'html') return Q.html().then(function (x) { return { name: base + '.html', text: x }; });
       if (f === 'json') return { name: base + '.json', text: JSON.stringify(Q.json(), null, 2) };
       if (f === 'prompt') return { name: base + ' - AI tester prompt.md', text: Q.prompt({ mcp: a.mcp !== false }) };
+      if (f === 'failures') return { name: base + ' - fix the failures prompt.md', text: Q.failPrompt({ mcp: a.mcp !== false, goal: a.goal, person: a.person }), failed: Q.failed().map(function (c) { return c.id; }) };
       if (f === 'xlsx') return Q.xlsx().then(function (b) { var s = '', u = new Uint8Array(b); for (var i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { name: base + '.xlsx', b64: btoa(s) }; });
       return { name: base + '.md', text: Q.document() };
     } });

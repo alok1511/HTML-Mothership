@@ -1,11 +1,11 @@
 {
   "name": "html-mothership",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "A PowerPoint-style editor for HTML dashboards that runs from a single local HTML file, offline.",
   "private": true,
   "scripts": {
     "build": "node tools/build.js",
-    "test": "node tests/smoke.test.js && node tests/v2.test.js && node tests/v3.test.js && node tests/v4.test.js && node tests/v5.test.js && node tests/v6.test.js && node tests/v7.test.js && node tests/v8.test.js && node tests/v9.test.js && node tests/mcp.test.js && node tests/mcp.test.js --python",
+    "test": "node tests/smoke.test.js && node tests/v2.test.js && node tests/v3.test.js && node tests/v4.test.js && node tests/v5.test.js && node tests/v6.test.js && node tests/v7.test.js && node tests/v8.test.js && node tests/v9.test.js && node tests/v10.test.js && node tests/mcp.test.js && node tests/mcp.test.js --python",
     "mcp:python": "python tools/mcp/mothership_mcp.py",
     "mcp": "node tools/mcp/mothership-mcp.js",
     "serve": "node tools/serve.js"

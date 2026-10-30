@@ -123,7 +123,7 @@ input[type=range] { accent-color: var(--accent); }
 .cmdk-btn { display: inline-flex; align-items: center; gap: 8px; min-width: 210px; padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(127,127,127,.3); background: rgba(127,127,127,.1); color: var(--bar-muted); cursor: pointer; }
 .cmdk-btn:hover { background: rgba(127,127,127,.2); color: var(--bar-text); }
 .cmdk-btn kbd { margin-left: auto; background: rgba(127,127,127,.18); color: inherit; border-color: rgba(127,127,127,.3); }
-@media (max-width: 1500px) { .cmdk-btn { min-width: 0; } .cmdk-btn .lbl, .cmdk-btn kbd { display: none; } }
+@media (max-width: 1600px) { .cmdk-btn { min-width: 0; } .cmdk-btn .lbl, .cmdk-btn kbd { display: none; } }
 
 /* ribbon */
 #ribbon { background: var(--panel); border-bottom: 1px solid var(--line); flex: none; box-shadow: var(--shadow-sm); position: relative; z-index: 2; }
@@ -632,7 +632,7 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
 
 /* v3.6: testing */
 .qa-tools { margin-bottom: 8px; }
-.qa-tools .inp { width: auto; min-width: 160px; }
+.qa-tools .inp { width: 200px; min-width: 140px; }
 .qa-stats { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; }
 .qa-total { font-weight: 600; margin-right: 6px; }
 .qa-chip { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: var(--panel-3); color: var(--text-2); white-space: nowrap; }
@@ -701,23 +701,241 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
 #left::-webkit-scrollbar-thumb, #right::-webkit-scrollbar-thumb, #stage::-webkit-scrollbar-thumb, .dlg-body::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 40%, transparent); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
 @media (prefers-reduced-motion: reduce) { .rbtn:hover .ri { transform: none; } }
 
+/* v3.7: app bar in three parts (document | mode | actions), a sliding mode switch with one colour per mode,
+   a frame and banner on the stage for Comment and Interact, and a document chip with Close */
+:root { --mode-edit: var(--accent); --mode-comment: #f59e0b; --mode-interact: #10b981; }
+#appbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; padding: 7px 12px; }
+#appbar .ab-left, #appbar .ab-right { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#appbar .ab-right { justify-content: flex-end; }
+#appbar .ab-mid { display: flex; justify-content: center; }
+#appbar .ab-sep { width: 1px; height: 22px; background: rgba(127,127,127,.3); margin: 0 2px; }
+#appbar .logo .lbl { white-space: nowrap; }
+.doc-chip { display: inline-flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%; padding: 3px 4px 3px 11px; border-radius: 999px; background: rgba(127,127,127,.1); border: 1px solid rgba(127,127,127,.2); transition: background .15s, border-color .15s; }
+.doc-chip:not(.open) { background: none; border-color: transparent; }
+.doc-chip.open:hover { background: rgba(127,127,127,.18); }
+.doc-chip .doc-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.18); flex: none; transition: background .2s, box-shadow .2s; }
+.doc-chip.dirty .doc-dot { background: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,.22); }
+.doc-chip:not(.open) .doc-dot, .doc-chip:not(.open) .doc-x { display: none; }
+.doc-chip #doc-name { padding: 0; max-width: none; color: var(--bar-text); font-weight: 500; min-width: 0; }
+.doc-chip:not(.open) #doc-name { color: var(--bar-muted); font-weight: 400; }
+.doc-chip #doc-name.dirty::after { content: none; }
+.doc-x { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex: none; border: 0; border-radius: 50%; background: none; color: var(--bar-muted); cursor: pointer; transition: background .12s, color .12s; }
+.doc-x:hover { background: rgba(239,68,68,.85); color: #fff; }
+.doc-x .ic { width: 13px; height: 13px; margin: 0; stroke-width: 2.4; }
+
+#appbar .seg.mode { position: relative; padding: 3px; gap: 0; border-radius: 11px; background: rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.08); box-shadow: inset 0 1px 2px rgba(0,0,0,.18); overflow: visible; }
+:root:not([data-ms-bar="deep"]):not([data-ms-mode="dark"]) #appbar .seg.mode { background: rgba(127,127,127,.12); border-color: rgba(127,127,127,.22); }
+#appbar .seg.mode .glider { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0; border-radius: 8px; background: var(--mode-edit); box-shadow: 0 2px 10px -2px var(--mode-edit), inset 0 1px 0 rgba(255,255,255,.22); transition: transform .28s cubic-bezier(.3,1.3,.5,1), width .28s cubic-bezier(.3,1.3,.5,1), background .2s, box-shadow .2s; }
+#appbar .seg.mode[data-mode="comment"] .glider { background: var(--mode-comment); box-shadow: 0 2px 12px -2px var(--mode-comment), inset 0 1px 0 rgba(255,255,255,.3); }
+#appbar .seg.mode[data-mode="interact"] .glider { background: var(--mode-interact); box-shadow: 0 2px 12px -2px var(--mode-interact), inset 0 1px 0 rgba(255,255,255,.3); }
+#appbar .seg.mode .seg-btn { position: relative; z-index: 1; gap: 6px; padding: 5px 14px; border-radius: 8px; font-weight: 500; color: var(--bar-muted); background: none; box-shadow: none; transition: color .2s; }
+#appbar .seg.mode .seg-btn:hover { color: var(--bar-text); background: rgba(255,255,255,.06); }
+#appbar .seg.mode .seg-btn.on, #appbar .seg.mode .seg-btn[data-mode="comment"].on { background: none; color: #fff; font-weight: 600; box-shadow: none; }
+#appbar .seg.mode[data-mode="comment"] .seg-btn.on { color: #1f1300; }
+#appbar .seg.mode .seg-btn .ic { width: 15px; height: 15px; margin: 0; }
+#appbar .seg.mode .seg-btn:focus-visible { outline: 2px solid var(--bar-text); outline-offset: 1px; }
+
+#appbar .btn.ghost { background: none; border-color: transparent; }
+#appbar .btn.ghost:hover { background: rgba(127,127,127,.18); }
+#appbar .btn.ghost.on { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.4); }
+#appbar .btn .count { margin-left: 4px; }
+@media (max-width: 1360px) { #appbar .ab-right .lbl { display: none; } #appbar .ab-right .btn { padding-left: 9px; padding-right: 9px; } #appbar .ab-right .btn.primary .lbl { display: inline; } }
+@media (max-width: 1180px) { #appbar .logo .lbl, #appbar .ab-right .btn.primary .lbl { display: none; } #appbar .seg.mode .seg-btn { padding: 5px 10px; } }
+@media (max-width: 920px) { #appbar .seg.mode .seg-btn .lbl { display: none; } }
+
+#mode-frame { position: fixed; z-index: 30; pointer-events: none; display: none; border-radius: 0; box-shadow: inset 0 0 0 2px var(--mf-c), inset 0 0 26px -6px var(--mf-c); }
+#mode-frame.on { display: block; animation: mf-in .25s ease-out; }
+#mode-frame[data-mode="comment"] { --mf-c: var(--mode-comment); }
+#mode-frame[data-mode="interact"] { --mf-c: var(--mode-interact); }
+@keyframes mf-in { from { opacity: 0; } to { opacity: 1; } }
+.mf-banner { pointer-events: auto; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; max-width: calc(100% - 40px); padding: 6px 6px 6px 8px; border-radius: 999px; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4); box-shadow: 0 0 0 1px color-mix(in srgb, var(--mf-c) 45%, transparent), 0 10px 30px -8px rgba(15,23,42,.35); font-size: 12.5px; color: var(--text-2); animation: mf-drop .32s cubic-bezier(.3,1.3,.5,1); transition: opacity .2s; }
+.mf-banner:hover { opacity: 1; }
+#mode-frame.quiet .mf-banner { opacity: .4; }
+#mode-frame.quiet .mf-banner:hover { opacity: 1; }
+@keyframes mf-drop { from { transform: translate(-50%, -14px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+.mf-ic { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--mf-c); color: #fff; flex: none; }
+#mode-frame[data-mode="comment"] .mf-ic { color: #1f1300; }
+.mf-ic .ic { width: 15px; height: 15px; margin: 0; }
+.mf-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mf-txt b { color: var(--text); }
+.mf-back { display: inline-flex; align-items: center; gap: 6px; flex: none; border: 0; border-radius: 999px; padding: 5px 8px 5px 11px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; transition: filter .12s, transform .06s; }
+.mf-back:hover { filter: brightness(1.1); } .mf-back:active { transform: scale(.97); }
+.mf-back .ic { width: 13px; height: 13px; margin: 0; }
+.mf-back kbd { background: rgba(255,255,255,.2); border-color: transparent; color: inherit; font-size: 10.5px; }
+body.presenting #mode-frame { display: none; }
+@media (prefers-reduced-motion: reduce) { #appbar .seg.mode .glider, .mf-banner, #mode-frame.on { transition: none; animation: none; } }
+
+/* v3.7 testing: summary with results ring, clickable status chips, run history, runner card, pointer */
+.qa-sum { display: flex; align-items: center; gap: 16px; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--panel-2), var(--panel)); }
+.qa-sum .qa-total { margin: 0 0 8px; font-weight: 400; color: var(--muted); }
+.qa-sum .qa-total b { color: var(--text); font-size: 14px; }
+.qa-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+button.qa-chip { border: 1px solid transparent; cursor: pointer; gap: 6px; height: 26px; padding: 0 10px; transition: transform .08s, box-shadow .12s, border-color .12s; }
+button.qa-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+button.qa-chip.on { border-color: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent); }
+.qa-chip b { font-variant-numeric: tabular-nums; }
+.qa-sw { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.qa-ring-wrap { position: relative; flex: none; }
+.qa-ring { display: block; transform: rotate(0deg); }
+.qa-ring-bg { fill: none; stroke: var(--panel-3); stroke-width: 4.2; }
+.qa-ring-seg { stroke-width: 4.2; stroke-linecap: butt; transition: stroke-dasharray .6s ease; }
+.qa-ring-c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; }
+.qa-ring-c b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.qa-ring-c small { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.qa-trend-box { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.qa-trend { display: flex; align-items: flex-end; gap: 3px; height: 34px; padding: 0 2px; border-bottom: 1px solid var(--line); }
+.qa-tbar { width: 7px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 80%, #fff), var(--ok)); opacity: .85; transition: opacity .12s; }
+.qa-tbar.bad { background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 80%, #fff) 0, var(--ok) 70%, var(--danger) 70%); }
+.qa-tbar:hover { opacity: 1; }
+.qa-group { display: flex; justify-content: space-between; }
+.qa-gcount { font-variant-numeric: tabular-nums; letter-spacing: 0; } .qa-gcount.ok { color: var(--ok); } .qa-gcount.bad { color: var(--danger); }
+.qa-row.st-ok { box-shadow: inset 3px 0 0 var(--ok); } .qa-row.st-info { box-shadow: inset 3px 0 0 var(--accent); } .qa-row.st-warn { box-shadow: inset 3px 0 0 var(--warn); }
+.qa-ms { font-variant-numeric: tabular-nums; }
+.qa-play:hover { color: var(--ok); background: var(--ok-weak); }
+.qa-shot { display: block; margin-top: 6px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; cursor: copy; max-width: 260px; }
+.qa-shot img { display: block; width: 100%; max-height: 140px; object-fit: contain; }
+.qa-empty-ic { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: var(--accent-weak); color: var(--accent); }
+.qa-empty-ic .ic { width: 26px; height: 26px; margin: 0; }
+.qa-fix { border-color: var(--accent-line); color: var(--accent); }
+.qa-fp-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 10px; border-radius: 10px; background: var(--danger-weak); }
+
+.qa-runner { position: fixed; z-index: 60; width: 380px; max-width: calc(100vw - 24px); padding: 14px 14px 12px; border-radius: 16px; color: var(--text);
+  background: color-mix(in srgb, var(--panel) 94%, transparent); backdrop-filter: blur(16px) saturate(1.5); -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--line) 80%, transparent), 0 24px 60px -16px rgba(15,23,42,.45); animation: qr-in .35s cubic-bezier(.3,1.3,.5,1); overflow: hidden; }
+.qa-runner::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--mode-interact), var(--accent)); background-size: 200% 100%; animation: qr-sheen 2.4s linear infinite; }
+.qa-runner.has-fail::before { background: var(--danger); animation: none; } .qa-runner.all-ok::before { background: var(--ok); animation: none; }
+.qa-runner.bye { animation: qr-out .2s ease-in forwards; }
+@keyframes qr-in { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes qr-out { to { opacity: 0; transform: translateY(12px) scale(.98); } }
+@keyframes qr-sheen { to { background-position: -200% 0; } }
+.qr-head { display: flex; align-items: center; gap: 12px; }
+.qr-what { min-width: 0; }
+.qr-title { font-weight: 700; font-size: 14px; }
+.qr-sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qr-time { font: 600 12px/1 ui-monospace, Consolas, monospace; color: var(--muted); font-variant-numeric: tabular-nums; }
+.qr-orb { position: relative; width: 44px; height: 44px; flex: none; display: flex; align-items: center; justify-content: center; }
+.qr-orb b { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.qr-spin { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--panel-3); border-top-color: var(--accent); border-right-color: var(--mode-interact); animation: qr-rot .9s linear infinite; }
+@keyframes qr-rot { to { transform: rotate(360deg); } }
+.qr-bar { position: relative; height: 8px; margin: 12px 0 10px; border-radius: 99px; background: var(--panel-3); overflow: hidden; }
+.qr-bar i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--mode-interact))); transition: width .4s ease; }
+.qr-bar i::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(255,255,255,.22) 0 8px, transparent 8px 16px); background-size: 22px 100%; animation: qr-stripes .8s linear infinite; }
+@keyframes qr-stripes { to { background-position: 22px 0; } }
+.qr-step { display: flex; align-items: flex-start; gap: 8px; min-height: 36px; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); font-size: 12.5px; line-height: 1.4; }
+.qr-stepn { flex: none; font: 700 10.5px/18px ui-monospace, Consolas, monospace; padding: 0 6px; border-radius: 6px; background: var(--accent-weak); color: var(--accent); }
+.qr-steptxt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.qr-dots { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 2px; max-height: 64px; overflow: auto; }
+.qr-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--panel-3); box-shadow: inset 0 0 0 1px var(--line); transition: background .25s, transform .25s; }
+.qr-dot.ok { background: var(--ok); box-shadow: none; } .qr-dot.bad { background: var(--danger); box-shadow: none; } .qr-dot.info { background: var(--accent); box-shadow: none; } .qr-dot.skip { background: var(--faint); }
+.qr-dot.now { background: var(--accent-weak); box-shadow: inset 0 0 0 2px var(--accent); animation: qr-pulse 1s ease-in-out infinite; }
+@keyframes qr-pulse { 50% { transform: scale(1.25); } }
+.qr-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.qr-foot.end { flex-wrap: wrap; }
+.qr-count { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 12px; }
+.qr-count .ic { width: 13px; height: 13px; margin: 0; }
+.qr-count.ok { color: var(--ok); } .qr-count.bad { color: var(--danger); } .qr-count.info { color: var(--accent); }
+.qr-pace .seg-btn { padding: 2px 7px; font-size: 11px; }
+.qa-runner .btn.sm.danger { background: var(--danger-weak); color: var(--danger); border-color: transparent; }
+.qa-runner.has-fail .qa-ring-c b { color: var(--danger); } .qa-runner.all-ok .qa-ring-c b { color: var(--ok); }
+.qr-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.qr-confetti i { position: absolute; top: -10px; left: calc(6% + var(--i) * 8%); width: 7px; height: 11px; border-radius: 2px; background: hsl(calc(var(--i) * 37), 85%, 58%); animation: qr-fall 1.6s cubic-bezier(.2,.6,.4,1) calc(var(--i) * 45ms) forwards; opacity: 0; }
+@keyframes qr-fall { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(180px) rotate(calc(var(--i) * 70deg)); } }
+
+.qa-cursor { position: fixed; left: 0; top: 0; z-index: 59; pointer-events: none; opacity: 0; transition-property: transform, opacity; transition-timing-function: cubic-bezier(.4,.1,.2,1); filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+.qa-cursor.on { opacity: 1; }
+.qa-cursor svg { display: block; }
+.qa-ripple { position: absolute; left: -11px; top: -11px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; }
+.qa-cursor.press .qa-ripple { animation: qa-rip .55s ease-out; }
+@keyframes qa-rip { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.8); } }
+.qa-hl { position: fixed; z-index: 58; pointer-events: none; border-radius: 8px; border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent); opacity: 0; transition: opacity .2s, left .25s ease, top .25s ease, width .25s ease, height .25s ease; }
+.qa-hl.on { opacity: 1; }
+.qa-hl.check { border-color: var(--mode-interact); background: color-mix(in srgb, var(--mode-interact) 7%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mode-interact) 16%, transparent); }
+.qa-hl::after { content: attr(data-label); position: absolute; left: -2px; top: -22px; padding: 2px 8px; border-radius: 6px 6px 6px 0; background: var(--accent); color: #fff; font: 600 11px/16px var(--font); white-space: nowrap; }
+.qa-hl.check::after { background: var(--mode-interact); }
+.qa-hl[data-label=""]::after { display: none; }
+body.presenting .qa-runner { display: none; }
+@media (prefers-reduced-motion: reduce) { .qa-runner, .qa-runner::before, .qr-spin, .qr-bar i::after, .qr-dot.now, .qr-confetti i, .qa-cursor.press .qa-ripple { animation: none !important; } .qa-cursor { transition: none; } }
+
+/* v3.7 welcome screen and status bar */
+#empty { background: radial-gradient(1200px 520px at 50% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), var(--bg); }
+#empty::before { background: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 0) 0 0 / 22px 22px; -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%); mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%); }
+.welcome { max-width: 860px; }
+.hero-glow { position: absolute; left: 50%; top: -40px; width: 520px; height: 260px; transform: translateX(-50%); background: conic-gradient(from 180deg at 50% 50%, color-mix(in srgb, var(--accent) 45%, transparent), color-mix(in srgb, var(--mode-interact) 35%, transparent), color-mix(in srgb, var(--mode-comment) 30%, transparent), color-mix(in srgb, var(--accent) 45%, transparent)); filter: blur(70px); opacity: .45; pointer-events: none; animation: hero-spin 18s linear infinite; z-index: -1; }
+@keyframes hero-spin { to { transform: translateX(-50%) rotate(360deg); } }
+.big-mark { animation: mark-float 5s ease-in-out infinite; box-shadow: 0 14px 34px -6px color-mix(in srgb, var(--accent) 60%, transparent), inset 0 1px 0 rgba(255,255,255,.3); }
+@keyframes mark-float { 50% { transform: translateY(-5px); } }
+.hero-pill { display: inline-flex; align-items: center; gap: 8px; margin: 18px 0 2px; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; color: var(--text-2); background: color-mix(in srgb, var(--panel) 80%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow-sm); backdrop-filter: blur(6px); }
+.pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); animation: pulse-dot 2s ease-out infinite; }
+@keyframes pulse-dot { 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.welcome h1 { font-size: 40px; line-height: 1.12; margin: 12px 0 10px; letter-spacing: -.025em; font-weight: 750; }
+.welcome h1 .grad { background: linear-gradient(100deg, var(--accent) 10%, color-mix(in srgb, var(--accent) 45%, var(--mode-interact)) 55%, var(--mode-interact)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.welcome .lead { max-width: 640px; line-height: 1.6; }
+.start-card { padding: 16px; border-radius: 14px; }
+.start-card.primary { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 82%, #fff), var(--accent) 60%, var(--accent-hover)); box-shadow: 0 10px 26px -10px color-mix(in srgb, var(--accent) 80%, transparent), inset 0 1px 0 rgba(255,255,255,.25); }
+.start-card .ic { padding: 6px; width: 34px; height: 34px; border-radius: 10px; background: var(--accent-weak); box-sizing: border-box; }
+.start-card.primary .ic { background: rgba(255,255,255,.18); }
+.recent { margin: 4px 0 14px; text-align: left; }
+.recent-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 6px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.recent-head .linklike { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.recent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.recent-card { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 12px; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 85%, transparent); cursor: pointer; text-align: left; min-width: 0; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.recent-card:hover { border-color: var(--accent-line); transform: translateY(-1px); box-shadow: var(--shadow); }
+.recent-ic { flex: none; width: 30px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; background: var(--panel-3); color: var(--accent); }
+.recent-ic .ic { margin: 0; }
+.recent-txt { display: flex; flex-direction: column; min-width: 0; }
+.recent-txt b, .recent-txt small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-txt small { color: var(--muted); font-size: 11.5px; }
+.feature-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 4px 0 16px; border-radius: 14px; overflow: hidden; background: var(--line); border: 1px solid var(--line); }
+.feat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 8px; background: color-mix(in srgb, var(--panel) 92%, transparent); }
+.feat b { font-size: 13px; } .feat small { color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+.feat-ic { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 4px; color: #fff; background: var(--accent); }
+.feat:nth-child(2) .feat-ic { background: var(--mode-comment); color: #1f1300; } .feat:nth-child(3) .feat-ic { background: var(--mode-interact); } .feat:nth-child(4) .feat-ic { background: linear-gradient(135deg, #ec4899, #8b5cf6); }
+.feat-ic .ic { width: 15px; height: 15px; margin: 0; }
+.drop-hint { font-size: 12px; margin: 12px 0 6px; }
+.steps-box { margin-top: 10px; text-align: left; }
+.steps-box summary { cursor: pointer; width: max-content; margin: 0 auto; color: var(--muted); font-weight: 600; font-size: 12.5px; list-style: none; padding: 4px 12px; border-radius: 999px; }
+.steps-box summary::-webkit-details-marker { display: none; }
+.steps-box summary::after { content: " ▾"; } .steps-box[open] summary::after { content: " ▴"; }
+.steps-box summary:hover { background: var(--hover); color: var(--text); }
+.steps-box .steps { margin-top: 10px; }
+@media (max-width: 1100px) { .feature-strip { grid-template-columns: repeat(2, 1fr); } .welcome h1 { font-size: 32px; } }
+body[data-ms-ui-mode="none"] #mode-switch { opacity: .45; pointer-events: none; filter: saturate(.4); }
+.st-mode { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px 1px 7px; border-radius: 999px; font-weight: 600; color: var(--text-2); background: var(--panel); border: 1px solid var(--line); }
+.st-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mode-edit); }
+.st-mode[data-mode="comment"] .st-dot { background: var(--mode-comment); } .st-mode[data-mode="interact"] .st-dot { background: var(--mode-interact); }
+@media (prefers-reduced-motion: reduce) { .hero-glow, .big-mark, .pulse-dot { animation: none; } }
+#empty { align-items: flex-start; }
+#empty .welcome { margin: auto; }
+.st-mode[hidden] { display: none; }
+
 </style>
 </head>
 <body>
 <header id="appbar">
-  <div class="logo"><span class="mark">◆</span> Mothership</div>
-  <div id="doc-name" title="Open document">No dashboard open</div>
-  <div class="spacer"></div>
-  <button class="cmdk-btn" id="btn-cmdk" title="Search every command, chart, tab and help topic (Ctrl+K)">🔍 <span class="lbl">Search commands…</span><kbd>Ctrl K</kbd></button>
-  <div class="seg mode" role="group" aria-label="Mode">
-    <button class="seg-btn on" data-mode="edit" title="Click to select, double-click to edit">✎ Edit</button>
-    <button class="seg-btn" data-mode="comment" title="Click anything (or drag a box) to leave a review comment. Tabs still switch.">💬 Comment</button>
-    <button class="seg-btn" data-mode="interact" title="Use the dashboard normally: filters, tooltips, drill-down">☝ Interact</button>
+  <div class="ab-left">
+    <div class="logo"><span class="mark">◆</span> <span class="lbl">Mothership</span></div>
+    <div class="doc-chip" id="doc-chip">
+      <span class="doc-dot" aria-hidden="true"></span>
+      <div id="doc-name" title="Open document">No dashboard open</div>
+      <button class="doc-x" id="btn-close" title="Close this dashboard" aria-label="Close this dashboard">✕</button>
+    </div>
   </div>
-  <div id="cmt-bar" class="cmt-bar"></div>
-  <button class="icon-btn" id="btn-theme" title="Mothership theme: light, dark, accent colour, spacing">🎨</button>
-  <button class="btn" id="btn-present" title="Present (F5)">▶ Present</button>
-  <button class="btn primary" id="btn-export" title="Save the edited dashboard as an .html file (Ctrl+E)">⬇ Export HTML</button>
+  <div class="ab-mid">
+    <div class="seg mode" id="mode-switch" role="group" aria-label="Mode">
+      <span class="glider" aria-hidden="true"></span>
+      <button class="seg-btn on" data-mode="edit" title="Edit (Alt+1): click to select, double-click to type, drag to move">✎ <span class="lbl">Edit</span></button>
+      <button class="seg-btn" data-mode="comment" title="Comment (Alt+2): click anything, or drag a box, to leave a review note. Tabs still switch.">💬 <span class="lbl">Comment</span></button>
+      <button class="seg-btn" data-mode="interact" title="Interact (Alt+3): use the dashboard as a viewer would: filters, tooltips, drill-down">☝ <span class="lbl">Interact</span></button>
+    </div>
+  </div>
+  <div class="ab-right">
+    <button class="cmdk-btn" id="btn-cmdk" title="Search every command, chart, tab and help topic (Ctrl+K)">🔍 <span class="lbl">Search…</span><kbd>Ctrl K</kbd></button>
+    <div id="cmt-bar" class="cmt-bar"></div>
+    <span class="ab-sep" aria-hidden="true"></span>
+    <button class="icon-btn" id="btn-theme" title="Mothership theme: light, dark, accent colour, spacing">🎨</button>
+    <button class="btn" id="btn-present" title="Present (F5)">▶ <span class="lbl">Present</span></button>
+    <button class="btn primary" id="btn-export" title="Save the edited dashboard as an .html file (Ctrl+E)">⬇ <span class="lbl">Export</span></button>
+  </div>
 </header>
 
 <nav id="ribbon">
@@ -729,16 +947,26 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
   <aside id="left"><div id="outline"></div></aside>
   <main id="stage">
     <div id="stage-frame-host"></div>
+    <div id="mode-frame" data-mode="edit" aria-live="polite"></div>
     <div id="empty">
       <div class="welcome">
+        <div class="hero-glow" aria-hidden="true"></div>
         <div class="big-mark">◆</div>
-        <h1>Mothership</h1>
-        <p class="lead">Open an HTML dashboard and edit it like a PowerPoint deck: text, fonts, brand colours, chart tooltips, drill-downs, tabs and help pages. Then export it as one HTML file.</p>
+        <div class="hero-pill"><span class="pulse-dot"></span>Works offline · one file · nothing leaves this laptop</div>
+        <h1>Make dashboards <span class="grad">boardroom-ready</span></h1>
+        <p class="lead">Open an HTML dashboard and edit it like a PowerPoint deck: text, fonts, brand colours, chart tooltips, drill-downs, tabs and help pages. Review it, test it, then export it as one HTML file.</p>
         <div class="start-grid">
           <button class="start-card primary" data-act="open">📂<b>Open dashboard</b><small>An .html file, or a Mothership export</small></button>
           <button class="start-card" data-act="openFolder" title="Use this when the dashboard loads its own .js/.css/.json files">🗂<b>Open folder</b><small>Dashboard plus its scripts, styles and data</small></button>
           <button class="start-card" data-act="newDoc" title="Build a dashboard from scratch">✨<b>New dashboard</b><small>Start blank or with ready-made tabs</small></button>
           <button class="start-card" data-act="sample">🧪<b>Try a sample</b><small>Sales, operations or risk</small></button>
+        </div>
+        <div id="recent" class="recent" hidden></div>
+        <div class="feature-strip">
+          <div class="feat"><span class="feat-ic">✎</span><b>Edit</b><small>Click, type, drag. Like slides.</small></div>
+          <div class="feat"><span class="feat-ic">💬</span><b>Review</b><small>Comments become an AI prompt.</small></div>
+          <div class="feat"><span class="feat-ic">☑</span><b>Test</b><small>Watch every click, fix what fails.</small></div>
+          <div class="feat"><span class="feat-ic">🚀</span><b>Publish</b><small>PDF, PowerPoint, locked HTML.</small></div>
         </div>
         <div class="row gap center learn">
           <button class="btn" data-act="tour">🧭 2-minute tour</button>
@@ -746,22 +974,25 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
           <button class="btn" data-act="guide">📖 User guide</button>
           <button class="btn" data-act="theme">🎨 Theme</button>
         </div>
-        <p class="muted">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
-        <ol class="steps">
-          <li><b>Open</b> a dashboard. Click anything to select it. Double-click text to type.</li>
-          <li><b>Layout › Add tab</b> adds a tab (it joins your dashboard's own tabs if it has them; otherwise Layout › Tab ribbon splits the page into tabs). Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
-          <li><b>Design › Load brand</b> applies your colours and fonts from a skill file.</li>
-          <li><b>Double-click a chart</b> to set its commentary, look, pop-up and drill-down levels.</li>
-          <li><b>💬 Comment</b>: click anything or drag a box; every comment is listed in the Comments pane. Then <b>✨ Prompt</b> turns your comments into instructions for an AI assistant.</li>
-          <li><b>Export HTML</b> saves one file you can share, or reopen here later.</li>
-        </ol>
+        <p class="muted drop-hint">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
+        <details class="steps-box">
+          <summary>Quick start in six steps</summary>
+          <ol class="steps">
+            <li><b>Open</b> a dashboard. Click anything to select it. Double-click text to type.</li>
+            <li><b>Layout › Add tab</b> adds a tab (it joins your dashboard's own tabs if it has them; otherwise Layout › Tab ribbon splits the page into tabs). Add How-to/FAQ/Methodology tabs from Word, Markdown, PowerPoint, Excel or PDF files.</li>
+            <li><b>Design › Load brand</b> applies your colours and fonts from a skill file.</li>
+            <li><b>Double-click a chart</b> to set its commentary, look, pop-up and drill-down levels.</li>
+            <li><b>💬 Comment</b> (Alt+2): click anything or drag a box; every comment is listed in the Comments pane. Then <b>✨ Prompt</b> turns your comments into instructions for an AI assistant.</li>
+            <li><b>Export HTML</b> saves one file you can share, or reopen here later.</li>
+          </ol>
+        </details>
       </div>
     </div>
   </main>
   <aside id="right"><div id="right-tabs" class="rtabs"></div><div id="inspector"></div><div id="cmt-pane" hidden></div></aside>
 </div>
 
-<footer id="statusbar"><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span><span id="zoomctl"></span></footer>
+<footer id="statusbar"><span id="status-mode" class="st-mode" hidden></span><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span><span id="zoomctl"></span></footer>
 <div id="toasts" aria-live="polite"></div>
 <div id="dropzone"><div>Drop to open or add</div></div>
 
@@ -4068,7 +4299,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         return MS.openHtml(html, name, Object.assign({}, opts, { unlocked: true }));
       });
     }
-    MS.doc = { name: name || 'dashboard.html', source: html, folder: !!opts.folder };
+    MS.doc = { name: name || 'dashboard.html', source: html, folder: !!opts.folder, reloaded: !!opts.reload };
     var probe = new DOMParser().parseFromString(html, 'text/html');
     var rel = opts.folder ? [] : relativeRefs(probe);
     var prepared = MS.prepareSource(html, { editor: true, state: opts.state });
@@ -4102,7 +4333,37 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   MS.reload = function (keepState) {
     if (!MS.doc) return;
     var html = MS.exportHtml({ keepEditor: false });
-    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder, unlocked: true });
+    MS.openHtml(html, MS.doc.name, { folder: MS.doc.folder, unlocked: true, reload: true });
+  };
+
+  /* ---------------------------------------------------------- close */
+  // Close the open dashboard and go back to the start screen. Unsaved changes: export, discard or cancel.
+  MS.closeDoc = function (opts) {
+    opts = opts || {};
+    if (!MS.doc && !MS.child) return Promise.resolve(true);
+    var name = MS.doc ? MS.doc.name : 'the dashboard';
+    var ask = MS.dirty && !opts.force ? MS.dialog({ title: 'Close "' + name + '"?', body: MS.h('p', { 'class': 'dlg-msg', text: 'It has changes that are not exported yet. Export them to a file first, or close without saving (the last autosave stays in File › Versions until you discard it).' }),
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Close without saving', danger: true, value: 'discard' }, { label: 'Export, then close', primary: true, value: 'save' }] }) : Promise.resolve('discard');
+    return ask.then(function (v) {
+      if (!v) return false;
+      if (v === 'save') {
+        var off = MS.on('saved', function () { off(); MS.closeDoc({ force: true }); });
+        MS.versions.exportFile(false);
+        return false;
+      }
+      if (MS.present && MS.present.on && MS.present.stop) try { MS.present.stop(); } catch (e) {}
+      if (MS.mode !== 'edit') MS.setMode('edit');
+      MS.edit.select(null);
+      var host = MS.$('#stage-frame-host'); host.innerHTML = '';
+      MS.child = null; MS.doc = null; MS.sel = null; MS.dirty = false;
+      MS.history.clear();
+      document.title = 'Mothership';
+      var dn = MS.$('#doc-name'); dn.textContent = 'No dashboard open'; dn.classList.remove('dirty');
+      MS.$('#empty').style.display = '';
+      MS.emit('doc-closed');
+      MS.status('Closed ' + name);
+      return true;
+    });
   };
 
   MS.openFileObj = function (file) {
@@ -8879,7 +9140,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
           if (block.classList.contains('ms-inline') && lv.height) MS.history.attrs('Height', block.querySelector('.ms-visual'), ['style'], function (x) { x.style.height = 'var(--ms-h)'; });
         }
       });
-      MS.toast('Chart updated.' + (dsSel.value ? ' Switch to Interact mode (top right) and double-click a bar to try the drill-down.' : ''), 'ok', 6000);
+      MS.toast('Chart updated.' + (dsSel.value ? ' Switch to Interact mode (top centre) and double-click a bar to try the drill-down.' : ''), 'ok', 6000);
     });
   };
   function insertAt(ta, text) { var s = ta.selectionStart || ta.value.length; ta.value = ta.value.slice(0, s) + text + ta.value.slice(ta.selectionEnd || s); ta.focus(); ta.selectionStart = ta.selectionEnd = s + text.length; }
@@ -10391,6 +10652,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   }, 8000);
   MS.on('changed', function () { MS.dirty = true; autosave(); });
   MS.on('saved', function () { MS.store.del('kv', 'autosave').catch(function () {}); });
+  // a different dashboard must never overwrite the file the last one was exported to
+  MS.on('doc-opened', function (d) { if (!d || !d.reloaded) handle = null; });
+  MS.on('doc-closed', function () { handle = null; });
   V.offerRecovery = function () {
     MS.store.get('kv', 'autosave').then(function (a) {
       if (!a || !a.html) return;
@@ -11214,6 +11478,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (on && document.body.classList.contains('no-right')) document.body.classList.remove('no-right');
     host.hidden = !on; ins.hidden = !!on; R.paneOn = !!on;
     MS.$$('#right-tabs button').forEach(function (b) { b.classList.toggle('on', (b.getAttribute('data-pane') === 'comments') === !!on); });
+    var bc = MS.$('#btn-cmts'); if (bc) bc.classList.toggle('on', !!on);
     if (on) R.renderPane();
   };
   function where(c) { return c.loc && R.trail ? R.trail(c.loc) : c.tab ? 'Tab “' + c.tab.title + '”' : ''; }
@@ -11336,8 +11601,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   };
   R.bar = function () {
     var host = MS.$('#cmt-bar'); if (!host) return;
-    host.appendChild(h('button', { 'class': 'btn', id: 'btn-cmts', title: 'Show all comments (like PowerPoint\'s Comments pane)', onclick: function () { R.showPane(!R.paneOn); } }, ['🗨 Comments ', h('span', { 'class': 'count', id: 'cmt-count' })]));
-    host.appendChild(h('button', { 'class': 'btn', id: 'btn-prompt', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ Prompt']));
+    host.appendChild(h('button', { 'class': 'btn ghost', id: 'btn-cmts', title: 'Show all comments (like PowerPoint\'s Comments pane)', onclick: function () { R.showPane(!R.paneOn); } }, ['🗨 ', h('span', { 'class': 'lbl', text: 'Comments' }), h('span', { 'class': 'count', id: 'cmt-count' })]));
+    host.appendChild(h('button', { 'class': 'btn ghost', id: 'btn-prompt', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ ', h('span', { 'class': 'lbl', text: 'Prompt' })]));
     var rt0 = MS.$('#right-tabs');
     if (rt0 && !rt0.firstChild) {
       rt0.appendChild(h('button', { 'data-pane': 'format', 'class': 'on', onclick: function () { R.showPane(false); } }, ['Format']));
@@ -12410,6 +12675,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       if (!el && !kind) el = byText(v)[0];
     }
     if (!el && !opts.quiet) throw new Error('Nothing matches "' + t + '". Use ui_snapshot to see the parts and their refs.');
+    if (el) D._lastEl = el;
     return el;
   };
   D.findAll = function (target) {
@@ -12461,6 +12727,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var o = Object.assign({ bubbles: !/enter|leave/.test(type), cancelable: true, composed: true, view: w, clientX: x, clientY: y, screenX: x, screenY: y, button: 0, buttons: /down|move/.test(type) && extra && extra.held ? 1 : (/down/.test(type) ? 1 : 0), detail: extra && extra.detail || 1 }, isP ? { pointerId: 1, pointerType: 'mouse', isPrimary: true } : {});
     return target.dispatchEvent(new C(type, o));
   }
+  // While the Testing runner is on screen, a pointer moves to each part before it is used, so you can follow along.
+  function show(el, p, verb) { return Q.live && Q.live.show ? Q.live.show(el, p, verb) : Promise.resolve(); }
+  D.show = show;
   function hitAt(el, p, force) {
     var hit = cdoc().elementFromPoint(p.x, p.y);
     if (!force && hit && hit !== el && !el.contains(hit) && !hit.contains(el)) {
@@ -12473,6 +12742,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var el = D.find(target), pt = null;
     return ready(el, true).then(function () {
       pt = o.point != null ? D.chartPoint(el, o.point, o.series) : center(el);
+      return show(el, pt, 'Hover');
+    }).then(function () {
       var t = hitAt(el, pt, true);
       if (D._over !== t) leave(); D._over = t;
       ['pointerover', 'pointerenter', 'mouseover', 'mouseenter', 'pointermove', 'mousemove'].forEach(function (k) { fire(t, k, pt.x, pt.y); });
@@ -12484,6 +12755,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var el = D.find(target), pt = null, before = D.state();
     return ready(el, o.force).then(function () {
       pt = o.point != null ? D.chartPoint(el, o.point, o.series) : center(el);
+      return show(el, pt, o.double ? 'Double-click' : 'Click');
+    }).then(function () {
       var t = hitAt(el, pt, o.force || o.point != null);
       if (D._over !== t) leave(); D._over = t;
       ['pointerover', 'mouseover', 'pointermove', 'mousemove'].forEach(function (k) { fire(t, k, pt.x, pt.y); });
@@ -12502,7 +12775,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   D.type = function (target, text, o) {
     o = o || {}; D.interact();
     var el = D.find(target);
-    return ready(el, false).then(function () {
+    return ready(el, false).then(function () { return show(el, center(el), 'Type'); }).then(function () {
       if (!/^(INPUT|TEXTAREA)$/.test(el.tagName) && !el.isContentEditable) throw new Error(describe(el) + ' is not a text box.');
       el.focus();
       var w = cwin(), set = function (v) {
@@ -12525,7 +12798,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     D.interact();
     var el = D.find(target);
     if (el.tagName !== 'SELECT') { var inner = el.querySelector && el.querySelector('select'); if (inner) el = inner; else throw new Error(describe(el) + ' is not a drop-down list.'); }
-    return ready(el, false).then(function () {
+    return ready(el, false).then(function () { return show(el, center(el), 'Pick'); }).then(function () {
       var opts = Array.prototype.slice.call(el.options), q = low(value);
       var o = opts.filter(function (x) { return low(x.value) === q || low(x.textContent) === q; })[0] || opts.filter(function (x) { return low(x.textContent).indexOf(q) >= 0; })[0];
       if (!o) throw new Error('“' + value + '” is not in the list. Options: ' + opts.map(function (x) { return norm(x.textContent); }).join(', '));
@@ -12742,7 +13015,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   function nextId(list) { var n = 0; list.forEach(function (c) { var m = /(\d+)$/.exec(c.id || ''); if (m) n = Math.max(n, +m[1]); }); return 'TC-' + String(n + 1).padStart(3, '0'); }
   function clean(c) {
     var x = { id: c.id, scenario: norm(c.scenario || 'General'), title: norm(c.title || 'Untitled test'), type: Q.TYPES.indexOf(c.type) >= 0 ? c.type : 'Interaction', priority: Q.PRIORITIES.indexOf(c.priority) >= 0 ? c.priority : 'Medium', pre: c.pre || '', steps: (c.steps || []).map(function (s) { var y = { do: s.do || s.action || 'manual' }; ['target', 'value', 'point'].forEach(function (k) { if (s[k] != null && s[k] !== '') y[k] = s[k]; }); return y; }), expected: c.expected || '', status: Q.STATUSES.indexOf(c.status) >= 0 ? c.status : 'Not run' };
-    ['actual', 'notes', 'by', 'at', 'area'].forEach(function (k) { if (c[k]) x[k] = c[k]; });
+    ['actual', 'notes', 'by', 'at', 'area', 'ms'].forEach(function (k) { if (c[k]) x[k] = c[k]; });
     x.auto = x.steps.length > 0 && x.steps.every(function (s) { return s.do !== 'manual'; });
     return x;
   }
@@ -12865,32 +13138,71 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   }
   Q.runCase = function (id) {
     var c = Q.get(id); if (!c) return Promise.reject(new Error('No test case ' + id));
-    var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width;
-    D.errors(false);
-    c.steps.forEach(function (s) { chain = chain.then(function () { return runStep(s, log); }); });
+    var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width, t0 = Date.now();
+    D.errors(false); D._lastEl = null;
+    c.steps.forEach(function (s, i) {
+      chain = chain.then(function () {
+        if (Q.stopping) throw Object.assign(new Error('Stopped'), { stopped: true });
+        MS.emit('qa-step', { id: id, index: i, total: c.steps.length, text: stepWords(s), step: s });
+        return runStep(s, log);
+      });
+    });
     return chain.then(function () {
       var manual = log.some(function (x) { return x.ok === null; });
       return { status: manual ? 'Needs a person' : 'Pass', log: log };
     }, function (e) {
+      if (e.stopped) return { stopped: true, log: log };
       if (!e.stepFail) log.push({ step: '(error)', ok: false, note: e.message });
       return { status: 'Fail', log: log, error: e.message };
     }).then(function (res) {
       if (MS.view.width !== width) MS.view.setWidth(width, true);
       if (was !== MS.mode && was !== 'interact') MS.setMode(was);
+      if (res.stopped) return { id: id, title: c.title, status: 'Stopped', steps: res.log };
+      var ms = Date.now() - t0, failed = res.status === 'Fail' ? D._lastEl : null;
       var actual = res.log.map(function (x) { return (x.ok === false ? '✗ ' : x.ok ? '✓ ' : '• ') + x.step + (x.note ? ' → ' + x.note : ''); }).join('\n');
-      Q.update(id, { status: res.status, actual: actual, at: new Date().toISOString(), by: 'Mothership' }, 'Test run ' + id);
-      return { id: id, title: c.title, status: res.status, steps: res.log };
+      Q.update(id, { status: res.status, actual: actual, at: new Date().toISOString(), by: 'Mothership', ms: ms }, 'Test run ' + id);
+      var out = { id: id, title: c.title, status: res.status, ms: ms, steps: res.log };
+      if (failed && Q.live && Q.live.evidence) return Q.live.evidence(id, failed).then(function () { return out; }, function () { return out; });
+      return out;
     });
   };
-  Q.run = function (ids) {
+  // Run cases one after another. o.onProgress is told about each case; Q.stop() ends the run after the current step.
+  Q.running = null;
+  Q.stop = function () { if (Q.running) { Q.stopping = true; MS.emit('qa-run', { phase: 'stopping' }); } };
+  Q.run = function (ids, o) {
+    o = o || {};
+    if (Q.running) return Promise.reject(new Error('Tests are already running.'));
     var list = (ids && ids.length ? ids : Q.cases().map(function (c) { return c.id; })).filter(function (id) { return Q.get(id); });
-    var out = [], chain = Promise.resolve();
-    list.forEach(function (id) { chain = chain.then(function () { return Q.runCase(id).then(function (r) { out.push(r); MS.status('Testing… ' + out.length + ' of ' + list.length); }); }); });
-    return chain.then(function () { MS.status(''); return out; });
+    var out = [], chain = Promise.resolve(), t0 = Date.now();
+    Q.stopping = false; Q.running = { ids: list, total: list.length, started: t0, results: out };
+    MS.emit('qa-run', { phase: 'start', ids: list, total: list.length });
+    list.forEach(function (id, i) {
+      chain = chain.then(function () {
+        if (Q.stopping) return;
+        MS.emit('qa-run', { phase: 'case', id: id, index: i, total: list.length, title: Q.get(id).title });
+        return Q.runCase(id).then(function (r) {
+          if (r.status !== 'Stopped') out.push(r);
+          MS.status('Testing… ' + out.length + ' of ' + list.length);
+          MS.emit('qa-run', { phase: 'result', result: r, index: i, total: list.length });
+        });
+      });
+    });
+    var end = function (err) {
+      var stopped = Q.stopping; Q.running = null; Q.stopping = false; MS.status('');
+      var rec = { at: new Date().toISOString(), ms: Date.now() - t0, total: list.length, ran: out.length, stopped: !!stopped };
+      ['Pass', 'Fail', 'Needs a person'].forEach(function (k) { rec[k === 'Needs a person' ? 'person' : k.toLowerCase()] = out.filter(function (r) { return r.status === k; }).length; });
+      if (out.length) edit('Test run', function (T) { T.runs = (T.runs || []).concat([rec]).slice(-20); });
+      MS.emit('qa-run', { phase: 'end', results: out, run: rec, error: err ? err.message : null });
+      return rec;
+    };
+    return chain.then(function () { end(); return out; }, function (e) { end(e); throw e; });
   };
+  Q.runs = function () { return plan().runs || []; };
+  Q.failed = function () { return Q.cases().filter(function (c) { return c.status === 'Fail'; }); };
   Q.summary = function () {
     var cs = Q.cases(), by = {}; Q.STATUSES.forEach(function (s) { by[s] = 0; }); cs.forEach(function (c) { by[c.status] = (by[c.status] || 0) + 1; });
-    return { total: cs.length, automatic: cs.filter(function (c) { return c.auto; }).length, byStatus: by };
+    var last = Q.runs().slice(-1)[0] || null;
+    return { total: cs.length, automatic: cs.filter(function (c) { return c.auto; }).length, byStatus: by, lastRun: last };
   };
 
   /* ---------------------------------------------------------------- the test document */
@@ -13021,55 +13333,140 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     return head.join('\n') + Q.document();
   };
 
+  // A prompt built from what failed, to hand to an AI: find the cause, fix it (or the test), test again.
+  // o.mcp: the AI has the Mothership MCP tools · o.goal: 'fix' (default) | 'retest' · o.person: include "Needs a person" cases
+  Q.failPrompt = function (o) {
+    o = o || {};
+    var mcp = o.mcp !== false, goal = o.goal === 'retest' ? 'retest' : 'fix';
+    var I = docInfo(), fails = Q.failed(), people = o.person === false ? [] : Q.cases().filter(function (c) { return c.status === 'Needs a person'; });
+    var last = Q.runs().slice(-1)[0], S = Q.summary();
+    var L = [];
+    if (!fails.length && !people.length) return 'Every test case of ' + I.name + ' passed' + (S.byStatus['Not run'] ? ' (' + S.byStatus['Not run'] + ' not run yet)' : '') + '. Nothing to fix.\n';
+    L.push('You are a senior front-end developer and QA engineer. A business dashboard (one HTML file, "' + I.name + '") was tested with HTML Mothership' + (last ? ' on ' + last.at.slice(0, 16).replace('T', ' ') : '') + '. ' + fails.length + ' test case' + (fails.length === 1 ? '' : 's') + ' failed' + (people.length ? ' and ' + people.length + ' need a person to check by eye' : '') + '. Details are below.', '');
+    L.push('## Your task', '');
+    if (mcp) {
+      L.push('You are connected to the Mothership MCP server, which has the dashboard open.', '');
+      L.push('1. For each failed case, run it again with `test_run {"ids": ["<id>"]}` to see if it still fails.');
+      L.push('2. Investigate on screen: `ui_snapshot` to see the parts and refs, `ui_read` / `ui_expect` to check values, `ui_hover` for pop-ups, `ui_errors` for script errors, and `ui_screenshot` to look at it.');
+      L.push('3. Decide which it is: **a bug in the dashboard**, **a wrong or out-of-date test** (e.g. it looks for text that was renamed), or **cannot reproduce**.');
+      if (goal === 'fix') L.push('4. Fix it. A dashboard bug: change the dashboard with the Mothership tools (`set_text`, `set_style`, `chart_settings`, `set_chart_data`, `replace_text`, …; `outline` and `get_element` show what is there), never by hand-editing the file. A wrong test: correct it with `test_plan {"action": "update", "id": …, "case": …}` and say why.', '5. Run the case again until it passes, then record the result with `test_record` (status, what actually happened, and in notes: cause and fix).');
+      else L.push('4. Do not change the dashboard. Record what you found with `test_record` (status, what actually happened, and in notes: the likely cause, severity and steps to reproduce).');
+      if (people.length) L.push((goal === 'fix' ? '6' : '5') + '. For the "needs a person" cases, look with `ui_screenshot`, judge them, and record Pass or Fail with `test_record`.');
+      L.push('', 'Finish with `save_test_document {"format": "markdown"}` and a short report.');
+    } else {
+      L.push('You cannot run the dashboard yourself. The dashboard file is attached (or pasted below the test details). For each failed case:', '');
+      L.push('1. Find the most likely cause in the HTML, CSS or JavaScript, quoting the exact lines.', '2. Say whether it is **a bug in the dashboard** or **a wrong or out-of-date test**.');
+      L.push(goal === 'fix' ? '3. Give the exact change: the code before and after, small and safe. Do not rewrite unrelated parts.' : '3. Describe how a person can confirm it, step by step, and what they should see.');
+      if (people.length) L.push('4. For the "needs a person" cases, give a short checklist a person can follow, with what good looks like.');
+    }
+    L.push('', 'Report as a table: | Case | Verdict (dashboard bug / test is wrong / cannot reproduce) | Cause | ' + (goal === 'fix' ? 'Fix' : 'How to confirm') + ' | Severity (Critical, Major, Minor, Trivial) | Result after retest |', 'Report only what you actually checked. If something cannot be done, say so plainly.', '');
+    L.push('## The dashboard', '', '- File: ' + I.name + (I.title ? ' (“' + I.title + '”)' : ''));
+    if (I.tabs.length) L.push('- Tabs: ' + I.tabs.join(', '));
+    if (I.charts.length) L.push('- Charts: ' + I.charts.map(function (c) { return c.name + (c.tab ? ' (' + c.tab + ')' : ''); }).join(', '));
+    if (I.kpis.length) L.push('- KPI cards: ' + I.kpis.map(function (k) { return k.label + ' = ' + k.value; }).join('; '));
+    if (I.filters.length) L.push('- Filters: ' + I.filters.join(', '));
+    L.push('- Results: ' + Q.STATUSES.filter(function (s) { return S.byStatus[s]; }).map(function (s) { return s + ' ' + S.byStatus[s]; }).join(' · '));
+    function caseBlock(c, failed) {
+      L.push('', '### ' + c.id + ': ' + c.title, '', '*' + c.scenario + ' · ' + c.type + ' · ' + c.priority + ' priority' + (c.area ? ' · ' + c.area : '') + '*', '');
+      if (c.pre) L.push('Before you start: ' + c.pre, '');
+      var lines = (c.actual || '').split('\n'), byStep = {};
+      lines.forEach(function (l) { var m = /^([✓✗•]) (.*?)(?: → (.*))?$/.exec(l); if (m) byStep[m[2]] = { mark: m[1], note: m[3] || '' }; });
+      L.push('Steps:');
+      c.steps.forEach(function (st, i) {
+        var r = byStep[Q.stepText(st)], tail = '';
+        if (r) tail = r.mark === '✗' ? '  **✗ FAILED: ' + r.note + '**' : r.mark === '✓' ? '  ✓' + (r.note ? ' (' + r.note + ')' : '') : '  • ' + (r.note || 'check by eye');
+        else if (failed && lines.some(function (l) { return /^✗/.test(l); })) tail = '  (not reached)';
+        L.push((i + 1) + '. ' + stepWords(st) + '  `' + Q.stepText(st) + '`' + tail);
+      });
+      var err = lines.filter(function (l) { return /^✗ \(error\)/.test(l); });
+      if (err.length) L.push('', 'Error: ' + err.join(' ').replace(/^✗ \(error\) → /, ''));
+      L.push('', 'Expected: ' + (c.expected || '—'));
+      if (c.notes) L.push('', 'Notes: ' + c.notes);
+    }
+    if (fails.length) { L.push('', '## Failed (' + fails.length + ')'); fails.sort(function (a, b) { return Q.PRIORITIES.indexOf(a.priority) - Q.PRIORITIES.indexOf(b.priority); }).forEach(function (c) { caseBlock(c, true); }); }
+    if (people.length) { L.push('', '## Needs a person (' + people.length + ')'); people.forEach(function (c) { caseBlock(c, false); }); }
+    if (mcp) L.push('', '## Tools', '', TOOLS.map(function (t) { return '- `' + t[0] + '`: ' + t[1]; }).join('\n'));
+    return L.join('\n') + '\n';
+  };
+
   /* ================================================================ the Testing window */
   var STATUS_CLS = { 'Pass': 'ok', 'Fail': 'bad', 'Blocked': 'warn', 'Skipped': '', 'Needs a person': 'info', 'Not run': '' };
-  Q.dialog = function () {
+  Q.dialog = function (o) {
+    o = o || {};
     if (!rt()) return MS.toast('Turn off Safe mode to plan tests.', 'warn');
     var body = h('div', { 'class': 'qa' }), list = h('div', { 'class': 'qa-list' }), stats = h('div', { 'class': 'qa-stats' });
-    var filt = { text: '', status: '' };
+    var filt = { text: '', status: o.status || '' }, live = Q.live;
     var search = h('input', { 'class': 'inp', placeholder: 'Find a test…' }); search.addEventListener('input', function () { filt.text = low(search.value); draw(); });
-    var stSel = h('select', { 'class': 'inp' }, [h('option', { value: '', text: 'All statuses' })].concat(Q.STATUSES.map(function (s) { return h('option', { value: s, text: s }); }))); stSel.addEventListener('change', function () { filt.status = stSel.value; draw(); });
     // The run log: failed steps shown, the rest folded away.
     function logOf(c) {
       var lines = c.actual.split('\n'), bad = lines.filter(function (l) { return /^✗/.test(l); });
       var when = c.at ? ' · ' + c.at.slice(0, 16).replace('T', ' ') + (c.by ? ' by ' + c.by : '') : '';
+      var pic = live && live.evid[c.id];
       return h('div', {}, bad.map(function (l) { return h('div', { 'class': 'qa-bad', text: l.replace(/^✗\s*/, '') }); }).concat([
+        pic && c.status === 'Fail' ? h('button', { 'class': 'qa-shot', title: 'What the failed step was looking at. Click to copy the picture.', onclick: function () { copyPic(pic); } }, [h('img', { src: pic, alt: 'Picture of the part that failed' })]) : null,
         h('details', { 'class': 'qa-log' }, [h('summary', { text: 'Run log: ' + lines.length + ' step' + (lines.length === 1 ? '' : 's') + when }), h('pre', { 'class': 'qa-actual', text: c.actual })])]));
+    }
+    function copyPic(url) {
+      var bin = atob(url.split(',')[1]), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      var blob = new Blob([u], { type: 'image/png' });
+      Promise.resolve().then(function () { return navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]); })
+        .then(function () { MS.toast('Picture copied.', 'ok'); }, function () { MS.download('test-failure.png', url); });
+    }
+    function setFilter(s) { filt.status = filt.status === s ? '' : s; draw(); }
+    function head() {
+      var S = Q.summary(), by = S.byStatus, ran = S.total - (by['Not run'] || 0);
+      var lr = S.lastRun, tr = live && live.trend();
+      var chips = h('div', { 'class': 'qa-chips' }, Q.STATUSES.filter(function (s) { return by[s]; }).map(function (s) {
+        return h('button', { 'class': 'qa-chip ' + (STATUS_CLS[s] || '') + (filt.status === s ? ' on' : ''), title: filt.status === s ? 'Show all' : 'Show only "' + s + '"', onclick: function () { setFilter(s); } }, [h('i', { 'class': 'qa-sw', style: 'background:' + (live ? live.COLORS[s] : '') }), s + ' ', h('b', { text: String(by[s]) })]);
+      }));
+      return h('div', { 'class': 'qa-sum' }, [
+        live ? live.ring(by, 76, [h('b', { text: ran ? Math.round((by.Pass || 0) / ran * 100) + '%' : '–' }), h('small', { text: ran ? 'passed' : 'not run' })]) : null,
+        h('div', { 'class': 'grow' }, [
+          h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : '')]),
+          chips]),
+        tr ? h('div', { 'class': 'qa-trend-box' }, [tr, h('small', { 'class': 'muted', text: 'Pass rate by run' })]) : null]);
     }
     function draw() {
       var S = Q.summary(); stats.innerHTML = '';
-      stats.appendChild(h('span', { 'class': 'qa-total', text: S.total + ' test case' + (S.total === 1 ? '' : 's') + ' · ' + S.automatic + ' automatic' }));
-      Q.STATUSES.forEach(function (s) { if (S.byStatus[s]) stats.appendChild(h('span', { 'class': 'qa-chip ' + (STATUS_CLS[s] || '') }, [s + ' ' + S.byStatus[s]])); });
+      if (S.total) stats.appendChild(head());
+      var fails = S.byStatus.Fail || 0, people = S.byStatus['Needs a person'] || 0;
+      fixBtns.forEach(function (b) { b.style.display = fails || people ? '' : 'none'; });
+      rerun.style.display = fails ? '' : 'none';
       list.innerHTML = '';
       var cs = Q.cases().filter(function (c) { return (!filt.status || c.status === filt.status) && (!filt.text || low(c.id + ' ' + c.title + ' ' + c.scenario + ' ' + c.type).indexOf(filt.text) >= 0); });
-      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('button', { 'class': 'btn primary', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Draft test cases'])])); return; }
+      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('button', { 'class': 'btn primary', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Draft test cases'])])); return; }
+      if (!cs.length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('p', { 'class': 'muted', text: 'No test case matches.' }), h('button', { 'class': 'btn sm', onclick: function () { filt.status = ''; filt.text = ''; search.value = ''; draw(); } }, ['Show all'])])); return; }
       var groups = []; cs.forEach(function (c) { if (groups.indexOf(c.scenario) < 0) groups.push(c.scenario); });
       groups.forEach(function (g) {
-        list.appendChild(h('div', { 'class': 'qa-group', text: g }));
-        cs.filter(function (c) { return c.scenario === g; }).forEach(function (c) {
+        var inG = cs.filter(function (c) { return c.scenario === g; }), gp = inG.filter(function (c) { return c.status === 'Pass'; }).length, gf = inG.filter(function (c) { return c.status === 'Fail'; }).length;
+        list.appendChild(h('div', { 'class': 'qa-group' }, [h('span', { text: g }), h('span', { 'class': 'qa-gcount' + (gf ? ' bad' : gp === inG.length ? ' ok' : ''), text: gp + '/' + inG.length })]));
+        inG.forEach(function (c) {
           var st = h('select', { 'class': 'inp sm qa-st ' + (STATUS_CLS[c.status] || ''), title: 'Result' }, Q.STATUSES.map(function (s) { return h('option', { value: s, text: s, selected: s === c.status }); }));
           st.addEventListener('change', function () { Q.record(c.id, { status: st.value, by: 'Me' }); draw(); });
-          var row = h('div', { 'class': 'qa-row' + (c.status === 'Fail' ? ' fail' : '') }, [
+          var row = h('div', { 'class': 'qa-row st-' + (STATUS_CLS[c.status] || 'none') + (c.status === 'Fail' ? ' fail' : '') }, [
             h('span', { 'class': 'qa-id', text: c.id }),
-            h('div', { 'class': 'grow' }, [h('div', { 'class': 'qa-title', text: c.title }), h('div', { 'class': 'qa-meta' }, [h('span', { text: c.type }), h('span', { 'class': 'qa-pri ' + low(c.priority), text: c.priority }), h('span', { text: c.steps.length + ' step' + (c.steps.length === 1 ? '' : 's') + (c.auto ? ' · automatic' : ' · some by eye') })]),
+            h('div', { 'class': 'grow' }, [h('div', { 'class': 'qa-title', text: c.title }), h('div', { 'class': 'qa-meta' }, [h('span', { text: c.type }), h('span', { 'class': 'qa-pri ' + low(c.priority), text: c.priority }), h('span', { text: c.steps.length + ' step' + (c.steps.length === 1 ? '' : 's') + (c.auto ? ' · automatic' : ' · some by eye') }), c.ms ? h('span', { 'class': 'qa-ms', title: 'How long the last run took', text: live ? live.secs(c.ms) : c.ms + ' ms' }) : null]),
               c.actual ? logOf(c) : null]),
             st,
-            h('button', { 'class': 'icon-btn', title: 'Run the automatic steps', onclick: function (e) { var b = e.currentTarget; b.disabled = true; Q.runCase(c.id).then(function () { draw(); }, function (er) { MS.toast(er.message, 'error'); draw(); }); } }, ['▶']),
+            h('button', { 'class': 'icon-btn qa-play', title: 'Run this case (you can watch it)', onclick: function () { if (live) live.start([c.id]); } }, ['▶']),
             h('button', { 'class': 'icon-btn', title: 'Edit', onclick: function () { Q.editDialog(c).then(draw); } }, ['✎']),
             h('button', { 'class': 'icon-btn', title: 'Delete', onclick: function () { Q.remove(c.id); draw(); } }, ['🗑'])]);
           list.appendChild(row);
         });
       });
     }
-    var tools = h('div', { 'class': 'row gap wrap qa-tools' }, [search, stSel, h('span', { 'class': 'grow' }),
+    var fixBtns = [h('button', { 'class': 'btn sm qa-fix', title: 'A prompt for an AI assistant, built from the failed cases: find the cause, fix it, test again', onclick: function () { if (live) live.promptDialog(); } }, ['✨ Prompt from failures'])];
+    var rerun = h('button', { 'class': 'btn sm', title: 'Run only the cases that failed', onclick: function () { if (live) live.start(Q.failed().map(function (x) { return x.id; })); } }, ['↻ Rerun failed']);
+    var tools = h('div', { 'class': 'row gap wrap qa-tools' }, [search, h('span', { 'class': 'grow' }),
       h('button', { 'class': 'btn sm', onclick: function () { var n = Q.draft(); MS.toast(n ? n + ' new test case(s) drafted.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); draw(); } }, ['✨ Draft']),
       h('button', { 'class': 'btn sm', onclick: function () { Q.editDialog(null).then(draw); } }, ['＋ Add case']),
-      h('button', { 'class': 'btn sm primary', onclick: function (e) { var b = e.currentTarget; b.disabled = true; var t = MS.toast('Running the tests…', '', 60000); Q.run().then(function (res) { t.close(); var f = res.filter(function (x) { return x.status === 'Fail'; }).length; MS.toast(res.length + ' run: ' + res.filter(function (x) { return x.status === 'Pass'; }).length + ' passed, ' + f + ' failed, ' + res.filter(function (x) { return x.status === 'Needs a person'; }).length + ' need a person.', f ? 'warn' : 'ok', 7000); b.disabled = false; draw(); }, function (er) { t.close(); b.disabled = false; MS.toast(er.message, 'error'); }); } }, ['▶ Run all']),
-      h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export'])]);
+      fixBtns[0], rerun,
+      h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export']),
+      h('button', { 'class': 'btn sm primary', title: 'Run every case. The window closes so you can watch the steps on the dashboard.', onclick: function () { if (live) live.start(); } }, ['▶ Run all'])]);
     body.appendChild(tools); body.appendChild(stats); body.appendChild(list);
     draw();
     var off = MS.on('tests', function () { if (body.isConnected) draw(); });
-    MS.dialog({ title: '☑ Test cases', sub: 'Plan, run and record tests of this dashboard. Automatic steps run here; “check by eye” steps need a person, or an AI through the MCP server. Export a full test document or a prompt for another AI.', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Close', primary: true, value: null }] }).then(function () { if (typeof off === 'function') off(); });
+    MS.dialog({ title: '☑ Test cases', sub: 'Plan, run and record tests of this dashboard. Automatic steps run here while you watch; “check by eye” steps need a person, or an AI through the MCP server. Export a full test document, or a prompt built from what failed.', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Close', primary: true, value: null }] }).then(function () { if (typeof off === 'function') off(); });
   };
   Q.exportItems = function () {
     var base = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'dashboard') + ' - test plan';
@@ -13080,7 +13477,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       { icon: '⬇', label: 'Test cases (JSON)', run: function () { MS.download(base + '.json', JSON.stringify(Q.json(), null, 2), 'application/json'); } },
       '-',
       { icon: '🤖', label: 'Copy a prompt for an AI tester (with MCP)', run: function () { MS.copyText(Q.prompt({ mcp: true })).then(function () { MS.toast('Copied. Paste it into an AI assistant that is connected to the Mothership MCP server.', 'ok', 6000); }); } },
-      { icon: '✨', label: 'Copy a prompt for an AI tester (no MCP)', run: function () { MS.copyText(Q.prompt({ mcp: false })).then(function () { MS.toast('Copied. Paste it into any AI assistant; it will give you step-by-step instructions.', 'ok', 6000); }); } }
+      { icon: '✨', label: 'Copy a prompt for an AI tester (no MCP)', run: function () { MS.copyText(Q.prompt({ mcp: false })).then(function () { MS.toast('Copied. Paste it into any AI assistant; it will give you step-by-step instructions.', 'ok', 6000); }); } },
+      { icon: '🐞', label: 'Prompt from failed tests…', run: function () { if (Q.live) Q.live.promptDialog(); } }
     ];
   };
   Q.editDialog = function (c) {
@@ -13137,15 +13535,244 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     } });
   api('test_run', { d: 'Testing: run test cases (all, or the ids given). Automatic steps run; “manual” steps are left for you and the case is marked "Needs a person". Records each result in the plan.', p: { ids: ['array', 'Test case ids (default: all)'] }, f: function (a) { return Q.run(a.ids).then(function (res) { return { summary: Q.summary(), results: res }; }); } });
   api('test_record', { d: 'Testing: record the result of a test case: status (Pass, Fail, Blocked, Skipped, Needs a person, Not run), what actually happened, notes, who tested.', p: { id: ['string', 'Test case id', true], status: ['string', 'Pass | Fail | Blocked | Skipped', true], actual: ['string', 'What actually happened'], notes: ['string', 'Notes, defect details, severity'], by: ['string', 'Tester'] }, f: function (a) { return Q.record(a.id, a); } });
-  api('test_document', { d: 'Testing: the full test document (purpose, scope, what is tested, approach, test cases with steps and expected results, results, traceability, MCP how-to, defect log, sign-off). format: markdown (default) | html | json | xlsx (base64) | prompt (a prompt for an AI tester).', p: { format: ['string', 'markdown | html | json | xlsx | prompt'], mcp: ['boolean', 'For prompt: the AI has the MCP tools (default true)'] },
+  api('test_document', { d: 'Testing: the full test document (purpose, scope, what is tested, approach, test cases with steps and expected results, results, traceability, MCP how-to, defect log, sign-off). format: markdown (default) | html | json | xlsx (base64) | prompt (a prompt for an AI tester) | failures (a prompt built from the failed cases: find the cause, fix, test again).', p: { format: ['string', 'markdown | html | json | xlsx | prompt | failures'], mcp: ['boolean', 'For prompt / failures: the AI has the MCP tools (default true)'], goal: ['string', 'For failures: fix (default) or retest (find the cause only)'], person: ['boolean', 'For failures: include the "needs a person" cases (default true)'] },
     f: function (a) {
       var f = a.format || 'markdown', base = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'dashboard') + ' - test plan';
       if (f === 'html') return Q.html().then(function (x) { return { name: base + '.html', text: x }; });
       if (f === 'json') return { name: base + '.json', text: JSON.stringify(Q.json(), null, 2) };
       if (f === 'prompt') return { name: base + ' - AI tester prompt.md', text: Q.prompt({ mcp: a.mcp !== false }) };
+      if (f === 'failures') return { name: base + ' - fix the failures prompt.md', text: Q.failPrompt({ mcp: a.mcp !== false, goal: a.goal, person: a.person }), failed: Q.failed().map(function (c) { return c.id; }) };
       if (f === 'xlsx') return Q.xlsx().then(function (b) { var s = '', u = new Uint8Array(b); for (var i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { name: base + '.xlsx', b64: btoa(s) }; });
       return { name: base + '.md', text: Q.document() };
     } });
+})(window.MS);
+
+</script>
+<script>/* src/js/testrun.js */
+/* Testing, live: the runner card that shows a test run as it happens (progress, the case and step
+   being run, results so far, Stop), a pointer that moves to each part before it is used, pictures
+   of what failed, the results ring, and the prompt built from failed tests for an AI. */
+(function (MS) {
+  'use strict';
+  var h = MS.h, Q = MS.qa, L = Q.live = {};
+  var PACE = { fast: 0, normal: 420, slow: 1000 };
+  L.pace = MS.prefs.get('qaPace', 'normal');
+  L.watching = false;
+  L.evid = {};
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function secs(ms) { ms = ms || 0; return ms < 1000 ? ms + ' ms' : ms < 60000 ? (ms / 1000).toFixed(1) + ' s' : Math.floor(ms / 60000) + ' min ' + Math.round(ms % 60000 / 1000) + ' s'; }
+  function clock(ms) { var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
+  L.secs = secs;
+
+  /* ---------------------------------------------------------------- the pointer and the highlight */
+  function toEditor(x, y) {
+    var f = MS.child && MS.child.frame; if (!f) return null;
+    var r = f.getBoundingClientRect(), s = MS.view.scale || 1;
+    return { x: r.left + x * s, y: r.top + y * s, s: s };
+  }
+  function layer(id, cls) {
+    var el = document.getElementById(id);
+    if (!el) { el = h('div', { id: id, 'class': cls, 'aria-hidden': 'true' }); document.body.appendChild(el); }
+    return el;
+  }
+  var fadeT;
+  L.show = function (el, pt, verb) {
+    var p = pt && toEditor(pt.x, pt.y); if (!p) return Promise.resolve();
+    var cur = layer('qa-cursor', 'qa-cursor'), hl = layer('qa-hl', 'qa-hl');
+    if (!cur.firstChild) cur.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 2.5l15 9.2-6.6 1.4 3.7 7.3-2.7 1.3-3.6-7.4L4 19z" fill="#111827" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="qa-ripple"></span>';
+    cur.classList.add('on'); cur.classList.remove('press');
+    cur.style.transitionDuration = L.watching ? Math.max(120, PACE[L.pace] * 0.7) + 'ms' : '0ms';
+    cur.style.transform = 'translate(' + Math.round(p.x - 3) + 'px,' + Math.round(p.y - 2) + 'px)';
+    L.mark(el, verb);
+    clearTimeout(fadeT);
+    fadeT = setTimeout(function () { cur.classList.remove('on'); hl.classList.remove('on'); }, 1800);
+    var pause = L.watching ? PACE[L.pace] : 0;
+    return wait(pause).then(function () { cur.classList.add('press'); return wait(L.watching && pause ? 120 : 0); });
+  };
+  // Outline a part of the dashboard with a label, in the editor (nothing is added to the dashboard).
+  L.mark = function (el, label, kind) {
+    var hl = layer('qa-hl', 'qa-hl');
+    if (!el || !el.getBoundingClientRect || !MS.child) return;
+    var r = el.getBoundingClientRect(), a = toEditor(r.left, r.top); if (!a) return;
+    hl.className = 'qa-hl on' + (kind ? ' ' + kind : '');
+    hl.style.left = (a.x - 3) + 'px'; hl.style.top = (a.y - 3) + 'px';
+    hl.style.width = (r.width * a.s + 6) + 'px'; hl.style.height = (r.height * a.s + 6) + 'px';
+    hl.setAttribute('data-label', label || '');
+    clearTimeout(fadeT);
+    fadeT = setTimeout(function () { hl.classList.remove('on'); var c = document.getElementById('qa-cursor'); if (c) c.classList.remove('on'); }, 1800);
+  };
+  L.hide = function () { ['qa-cursor', 'qa-hl'].forEach(function (id) { var e = document.getElementById(id); if (e) e.classList.remove('on'); }); };
+  // Checks outline what they look at too.
+  MS.on('qa-step', function (e) {
+    var s = e.step || {}; if (!/^expect_/.test(s.do) || !s.target || !MS.child) return;
+    var el = null; try { el = Q.drv.find(s.target, { quiet: true }); } catch (x) {}
+    if (el && Q.drv.visible(el)) L.mark(el, 'Check', 'check');
+  });
+
+  // A picture of the part a failed case was looking at, kept until the dashboard is closed.
+  L.evidence = function (id, el) {
+    if (!L.watching || !MS.picture || !el || !el.isConnected) return Promise.resolve();
+    return Promise.race([MS.picture.make(el, { scale: 1 }), wait(4000).then(function () { return null; })]).then(function (p) { if (p && p.dataUrl) L.evid[id] = p.dataUrl; });
+  };
+  MS.on('doc-opened', function () { L.evid = {}; }); MS.on('doc-closed', function () { L.evid = {}; L.close(); });
+
+  /* ---------------------------------------------------------------- the results ring */
+  var COLORS = { Pass: 'var(--ok)', Fail: 'var(--danger)', 'Needs a person': 'var(--accent)', Blocked: 'var(--warn)', Skipped: 'var(--faint)', 'Not run': 'var(--line-strong)' };
+  L.COLORS = COLORS;
+  L.ring = function (by, size, center) {
+    size = size || 84;
+    var NS = 'http://www.w3.org/2000/svg', r = 15.9155, total = 0, off = 25;
+    Object.keys(by).forEach(function (k) { total += by[k] || 0; });
+    var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 42 42'); svg.setAttribute('width', size); svg.setAttribute('height', size); svg.setAttribute('class', 'qa-ring');
+    var bg = document.createElementNS(NS, 'circle'); bg.setAttribute('cx', 21); bg.setAttribute('cy', 21); bg.setAttribute('r', r); bg.setAttribute('class', 'qa-ring-bg'); svg.appendChild(bg);
+    Q.STATUSES.forEach(function (k) {
+      var n = by[k] || 0; if (!n || !total) return;
+      var pct = n / total * 100, c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', 21); c.setAttribute('cy', 21); c.setAttribute('r', r); c.setAttribute('fill', 'none');
+      c.setAttribute('stroke-dasharray', Math.max(0, pct - (pct < 100 ? 0.8 : 0)) + ' ' + (100 - pct + (pct < 100 ? 0.8 : 0)));
+      c.setAttribute('stroke-dashoffset', off); c.setAttribute('class', 'qa-ring-seg'); c.style.stroke = COLORS[k];
+      var t = document.createElementNS(NS, 'title'); t.textContent = k + ': ' + n; c.appendChild(t);
+      svg.appendChild(c); off -= pct;
+    });
+    var wrap = h('div', { 'class': 'qa-ring-wrap', style: 'width:' + size + 'px;height:' + size + 'px' }, [svg]);
+    if (center) wrap.appendChild(h('div', { 'class': 'qa-ring-c' }, center));
+    return wrap;
+  };
+  // Pass rate of the last runs, as small bars.
+  L.trend = function () {
+    var runs = Q.runs().slice(-12); if (runs.length < 1) return null;
+    return h('div', { 'class': 'qa-trend', title: 'Last ' + runs.length + ' run' + (runs.length === 1 ? '' : 's') + ' (pass rate)' }, runs.map(function (r) {
+      var done = (r.pass || 0) + (r.fail || 0) + (r.person || 0), pct = done ? Math.round((r.pass || 0) / done * 100) : 0;
+      return h('span', { 'class': 'qa-tbar' + (r.fail ? ' bad' : ''), style: 'height:' + Math.max(8, pct) + '%', title: r.at.slice(0, 16).replace('T', ' ') + ': ' + (r.pass || 0) + ' passed, ' + (r.fail || 0) + ' failed, ' + (r.person || 0) + ' for a person · ' + secs(r.ms) });
+    }));
+  };
+
+  /* ---------------------------------------------------------------- the runner card */
+  var card = null, tick = null, st = null;
+  function place() {
+    if (!card) return;
+    var s = MS.$('#stage'); if (!s) return;
+    var r = s.getBoundingClientRect();
+    card.style.right = Math.max(12, window.innerWidth - r.right + 18) + 'px';
+    card.style.bottom = Math.max(12, window.innerHeight - r.bottom + 18) + 'px';
+  }
+  window.addEventListener('resize', MS.debounce(place, 50));
+  L.close = function () {
+    clearInterval(tick); tick = null; L.watching = false; L.hide();
+    if (card) { var c = card; card = null; c.classList.add('bye'); setTimeout(function () { c.remove(); }, 220); }
+  };
+  function paceSeg() {
+    return h('div', { 'class': 'seg small qr-pace', title: 'How fast the steps run, so you can follow them' }, ['fast', 'normal', 'slow'].map(function (k) {
+      return h('button', { 'class': 'seg-btn' + (L.pace === k ? ' on' : ''), onclick: function (e) { L.pace = k; MS.prefs.set('qaPace', k); MS.$$('.seg-btn', e.currentTarget.parentNode).forEach(function (b) { b.classList.toggle('on', b === e.currentTarget); }); } }, [k.charAt(0).toUpperCase() + k.slice(1)]);
+    }));
+  }
+  function build(ids) {
+    if (card) card.remove();
+    st = { ids: ids, res: {}, idx: -1, started: Date.now(), step: null, id: null };
+    card = h('div', { id: 'qa-runner', 'class': 'qa-runner running', role: 'status', 'aria-live': 'polite' });
+    document.body.appendChild(card); place(); draw();
+    clearInterval(tick); tick = setInterval(function () { var t = card && card.querySelector('.qr-time'); if (t && st && card.classList.contains('running')) t.textContent = clock(Date.now() - st.started); }, 500);
+  }
+  function counts() {
+    var c = { Pass: 0, Fail: 0, 'Needs a person': 0 };
+    Object.keys(st.res).forEach(function (k) { var s = st.res[k].status; if (c[s] != null) c[s]++; });
+    return c;
+  }
+  function dots() {
+    return h('div', { 'class': 'qr-dots' }, st.ids.map(function (id, i) {
+      var r = st.res[id], cls = r ? ({ Pass: 'ok', Fail: 'bad', 'Needs a person': 'info' }[r.status] || 'skip') : (i === st.idx && card.classList.contains('running') ? 'now' : '');
+      var c = Q.get(id);
+      return h('span', { 'class': 'qr-dot ' + cls, title: id + (c ? ': ' + c.title : '') + (r ? ' · ' + r.status + (r.ms ? ' · ' + secs(r.ms) : '') : '') });
+    }));
+  }
+  function draw() {
+    if (!card || !st) return;
+    var running = card.classList.contains('running'), n = st.ids.length, done = Object.keys(st.res).length, c = counts(), pct = n ? Math.round(done / n * 100) : 0;
+    card.innerHTML = '';
+    if (running) {
+      var cur = Q.get(st.id) || {};
+      card.appendChild(h('div', { 'class': 'qr-head' }, [
+        h('div', { 'class': 'qr-orb' }, [h('span', { 'class': 'qr-spin' }), h('b', { text: pct + '%' })]),
+        h('div', { 'class': 'grow qr-what' }, [h('div', { 'class': 'qr-title' }, [card.classList.contains('stopping') ? 'Stopping after this step…' : 'Testing ' + (done + 1 > n ? n : done + 1) + ' of ' + n]),
+          h('div', { 'class': 'qr-sub', text: st.id ? st.id + ' · ' + (cur.title || '') : 'Getting ready…' })]),
+        h('span', { 'class': 'qr-time', text: clock(Date.now() - st.started) })]));
+      card.appendChild(h('div', { 'class': 'qr-bar' }, [h('i', { style: 'width:' + Math.max(3, pct) + '%' })]));
+      card.appendChild(h('div', { 'class': 'qr-step' }, st.step ? [h('span', { 'class': 'qr-stepn', text: (st.step.index + 1) + '/' + st.step.total }), h('span', { 'class': 'qr-steptxt no-icons', text: st.step.text })] : [h('span', { 'class': 'muted', text: 'Starting…' })]));
+      card.appendChild(dots());
+      card.appendChild(h('div', { 'class': 'qr-foot' }, [
+        h('span', { 'class': 'qr-count ok', title: 'Passed' }, ['✓ ' + c.Pass]), h('span', { 'class': 'qr-count bad', title: 'Failed' }, ['✗ ' + c.Fail]), h('span', { 'class': 'qr-count info', title: 'Need a person' }, ['👁 ' + c['Needs a person']]),
+        h('span', { 'class': 'grow' }), paceSeg(),
+        h('button', { 'class': 'btn sm danger qr-stop', title: 'Stop after the current step', onclick: function () { card.classList.add('stopping'); Q.stop(); draw(); } }, ['■ Stop'])]));
+      return;
+    }
+    // finished
+    var S = Q.summary(), f = c.Fail, ran = done, person = c['Needs a person'], allOk = !f && ran;
+    var title = st.stopped ? 'Stopped after ' + ran + ' of ' + n : !ran ? 'Nothing ran' : f ? f + ' of ' + ran + ' failed' : person ? ran - person + ' passed, ' + person + ' for a person' : 'All ' + ran + ' passed';
+    card.classList.toggle('has-fail', !!f); card.classList.toggle('all-ok', !!allOk);
+    card.appendChild(h('div', { 'class': 'qr-head' }, [
+      L.ring(c, 58, [h('b', { text: ran ? Math.round(c.Pass / ran * 100) + '%' : '–' })]),
+      h('div', { 'class': 'grow qr-what' }, [h('div', { 'class': 'qr-title', text: title }), h('div', { 'class': 'qr-sub', text: 'Done in ' + secs(st.ms) + ' · plan: ' + S.byStatus.Pass + ' pass, ' + S.byStatus.Fail + ' fail, ' + S.byStatus['Not run'] + ' not run' })]),
+      h('button', { 'class': 'icon-btn', title: 'Close', 'aria-label': 'Close', onclick: L.close }, ['✕'])]));
+    card.appendChild(dots());
+    var acts = [h('button', { 'class': 'btn sm', onclick: function () { L.close(); Q.dialog({ status: f ? 'Fail' : '' }); } }, ['☑ See results'])];
+    if (f || person) acts.push(h('button', { 'class': 'btn sm primary', onclick: function () { L.promptDialog(); } }, ['✨ Prompt from failures']));
+    if (f) acts.push(h('button', { 'class': 'btn sm', title: 'Run only the cases that failed', onclick: function () { L.start(Q.failed().map(function (x) { return x.id; })); } }, ['↻ Rerun failed']));
+    card.appendChild(h('div', { 'class': 'qr-foot end' }, acts));
+    if (allOk && !person && !st.stopped) card.appendChild(h('div', { 'class': 'qr-confetti', 'aria-hidden': 'true' }, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(function (i) { return h('i', { style: '--i:' + i }); })));
+  }
+  MS.on('qa-run', function (e) {
+    if (!card || !st) return;
+    if (e.phase === 'case') { st.idx = e.index; st.id = e.id; st.step = null; draw(); }
+    else if (e.phase === 'result') { if (e.result.status !== 'Stopped') st.res[e.result.id] = e.result; draw(); }
+    else if (e.phase === 'end') { st.ms = e.run.ms; st.stopped = e.run.stopped; card.classList.remove('running', 'stopping'); L.watching = false; clearInterval(tick); setTimeout(L.hide, 900); draw(); }
+  });
+  MS.on('qa-step', function (e) {
+    if (!card || !st || !card.classList.contains('running')) return;
+    st.step = e; var t = card.querySelector('.qr-step');
+    if (t) { t.innerHTML = ''; t.appendChild(h('span', { 'class': 'qr-stepn', text: (e.index + 1) + '/' + e.total })); t.appendChild(h('span', { 'class': 'qr-steptxt no-icons', text: e.text })); }
+  });
+
+  // Run cases where you can watch them: closes the Testing window and shows the runner card.
+  L.start = function (ids) {
+    if (!MS.child || !MS.rt()) return MS.toast('Open a dashboard first.', 'warn');
+    if (Q.running) return MS.toast('Tests are already running.', 'warn');
+    var list = (ids && ids.length ? ids : Q.cases().map(function (c) { return c.id; })).filter(function (id) { return Q.get(id); });
+    if (!list.length) return MS.toast('There are no test cases to run. Testing › Test cases › Draft makes a set for you.', 'warn', 6000);
+    var open = MS.$('.qa'); if (open) { var x = open.closest('.dlg') && open.closest('.dlg').querySelector('.dlg-x'); if (x) x.click(); }
+    L.watching = true; build(list);
+    return Q.run(list).then(function (res) { return res; }, function (er) { MS.toast(er.message, 'error'); L.close(); });
+  };
+
+  /* ---------------------------------------------------------------- prompt from failures */
+  L.promptDialog = function () {
+    if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
+    var fails = Q.failed().length, people = Q.cases().filter(function (c) { return c.status === 'Needs a person'; }).length;
+    if (!fails && !people) return MS.toast(Q.cases().length ? 'Nothing failed. Run the tests first if you have not yet.' : 'No test cases yet. Testing › Test cases › Draft makes a set for you.', 'ok', 6000);
+    var src = ''; try { src = MS.exportHtml({ dropComments: true }); } catch (e) {}
+    var f = MS.form([
+      { key: 'mcp', label: 'The AI assistant', type: 'select', value: MS.prefs.get('qaPromptMcp', 'mcp'), options: [{ value: 'mcp', label: 'is connected to Mothership (MCP): it re-runs and checks the tests itself' }, { value: 'chat', label: 'is an ordinary chat: it reads the file and tells me what to change' }] },
+      { key: 'goal', label: 'Ask it to', type: 'select', value: MS.prefs.get('qaPromptGoal', 'fix'), options: [{ value: 'fix', label: 'Find the cause and fix it (dashboard or test), then test again' }, { value: 'retest', label: 'Find the cause only; do not change anything' }] },
+      { key: 'person', label: 'Include the ' + people + ' case' + (people === 1 ? '' : 's') + ' that need a person to check by eye', type: 'checkbox', value: true },
+      { key: 'embed', label: 'Paste the dashboard file into the prompt (' + MS.bytes(src.length) + '; for an ordinary chat only)', type: 'checkbox', value: false }
+    ]);
+    var out = h('textarea', { 'class': 'inp mono prompt-out', rows: 15, readonly: true }), meta = h('small', { 'class': 'hint' });
+    var head = h('div', { 'class': 'qa-fp-head' }, [L.ring(Q.summary().byStatus, 46), h('div', {}, [h('b', { text: fails + ' failed' + (people ? ', ' + people + ' need a person' : '') }), h('div', { 'class': 'muted small', text: 'The prompt lists each one with its steps, the step that failed and what happened, plus what the AI should do and how to report back.' })])]);
+    var build = function () {
+      var v = f.values(); MS.prefs.set('qaPromptMcp', v.mcp); MS.prefs.set('qaPromptGoal', v.goal);
+      f.inputs.embed.closest('label').style.display = v.mcp === 'mcp' ? 'none' : '';
+      var txt = Q.failPrompt({ mcp: v.mcp === 'mcp', goal: v.goal, person: v.person });
+      if (v.mcp !== 'mcp' && v.embed && src) txt += '\n## The dashboard file (' + MS.exportName() + ')\n\n```html\n' + src + '\n```\n';
+      out.value = txt;
+      meta.textContent = txt.length.toLocaleString('en-US') + ' characters (about ' + Math.round(txt.length / 4).toLocaleString('en-US') + ' tokens).' + (v.mcp === 'mcp' ? ' Paste it into an assistant that has the Mothership MCP server (Help › Connect an AI assistant).' : v.embed ? '' : ' Attach ' + MS.exportName() + ' when you paste it.');
+    };
+    Object.keys(f.inputs).forEach(function (k) { f.inputs[k].addEventListener('change', build); });
+    build();
+    var base = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'dashboard') + ' - fix the failures prompt.md';
+    var body = h('div', { 'class': 'prompt-dlg' }, [head, f, h('div', { 'class': 'row gap' }, [
+      h('button', { 'class': 'btn primary', type: 'button', onclick: function () { MS.copyText(out.value).then(function () { MS.toast('Prompt copied. Paste it into your AI assistant.', 'ok', 5000); }); } }, ['📋 Copy prompt']),
+      h('button', { 'class': 'btn', type: 'button', onclick: function () { MS.download(base, out.value, 'text/markdown;charset=utf-8'); } }, ['⬇ Save as .md'])]), out, meta]);
+    return MS.dialog({ title: '✨ Prompt from failed tests', sub: 'Give this to an AI assistant to find out why tests failed and fix them.', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Close', primary: true, value: null }] });
+  };
 })(window.MS);
 
 </script>
@@ -13502,7 +14129,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     { title: 'Drill-down and filters', steps: [
       { text: 'Double-click the "Sales by region" chart, open "Data & drill-down" and press "Use this data". Then Apply.', check: function () { return anyChart(function (c) { return c.binding; }); } },
       { text: 'Add a filter pane: Layout › Filter pane, tick one or two fields, Save.', point: ['Layout', 'Filter pane'], check: function () { return rt() && rt().state.filters.length > 0; } },
-      { text: 'Switch to Interact (top right) and double-click a bar to drill down. Use the breadcrumb above the chart to go back.', check: function () { var r = rt(); return !!r && Object.keys(r.drill).some(function (k) { return r.drill[k].length; }); } }] },
+      { text: 'Switch to Interact (top centre, or Alt+3) and double-click a bar to drill down. Use the breadcrumb above the chart to go back.', check: function () { var r = rt(); return !!r && Object.keys(r.drill).some(function (k) { return r.drill[k].length; }); } }] },
     { title: 'Build from scratch', steps: [
       { text: 'Add a row of KPI cards: Insert › KPI cards. Pick a dataset so the numbers follow the filters.', point: ['Insert', 'KPI cards'], check: function () { return inDoc('.ms-kpi'); } },
       { text: 'Add a new chart from data: Insert › Chart.', point: ['Insert', 'Chart'], check: function () { return inDoc('[data-ms-chart]'); } },
@@ -13566,7 +14193,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   /* ---------------------------------------------------------- user guide */
   var K = function (k) { return '<kbd>' + k + '</kbd>'; };
   var GUIDE = [
-    { id: 'start', title: 'Getting started', html: '<p>Mothership opens an HTML dashboard and lets you edit it like a PowerPoint deck. Everything runs in this browser tab. Nothing is uploaded and nothing is installed.</p><ol><li><b>Open</b> a dashboard: File › Open, drag a file onto the window, or try File › Samples.</li><li>If its charts don\'t show, use <b>File › Open folder</b> and pick the folder with its .js/.css/.json files. Mothership bundles them into one file.</li><li>Or start from scratch with <b>File › New</b>.</li><li>When done, <b>Export HTML</b> (top right). You get one .html file that opens in any browser and reopens here for more edits.</li></ol><p><b>Edit</b> mode (top right) is for changing things. <b>Interact</b> mode is for using the dashboard like your audience will.</p>' },
+    { id: 'start', title: 'Getting started', html: '<p>Mothership opens an HTML dashboard and lets you edit it like a PowerPoint deck. Everything runs in this browser tab. Nothing is uploaded and nothing is installed.</p><ol><li><b>Open</b> a dashboard: File › Open, drag a file onto the window, or try File › Samples.</li><li>If its charts don\'t show, use <b>File › Open folder</b> and pick the folder with its .js/.css/.json files. Mothership bundles them into one file.</li><li>Or start from scratch with <b>File › New</b>.</li><li>When done, <b>Export HTML</b> (top right). You get one .html file that opens in any browser and reopens here for more edits.</li></ol><p><b>Edit</b> mode (top centre, Alt+1) is for changing things. <b>Comment</b> (Alt+2) is for review notes. <b>Interact</b> (Alt+3) is for using the dashboard like your audience will. The stage gets a coloured frame in Comment and Interact so you always know which one is on.</p>' },
     { id: 'zoom', title: 'Zoom and fitting the screen', html: '<p>Dashboards are designed for wide screens, so Mothership draws them at desktop width (1280 px or more) and shrinks them to fit the middle panel. The layout stays exactly as your audience sees it.</p><ul><li>Zoom with the − / + buttons in the bottom-right corner, or ' + K('Ctrl') + ' + mouse wheel over the dashboard.</li><li><b>⤢ Fit</b> fits the whole width again.</li><li>View › Draw at changes the width the page is drawn at: Laptop 1366, Tablet 820, Phone 390, or Full HD from Other.</li><li>Hide the side panels from View › Panels for more room.</li></ul>' },
     { id: 'text', title: 'Text, fonts and colours (any element)', html: '<ul><li>Click anything to select it. ' + K('Alt') + '+' + K('↑') + ' selects the parent.</li><li>Double-click text to type. ' + K('Enter') + ' or clicking away finishes.</li><li>The <b>Home</b> tab and the <b>Format panel</b> (right) change font, size, colour, background, bold/italic, alignment, line height, letter spacing and case.</li><li>The <b>Box</b> section sets width, height, padding, margin, corners and border.</li><li><b>Find &amp; replace</b> (' + K('Ctrl') + '+' + K('F') + ') changes wording everywhere.</li><li>Text drawn by the dashboard\'s own script is tagged <i>script-made</i>. Mothership re-applies your edit after the script runs.</li></ul>' },
     { id: 'popups', title: 'Hover pop-ups on anything', html: '<p>Select any element and type a note under <b>Hover pop-up</b> in the right panel, e.g. a definition or the data source. It appears when someone hovers over it (in Interact mode, when presenting and in the exported file).</p><p><b>Pop-up style…</b> sets one look for all of them: background, text colour, border, size, corners. Tick "Use the same look for chart pop-ups" to match the charts.</p>' },
@@ -13585,14 +14212,14 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       '<h3>📗 Excel tracker</h3><p><b>Review › Excel tracker</b> saves every comment as a spreadsheet: number, status, priority, tab, section, chart, where exactly, the comment, what “done” means, owner, due date and notes, plus a summary sheet by tab and priority. Use it in the review meeting, then <b>Update from tracker</b> loads status, priority, owner, due date, notes and wording back. Keep the ID column.</p>' +
       '<h3>⚖ Compare versions</h3><p><b>File › Compare</b> shows what changed between two saved versions, the dashboard now, or a file on this laptop: tabs added, renamed or removed, text changes (old crossed out, new in green), chart settings, data, KPI cards, filters, colours and comments. <b>Side by side</b> shows both dashboards next to each other. <b>Copy the list</b> for your change note.</p>' },
     { id: 'draw', title: 'Moving, drawing on charts and pictures', html: '<p><b>Move with the mouse.</b> In Edit mode press on a chart, KPI card or section and drag it. A blue bar shows exactly where it will land and a label says what will happen (“Move to the right”, “Move below”). Hold <b>Ctrl</b> to copy. Drop on one of the dashboard\'s tabs to send it there. <b>Esc</b> cancels; ' + K('Ctrl') + '+' + K('Z') + ' undoes.</p><p><b>Floating toolbar.</b> Whatever you select gets a small toolbar above it: drag handle, chart settings, draw, copy as picture, duplicate, delete and ⋯ for the full menu. Turn it off in View.</p><p><b>Draw on a chart</b> (Consulting › Draw on chart, or right-click › Draw on the chart):</p><ul><li><b>Growth (CAGR)</b>: pick two bars; an arrow over the bars says “+12.4% CAGR”. Set the number of years if the bars are not one year apart.</li><li><b>Difference</b>: a bracket between two bars with the change and the % (choose either or both).</li><li><b>Arrow, line, double arrow, box, circle, text, callout</b>: the pointer becomes a crosshair; drag on the chart.</li></ul><p>Click a shape to select it: its toolbar changes colour, width, dash, fill and arrowheads. Drag to move it, double-click to change its text, Delete to remove it. Growth and difference stay on their bars when data or filters change. Shapes are kept in the exported file, the PDF and the PowerPoint.</p><p><b>Pictures.</b> Right-click › <b>Copy as picture</b> (' + K('Ctrl') + '+' + K('Shift') + '+' + K('C') + ') puts a sharp PNG of the chart card, with its title, notes and shapes, on the clipboard: paste it into PowerPoint, Word, Outlook or Teams. <b>Save as picture</b> downloads the PNG.</p>' },
-    { id: 'testing', title: 'Testing a dashboard', html: '<p>The <b>Testing</b> tab plans and runs tests of the dashboard, and writes the test document.</p><ol><li><b>Draft tests</b> writes test cases from the dashboard: opens without errors, each tab, each chart (numbers, pop-up, drill-down, labels), each KPI card, filters, buttons, links, tables, KPI cards against chart totals, accessibility, laptop / tablet / phone widths, export and edge cases.</li><li><b>Test cases</b> lists them by scenario. Edit (✎) or add one: scenario, type, priority, “before you start”, steps and the expected result. Steps are one per line: <code>step | target | value</code>, e.g. <code>hover | chart=Sales @ North</code>, <code>select | filter=Region | West</code>, <code>expect_text | kpi=Revenue | $1.2M</code>. Anything else is a “check by eye” step.</li><li><b>Run all</b> (or ▶ on a case) runs the automatic steps in Interact mode and records Pass or Fail with a run log. Cases with a “check by eye” step become <b>Needs a person</b>: look, then set the result.</li><li><b>Test document</b>: Markdown, HTML (prints to PDF), Excel or JSON with scope, approach, every case, results, traceability, defect log and sign-off.</li><li><b>AI tester</b> copies a prompt for another AI. Through the MCP server (<b>Connect AI</b>) it can work the dashboard itself, like Playwright: <code>ui_snapshot</code>, <code>ui_click</code>, <code>ui_hover</code>, <code>ui_expect</code>, <code>ui_screenshot</code>, <code>test_run</code>, <code>test_record</code>, <code>save_test_document</code>.</li></ol><p>Targets: <code>text=…</code>, <code>button=…</code>, <code>tab=…</code>, <code>chart=…</code> (add <code>@ North</code> for one bar), <code>kpi=…</code>, <code>filter=…</code>, or a CSS selector. The test plan is saved inside the dashboard file.</p>' },
+    { id: 'testing', title: 'Testing a dashboard', html: '<p>The <b>Testing</b> tab plans and runs tests of the dashboard, and writes the test document.</p><ol><li><b>Draft tests</b> writes test cases from the dashboard: opens without errors, each tab, each chart (numbers, pop-up, drill-down, labels), each KPI card, filters, buttons, links, tables, KPI cards against chart totals, accessibility, laptop / tablet / phone widths, export and edge cases.</li><li><b>Test cases</b> lists them by scenario. Edit (✎) or add one: scenario, type, priority, “before you start”, steps and the expected result. Steps are one per line: <code>step | target | value</code>, e.g. <code>hover | chart=Sales @ North</code>, <code>select | filter=Region | West</code>, <code>expect_text | kpi=Revenue | $1.2M</code>. Anything else is a “check by eye” step.</li><li><b>Run all</b> (or ▶ on a case) runs the automatic steps in Interact mode while you watch. A pointer moves to each part before it is clicked or hovered, checks outline what they look at, and a card in the corner shows the progress, the case and step being run, the results so far and how long it has taken. <b>Stop</b> ends the run after the current step; <b>Fast / Normal / Slow</b> sets the pace. Each case gets Pass or Fail with a run log and its time. Cases with a “check by eye” step become <b>Needs a person</b>: look, then set the result.</li><li>When the run ends the card shows the results ring. <b>See results</b> opens the list with the failures; click a status chip (Pass, Fail…) to show only those. <b>Rerun failed</b> runs just the failures again. Failed cases keep a picture of the part they were checking (click it to copy). The bars on the right show the pass rate of the last runs.</li><li><b>Fix failures</b> (or <b>Prompt from failures</b>) builds a prompt for an AI assistant from what failed: each failed case with its steps, the step that failed and what happened, and what the AI should do (find the cause, fix the dashboard or the test, test again) and how to report back. Choose an AI connected through MCP (it re-runs the tests itself) or an ordinary chat (it reads the file and tells you what to change).</li><li><b>Test document</b>: Markdown, HTML (prints to PDF), Excel or JSON with scope, approach, every case, results, traceability, defect log and sign-off.</li><li><b>AI tester</b> copies a prompt for another AI. Through the MCP server (<b>Connect AI</b>) it can work the dashboard itself, like Playwright: <code>ui_snapshot</code>, <code>ui_click</code>, <code>ui_hover</code>, <code>ui_expect</code>, <code>ui_screenshot</code>, <code>test_run</code>, <code>test_record</code>, <code>save_test_document</code>.</li></ol><p>Targets: <code>text=…</code>, <code>button=…</code>, <code>tab=…</code>, <code>chart=…</code> (add <code>@ North</code> for one bar), <code>kpi=…</code>, <code>filter=…</code>, or a CSS selector. The test plan is saved inside the dashboard file.</p>' },
     { id: 'libraries', title: 'Chart libraries', html: '<table><tr><th>Library</th><th>What works</th></tr><tr><td>Chart.js, ECharts, Plotly</td><td>Everything: look, pop-ups, colours, order, data, drill-down, images, summaries.</td></tr><tr><td>Highcharts</td><td>Everything as above. Mothership uses the Highcharts already inside your dashboard (it is not free for commercial use, so Mothership doesn\'t include it).</td></tr><tr><td>D3 and other SVG charts</td><td>Names, pop-ups, colours, look (fonts), summaries, number check, image and comments. The page\'s own script draws them, so Mothership can\'t redraw them from other data or drill down: rebuild with <b>Insert › Chart</b> for that.</td></tr></table><p>Charts drawn as plain images can\'t be read; ask for the data behind them.</p>' },
     { id: 'theme', title: 'Mothership theme and search', html: "<p>Make Mothership itself easier on the eyes. Your dashboard is not affected.</p><ul><li><b>🎨</b> in the top bar, View › <b>Theme</b>, or the welcome screen: 8 ready-made looks (Classic, Daylight, Ocean, Forest, Saffron, Midnight, Slate dark, High contrast).</li><li>Pick light, dark, “Match Windows” or high contrast; any accent colour (or <b>Match brand</b> after loading a brand); a coloured or plain top bar; comfortable or compact spacing; text size; ribbon labels or icons only.</li><li>View › <b>Dark mode</b> switches in one click. Settings are saved in this browser.</li></ul><h3>🔍 Search everything</h3><p>Press " + K('Ctrl') + "+" + K('K') + " (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.</p>" },
     { id: 'region', title: 'Region and currency', html: '<p>Mothership writes numbers in <b>US dollars, US style</b> ($1,234,567 and $1.23M) unless you choose otherwise. Change it in <b>Design › Region & currency</b>: pick a country (52 to choose from) and it fills in the currency and number style; then change the currency on its own if you need to (any currency, e.g. a UK dashboard in US $). <b>Big numbers</b> chooses K, M, B or lakh and crore. The preview shows what you will get.</p><table><tr><th>Choice</th><th>1234567 as currency</th><th>short</th></tr><tr><td>United States</td><td>$1,234,567</td><td>$1.23M</td></tr><tr><td>India</td><td>₹12,34,567</td><td>₹12.35 L</td></tr><tr><td>Germany</td><td>1.234.567 €</td><td>1,23 Mio. €</td></tr><tr><td>United Kingdom</td><td>£1,234,567</td><td>£1.23M</td></tr></table><h3>Where it applies</h3><ul><li>Pop-ups and axes set to <b>Currency</b>, <b>Currency short</b> or <b>Short</b> (<code>{value:cur}</code>, <code>{value:curshort}</code>, <code>{value:short}</code>).</li><li>KPI cards, chart summaries, the number check and the AI prompt rules.</li><li>The setting is saved inside the dashboard, so viewers see the same thing. It is one undo step.</li></ul><p>Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbers the dashboard\'s own script writes are not changed. If a dashboard clearly shows ₹, € or £, Mothership tells you in the status bar but doesn\'t switch on its own.</p>' },
     { id: 'publish', title: 'Publishing and locking', html: '<p>Your working copy is for editing; a <b>published copy</b> is what you share.</p><h3>🛡 File › Ready to publish?</h3><p>A checklist before you share: script errors, charts with no numbers, untitled charts, KPI cards that don\'t match their charts, open must-fix comments, files that need the internet, file size and page title. Red means fix first; amber means take a look.</p><h3>🚀 File › Publish</h3><ul><li><b>Version and release note</b>: 1.0, 1.1… counts on by itself. Each publish adds to the release log.</li><li><b>Corner badge</b>: “Version 1.1 · Published 22 Oct 2026 · Data as of 30 Sep 2026”. Click it for the release notes. It is hidden when printing.</li><li><b>Comments left out</b> unless you tick Keep.</li><li><b>Tamper check</b>: the file carries a fingerprint of itself (SHA-256). If someone changes it in Notepad or another tool and it is opened in Mothership again, you get a warning.</li><li><b>Lock editing with a password</b>: Mothership asks for it before opening the file for editing. Viewers never need it. The password is not stored, only a salted key (PBKDF2).</li><li>If part of a published dashboard fails to load, viewers see a calm one-line message instead of a broken page.</li></ul><h3>What the lock can and can\'t do</h3><p>It is a <b>deterrent, not a vault</b>. An HTML file is text: anyone can open it in Notepad, and anything on screen can be copied or photographed. The lock stops casual edits in Mothership and the seal tells you if the file was changed. For real control use <b>SharePoint, OneDrive or Teams permissions</b> (view-only links, no download), your company\'s sensitivity labels, or a PDF. Keep confidential numbers out of files that leave the team.</p>' },
     { id: 'mcp', title: 'Use with AI assistants (MCP)', html: "<p><b>MCP</b> (Model Context Protocol) lets an AI assistant use Mothership for you: “open sales.html, put the regions in North, South, East, West order on every chart, make Retail green, add a FAQ tab and save it”. The assistant calls Mothership’s tools; nothing goes to the internet from Mothership.</p><pre>AI assistant ──▶ MCP server ──▶ Edge/Chrome ──▶ Mothership\n(any client)    (Python/Node)   (hidden)        (MS.api)</pre><h3>1. Pick the server that your laptop allows</h3><table><tr><th>You have</th><th>Run</th></tr><tr><td>Python 3.8+ (no pip needed)</td><td><code>python tools/mcp/mothership_mcp.py</code></td></tr><tr><td>Node.js 16+ (no npm install needed)</td><td><code>node tools/mcp/mothership-mcp.js</code></td></tr></table><p>Both need Edge or Chrome and offer the same ~75 tools. You don’t start them yourself: your AI assistant starts them.</p><h3>2. Connect your assistant</h3><dl><dt>Claude Desktop</dt><dd>Settings › Developer › Edit config, then add (change the path):<pre>{\n  \"mcpServers\": {\n    \"mothership\": {\n      \"command\": \"python\",\n      \"args\": [\"C:\\\\Users\\\\you\\\\HTML-Mothership\\\\tools\\\\mcp\\\\mothership_mcp.py\"],\n      \"env\": { \"MOTHERSHIP_OUT\": \"C:\\\\Users\\\\you\\\\Dashboards\" }\n    }\n  }\n}</pre>Restart Claude Desktop. Use <code>\"command\": \"node\"</code> and <code>mothership-mcp.js</code> for the Node server.</dd><dt>Claude Code</dt><dd><code>claude mcp add mothership -- python tools/mcp/mothership_mcp.py</code> (the repo’s <code>.mcp.json</code> does this for the Node server).</dd><dt>Your own Python script or agent</dt><dd><code>tools/mcp/python_client.py</code> has a ready <b>MothershipClient</b> with nothing to install:<pre>from python_client import MothershipClient\nwith MothershipClient() as ms:\n    ms.call(\"open_file\", path=\"sales.html\")\n    ms.call(\"category_order\", order=[\"North\", \"South\", \"East\", \"West\"])\n    ms.call(\"category_colors\", colors={\"Retail\": \"#16a34a\"})\n    print(ms.call(\"export_html\")[\"saved\"])</pre>With the official SDK (<code>pip install mcp</code>): <code>StdioServerParameters(command=\"python\", args=[\"tools/mcp/mothership_mcp.py\"])</code>. Any MCP-capable framework works the same way.</dd><dt>Any other MCP client</dt><dd>Command <code>python</code> (or <code>node</code>), argument: the server file. Transport: stdio.</dd></dl><h3>3. Ask in plain English</h3><ul><li>“Open C:\\Dashboards\\claims.html and tell me what is on each tab.”</li><li>“Use one order for regions on every chart: North, South, East, West. Make South green everywhere.”</li><li>“Add a Methodology tab from methodology.docx and a footer saying Source: Finance, FY 2024-25.”</li><li>“Take a screenshot of the Overview tab and check the numbers are in ₹ crore.”</li><li>“Apply my review comments” (paste a prompt from ✨ Prompt with “Mothership MCP” chosen).</li></ul><h3>Settings (optional “env”)</h3><table><tr><td><code>MOTHERSHIP_HEADLESS=0</code></td><td>Show the browser window so you can watch the edits.</td></tr><tr><td><code>MOTHERSHIP_ATTACH=9222</code></td><td>Work in <i>your</i> window: start Edge with <code>msedge --remote-debugging-port=9222</code>, open mothership.html, then connect.</td></tr><tr><td><code>MOTHERSHIP_OUT</code></td><td>Folder for exports, prompts and screenshots.</td></tr><tr><td><code>MOTHERSHIP_BROWSER</code></td><td>Full path to msedge.exe or chrome.exe if it isn’t found.</td></tr><tr><td><code>MOTHERSHIP_HTML</code></td><td>Use dist/mothership-standalone.html instead.</td></tr></table><p>Exports never overwrite your original: they are saved as <code>&lt;name&gt;-edited.html</code>. Every change can be undone (“undo the last three changes”).</p>" },
     { id: 'faq', title: 'FAQ', html: "<dl><dt>Does Mothership send my data anywhere?</dt><dd>No. It runs in this browser from a local file. The MCP server only talks to a browser on this laptop (127.0.0.1). What your AI assistant does with the replies is governed by that assistant and your company’s policy.</dd><dt>Do I need the internet or admin rights?</dt><dd>No for Mothership. No for the MCP server either: it is one file that runs with the Python or Node already on the laptop.</dd><dt>My laptop has Python but not Node (or the reverse).</dt><dd>Use the matching server: <code>tools/mcp/mothership_mcp.py</code> for Python, <code>tools/mcp/mothership-mcp.js</code> for Node. They have the same tools.</dd><dt>Neither Python nor Node is allowed.</dt><dd>Everything except MCP still works. Use ✨ Prompt to copy instructions into your approved AI assistant and attach the exported file.</dd><dt>The server says it can’t find Edge or Chrome.</dt><dd>Set <code>MOTHERSHIP_BROWSER</code> to the full path, e.g. <code>C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe</code>.</dd><dt>It says DevTools refused the connection, or the browser closes at once.</dt><dd>Your IT policy may block remote debugging in Edge/Chrome (the “RemoteDebuggingAllowed” policy). Try the other browser, or ask IT. Without it, MCP can’t drive Mothership; prompts still work.</dd><dt>How do I see what the assistant is doing?</dt><dd>Set <code>MOTHERSHIP_HEADLESS=0</code> to show the window, or ask it for a <i>screenshot</i>. To edit in your own window, use <code>MOTHERSHIP_ATTACH</code> (see the MCP section).</dd><dt>Where are files saved? Can it overwrite my dashboard?</dt><dd>In <code>MOTHERSHIP_OUT</code> (or the folder the assistant was started in) unless the assistant gives a path. The default export name is <code>&lt;name&gt;-edited.html</code>, so the original is kept.</dd><dt>Which AI assistants work?</dt><dd>Any MCP client: Claude Desktop, Claude Code, and many agent tools and IDEs. For chat tools without MCP, use ✨ Prompt and attach the file.</dd><dt>Can the assistant see my comments?</dt><dd>Yes: <i>list_comments</i> and <i>comments_prompt</i> give it every comment with its tab, section and chart. Choose “Mothership MCP” in the prompt builder for instructions written for it.</dd><dt>Can I change how Mothership looks?</dt><dd>Yes: 🎨 in the top bar (light, dark, accent colour, spacing, text size). Your dashboard’s own look is set from the Design tab.</dd><dt>How do I find a command quickly?</dt><dd>" + K('Ctrl') + "+" + K('K') + " and type what you want.</dd><dt>Does it work with Highcharts or D3?</dt><dd>Yes. Highcharts works fully. D3 (and similar SVG) charts get names, pop-ups, colours, fonts, summaries, the number check and comments, but not new data or drill-down. See Chart libraries.</dd><dt>How do I check the numbers before sending?</dt><dd>Review › Number check. It flags KPI cards that don\u2019t match their chart and charts of the same measure that add up differently.</dd><dt>Can I track comments in Excel?</dt><dd>Yes: Review › Excel tracker, then Update from tracker to bring status, owner and due dates back.</dd><dt>Can I change the currency from US $?</dt><dd>Yes: Design › Region & currency. Pick any country and any currency; it is saved in the dashboard.</dd><dt>Can I lock the dashboard so no one else edits it?</dt><dd>Partly. File › Publish can lock editing in Mothership with a password, and Mothership warns if the file was changed elsewhere. But no HTML file can be truly locked: it can always be opened in Notepad. Use SharePoint or Teams view-only permissions for real control. See Publishing and locking.</dd><dt>Will a KPI card turn red automatically?</dt><dd>Yes, if you set thresholds: double-click the KPI value › Status colours. It recalculates whenever filters change.</dd></dl>" },
-    { id: 'shortcuts', title: 'Keyboard shortcuts', html: '<table class="keys">' + [['Ctrl+K', 'Search commands, charts, tabs and help'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy, cut, paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete the selection'], ['Enter', 'Edit the selected text'], ['Esc', 'Deselect / cancel commenting'], ['Alt+↑', 'Select the parent'], ['Alt+→ / Alt+←', 'Next / previous tab'], ['Ctrl+F', 'Find & replace'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+Shift+E', 'Save as…'], ['Ctrl+O', 'Open'], ['Ctrl+wheel', 'Zoom the dashboard'], ['F5', 'Present']].map(function (r) { return '<tr><td><kbd>' + r[0] + '</kbd></td><td>' + r[1] + '</td></tr>'; }).join('') + '</table>' },
+    { id: 'shortcuts', title: 'Keyboard shortcuts', html: '<table class="keys">' + [['Ctrl+K', 'Search commands, charts, tabs and help'], ['Alt+1 / Alt+2 / Alt+3', 'Edit / Comment / Interact mode'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy, cut, paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete the selection'], ['Enter', 'Edit the selected text'], ['Esc', 'Deselect / cancel commenting'], ['Alt+↑', 'Select the parent'], ['Alt+→ / Alt+←', 'Next / previous tab'], ['Ctrl+F', 'Find & replace'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+Shift+E', 'Save as…'], ['Ctrl+O', 'Open'], ['Ctrl+wheel', 'Zoom the dashboard'], ['F5', 'Present']].map(function (r) { return '<tr><td><kbd>' + r[0] + '</kbd></td><td>' + r[1] + '</td></tr>'; }).join('') + '</table>' },
     { id: 'troubleshooting', title: 'Problems and fixes', html: '<dl><dt>Charts are blank</dt><dd>The dashboard loads its libraries or data from separate files or the internet. Use File › Open folder. If it needs the internet, turn off View › Network lock.</dd><dt>"Use this data" doesn\'t appear</dt><dd>The data isn\'t in the page (it may be fetched from a server). Use "the numbers drawn in this chart", or load a CSV/Excel export from the Data tab.</dd><dt>My text change came back after reload</dt><dd>That text is written by the page\'s script. Mothership re-applies your edit after the script runs; if the script writes it later, edit it in the source data instead.</dd><dt>Copy prompt didn\'t work</dt><dd>Some browsers block copying from local files. Click in the prompt box, press Ctrl+A then Ctrl+C, or use Save as .md.</dd><dt>Versions/autosave are off</dt><dd>The browser blocks storage for local files (some Firefox or locked-down setups). Export still works.</dd><dt>The page looks squashed</dt><dd>View › Draw at › Auto, then ⤢ Fit.</dd></dl>' }
   ];
   H.GUIDE = GUIDE;
@@ -13788,7 +14415,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     host.appendChild(dSec);
     host.appendChild(MS.review.outlineSection());
   };
-  ['structure', 'child-loaded', 'tab-shown', 'theme', 'changed', 'comments'].forEach(function (ev) { MS.on(ev, MS.debounce(O.render, 60)); });
+  ['structure', 'child-loaded', 'tab-shown', 'theme', 'changed', 'comments', 'doc-closed'].forEach(function (ev) { MS.on(ev, MS.debounce(O.render, 60)); });
 
   /* ============================================================ INSPECTOR */
   var Ins = MS.inspector = {};
@@ -13801,9 +14428,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (!el || !el.isConnected) {
       return host.appendChild(h('div', { 'class': 'pad' }, [
         h('h3', { text: MS.doc.name }),
-        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : MS.mode === 'comment' ? 'Comment mode: click anything to comment on it, or drag a box around an area. The Comments tab (above) lists every comment.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top right) to make changes.' }),
+        h('p', { 'class': 'muted', text: MS.mode === 'edit' ? 'Click anything in the dashboard to select it. Double-click text to type. Double-click a chart for its settings.' : MS.mode === 'comment' ? 'Comment mode: click anything to comment on it, or drag a box around an area. The Comments tab (above) lists every comment.' : 'Interact mode: the dashboard works as normal (filters, tooltips, drill-down). Switch back to Edit (top centre, or Alt+1) to make changes.' }),
         h('h4', { text: 'Shortcuts' }),
-        h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste anything, also between dashboards'], ['Ctrl+Shift+V', 'Paste inside the selected section, card or tab'], ['Right-click', 'Menu for the part under the mouse'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
+        h('table', { 'class': 'keys' }, [['Ctrl+K', 'Search everything'], ['Alt+1 / 2 / 3', 'Edit / Comment / Interact mode'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy / cut / paste anything, also between dashboards'], ['Ctrl+Shift+V', 'Paste inside the selected section, card or tab'], ['Right-click', 'Menu for the part under the mouse'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete selection'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+F', 'Find & replace'], ['Alt+↑', 'Select parent'], ['F5', 'Present'], ['Esc', 'Deselect']].map(function (r) { return h('tr', {}, [h('td', {}, [h('kbd', { text: r[0] })]), h('td', { text: r[1] })]); }))
       ]));
     }
     var w = MS.child.win, cs = w.getComputedStyle(el), rt = MS.rt();
@@ -13987,6 +14614,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   }
   MS.on('selection', Ins.render);
   MS.on('child-loaded', Ins.render);
+  MS.on('doc-closed', Ins.render);
   MS.on('mode', Ins.render);
   MS.on('changed', MS.debounce(function () { if (!MS.editingText) Ins.render(); }, 80));
 })(window.MS);
@@ -14012,6 +14640,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     tour: function () { MS.help.tour(); }, tutorial: function () { MS.help.tutorial(); }, guide: function () { MS.help.guide(); }, newDoc: function () { MS.compose.newDoc(); },
     print: need(function () { MS.child.win.focus(); MS.child.win.print(); }),
     reload: need(function () { MS.reload(); }),
+    close: function () { if (!MS.doc) return MS.toast('No dashboard is open.', 'warn'); MS.closeDoc(); },
     undo: function () { MS.history.undo(); }, redo: function () { MS.history.redo(); },
     copy: sel(function () { MS.clipboard.copy(false); }), cut: sel(function () { MS.clipboard.copy(true); }), paste: needRt(function () { MS.clipboard.paste(); }),
     pasteInside: needRt(function () { MS.clipboard.paste({ inside: true }); }),
@@ -14030,7 +14659,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '✨', label: 'New', title: 'Start a new dashboard from scratch', run: function () { MS.compose.newDoc(); } },
         { icon: '📂', label: 'Open', title: 'Open a dashboard (.html), a Mothership export, a brand skill, a recipe (.json) or a plugin (Ctrl+O)', run: MS.cmd.open },
         { icon: '🗂', label: 'Open folder', title: 'Open a dashboard together with its scripts, styles, images and data files. Everything is bundled into one file.', run: MS.cmd.openFolder },
-        { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } }] },
+        { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } },
+        { icon: '✕', label: 'Close', title: 'Close this dashboard and go back to the start screen. Asks first if there are changes you have not exported.', run: MS.cmd.close }] },
       { name: 'Save', items: [
         { icon: '⬇', label: 'Export HTML', title: 'Save the edited dashboard as one standalone .html file on this laptop (Ctrl+E)', run: MS.cmd.export },
         { icon: '📝', label: 'Save as…', title: 'Choose a new file name and location', run: MS.cmd.exportAs },
@@ -14234,11 +14864,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
         { icon: '☑', label: 'Test cases', title: 'Plan, run and record tests of this dashboard: scenarios, steps, expected results and status', run: needRt(function () { MS.qa.dialog(); }) },
         { icon: '✨', label: 'Draft tests', title: 'Mothership writes a full set of test cases from the dashboard: tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility', run: needRt(function () { var n = MS.qa.draft(); MS.toast(n ? n + ' test cases drafted. Testing › Test cases to see them.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); }) }] },
       { name: 'Run', items: [
-        { icon: '▷', label: 'Run all', title: 'Run the automatic steps of every test case and record the results; steps to check by eye are marked "Needs a person"', run: needRt(function () { var t = MS.toast('Running the tests…', '', 60000); MS.qa.run().then(function (res) { t.close(); var f = res.filter(function (x) { return x.status === 'Fail'; }).length; MS.toast(res.length + ' run: ' + res.filter(function (x) { return x.status === 'Pass'; }).length + ' passed, ' + f + ' failed, ' + res.filter(function (x) { return x.status === 'Needs a person'; }).length + ' need a person.', f ? 'warn' : 'ok', 7000, { action: { label: 'See results', run: function () { MS.qa.dialog(); } } }); }, function (e) { t.close(); MS.toast(e.message, 'error'); }); }) },
+        { icon: '▷', label: 'Run all', title: 'Run every test case while you watch: a pointer shows each click and hover, and a progress card shows the case, the step and the results so far. Steps to check by eye are marked "Needs a person".', run: needRt(function () { MS.qa.live.start(); }) },
+        { icon: '↻', label: 'Rerun failed', title: 'Run only the cases that failed last time', run: needRt(function () { var f = MS.qa.failed(); if (!f.length) return MS.toast('No failed test cases.', 'ok'); MS.qa.live.start(f.map(function (x) { return x.id; })); }) },
         { icon: '🐞', label: 'Script errors', title: 'Script and console errors since the dashboard opened', run: needRt(function () { var e = MS.qa.drv.errors(false), all = e.scriptErrors.concat(e.consoleErrors); MS.toast(all.length ? all.length + ' error(s): ' + all.slice(0, 3).join(' · ') : 'No script errors since the dashboard opened.', all.length ? 'warn' : 'ok', 8000); }) }] },
       { name: 'Export', items: [
         { icon: '📝', label: 'Test document', title: 'A complete test document: purpose, scope, approach, test cases with steps and expected results, results, defect log, sign-off', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(0, 4)); }) },
-        { icon: '🤖', label: 'AI tester', title: 'Copy a prompt that has another AI test the dashboard, with or without the MCP server', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(5)); }) },
+        { icon: '🤖', label: 'AI tester', title: 'Copy a prompt that has another AI test the dashboard, with or without the MCP server', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(5, 7)); }) },
+        { icon: '✨', label: 'Fix failures', title: 'A prompt built from the failed tests, for an AI assistant: find the cause, fix the dashboard or the test, and test again', run: needRt(function () { MS.qa.live.promptDialog(); }) },
         { icon: '🔌', label: 'Connect AI', title: 'Let an AI assistant drive the dashboard like Playwright (click, hover, type, check, screenshot) through the Mothership MCP server', run: function () { MS.help.guide('mcp'); } }] }
     ] },
     { tab: 'Plugins', groups: function () {
@@ -14329,6 +14961,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (mod && k === 'o') { e.preventDefault(); return MS.cmd.open(); }
     if (e.key === 'F5') { e.preventDefault(); return MS.cmd.present(); }
     if (typing) return;
+    if (e.altKey && !mod && /^Digit[123]$/.test(e.code || '')) { e.preventDefault(); return MS.appbar.cycle(+e.code.slice(5) - 1); }
     if (mod && k === 'z' && !e.shiftKey) { e.preventDefault(); return MS.history.undo(); }
     if (mod && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); return MS.history.redo(); }
     if (mod && k === 'f') { e.preventDefault(); return MS.cmd.find(); }
@@ -14467,11 +15100,131 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 })(window.MS);
 
 </script>
+<script>/* src/js/appbar.js */
+/* The top bar: the open dashboard's name and Close button, and the Edit / Comment / Interact switch
+   with its sliding marker, the coloured frame round the stage and the banner that says what the mode does. */
+(function (MS) {
+  'use strict';
+  var h = MS.h, AB = MS.appbar = {};
+
+  AB.MODES = {
+    edit: { label: 'Edit', key: 'Alt+1', icon: '✎', hint: 'Click to select. Double-click to type. Drag to move.' },
+    comment: { label: 'Comment', key: 'Alt+2', icon: '💬', hint: 'Click anything, or drag a box, to leave a review note. Tabs still switch.' },
+    interact: { label: 'Interact', key: 'Alt+3', icon: '☝', hint: 'Use the dashboard as a viewer would: filters, tooltips, drill-down. Nothing is changed.' }
+  };
+  AB.ORDER = ['edit', 'comment', 'interact'];
+
+  /* sliding marker under the active mode button */
+  AB.glide = function () {
+    var sw = MS.$('#mode-switch'); if (!sw) return;
+    var on = sw.querySelector('.seg-btn.on'), g = sw.querySelector('.glider');
+    sw.setAttribute('data-mode', MS.mode);
+    if (!on || !g || !on.offsetWidth) return;
+    g.style.width = on.offsetWidth + 'px';
+    g.style.transform = 'translateX(' + (on.offsetLeft - 3) + 'px)';
+  };
+
+  /* coloured frame and banner over the stage for Comment and Interact */
+  var quietT;
+  function frame() { return MS.$('#mode-frame'); }
+  AB.place = function () {
+    var f = frame(), st = MS.$('#stage'); if (!f || !st) return;
+    var r = st.getBoundingClientRect();
+    f.style.left = r.left + 'px'; f.style.top = r.top + 'px'; f.style.width = r.width + 'px'; f.style.height = r.height + 'px';
+  };
+  AB.banner = function () {
+    var f = frame(); if (!f) return;
+    var m = MS.mode, info = AB.MODES[m] || AB.MODES.edit, show = !!MS.child && m !== 'edit' && !document.body.classList.contains('presenting');
+    f.setAttribute('data-mode', m);
+    f.classList.toggle('on', show);
+    document.body.setAttribute('data-ms-ui-mode', MS.child ? m : 'none');
+    f.innerHTML = ''; f.classList.remove('quiet'); clearTimeout(quietT);
+    if (!show) return;
+    quietT = setTimeout(function () { f.classList.add('quiet'); }, 4500);
+    f.appendChild(h('div', { 'class': 'mf-banner', role: 'status' }, [
+      h('span', { 'class': 'mf-ic' }, [MS.icon(info.icon)]),
+      h('span', { 'class': 'mf-txt' }, [h('b', { text: info.label + ' mode. ' }), info.hint]),
+      h('button', { 'class': 'mf-back', title: 'Back to Edit (Alt+1)', onclick: function () { MS.setMode('edit'); } }, ['✎ Back to Edit', h('kbd', { text: 'Alt 1' })])
+    ]));
+    AB.place();
+  };
+
+  /* name, unsaved dot and Close */
+  AB.doc = function () {
+    var chip = MS.$('#doc-chip'); if (!chip) return;
+    chip.classList.toggle('open', !!MS.doc);
+    chip.classList.toggle('dirty', !!(MS.doc && MS.dirty));
+    var dn = MS.$('#doc-name');
+    if (dn) dn.title = MS.doc ? MS.doc.name + (MS.dirty ? ' (changes not exported yet)' : ' (no unexported changes)') : 'Open document';
+  };
+
+  AB.cycle = function (n) {
+    var i = typeof n === 'number' ? n : (AB.ORDER.indexOf(MS.mode) + 1) % AB.ORDER.length;
+    if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
+    MS.setMode(AB.ORDER[i]);
+  };
+
+  /* the mode in the status bar */
+  AB.statusMode = function () {
+    var el = MS.$('#status-mode'); if (!el) return;
+    var info = AB.MODES[MS.mode] || AB.MODES.edit;
+    el.hidden = !MS.child; el.setAttribute('data-mode', MS.mode); el.innerHTML = '';
+    el.appendChild(h('i', { 'class': 'st-dot' })); el.appendChild(document.createTextNode(info.label + ' mode'));
+    el.title = info.hint + ' Switch with ' + AB.ORDER.map(function (k) { return AB.MODES[k].key + ' ' + AB.MODES[k].label; }).join(', ') + '.';
+  };
+
+  /* welcome screen: the latest saved version of each dashboard, to pick up where you left off */
+  AB.recent = function () {
+    var box = MS.$('#recent'); if (!box || !MS.store) return;
+    MS.store.all('versions').then(function (list) {
+      list.sort(function (a, b) { return b.key - a.key; });
+      var seen = {}, rows = [];
+      list.forEach(function (x) { var v = x.value; if (!v || seen[v.doc] || rows.length >= 4) return; seen[v.doc] = 1; rows.push(v); });
+      box.innerHTML = ''; box.hidden = !rows.length; if (!rows.length) return;
+      box.appendChild(h('div', { 'class': 'recent-head' }, [h('span', { text: 'Pick up where you left off' }), h('button', { 'class': 'linklike', onclick: function () { MS.versions.list(); } }, ['All versions'])]));
+      box.appendChild(h('div', { 'class': 'recent-grid' }, rows.map(function (v) {
+        return h('button', { 'class': 'recent-card', title: 'Open the version "' + v.name + '" of ' + v.doc, onclick: function () { MS.openHtml(v.html, v.doc); MS.toast('Opened "' + v.name + '".', 'ok'); } }, [
+          h('span', { 'class': 'recent-ic' }, ['📄']),
+          h('span', { 'class': 'recent-txt' }, [h('b', { text: v.doc }), h('small', { text: v.name + ' · ' + new Date(v.created).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) })])]);
+      })));
+    }).catch(function () { box.hidden = true; });
+  };
+
+  function sync() { AB.glide(); AB.banner(); AB.statusMode(); }
+  AB.boot = function () {
+    var x = MS.$('#btn-close');
+    if (x) x.addEventListener('click', function () { MS.closeDoc(); });
+    // give each mode button a little shortcut badge inside its tooltip text, and keep the marker in place
+    MS.$$('#mode-switch .seg-btn').forEach(function (b) { b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false'); });
+    MS.on('mode', function () {
+      MS.$$('#mode-switch .seg-btn').forEach(function (b) { b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false'); });
+      sync();
+    });
+    MS.on('doc-opened', function () { AB.doc(); setTimeout(sync, 0); });
+    MS.on('child-loaded', sync);
+    MS.on('doc-closed', function () { AB.doc(); sync(); AB.recent(); });
+    MS.on('changed', AB.doc); MS.on('saved', function () { setTimeout(AB.doc, 0); });
+    window.addEventListener('resize', MS.debounce(function () { AB.glide(); AB.place(); }, 40));
+    if (window.ResizeObserver) new ResizeObserver(MS.debounce(AB.place, 20)).observe(MS.$('#stage'));
+    // fonts and icons change button widths after first paint
+    setTimeout(sync, 60); setTimeout(AB.glide, 400);
+    AB.doc(); sync(); AB.recent();
+  };
+
+  MS.api.add('close_dashboard', { d: 'Close the open dashboard and go back to the start screen. If it has changes that are not exported, it stays open unless force is true.', p: { force: ['boolean', 'Close even if there are unexported changes'] },
+    f: function (a) {
+      if (!MS.doc) return { closed: false, note: 'Nothing is open.' };
+      if (MS.dirty && !a.force) return { closed: false, unsavedChanges: true, note: 'There are unexported changes. Call export_html first, or pass force: true to drop them.' };
+      return MS.closeDoc({ force: true }).then(function (ok) { return { closed: !!ok }; });
+    } });
+})(window.MS);
+
+</script>
 <script>/* src/js/app.js */
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '2.7.0';
+  MS.VERSION = '2.8.0';
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };
@@ -14579,6 +15332,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     MS.$('#btn-present').addEventListener('click', MS.cmd.present);
     MS.$('#btn-cmdk').addEventListener('click', function () { MS.palette(); });
     MS.$('#btn-theme').addEventListener('click', function () { MS.ui.dialog(); });
+    MS.appbar.boot();
     MS.$$('[data-act]').forEach(function (b) { b.addEventListener('click', function () { var a = b.getAttribute('data-act'); if (a === 'sample') MS.samples.open('sales'); else MS.cmd[a](); }); });
     // drag & drop files anywhere
     var dz = MS.$('#dropzone'), depth = 0;

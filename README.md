@@ -214,13 +214,25 @@ HTML-Mothership/
 | **A cleaner look** | Everywhere | One surface for the ribbon tabs and buttons, softer cards and shadows, quieter menus, dialogs and messages, thin scroll bars. |
 | **MCP tools** | Both servers | The testing tools above, `chart_shapes`, `chart_picture`; `move_element` takes `into` and `copy` and accepts chart names. File tools `ui_screenshot`, `ui_mouse`, `save_test_document`. |
 
+### New in v3.7: watch the tests run, fix what failed, a clearer top bar
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Edit / Comment / Interact switch** | Top bar, centre; **Alt+1 / Alt+2 / Alt+3** | One colour per mode (Edit indigo, Comment amber, Interact green) with a marker that slides to the active one. In Comment and Interact the stage gets a frame in that colour and a banner that says what the mode does, with **Back to Edit**. The status bar shows the mode too. |
+| **Close a dashboard** | The **✕** on the name chip (top left), **File › Close**, Ctrl+K "Close" | Goes back to the start screen. If there are changes you have not exported, it asks: **Cancel**, **Close without saving** or **Export, then close**. Opening a different dashboard no longer saves over the last one's file. |
+| **Watch the tests run** | **Testing › Run all**, ▶ on a case | The Testing window steps aside and a card shows the progress bar, the case and step being run (in words), a dot per case that turns green or red, the pass / fail counts and the time. A pointer moves to each part before it is clicked or hovered; checks outline what they look at. **Stop** ends after the current step; **Fast / Normal / Slow** sets the pace. |
+| **Results at a glance** | End of a run, and **Testing › Test cases** | A results ring, status chips you click to filter (Fail, Pass, Needs a person…), pass-rate bars for the last runs, the time each case took, and a picture of the part each failed case was checking (click to copy). **Rerun failed** runs only the failures. |
+| **Prompt from failures** | **Testing › Fix failures**, the runner card, **Test cases › Prompt from failures** | A prompt for an AI assistant built from what failed: each failed case with its steps, the step that failed and what actually happened, the dashboard's tabs, charts and KPI cards, and clear instructions (find the cause, decide dashboard bug or wrong test, fix, test again) with a report table. Choose an AI connected through MCP (it re-runs the tests itself) or an ordinary chat (it reads the file; you can paste the file into the prompt), and **fix** or **find the cause only**. |
+| **A fresh start screen** | When nothing is open | A cleaner hero, the four ways to start, **Pick up where you left off** (the latest saved version of each dashboard), and the Edit / Review / Test / Publish strip. |
+| **MCP** | Both servers | `close_dashboard`; `save_test_document` and `test_document` take `format: "failures"` (and `goal: "fix" | "retest"`) for the prompt from failed tests. |
+
 ---
 
 ## 3. How-to guide
 
 ### Selecting and editing
-- **Edit mode** (top right) is the default. Click to select. **Alt+↑** or the breadcrumb in the right panel selects the parent (e.g. the whole card). **Esc** deselects.
-- **Interact mode** lets you use the dashboard normally: its own buttons, filters, tooltips, drill-downs. Switch to it to test.
+- **Edit mode** (top centre, **Alt+1**) is the default. Click to select. **Alt+↑** or the breadcrumb in the right panel selects the parent (e.g. the whole card). **Esc** deselects.
+- **Interact mode** (**Alt+3**) lets you use the dashboard normally: its own buttons, filters, tooltips, drill-downs. Switch to it to test. **Comment mode** is **Alt+2**. The stage gets a coloured frame in Comment and Interact so you always know which mode is on.
 - **Double-click text** to type. **Enter** finishes a heading. **Esc** cancels focus.
 - The **Inspector** (right) edits font, size, weight, colour, background, alignment, width/height, padding, margin, corner radius, border, visibility and order. Brand colours appear as swatches.
 - Text you edit on the page's own elements is kept even if the dashboard's script rewrites it on load (e.g. KPI values): Mothership re-applies your text after the page draws. Elements marked **script-made** are created entirely by the dashboard's code, so edits to them may be lost when the page reloads. Edit their source (chart settings, data) instead.
