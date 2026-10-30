@@ -53,7 +53,7 @@
   var keyFwd = null;
   St.play = function (i, full) {
     var r = rt(); if (!r) return MS.toast('Turn off Safe mode to play the story.', 'warn');
-    if (!St.steps().length) return MS.toast('The story has no steps yet. Select a chart, then Present › Story › Add the selected part.', 'warn');
+    if (!St.steps().length) return MS.toast('The story has no steps yet. Select a chart, then Consulting › Storyline › Add the selected part.', 'warn');
     if (full) { var stage = MS.$('#stage'); if (stage && stage.requestFullscreen) stage.requestFullscreen().catch(function () {}); }
     if (!keyFwd) {
       keyFwd = function (e) { if (r.story.i >= 0 && !(e.target.closest && e.target.closest('.dlg-wrap,input,textarea,select'))) r.story.key(e); };

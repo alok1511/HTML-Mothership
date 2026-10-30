@@ -15,7 +15,7 @@
   // Brand and colour commands call this: true (with a message) while the firm template is locked.
   Fm.blocks = function (what) {
     if (Fm.applying || !Fm.locked()) return false;
-    MS.toast('The brand is locked to the "' + Fm.current().name + '" firm template, so ' + (what || 'colours and fonts') + ' can\'t change. Design › Firm template › Unlock.', 'warn', 6500);
+    MS.toast('The brand is locked to the "' + Fm.current().name + '" firm template, so ' + (what || 'colours and fonts') + ' can\'t change. Consulting › Firm template › Unlock.', 'warn', 6500);
     return true;
   };
   // The style fields the template owns: colours and font families (size, weight and layout stay free).
@@ -77,7 +77,7 @@
   Fm.lock = function (on, password) {
     if (!need()) return Promise.resolve(false);
     var f = Fm.current();
-    if (!f) { MS.toast('Apply a firm template first (Design › Firm template).', 'warn'); return Promise.resolve(false); }
+    if (!f) { MS.toast('Apply a firm template first (Consulting › Firm template).', 'warn'); return Promise.resolve(false); }
     if (on) {
       var mk = password ? MS.publish.pbkdf2(password, 'firm:' + f.name, 100000).then(function (key) { return { salt: 'firm:' + f.name, iter: 100000, key: key }; }) : Promise.resolve(null);
       return mk.then(function (pw) { MS.history.state('Lock the brand', function (s) { s.firm.locked = true; if (pw) s.firm.pw = pw; }); MS.emit('firm'); return true; });

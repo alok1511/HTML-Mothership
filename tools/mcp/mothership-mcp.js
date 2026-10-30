@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.6.0';
+var VERSION = '2.7.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -301,6 +301,8 @@ function printPdf(html) {
     .then(function (r) { close(); return r.data; }, function (e) { close(); throw e; });
 }
 
+function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
 var LOCAL = {
   status: { description: 'Is Mothership running? Which browser, which editor file, and what is open.', props: {},
     run: function () {
@@ -392,11 +394,41 @@ var LOCAL = {
       var args = {}; ['version', 'note', 'by', 'as_of', 'password', 'unlock', 'badge', 'keep_comments'].forEach(function (k) { if (a[k] !== undefined) args[k] = a[k]; });
       return api('publish', args).then(function (r) { var file = outPath(a.path, r.name); fs.writeFileSync(file, r.html, 'utf8'); return { saved: file, version: r.version, locked: r.locked, sha256: r.sha256, size: Math.round(r.bytes / 1024) + ' KB' }; });
     } },
+  ui_screenshot: { description: 'Testing: a picture of the dashboard, or of one part (target: a ref, text=…, chart=…, kpi=…, tab=… or a CSS selector), at its real size. Use it for every "check by eye" step and for each failure.', props: { target: ['string', 'The part (default: the whole dashboard on screen)'], path: ['string', 'Also save the PNG here'] },
+    run: function (a) {
+      if (!a.target) return LOCAL.screenshot.run({ what: 'dashboard', path: a.path });
+      return api('ui_locate', { target: a.target }).then(function (l) {
+        if (!(l.width > 1 && l.height > 1)) throw new Error(l.what + ' is not on screen (open its tab first).');
+        return wait(150).then(function () { return cdp('Page.captureScreenshot', { format: 'png', clip: { x: l.x, y: l.y, width: l.width, height: l.height, scale: Math.min(2, 1 / (l.scale || 1)) } }); }).then(function (r) {
+          var saved = null; if (a.path) { saved = outPath(a.path); fs.writeFileSync(saved, Buffer.from(r.data, 'base64')); }
+          return { __content: [{ type: 'image', data: r.data, mimeType: 'image/png' }, { type: 'text', text: (saved ? 'Saved to ' + saved + '. ' : '') + 'Picture of ' + l.what }] };
+        });
+      });
+    } },
+  ui_mouse: { description: 'Testing: real mouse input, as a person would do it (the browser\'s own events, like Playwright). action: click (default), dblclick, hover, right_click. For a chart, point = a category. Returns what changed and the pop-up text. ui_click / ui_hover do the same with page events and work everywhere; use ui_mouse when a dashboard ignores those.', props: { target: ['string', 'The part: a ref, text=…, button=…, chart=…, kpi=…, tab=… or a CSS selector', true], action: ['string', 'click | dblclick | hover | right_click'], point: ['string', 'A chart category'], series: ['number', 'Which series (0 = first)'] },
+    run: function (a) {
+      var act = a.action || 'click';
+      return api('ui_locate', { target: a.target, point: a.point, series: a.series, interact: true }).then(function (l) {
+        var x = l.cx, y = l.cy, btn = act === 'right_click' ? 'right' : 'left', n = act === 'dblclick' ? 2 : 1;
+        var ev = function (type, extra) { return cdp('Input.dispatchMouseEvent', Object.assign({ type: type, x: x, y: y, button: 'none', clickCount: 0 }, extra || {})); };
+        var chain = ev('mouseMoved').then(function () { return wait(60); });
+        if (act !== 'hover') for (var i = 1; i <= n; i++) (function (i) { chain = chain.then(function () { return ev('mousePressed', { button: btn, clickCount: i }); }).then(function () { return ev('mouseReleased', { button: btn, clickCount: i }); }); })(i);
+        return chain.then(function () { return wait(act === 'hover' ? 250 : 350); }).then(function () { return api('ui_after', {}); }).then(function (r) { return Object.assign({ did: act, on: l.what, at: { x: Math.round(x), y: Math.round(y) } }, r); });
+      });
+    } },
+  save_test_document: { description: 'Testing: save the test document with the results: markdown (default), html (prints to PDF), xlsx (Excel tracker of the cases), json, or prompt (instructions for another AI tester).', props: { format: ['string', 'markdown | html | xlsx | json | prompt'], path: ['string', 'Where to save (default: <name> - test plan.<ext>)'] },
+    run: function (a) {
+      return api('test_document', { format: a.format || 'markdown' }).then(function (r) {
+        var file = outPath(a.path, r.name);
+        if (r.b64) fs.writeFileSync(file, Buffer.from(r.b64, 'base64')); else fs.writeFileSync(file, r.text, 'utf8');
+        return api('test_plan', {}).then(function (p) { return { saved: file, summary: p.summary }; });
+      });
+    } },
   chart_image: { description: 'A PNG of one chart (shown to you, optionally saved).', props: { chart: ['string', 'Chart name or key', true], path: ['string', 'Also save it here'] },
     run: function (a) { return LOCAL.screenshot.run({ what: a.chart, path: a.path }); } }
 };
 // in-page tools that the file-system versions above replace
-var HIDDEN = { open_folder_files: 1, insert_content_file: 1, comments_tracker: 1, apply_tracker: 1, publish: 1 };
+var HIDDEN = { open_folder_files: 1, insert_content_file: 1, comments_tracker: 1, apply_tracker: 1, publish: 1, ui_after: 1 };
 
 function schemaOf(props) {
   var p = {}, req = [];
@@ -435,7 +467,8 @@ function callTool(name, args) {
 var INSTRUCTIONS = 'Mothership edits HTML dashboards like PowerPoint edits slides. Start with open_file (or new_dashboard), then outline to see the tabs, charts, datasets and comments. ' +
   'Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. Every change is undoable (undo). ' +
   'Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). ' +
-  'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout.';
+  'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout. ' +
+  'To test a dashboard like Playwright: ui_snapshot, then ui_tab / ui_click / ui_hover / ui_select / ui_type, check with ui_expect / ui_read / ui_errors, look with ui_screenshot; plan and record with test_plan / test_run / test_record and save with save_test_document.';
 
 function reply(id, result) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, result: result }) + '\n'); }
 function fail(id, code, message) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, error: { code: code, message: message } }) + '\n'); }

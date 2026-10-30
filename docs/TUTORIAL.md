@@ -244,17 +244,25 @@ Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbe
 
 A typical order, about ten minutes:
 
-1. **Design › Firm template**: apply your firm's template (logo, fonts, palette, disclaimer). It stays locked so colours and fonts can't drift.
-2. **Copy and paste** what you need: select a chart card, Ctrl+C, click where it should go, Ctrl+V. Right-click shows everything you can do with a part.
-3. **Charts › Source** on each chart (tick "every chart without a source" for the first one), then **Charts › Footnotes**.
-4. **Annotate**: right-click the point that matters › *Annotate this point* › write the "so what". Drag the note where it reads best.
-5. **Review › Stage › In review**, share it, and collect comments. Type @AK in a comment to assign it; each reviewer clicks **For me** in the Comments pane.
-6. **Design › Colour-blind** and **Review › Accessibility**: fix what they find.
-7. **Design › Confidential**, and **Design › Remove names** if the file goes beyond the client team (save a cleaned copy).
-8. **Review › Storyline › Draft one step per chart**, then rewrite each headline as the takeaway. **View › Play story** to rehearse.
-9. **Review › Stage › Client-ready** (it warns about anything still open), then **File › PDF** or **File › PowerPoint** (one page or slide per tab, or per story step), and **File › Publish** for the HTML.
+1. **Consulting › Firm template**: apply your firm's template (logo, fonts, palette, disclaimer). It stays locked so colours and fonts can't drift.
+2. **Arrange it**: press on a chart or KPI card and drag it where it should go; the blue bar shows where it will land (hold Ctrl to copy, Esc to cancel). Or copy and paste: Ctrl+C, click where it should go, Ctrl+V. Right-click shows everything you can do with a part.
+3. **Consulting › Source** on each chart (tick "every chart without a source" for the first one), then **Consulting › Footnotes**.
+4. **Annotate**: right-click the point that matters › *Annotate this point* › write the "so what". Drag the note where it reads best. **Consulting › Growth (CAGR)** puts a growth arrow over the bars with the CAGR; **Difference** brackets two bars with the change; **Arrow, Box, Circle, Callout** are drawn by dragging on the chart.
+5. **Consulting › Stage › In review**, share it, and collect comments. Type @AK in a comment to assign it; each reviewer clicks **For me** in the Comments pane.
+6. **Consulting › Colour-blind** and **Review › Accessibility**: fix what they find.
+7. **Consulting › Confidential**, and **Consulting › Remove names** if the file goes beyond the client team (save a cleaned copy).
+8. **Consulting › Storyline › Draft one step per chart**, then rewrite each headline as the takeaway. **View › Play story** to rehearse.
+9. **Consulting › Stage › Client-ready** (it warns about anything still open), then **File › PDF** or **File › PowerPoint** (one page or slide per tab, or per story step), and **File › Publish** for the HTML.
 
-**Review › Change log** shows who changed what, and it travels inside the file.
+**Consulting › Change log** shows who changed what, and it travels inside the file. To drop one chart into a slide, right-click it › **Copy as picture** and paste in PowerPoint.
+
+## Testing a dashboard before it goes out
+
+1. **Testing › Draft tests**: Mothership writes the test cases from the dashboard (every tab, chart, KPI card, filter, button, screen size, accessibility, export).
+2. **Testing › Test cases**: read them, edit any (✎), add your own. Steps are one per line: `step | target | value`, for example `hover | chart=Sales by region @ West` or `expect_text | kpi=Margin | 16.1%`.
+3. **Run all**: the automatic steps run and each case gets Pass, Fail or Needs a person. Look at the screenshots or the dashboard for the "check by eye" steps and set their result.
+4. **Test document** saves the full plan with results, defect log and sign-off (Markdown, HTML for PDF, Excel or JSON).
+5. **AI tester** copies a prompt for another AI. Connected through MCP, it can click, hover, check and take screenshots itself, and record the results.
 
 ## Publishing and locking
 

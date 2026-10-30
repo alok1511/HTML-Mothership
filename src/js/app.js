@@ -1,7 +1,7 @@
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '2.6.0';
+  MS.VERSION = '2.7.0';
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };
@@ -14,6 +14,8 @@
   V.layout = function () {
     var host = MS.$('#stage-frame-host'), stage = MS.$('#stage'), f = host && host.querySelector('iframe');
     if (!f) return;
+    // scrollIntoView inside the dashboard also scrolls this clipped box, which hides the top of the page: undo that
+    if (!host._msPinned) { host._msPinned = true; host.addEventListener('scroll', function () { if (host.scrollTop || host.scrollLeft) { host.scrollTop = 0; host.scrollLeft = 0; } }); }
     var presenting = document.body.classList.contains('presenting'), pad = presenting ? 0 : 24;
     var availW = Math.max(200, stage.clientWidth - pad), availH = Math.max(200, stage.clientHeight - pad);
     var w = V.width === 'auto' ? (availW >= AUTO_MIN || presenting ? null : AUTO_MIN) : V.width === 'panel' ? null : +V.width;
@@ -27,7 +29,7 @@
     var lbl = MS.$('#zoom-pct'); if (lbl) { lbl.textContent = Math.round(z * 100) + '%'; lbl.title = 'Drawn at ' + vw + ' px wide' + (V.zoom === 'fit' ? ', scaled to fit' : '') + '. Click for zoom options.'; }
     MS.$$('#zoom-fit').forEach(function (b) { b.classList.toggle('on', V.zoom === 'fit'); });
   };
-  V.setWidth = function (px) { V.width = px || 'auto'; MS.prefs.set('renderWidth', V.width); V.layout(); if (MS.ribbon) MS.ribbon.render(); MS.toast(V.width === 'auto' ? 'Width: automatic (drawn at ' + AUTO_MIN + ' px or more, scaled to fit)' : V.width === 'panel' ? 'Width: same as the panel (no scaling)' : 'Drawn at ' + V.width + ' px wide', 'ok', 2500); };
+  V.setWidth = function (px, quiet) { V.width = px || 'auto'; MS.prefs.set('renderWidth', V.width); V.layout(); if (MS.ribbon) MS.ribbon.render(); if (!quiet) MS.toast(V.width === 'auto' ? 'Width: automatic (drawn at ' + AUTO_MIN + ' px or more, scaled to fit)' : V.width === 'panel' ? 'Width: same as the panel (no scaling)' : 'Drawn at ' + V.width + ' px wide', 'ok', 2500); };
   V.setZoom = function (z) { V.zoom = z === 'fit' ? 'fit' : Math.max(0.25, Math.min(3, +z)); MS.prefs.set('zoom', V.zoom); V.layout(); };
   V.step = function (dir) {
     var cur = V.scale, next = dir > 0 ? ZOOMS.filter(function (x) { return x > cur + 0.001; })[0] : ZOOMS.filter(function (x) { return x < cur - 0.001; }).pop();

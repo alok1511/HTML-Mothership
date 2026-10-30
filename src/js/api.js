@@ -29,6 +29,7 @@
     if (!ref) { if (MS.sel) return MS.sel; throw new Error('Say which element (a ref from find, or a CSS selector).'); }
     if (/^[\w-]+$/.test(ref)) el = d.querySelector('[data-ms-ref="' + ref + '"],[data-ms-id="' + ref + '"]');
     if (!el) try { el = d.querySelector(ref); } catch (e) {}
+    if (!el && rt()) try { el = rt().chart(chartKey(ref)).el; } catch (e) {}
     if (!el) throw new Error('No element matches "' + ref + '".');
     return el;
   }
@@ -123,8 +124,14 @@
     } };
   A.delete = { d: 'Delete an element or block (undoable).', p: { ref: ['string', 'Element ref or selector', true] }, f: function (a) { MS.blocks.remove(elOf(a.ref)); return done(); } };
   A.duplicate = { d: 'Duplicate an element or chart block.', p: { ref: ['string', 'Element ref or selector', true] }, f: function (a) { var el = elOf(a.ref); var n = MS.clipboard.duplicate(el); return { ref: n ? refOf(n) : null }; } };
-  A.move_element = { d: 'Move an element before/after another one (e.g. reorder sections or cards).', p: { ref: ['string', 'Element to move', true], before: ['string', 'Put it before this element'], after: ['string', 'Put it after this element'] },
-    f: function (a) { var el = elOf(a.ref), t = elOf(a.before || a.after); MS.history.move('Move', el, function () { t.parentNode.insertBefore(el, a.before ? t : t.nextSibling); }); return done(); } };
+  A.move_element = { d: 'Move (or copy) an element before/after another one, or into a section or card, like dragging it with the mouse (e.g. reorder charts, KPI cards or sections). A chart name moves its whole card.', p: { ref: ['string', 'Element to move: a ref, selector or chart name', true], before: ['string', 'Put it before this element (ref, selector or chart name)'], after: ['string', 'Put it after this element'], into: ['string', 'Or put it at the end of this section or card'], copy: ['boolean', 'Copy instead of move'] },
+    f: function (a) {
+      var unit = function (x) { var e = MS.api.elOf(x); return MS.clipboard.unitOf(e) || e; };
+      var el = unit(a.ref), where = a.into ? { into: MS.api.elOf(a.into) } : a.before ? { before: unit(a.before) } : a.after ? { after: unit(a.after) } : null;
+      if (!where) throw new Error('Say where: before, after or into.');
+      where.copy = !!a.copy;
+      var out = MS.move.to(el, where); return { ref: out && out.nodeType === 1 ? refOf(out) : null };
+    } };
   A.replace_text = { d: 'Find and replace text everywhere in the dashboard.', p: { find: ['string', 'Text to find', true], replace: ['string', 'Replacement', true] },
     f: function (a) { return MS.plugins.runRecipe({ steps: [{ do: 'replaceText', find: a.find, replace: a.replace }] }, 'api'); } };
 
@@ -565,6 +572,7 @@
       return { fromComments: MS.present.commentMode(), tabs: tabs.filter(function (x) { return a.tab == null || low(x.title) === low(a.tab); }).map(function (x) { return { tab: x.title, notes: MS.present.notesFor(x) }; }) };
     } };
 
+  var early = (MS.api && MS.api._queue) || [];
   MS.api = {};
   MS.api.refOf = refOf;
   Object.keys(A).forEach(function (k) { MS.api[k] = function (args) { return A[k].f(args || {}); }; });
@@ -576,6 +584,10 @@
       return { name: k, description: A[k].d, inputSchema: { type: 'object', properties: props, required: req } };
     });
   };
+  // Later modules add their own tools: MS.api.add(name, {d, p, f}).
+  MS.api.add = function (name, def) { A[name] = def; MS.api[name] = function (args) { return def.f(args || {}); }; };
+  early.forEach(function (x) { MS.api.add(x[0], x[1]); });
+  MS.api.elOf = elOf; MS.api.chartKey = chartKey;
   MS.api.run = function (name, args) {
     if (!A[name]) return Promise.reject(new Error('Unknown tool ' + name));
     try { return Promise.resolve(A[name].f(args || {})); } catch (e) { return Promise.reject(e); }

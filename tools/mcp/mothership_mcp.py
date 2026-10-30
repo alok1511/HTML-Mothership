@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '2.6.0'
+VERSION = '2.7.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -503,6 +503,59 @@ def t_screenshot(a):
     return {'__content': [{'type': 'image', 'data': data, 'mimeType': 'image/png'}, {'type': 'text', 'text': ('Saved to ' + saved) if saved else 'Screenshot of ' + what}]}
 
 
+def t_ui_screenshot(a):
+    if not a.get('target'):
+        return t_screenshot({'what': 'dashboard', 'path': a.get('path')})
+    B.ensure()
+    loc = B.api('ui_locate', {'target': a['target']})
+    if not (loc.get('width', 0) > 1 and loc.get('height', 0) > 1):
+        raise RuntimeError(loc.get('what', 'That part') + ' is not on screen (open its tab first).')
+    time.sleep(0.15)
+    clip = {'x': loc['x'], 'y': loc['y'], 'width': loc['width'], 'height': loc['height'], 'scale': min(2, 1 / (loc.get('scale') or 1))}
+    data = B.cdp('Page.captureScreenshot', {'format': 'png', 'clip': clip})['data']
+    saved = None
+    if a.get('path'):
+        saved = out_path(a['path'])
+        with open(saved, 'wb') as f:
+            f.write(base64.b64decode(data))
+    return {'__content': [{'type': 'image', 'data': data, 'mimeType': 'image/png'}, {'type': 'text', 'text': ('Saved to %s. ' % saved if saved else '') + 'Picture of ' + loc.get('what', '')}]}
+
+
+def t_ui_mouse(a):
+    act = a.get('action') or 'click'
+    B.ensure()
+    loc = B.api('ui_locate', {'target': a.get('target'), 'point': a.get('point'), 'series': a.get('series'), 'interact': True})
+    x, y = loc['cx'], loc['cy']
+    btn = 'right' if act == 'right_click' else 'left'
+
+    def ev(kind, **extra):
+        p = {'type': kind, 'x': x, 'y': y, 'button': 'none', 'clickCount': 0}
+        p.update(extra)
+        B.cdp('Input.dispatchMouseEvent', p)
+    ev('mouseMoved')
+    time.sleep(0.06)
+    if act != 'hover':
+        for i in range(1, 3 if act == 'dblclick' else 2):
+            ev('mousePressed', button=btn, clickCount=i)
+            ev('mouseReleased', button=btn, clickCount=i)
+    time.sleep(0.25 if act == 'hover' else 0.35)
+    r = {'did': act, 'on': loc.get('what'), 'at': {'x': round(x), 'y': round(y)}}
+    r.update(B.api('ui_after', {}))
+    return r
+
+
+def t_save_test_document(a):
+    r = B.api('test_document', {'format': a.get('format') or 'markdown'})
+    full = out_path(a.get('path'), r['name'])
+    if r.get('b64'):
+        with open(full, 'wb') as f:
+            f.write(base64.b64decode(r['b64']))
+    else:
+        with open(full, 'w', encoding='utf-8', newline='') as f:
+            f.write(r['text'])
+    return {'saved': full, 'summary': B.api('test_plan', {}).get('summary')}
+
+
 def t_save_prompt(a):
     keys = ('goal', 'assistant', 'scope', 'tab', 'output', 'group', 'detail', 'include_done', 'extra', 'embed_html')
     p = B.api('comments_prompt', {k: a[k] for k in keys if k in a})
@@ -646,10 +699,16 @@ LOCAL = {
                      {'path': ['string', 'The .xlsx file', True]}, lambda a: B.api('apply_tracker', {'file': b64file(a.get('path'))})),
     'compare_file': ('What changed between a dashboard file on disk and what is open now (or a second file): tabs, text, chart settings, data, KPI cards, filters, colours, comments.',
                      {'path': ['string', 'The earlier .html file', True], 'after': ['string', 'A later .html file (default: the dashboard open now)']}, t_compare_file),
+    'ui_screenshot': ('Testing: a picture of the dashboard, or of one part (target: a ref, text=…, chart=…, kpi=…, tab=… or a CSS selector), at its real size. Use it for every "check by eye" step and for each failure.',
+                      {'target': ['string', 'The part (default: the whole dashboard on screen)'], 'path': ['string', 'Also save the PNG here']}, t_ui_screenshot),
+    'ui_mouse': ("Testing: real mouse input, as a person would do it (the browser's own events, like Playwright). action: click (default), dblclick, hover, right_click. For a chart, point = a category. Returns what changed and the pop-up text. ui_click / ui_hover do the same with page events and work everywhere; use ui_mouse when a dashboard ignores those.",
+                 {'target': ['string', 'The part: a ref, text=…, button=…, chart=…, kpi=…, tab=… or a CSS selector', True], 'action': ['string', 'click | dblclick | hover | right_click'], 'point': ['string', 'A chart category'], 'series': ['number', 'Which series (0 = first)']}, t_ui_mouse),
+    'save_test_document': ('Testing: save the test document with the results: markdown (default), html (prints to PDF), xlsx (Excel tracker of the cases), json, or prompt (instructions for another AI tester).',
+                           {'format': ['string', 'markdown | html | xlsx | json | prompt'], 'path': ['string', 'Where to save (default: <name> - test plan.<ext>)']}, t_save_test_document),
     'chart_image': ('A PNG of one chart (shown to you, optionally saved).', {'chart': ['string', 'Chart name or key', True], 'path': ['string', 'Also save it here']},
                     lambda a: t_screenshot({'what': a.get('chart'), 'path': a.get('path')})),
 }
-HIDDEN = {'open_folder_files', 'insert_content_file', 'comments_tracker', 'apply_tracker', 'publish'}
+HIDDEN = {'open_folder_files', 'insert_content_file', 'comments_tracker', 'apply_tracker', 'publish', 'ui_after'}
 
 
 def schema_of(props):
@@ -700,7 +759,9 @@ def call_tool(name, args):
 INSTRUCTIONS = ('Mothership edits HTML dashboards like PowerPoint edits slides. Start with open_file (or new_dashboard), then outline to see the tabs, charts, '
                 'datasets and comments. Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. '
                 'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). '
-                'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout.')
+                'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout. '
+                'To test a dashboard like Playwright: ui_snapshot, then ui_tab / ui_click / ui_hover / ui_select / ui_type, check with ui_expect / ui_read / ui_errors, look with ui_screenshot; '
+                'plan and record with test_plan / test_run / test_record and save with save_test_document.')
 
 _out_lock = threading.Lock()
 

@@ -186,18 +186,33 @@ HTML-Mothership/
 
 | Feature | Where | What it does |
 |---|---|---|
-| **Firm template, locked** | **Design › Firm template** | Your firm's logo, fonts, chart palette and disclaimer footer in one template that any dashboard snaps to in one click. Locked by default: brand, theme, fonts and chart colours can't be changed until someone unlocks it (optionally with a password). Share it as a `.firm.json` file; Mothership offers it for every new dashboard. |
+| **Firm template, locked** | **Consulting › Firm template** | Your firm's logo, fonts, chart palette and disclaimer footer in one template that any dashboard snaps to in one click. Locked by default: brand, theme, fonts and chart colours can't be changed until someone unlocks it (optionally with a password). Share it as a `.firm.json` file; Mothership offers it for every new dashboard. |
 | **PDF** | **File › PDF** | One page per tab, fitted to A4 landscape, with the firm logo, tab title, date, stage, footer, "Client confidential" and page numbers. Uses the browser's own "Save as PDF", so nothing to install. |
 | **PowerPoint** | **File › PowerPoint** | One slide per tab (or per story step) with an editable title, the page as a picture and the firm footer. Opens in PowerPoint, LibreOffice and Google Slides. |
-| **Annotations** | Right-click a chart point › **Annotate this point**, or **Charts › Annotate** | Callouts, arrows and "So what" boxes pinned to a data point. They follow the point when the data, filters or size change. Drag to place; double-click to edit. |
-| **Storyline** | **Review › Storyline**, **View › Play story**, right-click › **Add to the story** | Steps through chosen charts and sections like slides: each step lights up one part and shows its headline. "Draft one step per chart" gets you started. Exported files get a **▶ Play the story** button. |
-| **Review workflow** | Comments pane, **Review › Stage** | Assign a comment to someone (initials) or @mention them; **For me** shows yours. **Draft / In review / Client-ready** stamp on the dashboard; client-ready warns about open comments and charts without a source. |
-| **Source and "as of" on every chart** | Right-click a chart › **Source and date**, **Charts › Source** | "Source: … · As of …" under the chart; one entry can fill every chart. **Charts › Footnotes** adds a "Notes and sources" block with every source and the disclaimer. |
-| **Client confidential** | **Design › Confidential** | A watermark on every page (screen and print) and a label in the footer. |
-| **Remove client names** | **Design › Remove names** | Replaces client or people names in the text, chart labels, data, comments, settings and the page's own scripts. Save a cleaned copy, or clean this dashboard (a version is kept first). Tells you if any mention is left inside a word or a picture. |
-| **Colour-blind check** | **Design › Colour-blind**, also in **Review › Accessibility** | Finds chart colours that red-, green- or blue-blind readers can't tell apart, previews the dashboard as they see it, and switches to a colour-blind safe palette (Okabe–Ito) in one click. |
-| **Change log in the file** | **Review › Change log** | Who changed what and when, saved inside the dashboard file and kept across versions. Download as CSV. |
+| **Annotations** | Right-click a chart point › **Annotate this point**, or **Consulting › Annotate** | Callouts, arrows and "So what" boxes pinned to a data point. They follow the point when the data, filters or size change. Drag to place; double-click to edit. |
+| **Storyline** | **Consulting › Storyline**, **View › Play story**, right-click › **Add to the story** | Steps through chosen charts and sections like slides: each step lights up one part and shows its headline. "Draft one step per chart" gets you started. Exported files get a **▶ Play the story** button. |
+| **Review workflow** | Comments pane, **Consulting › Stage** | Assign a comment to someone (initials) or @mention them; **For me** shows yours. **Draft / In review / Client-ready** stamp on the dashboard; client-ready warns about open comments and charts without a source. |
+| **Source and "as of" on every chart** | Right-click a chart › **Source and date**, **Consulting › Source** | "Source: … · As of …" under the chart; one entry can fill every chart. **Consulting › Footnotes** adds a "Notes and sources" block with every source and the disclaimer. |
+| **Client confidential** | **Consulting › Confidential** | A watermark on every page (screen and print) and a label in the footer. |
+| **Remove client names** | **Consulting › Remove names** | Replaces client or people names in the text, chart labels, data, comments, settings and the page's own scripts. Save a cleaned copy, or clean this dashboard (a version is kept first). Tells you if any mention is left inside a word or a picture. |
+| **Colour-blind check** | **Consulting › Colour-blind**, also in **Review › Accessibility** | Finds chart colours that red-, green- or blue-blind readers can't tell apart, previews the dashboard as they see it, and switches to a colour-blind safe palette (Okabe–Ito) in one click. |
+| **Change log in the file** | **Consulting › Change log** | Who changed what and when, saved inside the dashboard file and kept across versions. Download as CSV. |
 | **MCP tools** | Both servers | `firm_template`, `stage`, `confidential`, `scrub_names`, `change_log`, `colour_blind_check`, `annotate`, `chart_source`, `insert_footnotes`, `story`, `print_layout`, `export_pptx`; `add_comment` / `update_comment` take `to`. File tools `save_pdf`, `save_pptx`, `scrubbed_copy`. |
+
+### New in v3.6: move with the mouse, draw on charts, pictures, testing
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Move charts and KPI cards with the mouse** | Edit mode: press on a chart or card and drag | Like PowerPoint: a ghost follows the mouse, a blue bar shows exactly where it will land ("Move to the right", "Move below") and the target area is outlined. Hold **Ctrl** to copy. Drop on one of the dashboard's tabs (or a ribbon tab) to send it there. **Esc** cancels; one **Ctrl+Z** undoes it. |
+| **Floating toolbar** | Appears above whatever you select | Drag handle, name, chart settings, draw on the chart, copy as picture, duplicate, delete and the full menu. Sized for the zoom, so it stays readable. Turn it off from **View**. |
+| **Draw on charts** | **Consulting › Draw on chart**, the toolbar's ✎, or right-click › **Draw on the chart** | The McKinsey set: a **growth arrow** labelled with the CAGR between two bars, a **difference** bracket (+$1.2M, +15%), arrows, lines, double arrows, boxes, circles, text and callouts. Growth and difference sit on data points and follow them when the data, filters or size change. Click a shape for its own toolbar (colour, width, dash, fill, arrowheads, label); drag to move; Delete to remove. Shapes stay in the exported file. |
+| **Copy a chart as a picture** | Right-click › **Copy as picture** (Ctrl+Shift+C), **Charts › Share**, **Consulting › Copy picture**, the toolbar | A sharp PNG of the chart card with its title, notes and shapes, straight onto the clipboard: paste into PowerPoint, Word, Outlook or Teams. **Save as picture** downloads the PNG. If the browser blocks the clipboard, the PNG is saved instead. |
+| **Consulting tab** | Ribbon | Firm template, confidential, remove names; drawing tools; annotate, source, footnotes; storyline; stage, colour-blind, number check, change log; PDF, PowerPoint, copy picture. All the client-work tools in one place. |
+| **Testing** | **Testing** tab | **Draft tests** writes a full test plan from the dashboard: opens cleanly, every tab, every chart (numbers, pop-ups, drill-down, labels), every KPI card, filters, buttons, links, tables, KPI vs chart totals, accessibility, laptop / tablet / phone widths, export, edge cases. Edit or add cases (scenario, type, priority, steps, expected result). **Run all** runs the automatic steps (clicks, hovers, checks) and records Pass / Fail / Needs a person with a run log. |
+| **A full test document** | **Testing › Test document** | Markdown, HTML (prints to PDF), Excel or JSON: purpose and scope, what is tested, approach, test-case table, steps and expected results, results, traceability, how to run it with an AI assistant, defect log and sign-off. |
+| **Let another AI test it** | **Testing › AI tester**, or MCP | Copy a prompt that has another AI run the plan. With the MCP server, the AI works the dashboard like Playwright: `ui_snapshot` (parts with refs), `ui_tab`, `ui_click`, `ui_hover`, `ui_select`, `ui_type`, `ui_press`, `ui_expect`, `ui_read`, `ui_errors`, `ui_width`, `ui_screenshot`, real mouse input with `ui_mouse`, and `test_plan` / `test_run` / `test_record` / `save_test_document`. |
+| **A cleaner look** | Everywhere | One surface for the ribbon tabs and buttons, softer cards and shadows, quieter menus, dialogs and messages, thin scroll bars. |
+| **MCP tools** | Both servers | The testing tools above, `chart_shapes`, `chart_picture`; `move_element` takes `into` and `copy` and accepts chart names. File tools `ui_screenshot`, `ui_mouse`, `save_test_document`. |
 
 ---
 
@@ -221,7 +236,9 @@ HTML-Mothership/
 
 ### Charts
 - **Commentary:** every chart gets *Title → Subtitle → Inference → visual*. Use **Layout › Commentary** once for all charts. Click the placeholder lines to type.
-- **Move / copy:** select a chart, then **Send to tab › Move / Copy**. Or drag the ⠿ handle (top-left of a block) onto a tab name in the dashboard ribbon (hold **Ctrl** to copy). Or use Ctrl+C, switch tab, Ctrl+V.
+- **Move / copy:** press on a chart (or KPI card, or section) and drag it: the blue bar shows where it will land; hold **Ctrl** to copy, drop on a tab name to send it to that tab, **Esc** to cancel. Or select it and use **Send to tab › Move / Copy**, the ⠿ handle on the floating toolbar, or Ctrl+C, switch tab, Ctrl+V.
+- **Draw on a chart:** **Consulting › Growth (CAGR)** or **Difference** asks for the two bars; **Arrow, Box, Circle, Callout** turn the pointer into a crosshair: drag on the chart. Double-click a shape's text to change it.
+- **Picture for PowerPoint:** right-click › **Copy as picture**, then paste in PowerPoint.
 - **Resize:** drag the bottom-right corner, or set *Width (columns)* and *Height* in the Inspector.
 - **Tooltip:** double-click the chart, then the **Tooltip** tab. Placeholders: `{label} {series} {value} {pct} {total} {index}`. When the chart is bound to data, any numeric field also works, e.g. `{profit}` and `{count}`.
   Formats: `{value:inr}` → ₹1,23,45,678 · `{value:cr}` → ₹1.23 Cr · `{value:lakh}` → ₹12.35 L · `{value:k}` · `{value:m}` · `{value:pct}` · `{value:0.0}` · `{value:usd}`.
@@ -231,6 +248,12 @@ HTML-Mothership/
   - *Double-click does*: drill to next level then show records · show records · cross-filter every chart · nothing.
   - A breadcrumb above the chart (`All region › South`) lets viewers climb back up.
 - **Supported chart libraries:** Chart.js, Apache ECharts, Plotly and Highcharts (everything). D3 and other SVG charts: names, pop-ups, colours, fonts, summaries, number check, image and comments, but not new data or drill-down. Images and tables can still be selected, moved, copied, resized and given commentary.
+
+### Testing a dashboard
+1. **Testing › Draft tests** writes the test cases. **Testing › Test cases** lists them by scenario with a status for each.
+2. Edit a case (✎): steps are one per line, `step | target | value`, e.g. `hover | chart=Sales @ North`, `expect_text | kpi=Revenue | $1.2M`, `select | filter=Region | West`. Anything that is not a step word is a "check by eye" step.
+3. **Run all** (or ▶ on one case). Automatic steps run in Interact mode and record Pass or Fail with what was seen; cases with "check by eye" steps become **Needs a person**: set their result from the drop-down.
+4. **Test document** exports the plan and results. **AI tester** copies a prompt for another AI; with the MCP server connected it can click, hover, check and take screenshots itself, then record results with `test_record`.
 
 ### Filter pane
 **Layout › Filter pane**: add filters (dataset + field), relabel, reorder, choose left or top, set a title. Drop-downs cascade, so choosing *West* limits *State* to western states. Filters apply to every chart **bound** to that dataset.
@@ -514,7 +537,11 @@ with MothershipClient() as ms:                      # starts the Python server
 | Data | `discover_datasets`, `add_dataset`, `refresh_dataset`, `drill_data`, `filter_pane`, `set_filter` |
 | Review | `add_comment`, `update_comment`, `list_comments` (with *Tab › Section › Chart* for each), `comments_prompt` (scope, goal, assistant, output), `save_tracker`, `load_tracker` |
 | Checks | `chart_summaries`, `number_check`, `compare_versions`, `compare_file` |
+| Draw and share | `chart_shapes` (growth arrow with CAGR, difference, arrows, boxes, callouts), `chart_picture`, `annotate` |
+| Testing (like Playwright) | `ui_snapshot`, `ui_tab`, `ui_click`, `ui_hover`, `ui_select`, `ui_type`, `ui_press`, `ui_scroll`, `ui_wait`, `ui_read`, `ui_expect`, `ui_errors`, `ui_width`, `ui_screenshot`, `ui_mouse` (real mouse), `test_plan`, `test_run`, `test_record`, `test_document`, `save_test_document` |
 | Anything else | `undo`, `redo`, `run_recipe`, `call` (any Mothership function by name) |
+
+**Testing with an AI.** Ask it: *"Open sales.html, draft a test plan, run it, check the 'check by eye' steps with screenshots, record every result and save the test document."* It calls `test_plan {action: "draft"}`, `test_run`, then works through the remaining cases with `ui_snapshot`, `ui_hover {target: "chart=Sales by region", point: "West"}`, `ui_expect {target: "kpi=Margin", text: "16.1%"}`, `ui_screenshot {target: "chart=Monthly sales trend"}` and `test_record {id, status, actual}`, and finishes with `save_test_document`. Targets: a ref from `ui_snapshot`, `text=…`, `button=…`, `tab=…`, `chart=…` (with `point` for one bar), `kpi=…`, `filter=…`, or a CSS selector.
 
 **Settings** (optional `env` entries):
 
@@ -532,7 +559,7 @@ Exports never overwrite your original: the default name is `<name>-edited.html`.
 
 ## 13. Roadmap ideas
 
-Not built yet, roughly in order of value (v3.4 delivered templates, refresh, table colour rules, presenter notes and the accessibility check; v3.5 the client-work features):
+Not built yet, roughly in order of value (v3.4 delivered templates, refresh, table colour rules, presenter notes and the accessibility check; v3.5 the client-work features; v3.6 mouse moves, drawing on charts, pictures and testing):
 
 1. **Full D3 support**: redraw D3 charts from new data, which needs knowing how each chart was built.
 2. **Real access control and signing** (needs company systems, not a file): view-only SharePoint/Teams links, sensitivity labels, and signing published files with the company's certificate instead of a self-check.

@@ -114,6 +114,30 @@ const call = async (name, args) => {
   const scr = await call('scrubbed_copy', { names: [{ from: 'Risk review', to: 'Client review' }] });
   const scrHtml = scr.json && fs.existsSync(scr.json.saved) ? fs.readFileSync(scr.json.saved, 'utf8') : '';
   check('scrubbed_copy saves a copy without the names', scr.json && scr.json.replaced[0].n >= 1 && !/Risk review/.test(scrHtml) && /Client review/.test(scrHtml), scr.error || scr.json);
+  // testing: open the sales sample and drive it like Playwright
+  await call('open_file', { path: path.join(ROOT, 'samples', 'sales-dashboard.html') });
+  const snap = await call('ui_snapshot', {});
+  check('ui_snapshot lists charts and KPI cards with refs', snap.json && snap.json.charts.length === 4 && snap.json.kpis.length === 4 && snap.json.charts.every(c => c.ref), snap.error || snap.json);
+  const hv = await call('ui_hover', { target: 'chart=Sales by region', point: 'West' });
+  check('ui_hover on a bar shows its pop-up', hv.json && hv.json.tooltip && /West/.test(hv.json.tooltip[0].text), hv.error || hv.json);
+  const mh = await call('ui_mouse', { target: 'chart=Sales by region', point: 'South', action: 'hover' });
+  check('ui_mouse: real mouse hover shows the pop-up', mh.json && mh.json.tooltip && /South/.test(mh.json.tooltip[0].text), mh.error || mh.json);
+  const ue = await call('ui_expect', { target: 'kpi=Total sales', text: '100.53' });
+  check('ui_expect checks a KPI card', ue.json && ue.json.pass === true, ue.error || ue.json);
+  const us = await call('ui_screenshot', { target: 'chart=Monthly sales trend' });
+  check('ui_screenshot of one chart', us.images.length === 1 && us.images[0].data.length > 3000, us.error);
+  const dr = await call('test_plan', { action: 'draft' });
+  check('test_plan drafts test cases', dr.json && dr.json.added >= 15, dr.error || (dr.json && dr.json.added));
+  const run = await call('test_run', { ids: ['TC-001', 'TC-002', 'TC-004'] });
+  check('test_run runs automatic cases', run.json && run.json.results.length === 3 && run.json.results.every(r => r.status === 'Pass'), run.error || (run.json && run.json.results.map(r => r.id + ' ' + r.status)));
+  const rec = await call('test_record', { id: 'TC-003', status: 'Pass', actual: 'All four regions match the finance report', by: 'MCP test' });
+  check('test_record records a result', rec.json && rec.json.status === 'Pass', rec.error || rec.json);
+  const sd = await call('save_test_document', {});
+  const sdText = sd.json && fs.existsSync(sd.json.saved) ? fs.readFileSync(sd.json.saved, 'utf8') : '';
+  check('save_test_document writes the test plan', /## 4\. Test cases/.test(sdText) && /All four regions match/.test(sdText) && /## 9\. Sign-off/.test(sdText), sd.error || sd.json);
+  const sx = await call('save_test_document', { format: 'xlsx' });
+  check('save_test_document writes Excel', sx.json && fs.readFileSync(sx.json.saved).slice(0, 2).toString() === 'PK', sx.error || sx.json);
+
   const bad = await call('no_such_tool', {});
   check('unknown tool is an error, not a crash', !!bad.error, bad);
 

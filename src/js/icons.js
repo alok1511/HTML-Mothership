@@ -124,7 +124,23 @@
     star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z',
     arrowUp: 'M12 19V5 M5 12l7-7 7 7',
     legend: ['M10 7h10 M10 12h10 M10 17h10', '<rect x="3" y="5" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="3" y="15" width="4" height="4" rx="1"/>'],
-    accessibility: ['M5 8l7 2 7-2 M12 10v5 M9 21l3-6 3 6', '<circle cx="12" cy="4.5" r="1.5"/>']
+    accessibility: ['M5 8l7 2 7-2 M12 10v5 M9 21l3-6 3 6', '<circle cx="12" cy="4.5" r="1.5"/>'],
+    building: 'M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16 M15 9h4a1 1 0 0 1 1 1v11 M3 21h18 M8 8h3 M8 12h3 M8 16h3',
+    userX: ['M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M17 8l4 4 M21 8l-4 4', '<circle cx="9.5" cy="7.5" r="3.5"/>'],
+    receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6 M9 16h3',
+    footnote: 'M4 5h16 M4 9h16 M4 13h10 M4 19h2 M9 19h11',
+    clapper: 'M4 10h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z M3.6 10l-.6-3.5 15.4-2.6.6 3.5 M8 5.8l2 3.4 M13 5l2 3.4',
+    arrowRight: 'M4 12h15 M13 6l6 6-6 6',
+    circle: ['', '<circle cx="12" cy="12" r="8"/>'],
+    delta: 'M6 20V6h12v10 M15 13l3 3 3-3',
+    growth: 'M3 17l6-6 4 4 8-8 M15 7h6v6',
+    inbox: 'M4 13h4l1 3h6l1-3h4 M4 13l2-8h3 M20 13l-2-8h-3 M4 13v6h16v-6 M12 3v8 M9 8l3 3 3-3',
+    checklist: 'M10 6h10 M10 12h10 M10 18h10 M3.5 6l1.5 1.5L8 4.5 M3.5 12l1.5 1.5L8 10.5 M3.5 18l1.5 1.5L8 16.5',
+    bug: 'M8 10h8v5a4 4 0 0 1-8 0z M12 10v9 M4 14h4 M16 14h4 M5 9l3 2 M19 9l-3 2 M5 20l3-2.5 M19 20l-3-2.5 M9 10a3 3 0 0 1 6 0',
+    playCircle: ['M10 8.5l5.5 3.5-5.5 3.5z', '<circle cx="12" cy="12" r="9"/>'],
+    camera: ['M4 8h3l2-3h6l2 3h3v11H4z', '<circle cx="12" cy="13" r="3.5"/>'],
+    plug: 'M9 2v5 M15 2v5 M6 7h12v4a6 6 0 0 1-12 0z M12 17v5',
+    moveH: 'M4 12h16 M8 8l-4 4 4 4 M16 8l4 4-4 4'
   };
   P.lightning = P.zap;
 
@@ -140,10 +156,12 @@
     '📱': 'phone', '🛡': 'shield', '🔒': 'lock', '－': 'minus', '＋': 'plus', '⤢': 'fit', '▶': 'play', '🧩': 'puzzle', '📜': 'scroll', '📖': 'book',
     '🧭': 'compass', '🎓': 'graduation', '❓': 'help', 'ℹ': 'info', '⌨': 'keyboard', '📍': 'pin', '📌': 'pushpin', '⚡': 'zap', '☝': 'pointer',
     '✕': 'close', '✓': 'check', '🔗': 'link', '🗒': 'note', '👁': 'eye', '⚠': 'warning', '―': 'divider', '1:1': 'ruler', '▥': 'columns', '◆': 'diamond',
-    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '🌍': 'globe', '🚀': 'send', '−': 'minus', '+': 'plus', '⭐': 'star', '⬆️': 'arrowUp', '🔑': 'legend', '♿': 'accessibility'
+    '⠿': 'grip', '🚦': 'traffic', '⌘': 'command', '🤖': 'robot', '🎯': 'target', '🪄': 'wand', '☀': 'sun', '🌙': 'moon', '◔': 'pieChart', '🍩': 'pieChart', '🧮': 'calc', '📗': 'sheet', '⚖': 'compare', '📰': 'captions', '🌍': 'globe', '🚀': 'send', '−': 'minus', '+': 'plus', '⭐': 'star', '⬆️': 'arrowUp', '🔑': 'legend', '♿': 'accessibility',
+    '📥': 'inbox', '🏢': 'building', '🕶': 'userX', '🧾': 'receipt', '📑': 'footnote', '🎬': 'clapper', '🗨': 'message', '➝': 'arrowRight', '◯': 'circle', '⊓': 'delta', '↗': 'growth',
+    '☑': 'checklist', '🐞': 'bug', '▷': 'playCircle', '📷': 'camera', '🔌': 'plug', '⟷': 'moveH'
   };
   // symbols that are also ordinary characters: only swapped when they are the whole label
-  var WHOLE_ONLY = { 'H': 1, '¶': 1, '≡': 1, '―': 1, '1:1': 1, '↕': 1, '⋯': 1, '－': 1, '＋': 1, '✓': 1, '✕': 1, '◆': 1, '⠿': 1, '▁': 1, '−': 1, '+': 1 };
+  var WHOLE_ONLY = { '◯': 1, '⊓': 1, '↗': 1, '➝': 1, '⟷': 1, '▷': 1, 'H': 1, '¶': 1, '≡': 1, '―': 1, '1:1': 1, '↕': 1, '⋯': 1, '－': 1, '＋': 1, '✓': 1, '✕': 1, '◆': 1, '⠿': 1, '▁': 1, '−': 1, '+': 1 };
 
   MS.ICONS = P; MS.ICON_FOR = E;
   MS.icon = function (name, cls) {

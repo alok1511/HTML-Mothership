@@ -80,7 +80,7 @@
     var num = parseFloat(m[1]), unit = (m[2] || '').toLowerCase(), dec = (m[1].split('.')[1] || '').length;
     if (/^million/.test(unit)) unit = 'm'; else if (/^billion/.test(unit)) unit = 'bn'; else if (unit === 'thousand') unit = 'k';
     var scale = /^cr/.test(unit) ? 1e7 : /^(lakh|lac|l$)/.test(unit) ? 1e5 : unit === 'k' ? 1e3 : /^(m|mn)$/.test(unit) ? 1e6 : /^(bn|b)$/.test(unit) ? 1e9 : 1;
-    return { v: num * scale, tol: 0.5 * Math.pow(10, -dec) * scale, pct: unit === '%', unit: unit, text: t };
+    return { v: num * scale, tol: 0.5 * Math.pow(10, -dec) * scale, pct: unit === '%', unit: unit, scale: scale, text: t };
   };
   function kpis() {
     var d = MS.child.doc, out = [], seen = [];
@@ -142,8 +142,11 @@
       if (!best) { results.push(Object.assign(res, { status: 'skip', note: 'No chart shows the same measure (compared by name).' })); return; }
       var avg = /avg|average|mean|per\b/i.test(k.label) || (k.spec && k.spec.agg === 'avg');
       var target = avg ? best.s.avg : best.s.total, diff = p.v - target, tol = Math.max(p.tol, Math.abs(target) * 0.005);
+      // a chart drawn in the KPI's unit (5.1, 3.6… for "$12.4M") is in millions, not dollars
+      if (p.scale > 1 && Math.abs(target) < Math.abs(p.v) / 100 && Math.abs(p.v - target * p.scale) <= Math.max(p.tol, Math.abs(target * p.scale) * 0.005)) { target *= p.scale; diff = p.v - target; tol = Math.max(p.tol, Math.abs(target) * 0.005); res.inUnit = true; }
       res.against = 'chart “' + best.c.name + '”' + (best.c.series.length > 1 ? ' › ' + best.s.name : '') + (avg ? ' (average)' : ' (total)');
       res.chart = best.c.key; res.expected = fmtLike(p, target);
+      if (res.inUnit) res.against += ', in ' + ({ m: 'millions', mn: 'millions', k: 'thousands', bn: 'billions', b: 'billions' }[p.unit] || (/^cr/.test(p.unit) ? 'crore' : 'lakh'));
       if (Math.abs(diff) <= tol) res.status = 'ok';
       else {
         res.status = 'diff';
