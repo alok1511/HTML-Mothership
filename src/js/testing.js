@@ -304,6 +304,12 @@
     if (clear) { if (w.__msErrs) w.__msErrs.length = 0; if (w.__msConsole) w.__msConsole.length = 0; }
     return out;
   };
+  // Where the error lists stand now, so a test case only answers for the errors raised while it runs.
+  D.errorMark = function () { var w = cwin(); return { s: (w.__msErrs || []).length, c: (w.__msConsole || []).length }; };
+  D.errorsSince = function (m) {
+    var e = D.errors(); if (!m) return e;
+    return { scriptErrors: e.scriptErrors.slice(Math.min(m.s, e.scriptErrors.length)), consoleErrors: e.consoleErrors.slice(Math.min(m.c, e.consoleErrors.length)) };
+  };
   D.width = function (px) {
     MS.view.setWidth(px === 'auto' || !px ? 'auto' : +px, true);
     return wait(700).then(function () { var de = cdoc().documentElement; return { width: MS.view.renderWidth, overflow: Math.max(0, de.scrollWidth - de.clientWidth) }; });
@@ -322,8 +328,8 @@
   MS.on('child-loaded', function (c) {
     try {
       var w = c.win; w.__msConsole = [];
-      var ce = w.console.error; w.console.error = function () { try { if (w.__msConsole.length < 50) w.__msConsole.push(Array.prototype.map.call(arguments, function (x) { return x && x.message ? x.message : String(x); }).join(' ').slice(0, 300)); } catch (e) {} return ce.apply(this, arguments); };
-      w.addEventListener('unhandledrejection', function (e) { if (w.__msConsole.length < 50) w.__msConsole.push('Unhandled: ' + String(e.reason && e.reason.message || e.reason).slice(0, 300)); });
+      var ce = w.console.error; w.console.error = function () { try { if (w.__msConsole.length < 200) w.__msConsole.push(Array.prototype.map.call(arguments, function (x) { return x && x.message ? x.message : String(x); }).join(' ').slice(0, 300)); } catch (e) {} return ce.apply(this, arguments); };
+      w.addEventListener('unhandledrejection', function (e) { if (w.__msConsole.length < 200) w.__msConsole.push('Unhandled: ' + String(e.reason && e.reason.message || e.reason).slice(0, 300)); });
     } catch (e) {}
   });
 
@@ -336,6 +342,7 @@
     return [];
   };
   function tabOfEl(el) { var t = Q.tabs().filter(function (x) { return x.panel && x.panel.contains(el); })[0]; return t ? t.title : null; }
+  Q.tabOf = tabOfEl; D.all = all; D.describe = describe;
   Q.kpis = function () {
     var d = cdoc(), out = [], seen = [];
     var cands = MS.$$('[data-ms-kpi],.ms-kpi,[class*="kpi"],[class*="metric"],[class*="stat-card"],[class*="scorecard"]', d).filter(function (e) { return !e.closest(OWN) && !/kpis|kpi-row|kpi-grid|metrics/.test(e.className || '') && /\d/.test(e.textContent || '') && (e.textContent || '').length < 160 && e.querySelectorAll('canvas,svg,table').length === 0; });
@@ -418,6 +425,8 @@
     expect_no_errors: 'Check there are no script errors', expect_no_overflow: 'Check nothing spills off the side of the page', expect_numbers: 'Check KPI cards agree with chart totals',
     expect_a11y: 'Check the accessibility scan (value: most findings allowed)', screenshot: 'Take a picture (target, optional)', manual: 'A person (or AI) checks this by eye (value: what to check)'
   };
+  // More step words (and their runners and wording) are added by testdeep.js.
+  Q.STEPS = {}; Q.STEP_WORDS = {};
   function plan() { var r = rt(); return (r && r.state.tests) || { title: '', cases: [] }; }
   Q.plan = plan;
   Q.cases = function () { return plan().cases || []; };
@@ -508,8 +517,8 @@
   };
   Q.draft = function (o) {
     o = o || {};
-    var cases = Q.generate(o), n = 0;
-    edit(o.replace ? 'Draft test cases (replace)' : 'Draft test cases', function (T) {
+    var cases = Q.generate(o).concat(Q.deep ? Q.deep.generate(o) : []), n = 0;
+    edit((o.depth === 'full' ? 'Draft full test cases' : 'Draft test cases') + (o.replace ? ' (replace)' : ''), function (T) {
       if (o.replace) T.cases = [];
       if (!T.title) T.title = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'Dashboard') + ' test plan';
       cases.forEach(function (c) { if (!o.replace && T.cases.some(function (x) { return low(x.title) === low(c.title); })) return; c.id = nextId(T.cases); T.cases.push(clean(c)); n++; });
@@ -524,6 +533,7 @@
     var t = s.target, v = s.value;
     var pass = function (msg) { log.push({ step: Q.stepText(s), ok: true, note: msg || '' }); };
     var fail = function (msg) { log.push({ step: Q.stepText(s), ok: false, note: msg }); throw Object.assign(new Error(msg), { stepFail: true }); };
+    if (Q.STEPS[s.do]) return Promise.resolve().then(function () { return Q.STEPS[s.do](s, pass, fail); });
     switch (s.do) {
       case 'open_tab': return D.showTab(t || v).then(function (x) { pass('on “' + x.tab + '”'); });
       case 'click': case 'double_click': var b0 = D.state(); return D.click(t, { point: s.point, double: s.do === 'double_click' }).then(function (x) { Q._last = D.changes(b0); pass(x.changed.join('; ')); });
@@ -539,7 +549,7 @@
       case 'expect_tooltip':
         return D.hover(t, { point: s.point }).then(function (x) { var txt = (x.tooltip || []).map(function (q) { return q.text; }).join(' / '); if (!txt) return fail('No pop-up appeared'); if (v && low(txt).indexOf(low(v)) < 0) return fail('The pop-up says “' + txt + '”, not “' + v + '”'); pass('pop-up: ' + txt); });
       case 'expect_changed': var ch = lastChange(); var what = low(v); var ok = ch.length && ch[0] !== 'nothing visible changed' && (!what || ch.some(function (q) { return low(q).indexOf(what) >= 0; })); return Promise.resolve(ok ? pass(ch.join('; ')) : fail('Expected a change' + (v ? ' to a ' + v : '') + ', but ' + (ch.join('; ') || 'nothing changed')));
-      case 'expect_no_errors': var er = D.errors(); var n = er.scriptErrors.length + er.consoleErrors.length; return Promise.resolve(n ? fail(n + ' error(s): ' + er.scriptErrors.concat(er.consoleErrors).slice(0, 3).join(' | ')) : pass('none'));
+      case 'expect_no_errors': var er = D.errorsSince(D._errBase); var n = er.scriptErrors.length + er.consoleErrors.length; return Promise.resolve(n ? fail(n + ' error(s): ' + er.scriptErrors.concat(er.consoleErrors).slice(0, 3).join(' | ')) : pass('none'));
       case 'expect_no_overflow': var de = cdoc().documentElement, over = de.scrollWidth - de.clientWidth; return Promise.resolve(over > 4 ? fail('The page is ' + over + ' px wider than the screen (a sideways scroll bar)') : pass('fits'));
       case 'expect_numbers': var res = MS.numcheck ? MS.numcheck.run() : [], diff = res.filter(function (q) { return q.status === 'diff'; }); return Promise.resolve(diff.length ? fail(diff.map(function (q) { return q.what + ' shows ' + q.shown + ' but ' + q.against + ' adds up to ' + q.expected; }).join('; ')) : pass(res.length ? res.length + ' compared, all agree' : 'nothing to compare'));
       case 'expect_a11y': var f = MS.a11y ? MS.a11y.check().filter(function (q) { return q.kind !== 'cvd'; }) : [], max = +v || 0; return Promise.resolve(f.length > max ? fail(f.length + ' finding(s): ' + f.slice(0, 3).map(function (q) { return q.msg; }).join(' | ')) : pass(f.length + ' finding(s)'));
@@ -550,7 +560,7 @@
   Q.runCase = function (id) {
     var c = Q.get(id); if (!c) return Promise.reject(new Error('No test case ' + id));
     var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width, t0 = Date.now();
-    D.errors(false); D._lastEl = null;
+    D._errBase = D.errorMark(); D._lastEl = null;
     c.steps.forEach(function (s, i) {
       chain = chain.then(function () {
         if (Q.stopping) throw Object.assign(new Error('Stopped'), { stopped: true });
@@ -671,6 +681,7 @@
     L.push('', '## 6. Traceability', '', '| Area | Cases |', '|---|---|');
     var areas = {}; cs.forEach(function (c) { var a = c.area || c.scenario; (areas[a] = areas[a] || []).push(c.id); });
     Object.keys(areas).forEach(function (a) { L.push('| ' + md(a) + ' | ' + areas[a].join(', ') + ' |'); });
+    if (Q.deep && MS.child) L.push('', Q.deep.coverageMd('### Coverage').trim());
     L.push('', '## 7. Running these tests with an AI assistant (MCP)', '', 'Connect the assistant to the Mothership MCP server (Help › Connect an AI assistant), open this dashboard with `open_file`, then use these tools. Every step above has a tool call:', '');
     TOOLS.forEach(function (t) { L.push('- `' + t[0] + '`: ' + t[1]); });
     L.push('', '| Step | Tool call |', '|---|---|',
@@ -708,7 +719,7 @@
       case 'expect_numbers': return 'Check the KPI cards agree with the chart totals.';
       case 'expect_a11y': return 'Run the accessibility check: at most ' + (s.value || 0) + ' findings.';
       case 'screenshot': return 'Take a screenshot' + (t ? ' of ' + t : '') + '.';
-      default: return 'Check by eye: ' + (s.value || '') + '.';
+      default: return Q.STEP_WORDS[s.do] ? Q.STEP_WORDS[s.do](s, t) : 'Check by eye: ' + (s.value || '') + '.';
     }
   }
   Q.stepWords = stepWords;
@@ -833,7 +844,9 @@
       return h('div', { 'class': 'qa-sum' }, [
         live ? live.ring(by, 76, [h('b', { text: ran ? Math.round((by.Pass || 0) / ran * 100) + '%' : '–' }), h('small', { text: ran ? 'passed' : 'not run' })]) : null,
         h('div', { 'class': 'grow' }, [
-          h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : '')]),
+          h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : ''),
+            Q.deep ? (function (C) { return h('button', { 'class': 'qa-cov-chip' + (C.percent < 100 ? ' part' : ''), title: C.untested.length ? 'Untested: ' + C.untested.slice(0, 8).join(', ') : 'Every part has a test', onclick: function () { Q.deep.coverageDialog().then(draw); } }, ['🎯 ' + C.percent + '% covered']); })(Q.deep.coverage()) : null,
+            Q.deep ? h('button', { 'class': 'qa-cov-chip' + (Q.deep.baseline() ? '' : ' part'), title: 'The numbers "right numbers" tests check against', onclick: function (e) { MS.menu(e.currentTarget, Q.deep.numbersMenu()); } }, [Q.deep.baseline() ? '🔒 Numbers locked in' : '🔢 Numbers not locked in']) : null]),
           chips]),
         tr ? h('div', { 'class': 'qa-trend-box' }, [tr, h('small', { 'class': 'muted', text: 'Pass rate by run' })]) : null]);
     }
@@ -845,7 +858,7 @@
       rerun.style.display = fails ? '' : 'none';
       list.innerHTML = '';
       var cs = Q.cases().filter(function (c) { return (!filt.status || c.status === filt.status) && (!filt.text || low(c.id + ' ' + c.title + ' ' + c.scenario + ' ' + c.type).indexOf(filt.text) >= 0); });
-      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('button', { 'class': 'btn primary', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Draft test cases'])])); return; }
+      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('div', { 'class': 'row gap center' }, [h('button', { 'class': 'btn', title: 'About one test per part', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Quick draft']), h('button', { 'class': 'btn primary', title: 'Every point, every drop-down choice, every drill-down, button, check box, table and tab at every width', onclick: function () { var n = Q.draft({ depth: 'full' }); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['🎯 Full draft: test everything'])])])); return; }
       if (!cs.length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('p', { 'class': 'muted', text: 'No test case matches.' }), h('button', { 'class': 'btn sm', onclick: function () { filt.status = ''; filt.text = ''; search.value = ''; draw(); } }, ['Show all'])])); return; }
       var groups = []; cs.forEach(function (c) { if (groups.indexOf(c.scenario) < 0) groups.push(c.scenario); });
       groups.forEach(function (g) {
@@ -869,7 +882,7 @@
     var fixBtns = [h('button', { 'class': 'btn sm qa-fix', title: 'A prompt for an AI assistant, built from the failed cases: find the cause, fix it, test again', onclick: function () { if (live) live.promptDialog(); } }, ['✨ Prompt from failures'])];
     var rerun = h('button', { 'class': 'btn sm', title: 'Run only the cases that failed', onclick: function () { if (live) live.start(Q.failed().map(function (x) { return x.id; })); } }, ['↻ Rerun failed']);
     var tools = h('div', { 'class': 'row gap wrap qa-tools' }, [search, h('span', { 'class': 'grow' }),
-      h('button', { 'class': 'btn sm', onclick: function () { var n = Q.draft(); MS.toast(n ? n + ' new test case(s) drafted.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); draw(); } }, ['✨ Draft']),
+      h('button', { 'class': 'btn sm', title: 'Quick or full draft, expected numbers, coverage', onclick: function (e) { if (Q.deep) MS.menu(e.currentTarget, Q.deep.draftMenu(draw)); else { Q.draft(); draw(); } } }, ['✨ Draft ▾']),
       h('button', { 'class': 'btn sm', onclick: function () { Q.editDialog(null).then(draw); } }, ['＋ Add case']),
       fixBtns[0], rerun,
       h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export']),
@@ -934,10 +947,10 @@
   api('ui_width', { d: 'Testing: draw the dashboard at a width in px (1366 laptop, 820 tablet, 390 phone) or "auto". Returns how far the page spills off the side (0 = fits).', p: { width: ['string', 'px or auto', true] }, f: function (a) { return D.width(a.width); } });
   api('ui_locate', { d: 'Testing: where a part is in the editor window (for real mouse input and screenshots).', p: { target: TGT, point: ['string', 'A chart category'], series: ['number', ''], interact: ['boolean', 'Switch to Interact mode and remember the screen, for ui_after'] }, f: function (a) { return D.locate(a.target, { point: a.point, series: a.series, interact: !!a.interact }); } });
   api('ui_after', { d: 'Testing: after real mouse input (the MCP ui_mouse tool), what changed since ui_locate and what pop-up shows.', p: {}, f: function () { var m = D._mark || {}; return { changed: m.before ? D.changes(m.before) : [], tooltip: D.tooltip(m.el) }; } });
-  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'] },
+  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; depth: "full" tests every point, every drop-down choice, every drill-down, button, check box, table and tab at every width; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'], depth: ['string', 'For draft: quick (default) or full'] },
     f: function (a) {
       var act = a.action || 'get';
-      if (act === 'draft') { var n = Q.draft({ replace: !!a.replace }); return { added: n, summary: Q.summary(), cases: Q.cases() }; }
+      if (act === 'draft') { var n = Q.draft({ replace: !!a.replace, depth: a.depth }); return { added: n, summary: Q.summary(), coverage: Q.deep ? (function (C) { return { percent: C.percent, parts: C.parts, untested: C.untested }; })(Q.deep.coverage()) : null, cases: Q.cases() }; }
       if (act === 'add') return Q.add(a['case'] || {});
       if (act === 'update') return Q.update(a.id, a['case'] || {});
       if (act === 'remove') { Q.remove(a.id); return { removed: a.id }; }

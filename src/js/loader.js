@@ -53,7 +53,7 @@
     }
     return { html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML, doc: doc };
   };
-  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<20)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
+  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<200)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
   function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
   MS.safeJson = safeJson;
 

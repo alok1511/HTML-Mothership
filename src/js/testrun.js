@@ -30,12 +30,13 @@
     var cur = layer('qa-cursor', 'qa-cursor'), hl = layer('qa-hl', 'qa-hl');
     if (!cur.firstChild) cur.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 2.5l15 9.2-6.6 1.4 3.7 7.3-2.7 1.3-3.6-7.4L4 19z" fill="#111827" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="qa-ripple"></span>';
     cur.classList.add('on'); cur.classList.remove('press');
-    cur.style.transitionDuration = L.watching ? Math.max(120, PACE[L.pace] * 0.7) + 'ms' : '0ms';
+    cur.style.transitionDuration = L.watching ? Math.max(80, (Q.deep && Q.deep.burst ? 90 : PACE[L.pace]) * 0.7) + 'ms' : '0ms';
     cur.style.transform = 'translate(' + Math.round(p.x - 3) + 'px,' + Math.round(p.y - 2) + 'px)';
     L.mark(el, verb);
     clearTimeout(fadeT);
     fadeT = setTimeout(function () { cur.classList.remove('on'); hl.classList.remove('on'); }, 1800);
-    var pause = L.watching ? PACE[L.pace] : 0;
+    // a step that hovers every point moves quickly, or a chart would take minutes
+    var pause = L.watching ? (Q.deep && Q.deep.burst ? Math.min(PACE[L.pace], 90) : PACE[L.pace]) : 0;
     return wait(pause).then(function () { cur.classList.add('press'); return wait(L.watching && pause ? 120 : 0); });
   };
   // Outline a part of the dashboard with a label, in the editor (nothing is added to the dashboard).

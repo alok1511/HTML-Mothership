@@ -122,3 +122,38 @@ exports.tablepage = () => `<!DOCTYPE html><html><head><meta charset="utf-8"><tit
 <div class="card" style="margin-top:14px"><table id="perf"><tr><td>Region</td><td>Premium</td><td>Loss ratio</td></tr><tr><td>North</td><td>$2.6M</td><td>48%</td></tr><tr><td>South</td><td>$3.1M</td><td>71%</td></tr><tr><td>East</td><td>$2.2M</td><td>62%</td></tr><tr><td>West</td><td>$3.9M</td><td>55%</td></tr></table></div>
 <script>new Chart(document.getElementById('prem'), { type: 'bar', data: { labels: ['North', 'South', 'East', 'West'], datasets: [{ label: '2024', data: [2.1, 2.8, 1.9, 3.2] }, { label: '2025', data: [2.6, 3.1, 2.2, 3.9] }] }, options: { maintainAspectRatio: false } });</script>
 </body></html>`;
+
+// A dashboard with its own controls and a few deliberate faults, for full-coverage testing:
+// a region drop-down that filters the chart and the KPI card ("Broken" throws), a check box,
+// a button, a table whose total is wrong, and a pop-up that shows the wrong value for East.
+exports.interactive = () => `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Regional sales</title>
+<script>${vend('charts/chart.umd.min.js')}</script>
+<style>body{font-family:Arial,sans-serif;margin:20px}.kpi{display:inline-block;padding:12px;border:1px solid #ddd;border-radius:8px}.kpi .value{font-size:24px;font-weight:700}#wrap{width:640px;height:300px}th[data-sort]{cursor:pointer}</style></head><body>
+<h1>Regional sales</h1>
+<label>Region <select id="region"><option value="all">All</option><option>North</option><option>South</option><option>Broken</option></select></label>
+<label><input type="checkbox" id="target"> Show target</label>
+<button id="reset" onclick="document.getElementById('region').value='all';draw()">Reset</button>
+<div class="kpi"><div class="label">Total sales</div><div class="value" id="kv">$100</div></div>
+<div id="wrap"><canvas id="c"></canvas></div>
+<table id="t"><thead><tr><th>Region</th><th data-sort="1">Sales</th></tr></thead><tbody><tr><td>North</td><td>40</td></tr><tr><td>South</td><td>30</td></tr><tr><td>East</td><td>20</td></tr><tr><td>West</td><td>10</td></tr><tr><td>Total</td><td>110</td></tr></tbody></table>
+<script>
+var ALL = { North: 40, South: 30, East: 20, West: 10 };
+var ch = new Chart(document.getElementById('c'), { type: 'bar', data: { labels: Object.keys(ALL), datasets: [{ label: 'Sales', data: Object.values(ALL) }] },
+  options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: function (x) { return 'Sales: ' + (x.label === 'East' ? x.raw * 2 : x.raw); } } } } } });
+function draw() {
+  var r = document.getElementById('region').value;
+  if (r === 'Broken') throw new Error('No data for Broken');
+  var keys = r === 'all' ? Object.keys(ALL) : [r];
+  ch.data.labels = keys; ch.data.datasets[0].data = keys.map(function (k) { return ALL[k]; });
+  ch.data.datasets.length = 1;
+  if (document.getElementById('target').checked) ch.data.datasets.push({ label: 'Target', data: keys.map(function () { return 25; }) });
+  ch.update();
+  document.getElementById('kv').textContent = '$' + keys.reduce(function (a, k) { return a + ALL[k]; }, 0);
+}
+document.getElementById('region').addEventListener('change', draw);
+document.getElementById('target').addEventListener('change', draw);
+document.querySelector('th[data-sort]').addEventListener('click', function () {
+  var tb = document.querySelector('#t tbody'), rows = [].slice.call(tb.rows, 0, 4), tot = tb.rows[4];
+  rows.sort(function (a, b) { return +a.cells[1].textContent - +b.cells[1].textContent; }).forEach(function (r) { tb.insertBefore(r, tot); });
+});
+</script></body></html>`;

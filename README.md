@@ -226,6 +226,18 @@ HTML-Mothership/
 | **A fresh start screen** | When nothing is open | A cleaner hero, the four ways to start, **Pick up where you left off** (the latest saved version of each dashboard), and the Edit / Review / Test / Publish strip. |
 | **MCP** | Both servers | `close_dashboard`; `save_test_document` and `test_document` take `format: "failures"` (and `goal: "fix" | "retest"`) for the prompt from failed tests. |
 
+### New in v3.8: test everything, and check the numbers against your source
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Quick draft or Full draft** | **Testing › Draft tests**, **Test cases › Draft ▾** | **Quick draft** writes about one test per part (it samples the first bar, the first choice), as before. **Full draft: test everything** adds tests that go through every part: hover every point of every chart and check the pop-up shows the right label and value; pick every choice of every drop-down (each must change something, raise no script error and keep KPI cards in step with the charts, and the list is set back afterwards); double-click every category of a drill-down chart; tick every check box and press every button; check every table's Total row adds up and that clicking a heading sorts it; open every tab at laptop, tablet and phone width and look for a sideways scroll bar. |
+| **Coverage** | **Testing › Coverage**, the **% covered** chip in **Test cases** | Every part Mothership found (tabs, charts, KPI cards, drop-downs, check boxes, buttons, tables) with the cases that touch it, marked **fully**, **in part** or **not tested**, and the percentage tested fully. **Draft full tests** fills the gaps. The test document has the same table. |
+| **Expected numbers** | **Testing › Numbers**, the **Numbers** chip in **Test cases** | Tests can only say a number is *right* if they know what it should be. **Lock in today's numbers** keeps every chart value and KPI card once you have checked them; later runs fail if any of them change. Better still, **Download the numbers as Excel**, type in the figures from your source report, and **Import expected numbers** (Excel or CSV: What, Category, Series, Value). Each chart and KPI card gets a "shows the right numbers" test that names every value that differs (within 0.5%, to allow for rounding). |
+| **Fairer results** | Every run | A case only answers for the script errors raised while it runs, so one broken drop-down choice no longer fails every case after it. |
+| **MCP** | Both servers | `test_plan {"action": "draft", "depth": "full"}` (it returns the coverage too), `test_coverage`, and `test_baseline` (`lock`, `import` with rows, `rows`, `clear`). |
+
+**How a test passes or fails.** Each step either acts (click, choose, hover, resize) or checks something it can measure: the text a KPI card shows, whether a chart drew, what a pop-up says, whether anything changed, whether a script error appeared, whether the page is wider than the screen, whether a total adds up, whether a value matches the expected numbers. A case passes when every step passes and fails at the first step that does not, with what it actually saw. A case with a "check by eye" step is marked **Needs a person**.
+
 ---
 
 ## 3. How-to guide

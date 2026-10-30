@@ -781,7 +781,7 @@ button.qa-chip.on { border-color: currentColor; box-shadow: 0 0 0 3px color-mix(
 .qa-ring-seg { stroke-width: 4.2; stroke-linecap: butt; transition: stroke-dasharray .6s ease; }
 .qa-ring-c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; }
 .qa-ring-c b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.qa-ring-c small { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.qa-ring-c small { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 .qa-trend-box { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
 .qa-trend { display: flex; align-items: flex-end; gap: 3px; height: 34px; padding: 0 2px; border-bottom: 1px solid var(--line); }
 .qa-tbar { width: 7px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 80%, #fff), var(--ok)); opacity: .85; transition: opacity .12s; }
@@ -907,6 +907,21 @@ body[data-ms-ui-mode="none"] #mode-switch { opacity: .45; pointer-events: none; 
 #empty { align-items: flex-start; }
 #empty .welcome { margin: auto; }
 .st-mode[hidden] { display: none; }
+
+/* v3.8 testing: coverage and expected numbers */
+.qa-cov-chip { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--ok); background: var(--ok-weak); color: var(--ok); font-size: 11.5px; font-weight: 600; cursor: pointer; vertical-align: 1px; }
+.qa-cov-chip.part { border-color: var(--warn); background: var(--warn-weak); color: var(--warn); }
+.qa-cov-chip .ic { width: 12px; height: 12px; margin: 0; }
+.qa-cov { margin-top: 10px; max-height: 52vh; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.qa-cov-row { display: flex; gap: 10px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.qa-cov-row.none { background: var(--warn-weak); }
+.qa-cov-kind { flex: 0 0 90px; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+.qa-cov-ids { font: 11.5px ui-monospace, Consolas, monospace; color: var(--muted); text-align: right; }
+
+.qa-cov-row.part { background: color-mix(in srgb, var(--warn-weak) 50%, transparent); }
+.qa-cov-tag { flex: 0 0 76px; font-size: 11px; font-weight: 700; text-align: center; border-radius: 999px; padding: 1px 0; background: var(--panel-3); color: var(--muted); }
+.qa-cov-row.full .qa-cov-tag { background: var(--ok-weak); color: var(--ok); } .qa-cov-row.part .qa-cov-tag { background: var(--warn-weak); color: var(--warn); } .qa-cov-row.none .qa-cov-tag { background: var(--danger-weak); color: var(--danger); }
+.qa-cov-ids { flex: 0 0 150px; }
 
 </style>
 </head>
@@ -4276,7 +4291,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     }
     return { html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML, doc: doc };
   };
-  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<20)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
+  var EARLY = 'window.__msErrs=window.__msErrs||[];window.addEventListener("error",function(e){if(window.__msErrs.length<200)window.__msErrs.push({message:String(e.message||"Script error"),file:String(e.filename||"").split("/").pop(),line:e.lineno||0});});';
   function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
   MS.safeJson = safeJson;
 
@@ -12893,6 +12908,12 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     if (clear) { if (w.__msErrs) w.__msErrs.length = 0; if (w.__msConsole) w.__msConsole.length = 0; }
     return out;
   };
+  // Where the error lists stand now, so a test case only answers for the errors raised while it runs.
+  D.errorMark = function () { var w = cwin(); return { s: (w.__msErrs || []).length, c: (w.__msConsole || []).length }; };
+  D.errorsSince = function (m) {
+    var e = D.errors(); if (!m) return e;
+    return { scriptErrors: e.scriptErrors.slice(Math.min(m.s, e.scriptErrors.length)), consoleErrors: e.consoleErrors.slice(Math.min(m.c, e.consoleErrors.length)) };
+  };
   D.width = function (px) {
     MS.view.setWidth(px === 'auto' || !px ? 'auto' : +px, true);
     return wait(700).then(function () { var de = cdoc().documentElement; return { width: MS.view.renderWidth, overflow: Math.max(0, de.scrollWidth - de.clientWidth) }; });
@@ -12911,8 +12932,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   MS.on('child-loaded', function (c) {
     try {
       var w = c.win; w.__msConsole = [];
-      var ce = w.console.error; w.console.error = function () { try { if (w.__msConsole.length < 50) w.__msConsole.push(Array.prototype.map.call(arguments, function (x) { return x && x.message ? x.message : String(x); }).join(' ').slice(0, 300)); } catch (e) {} return ce.apply(this, arguments); };
-      w.addEventListener('unhandledrejection', function (e) { if (w.__msConsole.length < 50) w.__msConsole.push('Unhandled: ' + String(e.reason && e.reason.message || e.reason).slice(0, 300)); });
+      var ce = w.console.error; w.console.error = function () { try { if (w.__msConsole.length < 200) w.__msConsole.push(Array.prototype.map.call(arguments, function (x) { return x && x.message ? x.message : String(x); }).join(' ').slice(0, 300)); } catch (e) {} return ce.apply(this, arguments); };
+      w.addEventListener('unhandledrejection', function (e) { if (w.__msConsole.length < 200) w.__msConsole.push('Unhandled: ' + String(e.reason && e.reason.message || e.reason).slice(0, 300)); });
     } catch (e) {}
   });
 
@@ -12925,6 +12946,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     return [];
   };
   function tabOfEl(el) { var t = Q.tabs().filter(function (x) { return x.panel && x.panel.contains(el); })[0]; return t ? t.title : null; }
+  Q.tabOf = tabOfEl; D.all = all; D.describe = describe;
   Q.kpis = function () {
     var d = cdoc(), out = [], seen = [];
     var cands = MS.$$('[data-ms-kpi],.ms-kpi,[class*="kpi"],[class*="metric"],[class*="stat-card"],[class*="scorecard"]', d).filter(function (e) { return !e.closest(OWN) && !/kpis|kpi-row|kpi-grid|metrics/.test(e.className || '') && /\d/.test(e.textContent || '') && (e.textContent || '').length < 160 && e.querySelectorAll('canvas,svg,table').length === 0; });
@@ -13007,6 +13029,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     expect_no_errors: 'Check there are no script errors', expect_no_overflow: 'Check nothing spills off the side of the page', expect_numbers: 'Check KPI cards agree with chart totals',
     expect_a11y: 'Check the accessibility scan (value: most findings allowed)', screenshot: 'Take a picture (target, optional)', manual: 'A person (or AI) checks this by eye (value: what to check)'
   };
+  // More step words (and their runners and wording) are added by testdeep.js.
+  Q.STEPS = {}; Q.STEP_WORDS = {};
   function plan() { var r = rt(); return (r && r.state.tests) || { title: '', cases: [] }; }
   Q.plan = plan;
   Q.cases = function () { return plan().cases || []; };
@@ -13097,8 +13121,8 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   };
   Q.draft = function (o) {
     o = o || {};
-    var cases = Q.generate(o), n = 0;
-    edit(o.replace ? 'Draft test cases (replace)' : 'Draft test cases', function (T) {
+    var cases = Q.generate(o).concat(Q.deep ? Q.deep.generate(o) : []), n = 0;
+    edit((o.depth === 'full' ? 'Draft full test cases' : 'Draft test cases') + (o.replace ? ' (replace)' : ''), function (T) {
       if (o.replace) T.cases = [];
       if (!T.title) T.title = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'Dashboard') + ' test plan';
       cases.forEach(function (c) { if (!o.replace && T.cases.some(function (x) { return low(x.title) === low(c.title); })) return; c.id = nextId(T.cases); T.cases.push(clean(c)); n++; });
@@ -13113,6 +13137,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var t = s.target, v = s.value;
     var pass = function (msg) { log.push({ step: Q.stepText(s), ok: true, note: msg || '' }); };
     var fail = function (msg) { log.push({ step: Q.stepText(s), ok: false, note: msg }); throw Object.assign(new Error(msg), { stepFail: true }); };
+    if (Q.STEPS[s.do]) return Promise.resolve().then(function () { return Q.STEPS[s.do](s, pass, fail); });
     switch (s.do) {
       case 'open_tab': return D.showTab(t || v).then(function (x) { pass('on “' + x.tab + '”'); });
       case 'click': case 'double_click': var b0 = D.state(); return D.click(t, { point: s.point, double: s.do === 'double_click' }).then(function (x) { Q._last = D.changes(b0); pass(x.changed.join('; ')); });
@@ -13128,7 +13153,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       case 'expect_tooltip':
         return D.hover(t, { point: s.point }).then(function (x) { var txt = (x.tooltip || []).map(function (q) { return q.text; }).join(' / '); if (!txt) return fail('No pop-up appeared'); if (v && low(txt).indexOf(low(v)) < 0) return fail('The pop-up says “' + txt + '”, not “' + v + '”'); pass('pop-up: ' + txt); });
       case 'expect_changed': var ch = lastChange(); var what = low(v); var ok = ch.length && ch[0] !== 'nothing visible changed' && (!what || ch.some(function (q) { return low(q).indexOf(what) >= 0; })); return Promise.resolve(ok ? pass(ch.join('; ')) : fail('Expected a change' + (v ? ' to a ' + v : '') + ', but ' + (ch.join('; ') || 'nothing changed')));
-      case 'expect_no_errors': var er = D.errors(); var n = er.scriptErrors.length + er.consoleErrors.length; return Promise.resolve(n ? fail(n + ' error(s): ' + er.scriptErrors.concat(er.consoleErrors).slice(0, 3).join(' | ')) : pass('none'));
+      case 'expect_no_errors': var er = D.errorsSince(D._errBase); var n = er.scriptErrors.length + er.consoleErrors.length; return Promise.resolve(n ? fail(n + ' error(s): ' + er.scriptErrors.concat(er.consoleErrors).slice(0, 3).join(' | ')) : pass('none'));
       case 'expect_no_overflow': var de = cdoc().documentElement, over = de.scrollWidth - de.clientWidth; return Promise.resolve(over > 4 ? fail('The page is ' + over + ' px wider than the screen (a sideways scroll bar)') : pass('fits'));
       case 'expect_numbers': var res = MS.numcheck ? MS.numcheck.run() : [], diff = res.filter(function (q) { return q.status === 'diff'; }); return Promise.resolve(diff.length ? fail(diff.map(function (q) { return q.what + ' shows ' + q.shown + ' but ' + q.against + ' adds up to ' + q.expected; }).join('; ')) : pass(res.length ? res.length + ' compared, all agree' : 'nothing to compare'));
       case 'expect_a11y': var f = MS.a11y ? MS.a11y.check().filter(function (q) { return q.kind !== 'cvd'; }) : [], max = +v || 0; return Promise.resolve(f.length > max ? fail(f.length + ' finding(s): ' + f.slice(0, 3).map(function (q) { return q.msg; }).join(' | ')) : pass(f.length + ' finding(s)'));
@@ -13139,7 +13164,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   Q.runCase = function (id) {
     var c = Q.get(id); if (!c) return Promise.reject(new Error('No test case ' + id));
     var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width, t0 = Date.now();
-    D.errors(false); D._lastEl = null;
+    D._errBase = D.errorMark(); D._lastEl = null;
     c.steps.forEach(function (s, i) {
       chain = chain.then(function () {
         if (Q.stopping) throw Object.assign(new Error('Stopped'), { stopped: true });
@@ -13260,6 +13285,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     L.push('', '## 6. Traceability', '', '| Area | Cases |', '|---|---|');
     var areas = {}; cs.forEach(function (c) { var a = c.area || c.scenario; (areas[a] = areas[a] || []).push(c.id); });
     Object.keys(areas).forEach(function (a) { L.push('| ' + md(a) + ' | ' + areas[a].join(', ') + ' |'); });
+    if (Q.deep && MS.child) L.push('', Q.deep.coverageMd('### Coverage').trim());
     L.push('', '## 7. Running these tests with an AI assistant (MCP)', '', 'Connect the assistant to the Mothership MCP server (Help › Connect an AI assistant), open this dashboard with `open_file`, then use these tools. Every step above has a tool call:', '');
     TOOLS.forEach(function (t) { L.push('- `' + t[0] + '`: ' + t[1]); });
     L.push('', '| Step | Tool call |', '|---|---|',
@@ -13297,7 +13323,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       case 'expect_numbers': return 'Check the KPI cards agree with the chart totals.';
       case 'expect_a11y': return 'Run the accessibility check: at most ' + (s.value || 0) + ' findings.';
       case 'screenshot': return 'Take a screenshot' + (t ? ' of ' + t : '') + '.';
-      default: return 'Check by eye: ' + (s.value || '') + '.';
+      default: return Q.STEP_WORDS[s.do] ? Q.STEP_WORDS[s.do](s, t) : 'Check by eye: ' + (s.value || '') + '.';
     }
   }
   Q.stepWords = stepWords;
@@ -13422,7 +13448,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       return h('div', { 'class': 'qa-sum' }, [
         live ? live.ring(by, 76, [h('b', { text: ran ? Math.round((by.Pass || 0) / ran * 100) + '%' : '–' }), h('small', { text: ran ? 'passed' : 'not run' })]) : null,
         h('div', { 'class': 'grow' }, [
-          h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : '')]),
+          h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : ''),
+            Q.deep ? (function (C) { return h('button', { 'class': 'qa-cov-chip' + (C.percent < 100 ? ' part' : ''), title: C.untested.length ? 'Untested: ' + C.untested.slice(0, 8).join(', ') : 'Every part has a test', onclick: function () { Q.deep.coverageDialog().then(draw); } }, ['🎯 ' + C.percent + '% covered']); })(Q.deep.coverage()) : null,
+            Q.deep ? h('button', { 'class': 'qa-cov-chip' + (Q.deep.baseline() ? '' : ' part'), title: 'The numbers "right numbers" tests check against', onclick: function (e) { MS.menu(e.currentTarget, Q.deep.numbersMenu()); } }, [Q.deep.baseline() ? '🔒 Numbers locked in' : '🔢 Numbers not locked in']) : null]),
           chips]),
         tr ? h('div', { 'class': 'qa-trend-box' }, [tr, h('small', { 'class': 'muted', text: 'Pass rate by run' })]) : null]);
     }
@@ -13434,7 +13462,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       rerun.style.display = fails ? '' : 'none';
       list.innerHTML = '';
       var cs = Q.cases().filter(function (c) { return (!filt.status || c.status === filt.status) && (!filt.text || low(c.id + ' ' + c.title + ' ' + c.scenario + ' ' + c.type).indexOf(filt.text) >= 0); });
-      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('button', { 'class': 'btn primary', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Draft test cases'])])); return; }
+      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('div', { 'class': 'row gap center' }, [h('button', { 'class': 'btn', title: 'About one test per part', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Quick draft']), h('button', { 'class': 'btn primary', title: 'Every point, every drop-down choice, every drill-down, button, check box, table and tab at every width', onclick: function () { var n = Q.draft({ depth: 'full' }); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['🎯 Full draft: test everything'])])])); return; }
       if (!cs.length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('p', { 'class': 'muted', text: 'No test case matches.' }), h('button', { 'class': 'btn sm', onclick: function () { filt.status = ''; filt.text = ''; search.value = ''; draw(); } }, ['Show all'])])); return; }
       var groups = []; cs.forEach(function (c) { if (groups.indexOf(c.scenario) < 0) groups.push(c.scenario); });
       groups.forEach(function (g) {
@@ -13458,7 +13486,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var fixBtns = [h('button', { 'class': 'btn sm qa-fix', title: 'A prompt for an AI assistant, built from the failed cases: find the cause, fix it, test again', onclick: function () { if (live) live.promptDialog(); } }, ['✨ Prompt from failures'])];
     var rerun = h('button', { 'class': 'btn sm', title: 'Run only the cases that failed', onclick: function () { if (live) live.start(Q.failed().map(function (x) { return x.id; })); } }, ['↻ Rerun failed']);
     var tools = h('div', { 'class': 'row gap wrap qa-tools' }, [search, h('span', { 'class': 'grow' }),
-      h('button', { 'class': 'btn sm', onclick: function () { var n = Q.draft(); MS.toast(n ? n + ' new test case(s) drafted.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); draw(); } }, ['✨ Draft']),
+      h('button', { 'class': 'btn sm', title: 'Quick or full draft, expected numbers, coverage', onclick: function (e) { if (Q.deep) MS.menu(e.currentTarget, Q.deep.draftMenu(draw)); else { Q.draft(); draw(); } } }, ['✨ Draft ▾']),
       h('button', { 'class': 'btn sm', onclick: function () { Q.editDialog(null).then(draw); } }, ['＋ Add case']),
       fixBtns[0], rerun,
       h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export']),
@@ -13523,10 +13551,10 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
   api('ui_width', { d: 'Testing: draw the dashboard at a width in px (1366 laptop, 820 tablet, 390 phone) or "auto". Returns how far the page spills off the side (0 = fits).', p: { width: ['string', 'px or auto', true] }, f: function (a) { return D.width(a.width); } });
   api('ui_locate', { d: 'Testing: where a part is in the editor window (for real mouse input and screenshots).', p: { target: TGT, point: ['string', 'A chart category'], series: ['number', ''], interact: ['boolean', 'Switch to Interact mode and remember the screen, for ui_after'] }, f: function (a) { return D.locate(a.target, { point: a.point, series: a.series, interact: !!a.interact }); } });
   api('ui_after', { d: 'Testing: after real mouse input (the MCP ui_mouse tool), what changed since ui_locate and what pop-up shows.', p: {}, f: function () { var m = D._mark || {}; return { changed: m.before ? D.changes(m.before) : [], tooltip: D.tooltip(m.el) }; } });
-  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'] },
+  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; depth: "full" tests every point, every drop-down choice, every drill-down, button, check box, table and tab at every width; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'], depth: ['string', 'For draft: quick (default) or full'] },
     f: function (a) {
       var act = a.action || 'get';
-      if (act === 'draft') { var n = Q.draft({ replace: !!a.replace }); return { added: n, summary: Q.summary(), cases: Q.cases() }; }
+      if (act === 'draft') { var n = Q.draft({ replace: !!a.replace, depth: a.depth }); return { added: n, summary: Q.summary(), coverage: Q.deep ? (function (C) { return { percent: C.percent, parts: C.parts, untested: C.untested }; })(Q.deep.coverage()) : null, cases: Q.cases() }; }
       if (act === 'add') return Q.add(a['case'] || {});
       if (act === 'update') return Q.update(a.id, a['case'] || {});
       if (act === 'remove') { Q.remove(a.id); return { removed: a.id }; }
@@ -13581,12 +13609,13 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     var cur = layer('qa-cursor', 'qa-cursor'), hl = layer('qa-hl', 'qa-hl');
     if (!cur.firstChild) cur.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 2.5l15 9.2-6.6 1.4 3.7 7.3-2.7 1.3-3.6-7.4L4 19z" fill="#111827" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="qa-ripple"></span>';
     cur.classList.add('on'); cur.classList.remove('press');
-    cur.style.transitionDuration = L.watching ? Math.max(120, PACE[L.pace] * 0.7) + 'ms' : '0ms';
+    cur.style.transitionDuration = L.watching ? Math.max(80, (Q.deep && Q.deep.burst ? 90 : PACE[L.pace]) * 0.7) + 'ms' : '0ms';
     cur.style.transform = 'translate(' + Math.round(p.x - 3) + 'px,' + Math.round(p.y - 2) + 'px)';
     L.mark(el, verb);
     clearTimeout(fadeT);
     fadeT = setTimeout(function () { cur.classList.remove('on'); hl.classList.remove('on'); }, 1800);
-    var pause = L.watching ? PACE[L.pace] : 0;
+    // a step that hovers every point moves quickly, or a chart would take minutes
+    var pause = L.watching ? (Q.deep && Q.deep.burst ? Math.min(PACE[L.pace], 90) : PACE[L.pace]) : 0;
     return wait(pause).then(function () { cur.classList.add('press'); return wait(L.watching && pause ? 120 : 0); });
   };
   // Outline a part of the dashboard with a label, in the editor (nothing is added to the dashboard).
@@ -13773,6 +13802,418 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       h('button', { 'class': 'btn', type: 'button', onclick: function () { MS.download(base, out.value, 'text/markdown;charset=utf-8'); } }, ['⬇ Save as .md'])]), out, meta]);
     return MS.dialog({ title: '✨ Prompt from failed tests', sub: 'Give this to an AI assistant to find out why tests failed and fix them.', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Close', primary: true, value: null }] });
   };
+})(window.MS);
+
+</script>
+<script>/* src/js/testdeep.js */
+/* Testing, full coverage: test every part of the dashboard, not a sample.
+   - Every bar and point is hovered and its pop-up must show its own value.
+   - Every choice of every drop-down (the dashboard's own and the filter pane) is picked; each must
+     change something, raise no errors and keep the KPI cards in step with the charts.
+   - Every drill-down, check box, button and tab (at laptop, tablet and phone width); table totals and sorting.
+   - Locked-in numbers (state.tests.baseline), from today's dashboard or from an Excel / CSV of the
+     source figures, so "shows the right numbers" is checked automatically.
+   - A coverage report: every part found and the test cases that touch it. */
+(function (MS) {
+  'use strict';
+  var h = MS.h, Q = MS.qa, D = Q.drv, X = Q.deep = {};
+  function rt() { return MS.rt(); }
+  function cdoc() { return MS.child.doc; }
+  function low(x) { return String(x == null ? '' : x).replace(/\s+/g, ' ').trim().toLowerCase(); }
+  function norm(x) { return String(x == null ? '' : x).replace(/\s+/g, ' ').trim(); }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  var CAP = { points: 60, series: 6, options: 25, drill: 20, buttons: 60, checks: 30, tables: 20 };
+  X.CAP = CAP;
+
+  /* ---------------------------------------------------------------- numbers */
+  var NUM = /[-+]?[₹$€£¥]?\s?\(?\d[\d,]*(?:\.\d+)?\)?\s?(?:%|crore|cr|lakh|lakhs|l|bn|mn|k|m|b)?(?![a-z])/gi;
+  function numbersIn(text) {
+    var out = [], m; NUM.lastIndex = 0;
+    while ((m = NUM.exec(String(text || '')))) { var p = MS.numcheck && MS.numcheck.parse(m[0]); if (p && isFinite(p.v)) out.push(p); }
+    return out;
+  }
+  // Does a number shown on screen (with its own rounding) stand for this value?
+  function same(p, v, rel) {
+    if (v == null || !isFinite(+v)) return false;
+    v = +v; var tol = Math.max(p.tol || 0, Math.abs(v) * (rel || 0.005), 1e-9);
+    return Math.abs(p.v - v) <= tol || (p.pct && Math.abs(p.v - v * 100) <= Math.max(p.tol || 0, Math.abs(v * 100) * 0.005));
+  }
+  X.numbersIn = numbersIn; X.same = same;
+
+  /* ---------------------------------------------------------------- locked-in numbers */
+  function plan() { return Q.plan(); }
+  function edit(label, fn) { MS.history.state(label, function (s) { s.tests = s.tests || { title: '', cases: [] }; s.tests.cases = s.tests.cases || []; fn(s.tests); }); MS.emit('tests'); }
+  X.baseline = function () { return plan().baseline || null; };
+  // Today's numbers: every chart's categories and values, and every KPI card.
+  X.capture = function () {
+    var r = rt(), charts = {};
+    r.charts().forEach(function (c) {
+      var d = r.chartData(c.key, true); if (!d || !d.labels || !d.labels.length) return;
+      charts[c.key] = { name: MS.charts.nameOf(c.key), labels: d.labels.map(String), series: d.series.map(function (s) { return { name: s.name, values: s.values.map(function (v) { return v == null || !isFinite(+v) ? null : +v; }) }; }) };
+    });
+    return { at: new Date().toISOString(), from: 'dashboard', charts: charts, kpis: Q.kpis().map(function (k) { return { label: k.label, value: k.value }; }) };
+  };
+  X.lock = function () {
+    var b = X.capture();
+    edit('Lock in the numbers', function (T) { T.baseline = b; });
+    return { charts: Object.keys(b.charts).length, kpis: b.kpis.length, at: b.at };
+  };
+  X.clearBaseline = function () { edit('Remove the locked-in numbers', function (T) { delete T.baseline; }); };
+  // Rows for Excel: What | Category | Series | Value (KPI cards have no category).
+  X.rows = function (b) {
+    b = b || X.baseline() || X.capture(); var rows = [];
+    Object.keys(b.charts).forEach(function (k) {
+      var c = b.charts[k];
+      c.series.forEach(function (s) { c.labels.forEach(function (l, i) { rows.push({ What: c.name, Category: l, Series: c.series.length > 1 ? s.name : '', Value: s.values[i] }); }); });
+    });
+    b.kpis.forEach(function (k) { rows.push({ What: 'KPI: ' + k.label, Category: '', Series: '', Value: k.value }); });
+    return rows;
+  };
+  // Expected numbers from rows (Excel or CSV): the source figures win over today's.
+  X.importRows = function (rows) {
+    var r = rt(), b = X.capture(), n = 0, miss = [];
+    b.from = 'file';
+    var byName = {}; Object.keys(b.charts).forEach(function (k) { byName[low(b.charts[k].name)] = k; byName[low(k)] = k; });
+    (rows || []).forEach(function (row) {
+      var g = {}; Object.keys(row).forEach(function (k) { g[low(k)] = row[k]; });
+      var what = norm(g.what || g.chart || g.kpi || g.item || ''), val = g.value != null ? g.value : g.expected; if (!what || val == null || val === '') return;
+      var km = /^kpi\s*[:\-]\s*(.+)$/i.exec(what);
+      if (km || (!g.category && !byName[low(what)])) {
+        var lab = low(km ? km[1] : what), k = b.kpis.filter(function (x) { return low(x.label) === lab; })[0] || b.kpis.filter(function (x) { return low(x.label).indexOf(lab) >= 0; })[0];
+        if (k) { k.value = String(val); n++; } else miss.push(what); return;
+      }
+      var key = byName[low(what)]; if (!key) { miss.push(what); return; }
+      var c = b.charts[key], i = c.labels.map(low).indexOf(low(g.category));
+      var si = g.series ? c.series.map(function (s) { return low(s.name); }).indexOf(low(g.series)) : 0;
+      if (i < 0 || si < 0) { miss.push(what + ' › ' + g.category + (g.series ? ' › ' + g.series : '')); return; }
+      var num = typeof val === 'number' ? val : (MS.numcheck.parse(String(val)) || {}).v;
+      if (num == null || !isFinite(num)) { miss.push(what + ' › ' + g.category + ': not a number'); return; }
+      c.series[si].values[i] = num; n++;
+    });
+    edit('Import the expected numbers', function (T) { T.baseline = b; });
+    return { matched: n, notFound: miss };
+  };
+  X.importFile = function (file) {
+    var isCsv = /\.csv$/i.test(file.name);
+    return (isCsv ? MS.readFile(file).then(function (t) { return csvRows(t); }) : MS.lib('xlsx').then(function (XL) {
+      return new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { try { var wb = XL.read(new Uint8Array(fr.result), { type: 'array' }); res(XL.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })); } catch (e) { rej(e); } }; fr.onerror = rej; fr.readAsArrayBuffer(file); });
+    })).then(X.importRows);
+  };
+  function csvRows(t) {
+    var lines = String(t).replace(/\r/g, '').split('\n').filter(function (l) { return l.trim(); });
+    var split = function (l) { var out = [], cur = '', q = false; for (var i = 0; i < l.length; i++) { var ch = l[i]; if (ch === '"') { if (q && l[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === ',' && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out; };
+    var head = split(lines.shift() || '');
+    return lines.map(function (l) { var c = split(l), o = {}; head.forEach(function (k, i) { o[k.trim()] = (c[i] || '').trim(); }); return o; });
+  }
+  X.xlsx = function () {
+    return MS.lib('xlsx').then(function (XL) {
+      var wb = XL.utils.book_new(), ws = XL.utils.json_to_sheet(X.rows());
+      ws['!cols'] = [{ wch: 34 }, { wch: 24 }, { wch: 18 }, { wch: 16 }];
+      XL.utils.book_append_sheet(wb, ws, 'Expected numbers');
+      XL.utils.book_append_sheet(wb, XL.utils.json_to_sheet([{ How: 'Change the Value column to the figures from your source report, keep What / Category / Series as they are, save, then Testing › Numbers › Import expected numbers.' }, { How: 'KPI cards are the rows that start with "KPI:". Their Value is the text the card should show, e.g. $1.2M or 16.1%.' }]), 'How to use');
+      return XL.write(wb, { type: 'array', bookType: 'xlsx' });
+    });
+  };
+
+  /* ---------------------------------------------------------------- step runners */
+  function chartOf(target) { var el = D.find(target), r = rt(), c = r.chartOf(el) || r.charts().filter(function (x) { return el.contains(x.el); })[0]; if (!c) throw new Error(D.describe(el) + ' is not a chart.'); return c; }
+  function list(a, n) { return a.slice(0, n).join('; ') + (a.length > n ? '; and ' + (a.length - n) + ' more' : ''); }
+
+  // Hover every point; the pop-up must name it and show its value.
+  Q.STEPS.expect_points = function (s, pass, fail) {
+    var c = chartOf(s.target), r = rt(), d = r.chartData(c.key, true) || { labels: [], series: [] }, name = MS.charts.nameOf(c.key);
+    var pie = /pie|doughnut|donut/i.test((r.chartInfo(c.key) || {}).type || '');
+    var jobs = [], bad = [], ok = 0;
+    d.series.slice(0, CAP.series).forEach(function (se, si) { d.labels.slice(0, CAP.points).forEach(function (l, i) { if (se.values[i] != null) jobs.push({ si: si, i: i, label: String(l), v: +se.values[i], series: se.name }); }); });
+    if (!jobs.length) return fail('“' + name + '” has no points to hover.');
+    var total = pie ? d.series[0].values.reduce(function (a, v) { return a + (+v || 0); }, 0) : 0;
+    var chain = Promise.resolve(); X.burst = true;
+    jobs.forEach(function (j) {
+      chain = chain.then(function () {
+        return D.hover('chart=' + name, { point: j.i, series: j.si, wait: 140 }).then(function (x) {
+          var txt = (x.tooltip || []).map(function (q) { return q.text; }).join(' / ');
+          var where = j.label + (d.series.length > 1 ? ' (' + j.series + ')' : '');
+          if (!txt) { bad.push(where + ': no pop-up'); return; }
+          var nums = numbersIn(txt), hit = nums.some(function (p) { return same(p, j.v) || (pie && total && same(p, j.v / total * 100, 0.02)); });
+          if (low(txt).indexOf(low(j.label)) < 0 && !(d.labels.length === 1)) bad.push(where + ': the pop-up does not name it (“' + txt.slice(0, 80) + '”)');
+          else if (!hit) bad.push(where + ': expected ' + fmt(j.v) + ', the pop-up says “' + txt.slice(0, 80) + '”');
+          else ok++;
+        }, function (e) { bad.push(j.label + ': ' + e.message); });
+      });
+    });
+    return chain.then(function () { X.burst = false; return bad.length ? fail(bad.length + ' of ' + jobs.length + ' points wrong: ' + list(bad, 6)) : pass('all ' + ok + ' points show their value'); }, function (e) { X.burst = false; throw e; });
+  };
+  function fmt(v) { return Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : String(Math.round(v * 1000) / 1000); }
+
+  // Double-click every category: the chart drills down (or opens the records) and comes back.
+  Q.STEPS.expect_drill_all = function (s, pass, fail) {
+    var c = chartOf(s.target), r = rt(), name = MS.charts.nameOf(c.key), d = r.chartData(c.key, true) || { labels: [] };
+    var labels = d.labels.slice(0, CAP.drill).map(String), bad = [], ok = 0, chain = Promise.resolve(); X.burst = true;
+    labels.forEach(function (l, i) {
+      chain = chain.then(function () {
+        var before = D.state(), depth = (r.drill[c.key] || []).length;
+        return D.click('chart=' + name, { point: i, double: true, wait: 300 }).then(function () {
+          var deeper = (r.drill[c.key] || []).length > depth, modal = cdoc().querySelector('.ms-modal-wrap'), ch = D.changes(before);
+          if (!deeper && !modal && ch[0] === 'nothing visible changed') bad.push(l + ': nothing happened');
+          else ok++;
+          if (modal) modal.remove();
+          if (deeper) { r.drill[c.key].length = depth; r.refresh(); }
+          return wait(150);
+        }, function (e) { bad.push(l + ': ' + e.message); });
+      });
+    });
+    return chain.then(function () { X.burst = false; return bad.length ? fail(bad.length + ' of ' + labels.length + ' did not drill: ' + list(bad, 6)) : pass('all ' + ok + ' drill down and come back'); }, function (e) { X.burst = false; throw e; });
+  };
+
+  // Pick every choice in a drop-down: each must change something, raise no errors, and keep KPI cards and charts in step.
+  Q.STEPS.try_options = function (s, pass, fail) {
+    var el = D.find(s.target); if (el.tagName !== 'SELECT') el = el.querySelector && el.querySelector('select') || el;
+    if (el.tagName !== 'SELECT') return fail(D.describe(el) + ' is not a drop-down list.');
+    var orig = el.value, opts = Array.prototype.slice.call(el.options).filter(function (o) { return !o.disabled; }).slice(0, CAP.options);
+    var bad = [], ok = 0, chain = Promise.resolve(), errs0 = count();
+    function count() { var e = D.errors(); return e.scriptErrors.length + e.consoleErrors.length; }
+    opts.forEach(function (o) {
+      if (o.value === orig) return;
+      chain = chain.then(function () {
+        var before = D.state(), e0 = count();
+        return D.select(el, o.value).then(function () {
+          var ch = D.changes(before), e1 = count(), txt = norm(o.textContent), why = [];
+          if (e1 > e0) why.push((e1 - e0) + ' script error(s): ' + D.errors().scriptErrors.concat(D.errors().consoleErrors).slice(-1)[0]);
+          if (ch[0] === 'nothing visible changed') why.push('nothing changed');
+          if (MS.numcheck) { var diff = MS.numcheck.run().filter(function (q) { return q.status === 'diff'; }); if (diff.length) why.push(diff.map(function (q) { return q.what + ' shows ' + q.shown + ' but ' + q.against + ' adds up to ' + q.expected; }).join('; ')); }
+          if (why.length) bad.push('“' + txt + '”: ' + why.join(', ')); else ok++;
+        }, function (e) { bad.push('“' + norm(o.textContent) + '”: ' + e.message); });
+      });
+    });
+    return chain.then(function () { return D.select(el, orig).then(function () {}, function () {}); }).then(function () {
+      var n = opts.filter(function (o) { return o.value !== orig; }).length;
+      if (!n) return fail('The list has only one choice.');
+      return bad.length ? fail(bad.length + ' of ' + n + ' choices have problems: ' + list(bad, 5)) : pass('all ' + ok + ' choices work' + (count() > errs0 ? '' : ', no errors') + (MS.numcheck ? ', KPI cards agree with the charts' : ''));
+    });
+  };
+
+  // Table totals: a "Total" row equals the sum of the rows above it, column by column.
+  Q.STEPS.expect_table_totals = function (s, pass, fail) {
+    var t = D.find(s.target); if (t.tagName !== 'TABLE') t = t.querySelector('table') || t;
+    var rows = Array.prototype.slice.call(t.tBodies.length ? t.tBodies[0].rows : t.rows).concat(t.tFoot ? Array.prototype.slice.call(t.tFoot.rows) : []);
+    var totals = rows.filter(function (r) { return /^(grand\s+)?total\b/i.test(norm(r.cells[0] && r.cells[0].textContent)); });
+    var widths = rows.map(function (r) { return r.cells.length; }), w0 = Math.max.apply(null, widths.concat([0]));
+    var ragged = rows.filter(function (r) { return r.cells.length < w0 && !r.querySelector('[colspan]'); }).length;
+    if (!totals.length) return ragged ? fail(ragged + ' row(s) have fewer cells than the others') : pass('no total row to check; ' + rows.length + ' rows, all complete');
+    var tot = totals[totals.length - 1], body = rows.slice(0, rows.indexOf(tot)).filter(function (r) { return totals.indexOf(r) < 0; }), bad = [], n = 0;
+    for (var ci = 1; ci < tot.cells.length; ci++) {
+      var tp = numbersIn(tot.cells[ci].textContent)[0]; if (!tp) continue;
+      var vals = body.map(function (r) { return r.cells[ci] && numbersIn(r.cells[ci].textContent)[0]; }).filter(Boolean); if (!vals.length || tp.pct) continue;
+      var sum = vals.reduce(function (a, p) { return a + p.v; }, 0), tol = Math.max(tp.tol || 0, Math.abs(sum) * 0.005) + vals.reduce(function (a, p) { return a + (p.tol || 0); }, 0);
+      n++; if (Math.abs(sum - tp.v) > tol) bad.push(norm((t.tHead && t.tHead.rows[0] && t.tHead.rows[0].cells[ci] || {}).textContent || 'column ' + (ci + 1)) + ': total shows ' + norm(tot.cells[ci].textContent) + ', the rows add up to ' + fmt(sum));
+    }
+    return bad.length ? fail(list(bad, 5)) : pass(n ? n + ' total(s) add up' : 'no number columns to add');
+  };
+  // Sorting: clicking a column heading reorders the rows.
+  Q.STEPS.expect_sort = function (s, pass, fail) {
+    var t = D.find(s.target); if (t.tagName !== 'TABLE') t = t.querySelector('table') || t;
+    var ths = Array.prototype.slice.call(t.querySelectorAll('thead th, tr:first-child th'));
+    var w = MS.child.win, th = ths.filter(function (x) { return x.hasAttribute('aria-sort') || x.onclick || x.querySelector('button') || w.getComputedStyle(x).cursor === 'pointer'; })[0];
+    if (!th) return pass('no headings can be clicked to sort');
+    var col = Array.prototype.indexOf.call(th.parentNode.cells, th);
+    var order = function () { return Array.prototype.map.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (r) { return norm(r.cells[col] && r.cells[col].textContent); }).join('|'); };
+    var before = order();
+    return D.click(th.querySelector('button') || th, { force: true }).then(function () {
+      return order() !== before ? pass('clicking “' + norm(th.textContent) + '” reorders the rows') : D.click(th.querySelector('button') || th, { force: true }).then(function () { return order() !== before ? pass('clicking “' + norm(th.textContent) + '” reorders the rows') : fail('Clicking “' + norm(th.textContent) + '” did not change the order'); });
+    });
+  };
+  // Today's numbers against the locked-in (or imported) ones.
+  Q.STEPS.expect_baseline = function (s, pass, fail) {
+    var b = X.baseline(); if (!b) return fail('No numbers are locked in. Testing › Numbers › Lock in today\'s numbers, or import them.');
+    var r = rt(), t = String(s.target || ''), m = /^kpi\s*=\s*(.+)$/i.exec(t);
+    if (m) {
+      var want = b.kpis.filter(function (k) { return low(k.label) === low(m[1]); })[0]; if (!want) return fail('No locked-in value for KPI “' + m[1] + '”.');
+      var k = Q.kpis().filter(function (x) { return low(x.label) === low(m[1]); })[0] || Q.kpis().filter(function (x) { return low(x.label).indexOf(low(m[1])) >= 0; })[0];
+      if (!k) return fail('KPI “' + m[1] + '” is not on the page.');
+      var a = numbersIn(k.value)[0], e = numbersIn(want.value)[0];
+      var okK = low(k.value) === low(want.value) || (a && e && Math.abs(a.v - e.v) <= Math.max(a.tol, e.tol, Math.abs(e.v) * 0.005));
+      return okK ? pass('shows ' + k.value + ', as expected') : fail('Shows ' + k.value + '; expected ' + want.value + (b.from === 'file' ? ' (from your source file)' : ' (locked in ' + b.at.slice(0, 10) + ')'));
+    }
+    var c = chartOf(t), want2 = b.charts[c.key]; if (!want2) return fail('No locked-in numbers for this chart.');
+    var d = r.chartData(c.key, true) || { labels: [], series: [] }, bad = [], n = 0;
+    want2.labels.forEach(function (l, i) {
+      var j = d.labels.map(String).indexOf(l);
+      want2.series.forEach(function (ws, si) {
+        var ev = ws.values[i]; if (ev == null) return; n++;
+        var cs = d.series.filter(function (x) { return x.name === ws.name; })[0] || d.series[si];
+        if (j < 0) { bad.push(l + ' is missing'); return; }
+        var av = cs && cs.values[j];
+        if (av == null || Math.abs(+av - ev) > Math.max(Math.abs(ev) * 0.005, 1e-9)) bad.push(l + (want2.series.length > 1 ? ' (' + ws.name + ')' : '') + ': ' + (av == null ? 'no value' : fmt(+av)) + ', expected ' + fmt(ev));
+      });
+    });
+    d.labels.forEach(function (l) { if (want2.labels.indexOf(String(l)) < 0) bad.push(l + ' is new (not in the expected numbers)'); });
+    return bad.length ? fail(bad.length + ' value(s) differ: ' + list(bad, 6)) : pass('all ' + n + ' values match' + (b.from === 'file' ? ' your source file' : ' the numbers locked in on ' + b.at.slice(0, 10)));
+  };
+
+  Object.assign(Q.ACTIONS, {
+    expect_points: 'Hover every point of a chart; each pop-up must name it and show its value (target chart)',
+    expect_drill_all: 'Double-click every category of a chart; each must drill down or show its records (target chart)',
+    try_options: 'Pick every choice in a drop-down; each must change something, raise no errors and keep KPI cards and charts in step (target)',
+    expect_table_totals: 'A table\'s Total row equals the sum of its rows (target table)',
+    expect_sort: 'Clicking a column heading reorders the table (target table)',
+    expect_baseline: 'The numbers match the locked-in or imported ones (target chart or kpi)'
+  });
+  Object.assign(Q.STEP_WORDS, {
+    expect_points: function (s, t) { return 'Hover every point on ' + t + ': each pop-up names it and shows its value.'; },
+    expect_drill_all: function (s, t) { return 'Double-click every category on ' + t + ': each drills down (or shows its records) and comes back.'; },
+    try_options: function (s, t) { return 'Pick every choice in ' + t + ': each changes the dashboard, with no errors, and KPI cards still agree with the charts.'; },
+    expect_table_totals: function (s, t) { return 'Check the Total row of ' + t + ' equals the sum of the rows.'; },
+    expect_sort: function (s, t) { return 'Click a column heading of ' + t + ': the rows reorder.'; },
+    expect_baseline: function (s, t) { return 'Check ' + t + ' matches the expected numbers.'; }
+  });
+
+  /* ---------------------------------------------------------------- full test cases */
+  function targetOf(e) {
+    if (e.id) return 'css=#' + e.id;
+    if (e.name) return 'css=' + e.tagName.toLowerCase() + '[name="' + e.name + '"]';
+    var lab = e.closest('label'); if (lab && norm(lab.textContent)) return 'filter=' + norm(lab.textContent).replace(norm(e.textContent), '').trim().slice(0, 40);
+    if (e.getAttribute('data-field')) return 'css=' + e.tagName.toLowerCase() + '[data-field="' + e.getAttribute('data-field') + '"]';
+    return MS.api.refOf(e);
+  }
+  function nameOf(e) {
+    var lab = e.closest('label'), t = norm(e.getAttribute('aria-label') || (lab && norm(lab.textContent).replace(norm(e.textContent), '')) || e.getAttribute('data-field') || e.name || e.id || e.innerText || e.value || '');
+    return t.slice(0, 50) || D.describe(e);
+  }
+  function goTo(el) { var t = Q.tabOf(el); return t ? [{ do: 'open_tab', target: t }] : []; }
+  X.parts = function () {
+    var r = rt(), own = function (e) { return !e.closest('#ms-ribbon') && !e.closest('[data-ms-editor]'); };
+    var tabEls = Q.tabs().map(function (t) { return t.el; });
+    return {
+      tabs: Q.tabs(),
+      charts: r.charts(),
+      kpis: Q.kpis(),
+      selects: D.all('select').filter(own),
+      checks: D.all('input[type=checkbox],input[type=radio]').filter(own),
+      buttons: D.all('button,[role=button],input[type=button],input[type=submit]').filter(function (e) { return own(e) && tabEls.indexOf(e) < 0 && norm(e.innerText || e.value || e.getAttribute('aria-label')) && !e.closest('.ms-crumbs') && !e.closest('table'); }),
+      links: D.all('a[href]').filter(own),
+      tables: D.all('table').filter(function (t) { return own(t) && !t.closest('.ms-modal-wrap'); })
+    };
+  };
+  X.generate = function (o) {
+    o = o || {}; var out = [], r = rt(); if (!r || !MS.child) return out;
+    var add = function (scenario, type, priority, title, steps, expected, area) { var c = { scenario: scenario, type: type, priority: priority, title: title, steps: steps, expected: expected }; if (area) c.area = area; out.push(c); return c; };
+    var b = X.baseline(), P = X.parts();
+    // Locked-in numbers make "the right numbers" automatic, at any depth.
+    if (b) {
+      P.charts.forEach(function (c) { if (!b.charts[c.key]) return; var nm = MS.charts.nameOf(c.key); add('Numbers', 'Data', 'High', '“' + nm + '” matches the expected numbers', goTo(c.el).concat([{ do: 'expect_baseline', target: 'chart=' + nm }]), 'Every value equals the ' + (b.from === 'file' ? 'source file' : 'locked-in') + ' figure.', nm); });
+      P.kpis.forEach(function (k) { if (!b.kpis.some(function (x) { return low(x.label) === low(k.label); })) return; add('Numbers', 'Data', 'High', 'KPI “' + k.label + '” matches the expected value', goTo(k.el).concat([{ do: 'expect_baseline', target: 'kpi=' + k.label }]), 'Shows the ' + (b.from === 'file' ? 'source' : 'locked-in') + ' value.', 'KPI ' + k.label); });
+    }
+    if (o.depth !== 'full') return out;
+    P.charts.forEach(function (c) {
+      var nm = MS.charts.nameOf(c.key), d = r.chartData(c.key, true) || { labels: [] }, cs = r.state.charts[c.key] || {}, go = goTo(c.el);
+      if (!d.labels.length) return;
+      var canPoint = false; try { canPoint = !!D.chartPoint(c.el, 0); } catch (e) {}
+      if (canPoint) add('Every point', 'Data', 'High', 'Every point on “' + nm + '” shows its value', go.concat([{ do: 'expect_points', target: 'chart=' + nm }]), 'All ' + Math.min(d.labels.length, CAP.points) + ' categories' + (d.series.length > 1 ? ' × ' + Math.min(d.series.length, CAP.series) + ' series' : '') + ' show a pop-up with their own name and value.', nm);
+      if (cs.drill || (cs.binding && cs.binding.levels && cs.binding.levels.length)) add('Every point', 'Interaction', 'Medium', 'Every category of “' + nm + '” drills down', go.concat([{ do: 'expect_drill_all', target: 'chart=' + nm }]), 'Double-clicking any category shows its detail, and the chart comes back.', nm);
+    });
+    P.selects.forEach(function (e) {
+      if (e.options.length < 2) return; var nm = nameOf(e);
+      add('Every choice', 'Interaction', 'High', 'Every choice in “' + nm + '” works', goTo(e).concat([{ do: 'try_options', target: targetOf(e) }, { do: 'expect_no_errors' }]), 'Each of the ' + Math.min(e.options.length, CAP.options) + ' choices changes the dashboard, with no errors, and KPI cards still agree with the charts.', 'Drop-down ' + nm);
+    });
+    P.checks.slice(0, CAP.checks).forEach(function (e) {
+      var nm = nameOf(e), t = targetOf(e);
+      add('Every choice', 'Interaction', 'Medium', (e.type === 'radio' ? 'Choosing' : 'Ticking') + ' “' + nm + '” works', goTo(e).concat([{ do: 'click', target: t }, { do: 'expect_changed' }, { do: 'expect_no_errors' }].concat(e.type === 'checkbox' ? [{ do: 'click', target: t }] : [])), 'The dashboard changes, with no errors.', (e.type === 'radio' ? 'Option ' : 'Check box ') + nm);
+    });
+    var seen = {};
+    P.buttons.slice(0, CAP.buttons).forEach(function (e) {
+      var nm = norm(e.innerText || e.value || e.getAttribute('aria-label')).slice(0, 50); if (seen[low(nm)]) return; seen[low(nm)] = 1;
+      add('Every button', 'Interaction', 'Medium', 'The “' + nm + '” button works', goTo(e).concat([{ do: 'click', target: 'button=' + nm }, { do: 'expect_no_errors' }, { do: 'expect_changed' }]), 'Clicking it changes something on screen, with no errors.', 'Button ' + nm);
+    });
+    P.tables.slice(0, CAP.tables).forEach(function (t, i) {
+      var nm = norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40), tg = t.id ? 'css=#' + t.id : MS.api.refOf(t);
+      add('Tables', 'Data', 'Medium', 'Table “' + nm + '”: totals add up and sorting works', goTo(t).concat([{ do: 'expect_table_totals', target: tg }, { do: 'expect_sort', target: tg }]), 'The Total row equals the sum of the rows; clicking a heading sorts.', 'Table ' + nm);
+    });
+    var tabs = P.tabs;
+    [1366, 820, 390].forEach(function (w) {
+      var steps = [{ do: 'set_width', value: w }];
+      if (tabs.length) tabs.forEach(function (t) { steps.push({ do: 'open_tab', target: t.title }, { do: 'expect_no_overflow' }); }); else steps.push({ do: 'expect_no_overflow' });
+      steps.push({ do: 'expect_no_errors' }, { do: 'set_width', value: 'auto' });
+      add('Every screen', 'Responsive', w === 390 ? 'Low' : 'Medium', (tabs.length ? 'Every tab fits' : 'The page fits') + ' at ' + w + ' px (' + (w === 1366 ? 'laptop' : w === 820 ? 'tablet' : 'phone') + ')', steps, 'No sideways scroll bar on any tab, and no errors.');
+    });
+    return out;
+  };
+
+  /* ---------------------------------------------------------------- coverage */
+  // Every part found, and the test cases that touch it.
+  // Every part found, the test cases that touch it, and whether it is tested fully
+  // (every point of a chart, every choice of a drop-down, a KPI checked against a value…).
+  X.coverage = function () {
+    var P = X.parts(), cs = Q.cases(), rows = [];
+    function ids(match) { return cs.filter(function (c) { return c.steps.some(match); }).map(function (c) { return c.id; }); }
+    function is(s, kind, name) { var t = low(s.target); return t === kind + '=' + low(name) || (kind === 'tab' && s.do === 'open_tab' && t === low(name)); }
+    function at(s, el) { if (!s.target) return false; try { return D.find(s.target, { quiet: true }) === el; } catch (e) { return false; } }
+    function row(kind, name, touch, full) { var c = ids(touch); rows.push({ kind: kind, name: name, cases: c, full: c.length > 0 && ids(full).length > 0 }); }
+    P.tabs.forEach(function (t) { row('Tab', t.title, function (s) { return is(s, 'tab', t.title); }, function (s) { return s.do === 'open_tab' && is(s, 'tab', t.title); }); });
+    P.charts.forEach(function (c) {
+      var nm = MS.charts.nameOf(c.key), pointable = false; try { pointable = !!D.chartPoint(c.el, 0); } catch (e) {}
+      row('Chart', nm, function (s) { return is(s, 'chart', nm); }, function (s) { return is(s, 'chart', nm) && (s.do === 'expect_points' || (!pointable && s.do === 'expect_chart_drawn')); });
+    });
+    P.kpis.forEach(function (k) { row('KPI card', k.label, function (s) { return is(s, 'kpi', k.label); }, function (s) { return is(s, 'kpi', k.label) && /^expect_(baseline|text)$/.test(s.do); }); });
+    P.selects.forEach(function (e) { row('Drop-down', nameOf(e), function (s) { return at(s, e); }, function (s) { return s.do === 'try_options' && at(s, e); }); });
+    P.checks.forEach(function (e) { row(e.type === 'radio' ? 'Option' : 'Check box', nameOf(e), function (s) { return at(s, e); }, function (s) { return s.do === 'click' && at(s, e); }); });
+    var seen = {};
+    P.buttons.forEach(function (e) { var nm = norm(e.innerText || e.value || e.getAttribute('aria-label')).slice(0, 50); if (seen[low(nm)]) return; seen[low(nm)] = 1; row('Button', nm, function (s) { return low(s.target) === 'button=' + low(nm); }, function (s) { return s.do === 'click' && low(s.target) === 'button=' + low(nm); }); });
+    P.tables.forEach(function (t, i) { var nm = norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40); row('Table', nm, function (s) { return at(s, t); }, function (s) { return s.do === 'expect_table_totals' && at(s, t); }); });
+    var full = rows.filter(function (x) { return x.full; }).length, touched = rows.filter(function (x) { return x.cases.length; }).length;
+    return { parts: rows.length, covered: full, touched: touched, percent: rows.length ? Math.round(full / rows.length * 100) : 100, numbersLocked: !!X.baseline(),
+      untested: rows.filter(function (x) { return !x.cases.length; }).map(function (x) { return x.kind + ': ' + x.name; }),
+      partly: rows.filter(function (x) { return x.cases.length && !x.full; }).map(function (x) { return x.kind + ': ' + x.name; }), rows: rows };
+  };
+  X.coverageMd = function (head) {
+    var C = X.coverage(), L = [head || '## Coverage', '', C.covered + ' of ' + C.parts + ' parts are tested fully (' + C.percent + '%), ' + (C.touched - C.covered) + ' in part, ' + (C.parts - C.touched) + ' not at all. Expected numbers: ' + (C.numbersLocked ? 'locked in, checked automatically.' : 'not locked in, so “right numbers” needs a person.'), '', '| Part | Name | Tested | Test cases |', '|---|---|---|---|'];
+    C.rows.forEach(function (x) { L.push('| ' + x.kind + ' | ' + String(x.name).replace(/\|/g, '\\|') + ' | ' + (x.full ? 'fully' : x.cases.length ? 'in part' : '**no**') + ' | ' + (x.cases.join(', ') || '') + ' |'); });
+    return L.join('\n') + '\n';
+  };
+  X.coverageDialog = function () {
+    if (!MS.child || !rt()) return MS.toast('Open a dashboard first.', 'warn');
+    var C = X.coverage();
+    var tbl = h('div', { 'class': 'qa-cov' }, C.rows.map(function (x) {
+      return h('div', { 'class': 'qa-cov-row' + (x.full ? ' full' : x.cases.length ? ' part' : ' none') }, [h('span', { 'class': 'qa-cov-kind', text: x.kind }), h('span', { 'class': 'grow', text: x.name }), h('span', { 'class': 'qa-cov-tag', text: x.full ? 'fully' : x.cases.length ? 'in part' : 'not tested' }), h('span', { 'class': 'qa-cov-ids', text: x.cases.slice(0, 6).join(', ') + (x.cases.length > 6 ? ' +' + (x.cases.length - 6) : '') })]);
+    }));
+    var head = h('div', { 'class': 'qa-sum' }, [Q.live ? Q.live.ring({ Pass: C.covered, Blocked: C.partly.length, 'Not run': C.parts - C.covered - C.partly.length }, 84, [h('b', { text: C.percent + '%' }), h('small', { text: 'covered' })]) : null,
+      h('div', { 'class': 'grow' }, [h('div', { 'class': 'qa-total' }, [h('b', { text: C.covered + ' of ' + C.parts + ' parts tested fully' }), ' · ' + (C.touched - C.covered) + ' in part · ' + (C.parts - C.touched) + ' not tested']),
+        h('div', { 'class': 'muted small', text: 'Fully means every point of a chart, every choice of a drop-down, a KPI card checked against a value, a table\'s totals. ' + (C.numbersLocked ? 'Expected numbers are locked in.' : 'Lock in or import the expected numbers so “right numbers” is checked automatically.') })])]);
+    return MS.dialog({ title: '🎯 Test coverage', sub: 'Every part of the dashboard Mothership found, and the test cases that touch it. A full draft covers every one.', wide: true, enterSubmits: false, body: h('div', {}, [head, tbl]),
+      buttons: [{ label: 'Close', value: null }, { label: 'Draft full tests', primary: C.percent < 100, value: 'full' }] }).then(function (v) { if (v === 'full') { var n = Q.draft({ depth: 'full' }); MS.toast(n + ' new test case(s). Coverage is now ' + X.coverage().percent + '%.', 'ok', 6000); } });
+  };
+
+  /* ---------------------------------------------------------------- menus */
+  X.numbersMenu = function () {
+    var b = X.baseline(), base = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'dashboard') + ' - expected numbers.xlsx';
+    return [
+      { icon: '🔒', label: b ? 'Lock in today\'s numbers again' : 'Lock in today\'s numbers', title: 'Keep every chart value and KPI card as they are now. Later runs check the numbers have not changed.', run: function () { var x = X.lock(); var n = Q.draft(); MS.toast('Locked in ' + x.charts + ' chart(s) and ' + x.kpis + ' KPI card(s)' + (n ? '; ' + n + ' number test(s) added' : '') + '.', 'ok', 6000); } },
+      { icon: '📗', label: 'Download the numbers as Excel', title: 'Fill in the figures from your source report, then import them', run: function () { X.xlsx().then(function (bf) { MS.download(base, new Blob([bf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); }); } },
+      { icon: '📥', label: 'Import expected numbers (Excel or CSV)…', title: 'Columns: What (chart or "KPI: name"), Category, Series, Value', run: function () { MS.pickFiles('.xlsx,.xls,.csv').then(function (f) { if (!f[0]) return; X.importFile(f[0]).then(function (res) { var n = Q.draft(); MS.toast(res.matched + ' expected number(s) imported' + (res.notFound.length ? '; not found: ' + res.notFound.slice(0, 3).join(', ') + (res.notFound.length > 3 ? '…' : '') : '') + (n ? '. ' + n + ' number test(s) added.' : '.'), res.notFound.length ? 'warn' : 'ok', 8000); }, function (e) { MS.toast('Could not read the file: ' + e.message, 'error'); }); }); } },
+      b ? { icon: '🗑', label: 'Remove the expected numbers', run: function () { X.clearBaseline(); MS.toast('Expected numbers removed.', 'ok'); } } : null
+    ].filter(Boolean);
+  };
+  X.draftMenu = function (after) {
+    var done = function (n, what) { MS.toast(n ? n + ' new test case(s) drafted' + (what ? ' (' + what + ')' : '') + '. Coverage: ' + X.coverage().percent + '%.' : 'Every drafted case is already in the plan.', n ? 'ok' : '', 6000); if (after) after(); };
+    return [
+      { icon: '✨', label: 'Quick draft', title: 'About one test per part, sampling the first bar, the first choice', run: function () { done(Q.draft()); } },
+      { icon: '🎯', label: 'Full draft: test everything', title: 'Every point, every choice of every drop-down, every drill-down, check box, button, table and tab at every width', run: function () { done(Q.draft({ depth: 'full' }), 'full'); } },
+      '-',
+      { icon: '🔢', label: 'Expected numbers', run: function (e) { MS.menu(e && e.currentTarget || MS.$('.qa-tools'), X.numbersMenu()); } },
+      { icon: '◔', label: 'Coverage report', run: X.coverageDialog }
+    ];
+  };
+
+  /* ---------------------------------------------------------------- API (and the MCP tools) */
+  MS.api.add('test_baseline', { d: 'Testing: the expected numbers that "right numbers" tests check against. action: get (default) | lock (keep today\'s chart values and KPI cards) | import (rows: [{what: chart name or "KPI: name", category, series, value}], e.g. from the source report) | clear | rows (the numbers as rows, to fill in).', p: { action: ['string', 'get | lock | import | clear | rows'], rows: ['array', 'For import: [{what, category, series, value}]'] },
+    f: function (a) {
+      var act = a.action || 'get';
+      if (act === 'lock') { var x = X.lock(); x.added = Q.draft(); return x; }
+      if (act === 'import') { var res = X.importRows(a.rows || []); res.added = Q.draft(); return res; }
+      if (act === 'clear') { X.clearBaseline(); return { cleared: true }; }
+      if (act === 'rows') return X.rows();
+      return X.baseline() || { none: true, note: 'Nothing locked in yet. Use action lock or import.' };
+    } });
+  MS.api.add('test_coverage', { d: 'Testing: every part of the dashboard (tabs, charts, KPI cards, drop-downs, check boxes, buttons, tables) and the test cases that touch it, with the percentage covered and what is untested.', p: {}, f: function () { return X.coverage(); } });
 })(window.MS);
 
 </script>
@@ -14212,7 +14653,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
       '<h3>📗 Excel tracker</h3><p><b>Review › Excel tracker</b> saves every comment as a spreadsheet: number, status, priority, tab, section, chart, where exactly, the comment, what “done” means, owner, due date and notes, plus a summary sheet by tab and priority. Use it in the review meeting, then <b>Update from tracker</b> loads status, priority, owner, due date, notes and wording back. Keep the ID column.</p>' +
       '<h3>⚖ Compare versions</h3><p><b>File › Compare</b> shows what changed between two saved versions, the dashboard now, or a file on this laptop: tabs added, renamed or removed, text changes (old crossed out, new in green), chart settings, data, KPI cards, filters, colours and comments. <b>Side by side</b> shows both dashboards next to each other. <b>Copy the list</b> for your change note.</p>' },
     { id: 'draw', title: 'Moving, drawing on charts and pictures', html: '<p><b>Move with the mouse.</b> In Edit mode press on a chart, KPI card or section and drag it. A blue bar shows exactly where it will land and a label says what will happen (“Move to the right”, “Move below”). Hold <b>Ctrl</b> to copy. Drop on one of the dashboard\'s tabs to send it there. <b>Esc</b> cancels; ' + K('Ctrl') + '+' + K('Z') + ' undoes.</p><p><b>Floating toolbar.</b> Whatever you select gets a small toolbar above it: drag handle, chart settings, draw, copy as picture, duplicate, delete and ⋯ for the full menu. Turn it off in View.</p><p><b>Draw on a chart</b> (Consulting › Draw on chart, or right-click › Draw on the chart):</p><ul><li><b>Growth (CAGR)</b>: pick two bars; an arrow over the bars says “+12.4% CAGR”. Set the number of years if the bars are not one year apart.</li><li><b>Difference</b>: a bracket between two bars with the change and the % (choose either or both).</li><li><b>Arrow, line, double arrow, box, circle, text, callout</b>: the pointer becomes a crosshair; drag on the chart.</li></ul><p>Click a shape to select it: its toolbar changes colour, width, dash, fill and arrowheads. Drag to move it, double-click to change its text, Delete to remove it. Growth and difference stay on their bars when data or filters change. Shapes are kept in the exported file, the PDF and the PowerPoint.</p><p><b>Pictures.</b> Right-click › <b>Copy as picture</b> (' + K('Ctrl') + '+' + K('Shift') + '+' + K('C') + ') puts a sharp PNG of the chart card, with its title, notes and shapes, on the clipboard: paste it into PowerPoint, Word, Outlook or Teams. <b>Save as picture</b> downloads the PNG.</p>' },
-    { id: 'testing', title: 'Testing a dashboard', html: '<p>The <b>Testing</b> tab plans and runs tests of the dashboard, and writes the test document.</p><ol><li><b>Draft tests</b> writes test cases from the dashboard: opens without errors, each tab, each chart (numbers, pop-up, drill-down, labels), each KPI card, filters, buttons, links, tables, KPI cards against chart totals, accessibility, laptop / tablet / phone widths, export and edge cases.</li><li><b>Test cases</b> lists them by scenario. Edit (✎) or add one: scenario, type, priority, “before you start”, steps and the expected result. Steps are one per line: <code>step | target | value</code>, e.g. <code>hover | chart=Sales @ North</code>, <code>select | filter=Region | West</code>, <code>expect_text | kpi=Revenue | $1.2M</code>. Anything else is a “check by eye” step.</li><li><b>Run all</b> (or ▶ on a case) runs the automatic steps in Interact mode while you watch. A pointer moves to each part before it is clicked or hovered, checks outline what they look at, and a card in the corner shows the progress, the case and step being run, the results so far and how long it has taken. <b>Stop</b> ends the run after the current step; <b>Fast / Normal / Slow</b> sets the pace. Each case gets Pass or Fail with a run log and its time. Cases with a “check by eye” step become <b>Needs a person</b>: look, then set the result.</li><li>When the run ends the card shows the results ring. <b>See results</b> opens the list with the failures; click a status chip (Pass, Fail…) to show only those. <b>Rerun failed</b> runs just the failures again. Failed cases keep a picture of the part they were checking (click it to copy). The bars on the right show the pass rate of the last runs.</li><li><b>Fix failures</b> (or <b>Prompt from failures</b>) builds a prompt for an AI assistant from what failed: each failed case with its steps, the step that failed and what happened, and what the AI should do (find the cause, fix the dashboard or the test, test again) and how to report back. Choose an AI connected through MCP (it re-runs the tests itself) or an ordinary chat (it reads the file and tells you what to change).</li><li><b>Test document</b>: Markdown, HTML (prints to PDF), Excel or JSON with scope, approach, every case, results, traceability, defect log and sign-off.</li><li><b>AI tester</b> copies a prompt for another AI. Through the MCP server (<b>Connect AI</b>) it can work the dashboard itself, like Playwright: <code>ui_snapshot</code>, <code>ui_click</code>, <code>ui_hover</code>, <code>ui_expect</code>, <code>ui_screenshot</code>, <code>test_run</code>, <code>test_record</code>, <code>save_test_document</code>.</li></ol><p>Targets: <code>text=…</code>, <code>button=…</code>, <code>tab=…</code>, <code>chart=…</code> (add <code>@ North</code> for one bar), <code>kpi=…</code>, <code>filter=…</code>, or a CSS selector. The test plan is saved inside the dashboard file.</p>' },
+    { id: 'testing', title: 'Testing a dashboard', html: '<p>The <b>Testing</b> tab plans and runs tests of the dashboard, and writes the test document.</p><ol><li><b>Draft tests</b> writes test cases from the dashboard: opens without errors, each tab, each chart (numbers, pop-up, drill-down, labels), each KPI card, filters, buttons, links, tables, KPI cards against chart totals, accessibility, laptop / tablet / phone widths, export and edge cases. <b>Quick draft</b> samples each part once; <b>Full draft: test everything</b> hovers every point of every chart, picks every choice of every drop-down, drills every category, ticks every check box, presses every button, checks every table total and sort, and opens every tab at three widths.</li><li><b>Coverage</b> shows every part of the dashboard and whether it is tested fully, in part or not at all, with a button to fill the gaps.</li><li><b>Numbers</b>: tests can only say a number is right if they know what it should be. <b>Lock in today’s numbers</b> once you have checked them, or download them as Excel, type in the figures from your source report and import them (Excel or CSV). Each chart and KPI card then gets a “shows the right numbers” test (within 0.5%).</li><li><b>Test cases</b> lists them by scenario. Edit (✎) or add one: scenario, type, priority, “before you start”, steps and the expected result. Steps are one per line: <code>step | target | value</code>, e.g. <code>hover | chart=Sales @ North</code>, <code>select | filter=Region | West</code>, <code>expect_text | kpi=Revenue | $1.2M</code>. Anything else is a “check by eye” step.</li><li><b>Run all</b> (or ▶ on a case) runs the automatic steps in Interact mode while you watch. A pointer moves to each part before it is clicked or hovered, checks outline what they look at, and a card in the corner shows the progress, the case and step being run, the results so far and how long it has taken. <b>Stop</b> ends the run after the current step; <b>Fast / Normal / Slow</b> sets the pace. Each case gets Pass or Fail with a run log and its time. Cases with a “check by eye” step become <b>Needs a person</b>: look, then set the result.</li><li>When the run ends the card shows the results ring. <b>See results</b> opens the list with the failures; click a status chip (Pass, Fail…) to show only those. <b>Rerun failed</b> runs just the failures again. Failed cases keep a picture of the part they were checking (click it to copy). The bars on the right show the pass rate of the last runs.</li><li><b>Fix failures</b> (or <b>Prompt from failures</b>) builds a prompt for an AI assistant from what failed: each failed case with its steps, the step that failed and what happened, and what the AI should do (find the cause, fix the dashboard or the test, test again) and how to report back. Choose an AI connected through MCP (it re-runs the tests itself) or an ordinary chat (it reads the file and tells you what to change).</li><li><b>Test document</b>: Markdown, HTML (prints to PDF), Excel or JSON with scope, approach, every case, results, traceability, defect log and sign-off.</li><li><b>AI tester</b> copies a prompt for another AI. Through the MCP server (<b>Connect AI</b>) it can work the dashboard itself, like Playwright: <code>ui_snapshot</code>, <code>ui_click</code>, <code>ui_hover</code>, <code>ui_expect</code>, <code>ui_screenshot</code>, <code>test_run</code>, <code>test_record</code>, <code>save_test_document</code>.</li></ol><p>Targets: <code>text=…</code>, <code>button=…</code>, <code>tab=…</code>, <code>chart=…</code> (add <code>@ North</code> for one bar), <code>kpi=…</code>, <code>filter=…</code>, or a CSS selector. The test plan is saved inside the dashboard file.</p>' },
     { id: 'libraries', title: 'Chart libraries', html: '<table><tr><th>Library</th><th>What works</th></tr><tr><td>Chart.js, ECharts, Plotly</td><td>Everything: look, pop-ups, colours, order, data, drill-down, images, summaries.</td></tr><tr><td>Highcharts</td><td>Everything as above. Mothership uses the Highcharts already inside your dashboard (it is not free for commercial use, so Mothership doesn\'t include it).</td></tr><tr><td>D3 and other SVG charts</td><td>Names, pop-ups, colours, look (fonts), summaries, number check, image and comments. The page\'s own script draws them, so Mothership can\'t redraw them from other data or drill down: rebuild with <b>Insert › Chart</b> for that.</td></tr></table><p>Charts drawn as plain images can\'t be read; ask for the data behind them.</p>' },
     { id: 'theme', title: 'Mothership theme and search', html: "<p>Make Mothership itself easier on the eyes. Your dashboard is not affected.</p><ul><li><b>🎨</b> in the top bar, View › <b>Theme</b>, or the welcome screen: 8 ready-made looks (Classic, Daylight, Ocean, Forest, Saffron, Midnight, Slate dark, High contrast).</li><li>Pick light, dark, “Match Windows” or high contrast; any accent colour (or <b>Match brand</b> after loading a brand); a coloured or plain top bar; comfortable or compact spacing; text size; ribbon labels or icons only.</li><li>View › <b>Dark mode</b> switches in one click. Settings are saved in this browser.</li></ul><h3>🔍 Search everything</h3><p>Press " + K('Ctrl') + "+" + K('K') + " (or the search box in the top bar) and type: any ribbon command, a chart name (to jump to it or open its settings), a tab, a dataset, a comment, or a help topic. ↑ ↓ and Enter.</p>" },
     { id: 'region', title: 'Region and currency', html: '<p>Mothership writes numbers in <b>US dollars, US style</b> ($1,234,567 and $1.23M) unless you choose otherwise. Change it in <b>Design › Region & currency</b>: pick a country (52 to choose from) and it fills in the currency and number style; then change the currency on its own if you need to (any currency, e.g. a UK dashboard in US $). <b>Big numbers</b> chooses K, M, B or lakh and crore. The preview shows what you will get.</p><table><tr><th>Choice</th><th>1234567 as currency</th><th>short</th></tr><tr><td>United States</td><td>$1,234,567</td><td>$1.23M</td></tr><tr><td>India</td><td>₹12,34,567</td><td>₹12.35 L</td></tr><tr><td>Germany</td><td>1.234.567 €</td><td>1,23 Mio. €</td></tr><tr><td>United Kingdom</td><td>£1,234,567</td><td>£1.23M</td></tr></table><h3>Where it applies</h3><ul><li>Pop-ups and axes set to <b>Currency</b>, <b>Currency short</b> or <b>Short</b> (<code>{value:cur}</code>, <code>{value:curshort}</code>, <code>{value:short}</code>).</li><li>KPI cards, chart summaries, the number check and the AI prompt rules.</li><li>The setting is saved inside the dashboard, so viewers see the same thing. It is one undo step.</li></ul><p>Formats you chose by name (₹ crore, ₹ lakh, US$) stay as they are, and numbers the dashboard\'s own script writes are not changed. If a dashboard clearly shows ₹, € or £, Mothership tells you in the status bar but doesn\'t switch on its own.</p>' },
@@ -14862,7 +15303,9 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
     { tab: 'Testing', groups: [
       { name: 'Plan', items: [
         { icon: '☑', label: 'Test cases', title: 'Plan, run and record tests of this dashboard: scenarios, steps, expected results and status', run: needRt(function () { MS.qa.dialog(); }) },
-        { icon: '✨', label: 'Draft tests', title: 'Mothership writes a full set of test cases from the dashboard: tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility', run: needRt(function () { var n = MS.qa.draft(); MS.toast(n ? n + ' test cases drafted. Testing › Test cases to see them.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); }) }] },
+        { icon: '✨', label: 'Draft tests', title: 'Mothership writes test cases from the dashboard. Quick: about one per part. Full: every point, every drop-down choice, every drill-down, button, check box, table and tab at every width.', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.draftMenu()); }) },
+        { icon: '🔢', label: 'Numbers', title: 'Lock in today\'s numbers, or import the figures from your source report, so "right numbers" tests run automatically', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.numbersMenu()); }) },
+        { icon: '🎯', label: 'Coverage', title: 'Every part of the dashboard and the test cases that touch it', run: needRt(function () { MS.qa.deep.coverageDialog(); }) }] },
       { name: 'Run', items: [
         { icon: '▷', label: 'Run all', title: 'Run every test case while you watch: a pointer shows each click and hover, and a progress card shows the case, the step and the results so far. Steps to check by eye are marked "Needs a person".', run: needRt(function () { MS.qa.live.start(); }) },
         { icon: '↻', label: 'Rerun failed', title: 'Run only the cases that failed last time', run: needRt(function () { var f = MS.qa.failed(); if (!f.length) return MS.toast('No failed test cases.', 'ok'); MS.qa.live.start(f.map(function (x) { return x.id; })); }) },
@@ -15224,7 +15667,7 @@ MS.RUNTIME_SRC = function () { return '(' + MS.RUNTIME_FN.toString() + ')();'; }
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '2.8.0';
+  MS.VERSION = '2.9.0';
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };

@@ -239,7 +239,9 @@
     { tab: 'Testing', groups: [
       { name: 'Plan', items: [
         { icon: '☑', label: 'Test cases', title: 'Plan, run and record tests of this dashboard: scenarios, steps, expected results and status', run: needRt(function () { MS.qa.dialog(); }) },
-        { icon: '✨', label: 'Draft tests', title: 'Mothership writes a full set of test cases from the dashboard: tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility', run: needRt(function () { var n = MS.qa.draft(); MS.toast(n ? n + ' test cases drafted. Testing › Test cases to see them.' : 'Every drafted case is already in the plan.', n ? 'ok' : ''); }) }] },
+        { icon: '✨', label: 'Draft tests', title: 'Mothership writes test cases from the dashboard. Quick: about one per part. Full: every point, every drop-down choice, every drill-down, button, check box, table and tab at every width.', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.draftMenu()); }) },
+        { icon: '🔢', label: 'Numbers', title: 'Lock in today\'s numbers, or import the figures from your source report, so "right numbers" tests run automatically', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.numbersMenu()); }) },
+        { icon: '🎯', label: 'Coverage', title: 'Every part of the dashboard and the test cases that touch it', run: needRt(function () { MS.qa.deep.coverageDialog(); }) }] },
       { name: 'Run', items: [
         { icon: '▷', label: 'Run all', title: 'Run every test case while you watch: a pointer shows each click and hover, and a progress card shows the case, the step and the results so far. Steps to check by eye are marked "Needs a person".', run: needRt(function () { MS.qa.live.start(); }) },
         { icon: '↻', label: 'Rerun failed', title: 'Run only the cases that failed last time', run: needRt(function () { var f = MS.qa.failed(); if (!f.length) return MS.toast('No failed test cases.', 'ok'); MS.qa.live.start(f.map(function (x) { return x.id; })); }) },

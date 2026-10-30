@@ -142,6 +142,10 @@ const call = async (name, args) => {
   const sf = await call('save_test_document', { format: 'failures' });
   const sfText = sf.json && fs.existsSync(sf.json.saved) ? fs.readFileSync(sf.json.saved, 'utf8') : '';
   check('save_test_document writes a prompt from the failed tests', run2.json && run2.json.results[0].status === 'Fail' && /## Your task/.test(sfText) && /Broken on purpose/.test(sfText) && /FAILED/.test(sfText) && /test_run/.test(sfText), sf.error || sf.json || run2.json);
+  const bl = await call('test_baseline', { action: 'lock' });
+  const cv0 = await call('test_coverage', {});
+  const fd = await call('test_plan', { action: 'draft', depth: 'full' });
+  check('test_baseline locks the numbers; test_plan full draft raises test_coverage', bl.json && bl.json.charts >= 3 && bl.json.added > 0 && cv0.json && fd.json && fd.json.added > 0 && fd.json.coverage.percent > cv0.json.percent, bl.error || cv0.error || fd.error || [bl.json, cv0.json && cv0.json.percent, fd.json && fd.json.coverage]);
   const cl = await call('close_dashboard', {});
   const cl2 = await call('close_dashboard', { force: true });
   check('close_dashboard keeps unexported work unless forced', cl.json && cl.json.closed === false && cl.json.unsavedChanges && cl2.json && cl2.json.closed === true, cl.error || cl2.error || [cl.json, cl2.json]);
