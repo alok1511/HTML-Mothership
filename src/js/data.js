@@ -548,7 +548,7 @@
           if (block.classList.contains('ms-inline') && lv.height) MS.history.attrs('Height', block.querySelector('.ms-visual'), ['style'], function (x) { x.style.height = 'var(--ms-h)'; });
         }
       });
-      MS.toast('Chart updated.' + (dsSel.value ? ' Switch to Interact mode (top right) and double-click a bar to try the drill-down.' : ''), 'ok', 6000);
+      MS.toast('Chart updated.' + (dsSel.value ? ' Switch to Interact mode (top centre) and double-click a bar to try the drill-down.' : ''), 'ok', 6000);
     });
   };
   function insertAt(ta, text) { var s = ta.selectionStart || ta.value.length; ta.value = ta.value.slice(0, s) + text + ta.value.slice(ta.selectionEnd || s); ta.focus(); ta.selectionStart = ta.selectionEnd = s + text.length; }

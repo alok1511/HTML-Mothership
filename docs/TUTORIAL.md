@@ -260,9 +260,10 @@ A typical order, about ten minutes:
 
 1. **Testing › Draft tests**: Mothership writes the test cases from the dashboard (every tab, chart, KPI card, filter, button, screen size, accessibility, export).
 2. **Testing › Test cases**: read them, edit any (✎), add your own. Steps are one per line: `step | target | value`, for example `hover | chart=Sales by region @ West` or `expect_text | kpi=Margin | 16.1%`.
-3. **Run all**: the automatic steps run and each case gets Pass, Fail or Needs a person. Look at the screenshots or the dashboard for the "check by eye" steps and set their result.
-4. **Test document** saves the full plan with results, defect log and sign-off (Markdown, HTML for PDF, Excel or JSON).
-5. **AI tester** copies a prompt for another AI. Connected through MCP, it can click, hover, check and take screenshots itself, and record the results.
+3. **Run all**: watch it work. A pointer moves to each part before it is clicked or hovered, and a card in the corner shows the progress, the case and step being run, and the results so far. **Stop** ends the run; **Slow** lets you follow every step. Each case gets Pass, Fail or Needs a person. Look at the dashboard for the "check by eye" steps and set their result.
+4. When it ends, click **See results** (click the **Fail** chip to show only failures) or **Rerun failed**. **Fix failures** (or **Prompt from failures**) gives you a prompt to paste into an AI assistant: it lists what failed and asks the AI to find the cause, fix the dashboard or the test, and test again.
+5. **Test document** saves the full plan with results, defect log and sign-off (Markdown, HTML for PDF, Excel or JSON).
+6. **AI tester** copies a prompt for another AI. Connected through MCP, it can click, hover, check and take screenshots itself, and record the results.
 
 ## Publishing and locking
 
@@ -421,6 +422,7 @@ Yes, if you set thresholds: double-click the KPI value › Status colours. It re
 
 | `Ctrl+K` | Search commands, charts, tabs and help |
 |---|---|
+| `Alt+1 / Alt+2 / Alt+3` | Edit / Comment / Interact mode |
 | `Ctrl+Z / Ctrl+Y` | Undo / redo |
 | `Ctrl+C, X, V` | Copy, cut, paste blocks |
 | `Ctrl+D` | Duplicate |

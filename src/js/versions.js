@@ -75,6 +75,9 @@
   }, 8000);
   MS.on('changed', function () { MS.dirty = true; autosave(); });
   MS.on('saved', function () { MS.store.del('kv', 'autosave').catch(function () {}); });
+  // a different dashboard must never overwrite the file the last one was exported to
+  MS.on('doc-opened', function (d) { if (!d || !d.reloaded) handle = null; });
+  MS.on('doc-closed', function () { handle = null; });
   V.offerRecovery = function () {
     MS.store.get('kv', 'autosave').then(function (a) {
       if (!a || !a.html) return;

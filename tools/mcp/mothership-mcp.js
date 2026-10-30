@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.7.0';
+var VERSION = '2.8.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -416,9 +416,9 @@ var LOCAL = {
         return chain.then(function () { return wait(act === 'hover' ? 250 : 350); }).then(function () { return api('ui_after', {}); }).then(function (r) { return Object.assign({ did: act, on: l.what, at: { x: Math.round(x), y: Math.round(y) } }, r); });
       });
     } },
-  save_test_document: { description: 'Testing: save the test document with the results: markdown (default), html (prints to PDF), xlsx (Excel tracker of the cases), json, or prompt (instructions for another AI tester).', props: { format: ['string', 'markdown | html | xlsx | json | prompt'], path: ['string', 'Where to save (default: <name> - test plan.<ext>)'] },
+  save_test_document: { description: 'Testing: save the test document with the results: markdown (default), html (prints to PDF), xlsx (Excel tracker of the cases), json, prompt (instructions for another AI tester) or failures (a prompt built from the failed cases: find the cause, fix, test again).', props: { format: ['string', 'markdown | html | xlsx | json | prompt | failures'], goal: ['string', 'For failures: fix (default) or retest'], path: ['string', 'Where to save (default: <name> - test plan.<ext>)'] },
     run: function (a) {
-      return api('test_document', { format: a.format || 'markdown' }).then(function (r) {
+      return api('test_document', { format: a.format || 'markdown', goal: a.goal }).then(function (r) {
         var file = outPath(a.path, r.name);
         if (r.b64) fs.writeFileSync(file, Buffer.from(r.b64, 'base64')); else fs.writeFileSync(file, r.text, 'utf8');
         return api('test_plan', {}).then(function (p) { return { saved: file, summary: p.summary }; });

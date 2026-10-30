@@ -137,6 +137,14 @@ const call = async (name, args) => {
   check('save_test_document writes the test plan', /## 4\. Test cases/.test(sdText) && /All four regions match/.test(sdText) && /## 9\. Sign-off/.test(sdText), sd.error || sd.json);
   const sx = await call('save_test_document', { format: 'xlsx' });
   check('save_test_document writes Excel', sx.json && fs.readFileSync(sx.json.saved).slice(0, 2).toString() === 'PK', sx.error || sx.json);
+  await call('test_plan', { action: 'add', case: { title: 'Broken on purpose', steps: [{ do: 'expect_text', target: 'kpi=Total sales', value: '$999 trillion' }], expected: 'It fails' } });
+  const run2 = await call('test_run', { ids: ['TC-' + String(dr.json.cases.length + 1).padStart(3, '0')] });
+  const sf = await call('save_test_document', { format: 'failures' });
+  const sfText = sf.json && fs.existsSync(sf.json.saved) ? fs.readFileSync(sf.json.saved, 'utf8') : '';
+  check('save_test_document writes a prompt from the failed tests', run2.json && run2.json.results[0].status === 'Fail' && /## Your task/.test(sfText) && /Broken on purpose/.test(sfText) && /FAILED/.test(sfText) && /test_run/.test(sfText), sf.error || sf.json || run2.json);
+  const cl = await call('close_dashboard', {});
+  const cl2 = await call('close_dashboard', { force: true });
+  check('close_dashboard keeps unexported work unless forced', cl.json && cl.json.closed === false && cl.json.unsavedChanges && cl2.json && cl2.json.closed === true, cl.error || cl2.error || [cl.json, cl2.json]);
 
   const bad = await call('no_such_tool', {});
   check('unknown tool is an error, not a crash', !!bad.error, bad);
