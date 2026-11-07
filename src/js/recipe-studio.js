@@ -32,7 +32,8 @@
       if (native) steps.push({ do: 'layout', preservePageTabs: true,
         ribbon: subset(r.state.layout.ribbon, ['position', 'height', 'width', 'style', 'align']),
         pane: subset(r.state.layout.pane, ['position', 'visible', 'width']) });
-      var tabs = native ? r.tabs() : MS.pageTabs.list();
+      var pageTabs = native ? null : MS.pageTabs.group(true);
+      var tabs = native ? r.tabs() : pageTabs ? pageTabs.tabs : [];
       tabs.forEach(function (t, i) {
         if (native && i === 0 && t.title === 'Dashboard') return;
         var s = { do: 'ensureTab', title: t.title, kind: t.kind === 'grid' ? 'grid' : 'content' };

@@ -45,17 +45,20 @@ Three extension points, from safest to most powerful:
 | `layout` | `ribbon: {position, height, brand}`, `pane: {position, visible, title, width}` |
 | `theme` | `theme: {…theme JSON…}` |
 | `addTab` | `title`, and `markdown` or `html` (content tab), or `kind: "grid"` |
+| `ensureTab` | Same fields as `addTab`. A tab with the same title keeps its current content. |
 | `renameTab` / `deleteTab` / `hideTab` | `from`+`to` / `title` / `title` |
 | `wrapCharts` | adds commentary headers to every chart |
 | `tooltip` | `charts: "*" \| match`, `template` |
-| `chart` | `match`, any of `tooltip`, `binding`, `drill`, `commentary: {title, sub, inf}` |
+| `chart` | `match`, any of `tooltip`, `style`, `binding`, `drill`, `commentary: {title, sub, inf}` |
 | `moveChart` / `copyChart` | `match`, `toTab` (title) |
 | `dataset` | `name` + `expr` (a global in the page, e.g. `"salesData"`) or `rows` |
 | `filter` | `dataset`, `field`, `label` |
 | `replaceText` | `find`, `replace` |
 | `css` | `css` |
 
-`match` is `"*"`, `{ "title": "part of title" }`, `{ "index": 0 }` or `{ "key": "m1a" }`.
+`match` accepts `"*"`, `{ "title": "part of title" }`, `{ "index": 0 }`, or `{ "key": "m1a" }`. For a portable recipe, use `{ "titleExact": "Sales by state", "library": "chartjs", "tab": "Overview" }` to identify one chart. Library and tab are optional qualifiers.
+
+`capture_recipe` creates a recipe from the current dashboard's reusable settings. Pass `helpText: true` to include reader help text, `commentary: true` to include authored chart notes, or `bindings: true` to include dataset and field references. `run_recipe` returns the count of completed steps and any issues to review.
 
 ## Plugin API
 

@@ -130,6 +130,18 @@ async function shapeZip() {
     await frame.getByText(/demo-wgs84\.zip.*2 of 6/).waitFor();
     console.log('  ✓ WGS84 shapefile import joins ISO codes, supports map clicks and survives undo and export');
 
+    const reportRecipe = await page.evaluate(async () => {
+      const recipe = await MS.api.run('capture_recipe', { name: 'Sales review', helpText: true });
+      const before = MS.pageTabs.list().map(t => t.title);
+      const result = await MS.api.run('run_recipe', { recipe });
+      return { recipe, before, after: MS.pageTabs.list().map(t => t.title), issues: result.issues };
+    });
+    assert.equal(reportRecipe.before.length, 7);
+    assert.deepEqual(reportRecipe.after, reportRecipe.before);
+    assert.deepEqual(reportRecipe.issues, []);
+    assert(reportRecipe.recipe.steps.some(s => s.title === 'FAQ' && s.html?.includes('What changes when I filter the report?')));
+    console.log('  ✓ Report capture includes opted-in help text and reuses the report’s existing tabs');
+
     const setup = await page.evaluate(async () => {
       await MS.samples.open('sales', { force: true });
       const chart = MS.rt().charts()[0];

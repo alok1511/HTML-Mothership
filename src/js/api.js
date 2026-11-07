@@ -479,7 +479,7 @@
     f: function (a) { return MS.deliver.pptx({ from: a.from }).then(function (r) { var b = '', u = r.bytes; for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { slides: r.slides, name: MS.exportName(a.from === 'story' ? '-story' : '').replace(/\.html$/, '.pptx'), b64: btoa(b) }; }); } };
 
   /* ---------------------------------------------------------- automation */
-  A.run_recipe = { d: 'Run a Mothership recipe (a list of steps: layout, theme, addTab, renameTab, deleteTab, hideTab, wrapCharts, tooltip, chart, moveChart, copyChart, dataset, filter, replaceText, css). See docs/EXTENDING.md.', p: { recipe: ['object', '{steps:[{do:..., ...}]}', true] },
+  A.run_recipe = { d: 'Apply a Mothership recipe and return completed steps and issues. Recipes can set themes, ensure tabs, style charts and add filters. See docs/EXTENDING.md.', p: { recipe: ['object', '{steps:[{do:..., ...}]}', true] },
     f: function (a) { return Promise.resolve(MS.plugins.runRecipe(a.recipe, 'api')).then(function (x) { return x || done(); }); } };
   A.call = { d: 'Call any Mothership function by path with positional arguments, e.g. path "tabs.add", args ["FAQ","content","<h1>FAQ</h1>"]. Gives access to every feature, including ones without their own tool.', p: { path: ['string', 'e.g. "blocks.wrapAll", "order.set", "rt.refresh"', true], args: ['array', 'Arguments'] },
     f: function (a) {
