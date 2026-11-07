@@ -143,7 +143,7 @@ const b64 = s => Buffer.from(s, 'utf8').toString('base64');
     if (hd) { const sx = geo.x + hd.x * geo.s, sy = geo.y + hd.y * geo.s; await page.mouse.move(sx, sy); await page.mouse.down(); await page.mouse.move(sx, sy - 40, { steps: 3 }); await page.mouse.move(sx, sy - 100 * geo.s, { steps: 3 }); await page.mouse.up(); await wait(250); }
     const drag = await page.evaluate(() => ({ h: Math.round(MS.child.doc.getElementById('prem').getBoundingClientRect().height), undo: MS.history.canUndo() }));
     check('resize: the round handle on a selected chart drags its size', hd && drag.h < 300 && drag.h > 200, { hd, drag });
-    const kept = await page.evaluate(async () => { const html = MS.exportHtml(); await MS.openHtml(html, 'again.html'); await new Promise(r => setTimeout(r, 1800)); return Math.round(MS.child.doc.getElementById('prem').getBoundingClientRect().height); });
+    const kept = await page.evaluate(async () => { const html = MS.exportHtml(); await MS.openHtml(html, 'again.html', { force: true }); await new Promise(r => setTimeout(r, 1800)); return Math.round(MS.child.doc.getElementById('prem').getBoundingClientRect().height); });
     check('resize: the new size is kept in the exported file', Math.abs(kept - drag.h) < 6, { kept, was: drag.h });
     const lg = await page.evaluate(async () => {
       const k = MS.rt().charts()[0].key, o = () => MS.rt().chart(k).inst.options.plugins.legend;
@@ -265,7 +265,7 @@ const b64 = s => Buffer.from(s, 'utf8').toString('base64');
     check('table rules: red / amber / green by thresholds (lower is better)', tr.bg.join('|') === 'rgb(198, 239, 206)|rgb(255, 199, 206)|rgb(255, 235, 156)|rgb(198, 239, 206)', tr.bg);
     check('table rules: data bars', /linear-gradient/.test(tr.bars) && /100%/.test(tr.bars), tr.bars);
     const tr2 = await page.evaluate(async html => {
-      await MS.openHtml(html, 'again.html'); await new Promise(r => setTimeout(r, 1500));
+      await MS.openHtml(html, 'again.html', { force: true }); await new Promise(r => setTimeout(r, 1500));
       const bg = getComputedStyle(MS.child.doc.querySelector('#perf tr:nth-child(3) td:nth-child(3)')).backgroundColor;
       await MS.api.run('table_rules', { table: 0, action: 'clear' });
       return { bg, cleared: MS.child.doc.querySelectorAll('#perf [data-ms-cf]').length, plain: getComputedStyle(MS.child.doc.querySelector('#perf tr:nth-child(3) td:nth-child(3)')).backgroundColor };

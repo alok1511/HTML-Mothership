@@ -35,6 +35,7 @@
       MS.versions.save('Before turning off tabs', true).then(function () {
         MS.rt().disableLayout();
         MS.history.clear();
+        MS.history.mark('Turn off tabbed layout');
         MS.emit('structure');
       });
       MS.toast('Layout off (' + html.length + ' tabs merged).');
@@ -200,63 +201,160 @@
       MS.toast('Datasets added. Now bind a chart to one: select a chart, then Charts › Data & drill-down.', 'ok', 7000);
     });
   };
-  // Swap an embedded dataset's rows for a new file (e.g. the monthly refresh); everything linked to it keeps working.
-  Dt.replace = function (name) {
-    var rt = MS.rt(); if (!rt || !rt.state.datasets[name]) return;
-    MS.pickFiles('.json,.csv,.tsv,.xlsx,.xls,.xlsm,.ods,.md').then(function (fs) {
-      if (!fs[0]) return;
-      MS.drillData.read(fs[0]).then(function (tables) {
-        var t = tables.filter(function (x) { return x.rows && x.rows.length; })[0];
-        if (!t) return MS.toast('No table found in ' + fs[0].name, 'warn');
-        var oldCols = rt.fields(name).map(function (f) { return f.name; }), newCols = Object.keys(t.rows[0]);
-        var missing = oldCols.filter(function (c) { return newCols.indexOf(c) < 0; });
-        var go = function () { MS.history.state('Refresh ' + name, function (s) { s.datasets[name] = { rows: t.rows, source: 'file', file: fs[0].name, refreshed: new Date().toISOString() }; }); MS.toast(name + ' refreshed: ' + t.rows.length + ' rows from ' + fs[0].name + '.', 'ok', 6000); };
-        if (missing.length) MS.confirm('Some columns are missing', 'The new file has no ' + missing.join(', ') + '. Charts or filters using them will be empty. Continue?', 'Refresh anyway').then(function (ok) { if (ok) go(); });
-        else go();
-      }).catch(function (e) { MS.toast('Could not read the file: ' + e.message, 'error'); });
-    });
-  };
-  /* ---------- one-click refresh: re-read this month's files for every embedded dataset */
+  /* ---------- preview and replace an embedded dataset ---------- */
   function embedded() { var rt = MS.rt(); return Object.keys(rt.state.datasets).filter(function (n) { return rt.state.datasets[n].rows; }); }
   function base(f) { return String(f || '').replace(/\.[^.]+$/, '').toLowerCase().replace(/[\s_\-]*(\d{4}[-_.]?\d{2}([-_.]?\d{2})?|\d{2}[-_.]\d{4}|v\d+|final|latest|copy)$/g, '').trim(); }
-  // Which table of which file refreshes which dataset: same file name, then sheet / dataset name.
+  function schema(rows) {
+    var columns = Object.create(null), dateLo = '', dateHi = '';
+    rows.forEach(function (row) {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) return;
+      Object.keys(row).forEach(function (k) {
+        var c = columns[k] || (columns[k] = { filled: 0, numeric: 0, sum: 0 }), v = row[k];
+        if (v == null || (typeof v === 'string' && !v.trim())) return;
+        c.filled++;
+        if ((typeof v === 'number' || typeof v === 'string') && isFinite(Number(v))) { c.numeric++; c.sum += +v; }
+        if (/^(date|month|period|as[_ ]?of|reporting[_ ]?date)$/i.test(k) && typeof v === 'string' && /^\d{4}-\d{2}(-\d{2})?$/.test(v)) {
+          if (!dateLo || v < dateLo) dateLo = v; if (!dateHi || v > dateHi) dateHi = v;
+        }
+      });
+    });
+    return { columns: columns, period: dateLo ? (dateLo === dateHi ? dateLo : dateLo + ' to ' + dateHi) : '' };
+  }
+  Dt.previewRefresh = function (name, rows, file, table) {
+    var r = MS.rt(), d = r && r.state.datasets[name];
+    if (!d || !Array.isArray(d.rows)) throw new Error('Choose an embedded dataset to refresh.');
+    if (!Array.isArray(rows)) throw new Error('The replacement needs a list of data rows.');
+    var before = schema(d.rows), after = schema(rows), used = Object.create(null), s = r.state;
+    function field(k, numeric) { if (k) used[k] = used[k] || !!numeric; }
+    Object.keys(s.charts).forEach(function (k) {
+      var b = s.charts[k].binding;
+      if (!b || b.dataset !== name) return;
+      (b.levels || []).forEach(function (x) { field(x); });
+      field(b.series); if (b.agg !== 'count') field(b.measure, b.agg !== 'distinct');
+    });
+    Object.keys(s.kpis).forEach(function (k) {
+      var b = s.kpis[k]; if (b.dataset === name && b.agg !== 'count') field(b.measure, b.agg !== 'distinct');
+    });
+    s.filters.forEach(function (f) { if (f.dataset === name) field(f.field); });
+    var old = Object.keys(before.columns), fresh = Object.keys(after.columns);
+    var blocked = [];
+    if (!rows.length || rows.some(function (row) { return !row || typeof row !== 'object' || Array.isArray(row); })) blocked.push('No usable data rows');
+    Object.keys(used).forEach(function (k) {
+      var c = after.columns[k];
+      if (!c || !c.filled) blocked.push('Required column missing or empty: ' + k);
+      else if (used[k] && c.numeric !== c.filled) blocked.push('Required measure contains non-numeric values: ' + k);
+    });
+    var totals = old.filter(function (k) {
+      var a = before.columns[k], b = after.columns[k];
+      return a.numeric && a.numeric === a.filled && b && b.numeric && b.numeric === b.filled;
+    }).sort(function (a, b) { return (used[b] === true ? 1 : 0) - (used[a] === true ? 1 : 0); }).slice(0, 12).map(function (k) {
+      return { field: k, before: before.columns[k].sum, after: after.columns[k].sum, blanks: rows.length - after.columns[k].filled };
+    });
+    return { dataset: name, file: file || d.file || 'Imported data', table: table || d.sheet || '', before: d.rows.length, after: rows.length,
+      missing: old.filter(function (k) { return fresh.indexOf(k) < 0; }), added: fresh.filter(function (k) { return old.indexOf(k) < 0; }),
+      required: Object.keys(used), blocked: blocked, totals: totals, beforePeriod: d.period || before.period, afterPeriod: after.period,
+      rows: rows, previous: d.rows, session: MS.doc.session };
+  };
+  Dt.refreshSummary = function (m) {
+    return { dataset: m.dataset, file: m.file, table: m.table, before: m.before, after: m.after, missing: m.missing, added: m.added, required: m.required,
+      blocked: m.blocked, totals: m.totals, beforePeriod: m.beforePeriod, afterPeriod: m.afterPeriod };
+  };
+  // Match only a unique file/sheet. If two months or two workbooks match, ask the user to choose explicitly.
   Dt.matchRefresh = function (tables) {
-    var rt = MS.rt(), out = [];
+    var r = MS.rt(), out = [];
     embedded().forEach(function (n) {
-      var d = rt.state.datasets[n], ln = n.toLowerCase(), cands = tables.filter(function (t) { return d.file && base(t.file) === base(d.file); });
-      var pick = (cands.length > 1 ? cands.filter(function (t) { return t.name.toLowerCase() === String(d.sheet || n).toLowerCase() || ln.indexOf(t.name.toLowerCase()) >= 0; })[0] : cands[0]) ||
-        tables.filter(function (t) { return t.name.toLowerCase() === ln || base(t.file) === ln || ln === base(t.file) + ' · ' + t.name.toLowerCase(); })[0];
-      if (!pick) return;
-      var oldCols = rt.fields(n).map(function (f) { return f.name; }), newCols = Object.keys(pick.rows[0] || {});
-      out.push({ dataset: n, file: pick.file, table: pick.name, before: rt.getRows(n).length, after: pick.rows.length, missing: oldCols.filter(function (c) { return newCols.indexOf(c) < 0; }), rows: pick.rows });
+      var d = r.state.datasets[n], ln = n.toLowerCase(), sheet = String(d.sheet || n).toLowerCase();
+      var pool = tables.filter(function (t) { return d.file && base(t.file) === base(d.file); });
+      var exact = pool.filter(function (t) { return t.name.toLowerCase() === sheet; });
+      if (exact.length) pool = exact;
+      if (!pool.length) pool = tables.filter(function (t) { return t.name.toLowerCase() === ln || base(t.file) === ln || ln === base(t.file) + ' · ' + t.name.toLowerCase(); });
+      if (pool.length === 1) out.push(Dt.previewRefresh(n, pool[0].rows, pool[0].file, pool[0].name));
+      else if (pool.length > 1) out.push({ dataset: n, file: '', blocked: ['Several files or sheets match. Use Data › Manage › Refresh from file to choose one.'] });
     });
     return out;
   };
-  Dt.applyRefresh = function (matches) {
-    var at = new Date().toISOString();
-    MS.history.state('Refresh data', function (s) { matches.forEach(function (m) { var old = s.datasets[m.dataset] || {}; s.datasets[m.dataset] = Object.assign({}, old, { rows: m.rows, source: 'file', file: m.file, refreshed: at }); }); });
-    MS.emit('structure');
-    return matches.map(function (m) { return { dataset: m.dataset, file: m.file, rows: m.after, was: m.before, missingColumns: m.missing }; });
+  Dt.applyRefresh = function (matches, period) {
+    var session = MS.doc.session;
+    function check() {
+      if (!MS.doc || MS.doc.session !== session || !MS.rt()) throw new Error('The dashboard changed. Preview the refresh again.');
+      return matches.map(function (m) {
+        if (m.blocked.length) throw new Error(m.dataset + ': ' + m.blocked.join('; '));
+        if (m.session !== session || !MS.rt().state.datasets[m.dataset] || MS.rt().state.datasets[m.dataset].rows !== m.previous) throw new Error('The dataset changed. Preview the refresh again.');
+        var x = Dt.previewRefresh(m.dataset, m.rows, m.file, m.table);
+        if (x.blocked.length) throw new Error(m.dataset + ': ' + x.blocked.join('; '));
+        return x;
+      });
+    }
+    if (!matches.length) return Promise.resolve([]);
+    check();
+    return MS.versions.checkpoint('Before refreshing data').then(function () {
+      var ready = check(), at = new Date().toISOString();
+      MS.history.state('Refresh data', function (s) {
+        ready.forEach(function (m) { s.datasets[m.dataset] = Object.assign({}, s.datasets[m.dataset],
+          { rows: m.rows, source: 'file', file: m.file, sheet: m.table, period: period || m.afterPeriod || '', refreshed: at }); });
+      });
+      MS.emit('structure');
+      return ready.map(function (m) { return { dataset: m.dataset, file: m.file, rows: m.after, was: m.before, missingColumns: m.missing }; });
+    });
   };
   function readAll(files) {
     return Promise.all(files.map(function (f) { return MS.drillData.read(f).then(function (ts) { return ts.filter(function (t) { return t.rows && t.rows.length; }).map(function (t) { return { file: f.name, name: t.name, rows: t.rows }; }); }); }))
       .then(function (all) { return [].concat.apply([], all); });
   }
-  Dt.refreshFrom = function (files, auto) {
-    MS.busy && MS.busy(true, 'Reading ' + files.length + ' file(s)…');
-    return readAll(files).then(function (tables) {
-      MS.busy && MS.busy(false);
-      var m = Dt.matchRefresh(tables);
-      if (!m.length) return MS.dialog({ title: 'No matching data', body: MS.h('p', { text: 'None of these files matches a dataset in this dashboard. Datasets remember the file they came from (' + embedded().map(function (n) { var d = MS.rt().state.datasets[n]; return n + (d.file ? ' ← ' + d.file : ''); }).join(', ') + '). Use Data › Manage › Refresh from file to pick one by hand.' }), buttons: [{ label: 'Close', value: null }] });
-      var checks = m.map(function (x) { var cb = MS.h('input', { type: 'checkbox', checked: !x.missing.length || !auto }); return { x: x, cb: cb, row: MS.h('label', { 'class': 'list-row' }, [cb, MS.h('div', { 'class': 'grow' }, [MS.h('strong', { text: x.dataset }), MS.h('div', { 'class': 'muted small', text: '← ' + x.file + (x.table && base(x.table) !== base(x.file) ? ' › ' + x.table : '') + ' · ' + x.before + ' → ' + x.after + ' rows' })]), x.missing.length ? MS.h('span', { 'class': 'tag warn', title: 'Charts or filters using these columns will be empty', text: 'missing: ' + x.missing.slice(0, 3).join(', ') }) : MS.h('span', { 'class': 'tag ok', text: 'columns match' })]) }; });
-      return MS.dialog({ title: '↻ Refresh data', sub: 'Charts, KPI cards and filters keep their settings and show the new numbers.', wide: true, body: MS.h('div', { 'class': 'list' }, checks.map(function (c) { return c.row; })),
-        buttons: [{ label: 'Cancel', value: null }, { label: 'Refresh', primary: true, value: function () { return checks.filter(function (c) { return c.cb.checked; }).map(function (c) { return c.x; }); } }] }).then(function (sel) {
-        if (!sel || !sel.length) return null;
-        var res = Dt.applyRefresh(sel);
-        MS.toast(res.length + ' dataset(s) refreshed. Export to share the updated file.', 'ok', 8000, { action: { label: 'Export now', run: function () { MS.cmd.export(); } } });
-        return res;
+  function preview(matches) {
+    var h = MS.h, period = MS.form([{ key: 'period', label: 'Reporting period (optional; leave blank to use detected dates)', placeholder: 'e.g. October 2026' }]);
+    var choices = matches.map(function (m) {
+      var blocked = m.blocked.length, cb = h('input', { type: 'checkbox', checked: !blocked && !m.missing.length, disabled: !!blocked, 'aria-label': 'Refresh ' + m.dataset });
+      var note = [m.file, m.table, m.after != null ? m.before + ' → ' + m.after + ' rows' : ''].filter(Boolean).join(' · ');
+      var number = function (v) { return v.toLocaleString(MS.locale.get().locale, { maximumFractionDigits: 2 }); };
+      var body = h('div', { 'class': 'refresh-item' }, [h('label', { 'class': 'row gap' }, [cb, h('strong', { text: m.dataset })]), h('p', { 'class': 'muted small', text: note }),
+        blocked ? h('p', { 'class': 'refresh-block', text: m.blocked.join('. ') }) : null,
+        m.missing && m.missing.length ? h('p', { text: 'Removed columns: ' + m.missing.join(', ') + '. Select this dataset only if those columns are no longer needed.' }) : null,
+        m.added && m.added.length ? h('p', { text: 'New columns: ' + m.added.join(', ') }) : null,
+        m.after != null ? h('p', { text: 'Period: ' + (m.beforePeriod || 'not recorded') + ' → ' + (m.afterPeriod || 'not detected; enter it below') }) : null,
+        m.totals && m.totals.length ? h('details', { open: true }, [h('summary', { text: 'Before and after column totals (all rows)' }),
+          h('ul', {}, m.totals.map(function (t) { return h('li', { text: t.field + ': ' + number(t.before) + ' → ' + number(t.after) + (t.blanks ? ' · ' + t.blanks + ' blank row(s)' : '') }); }))]) : null]);
+      return { m: m, cb: cb, body: body };
+    });
+    return MS.dialog({ title: 'Preview data refresh', sub: 'Check the source, period, row counts and totals before replacing data. Nothing changes until you apply it.', wide: true,
+      body: h('div', {}, choices.map(function (x) { return x.body; }).concat([period, h('p', { 'class': 'muted small', text: 'One Undo restores the prior data. A recovery copy is also kept in File › Versions when browser storage is available.' })])),
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Apply refresh', primary: true, value: function () {
+        var ready = choices.filter(function (x) { return x.cb.checked && !x.cb.disabled; }).map(function (x) { return x.m; });
+        if (!ready.length) { MS.dialogError('Select a dataset with no blocking issues.'); return false; }
+        return ready;
+      } }] }).then(function (ready) {
+        if (!ready) return null;
+        return Dt.applyRefresh(ready, period.values().period.trim()).then(function (res) {
+          MS.toast(res.length + ' dataset(s) refreshed. Check filters and run your number checks again.', 'ok', 8000, { action: { label: 'Undo', run: function () { MS.history.undo(); } } });
+          return res;
+        });
+      }).catch(function (e) { MS.toast('Refresh stopped: ' + e.message, 'error'); return null; });
+  }
+  Dt.replace = function (name) {
+    var session = MS.doc && MS.doc.session;
+    return MS.pickFiles(ACCEPT).then(function (fs) {
+      if (!fs[0]) return null;
+      return readAll(fs).then(function (tables) {
+        if (!MS.doc || MS.doc.session !== session) return null;
+        if (!tables.length) return MS.toast('No data table found in ' + fs[0].name, 'warn');
+        if (tables.length === 1) return preview([Dt.previewRefresh(name, tables[0].rows, tables[0].file, tables[0].name)]);
+        var f = MS.form([{ key: 'sheet', label: 'Sheet or table', type: 'select', options: tables.map(function (t, i) { return { value: String(i), label: t.name }; }) }]);
+        return MS.dialog({ title: 'Choose the replacement table', body: f, buttons: [{ label: 'Cancel', value: null }, { label: 'Preview', primary: true, value: function () { return f.values().sheet; } }] }).then(function (i) {
+          if (i == null || !MS.doc || MS.doc.session !== session) return null;
+          var t = tables[+i]; return preview([Dt.previewRefresh(name, t.rows, t.file, t.name)]);
+        });
       });
-    }).catch(function (e) { MS.busy && MS.busy(false); MS.toast('Could not read the files: ' + e.message, 'error', 8000); });
+    }).catch(function (e) { MS.toast('Could not read the data: ' + e.message, 'error'); });
+  };
+  Dt.refreshFrom = function (files) {
+    var session = MS.doc && MS.doc.session; MS.busy(true);
+    return readAll(files).then(function (tables) {
+      MS.busy(false);
+      if (!MS.doc || MS.doc.session !== session) return null;
+      var matches = Dt.matchRefresh(tables);
+      if (!matches.length) return MS.toast('No unique matching dataset. Choose it under Data › Manage › Refresh from file.', 'warn', 8000);
+      return preview(matches);
+    }).catch(function (e) { MS.busy(false); MS.toast('Could not read the files: ' + e.message, 'error', 8000); });
   };
   // Remembers the files picked (where the browser allows it), so next month it is one click.
   var ACCEPT = '.csv,.tsv,.xlsx,.xls,.xlsm,.ods,.json,.md';

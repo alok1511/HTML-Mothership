@@ -1,0 +1,340 @@
+[
+  {
+    "id": "first-edit",
+    "title": "Make your first edit",
+    "minutes": 5,
+    "goal": "Change a title, compare it with the original, then practise switching modes.",
+    "steps": [
+      {
+        "do": "Select Edit. Double-click the large Sales Performance heading. Type Sales performance | Review copy and click outside it.",
+        "see": "The heading changes and the document chip shows unsaved edits.",
+        "ribbon": [
+          "Home"
+        ],
+        "check": "heading"
+      },
+      {
+        "do": "Choose Home › Undo and look at the heading. Choose Redo to bring your edit back.",
+        "see": "Undo restores the original title. Redo restores your new title.",
+        "ribbon": [
+          "Home",
+          "Undo"
+        ]
+      },
+      {
+        "do": "Choose Interact, then hover a bar on Sales by region.",
+        "see": "A pop-up appears without selecting the chart. Switch back to Edit before continuing.",
+        "check": "interact"
+      }
+    ]
+  },
+  {
+    "id": "reader-pages",
+    "title": "Build a reader guide",
+    "minutes": 7,
+    "goal": "Give someone who has never seen the dashboard a clear place to start.",
+    "steps": [
+      {
+        "do": "Choose Layout › Tab ribbon on the one-page sample. Then choose Insert › Text tab and name it How to use.",
+        "see": "The outline shows the dashboard and How to use tabs.",
+        "ribbon": [
+          "Layout",
+          "Tab ribbon"
+        ],
+        "check": "tabs"
+      },
+      {
+        "do": "Add a short instruction on the new tab. Explain where to start, how to hover a chart and how to return to the overview.",
+        "see": "You can open the new tab in Interact and follow its instructions.",
+        "ribbon": [
+          "Insert",
+          "Heading"
+        ]
+      },
+      {
+        "do": "Add a Methodology tab. Say that these are sample sales figures, note the time period, and define net sales.",
+        "see": "A reader can tell where the figures come from, what they mean and when they apply.",
+        "ribbon": [
+          "Layout",
+          "Add tab"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chart-story",
+    "title": "Explain one chart",
+    "minutes": 6,
+    "goal": "Make one chart answer a question without your narration.",
+    "steps": [
+      {
+        "do": "In Edit, double-click Sales by region. In Commentary & size add the period and a one-line takeaway. Apply.",
+        "see": "The chart has a title, units or period, and a takeaway you can verify.",
+        "ribbon": [
+          "Layout",
+          "Commentary"
+        ]
+      },
+      {
+        "do": "In the Tooltip settings choose a rupee or crore format for the sample rupee values. Apply and hover in Interact.",
+        "see": "The tooltip names the region and shows a sensible amount. Compare one bar with the original.",
+        "ribbon": [
+          "Charts"
+        ],
+        "check": "tooltip"
+      },
+      {
+        "do": "Check the legend, colours and chart size. Try Fit, then draw at a phone width from View.",
+        "see": "You can still read the title and know what the chart measures. Note anything that needs a wider layout.",
+        "ribbon": [
+          "View"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "drill",
+    "title": "Link data, filter and drill down",
+    "minutes": 9,
+    "goal": "Learn the difference between a displayed total and the rows behind it.",
+    "steps": [
+      {
+        "do": "Open Sales by region › Data & drill-down. Use the suggested data, choose region then state, and apply a Sum of sales.",
+        "see": "The chart now has a dataset and the two drill levels.",
+        "ribbon": [
+          "Charts"
+        ],
+        "check": "binding"
+      },
+      {
+        "do": "Choose Layout › Filter pane and add a field from the same dataset, such as channel.",
+        "see": "A labelled filter appears. The bound chart should respond to that field.",
+        "ribbon": [
+          "Layout",
+          "Filter pane"
+        ],
+        "check": "filter"
+      },
+      {
+        "do": "Switch to Interact. Pick one filter choice, double-click a region, and use the breadcrumb and Reset to return.",
+        "see": "The chart first changes scope, then breaks the selected region down by state. Check that you can return to the starting view."
+      }
+    ]
+  },
+  {
+    "id": "branding",
+    "title": "Make the layout consistent",
+    "minutes": 6,
+    "goal": "Apply a readable, repeatable design and use the right units.",
+    "steps": [
+      {
+        "do": "Choose Design › Region & currency. Set India, INR and lakh/crore.",
+        "see": "The preview shows ₹ and Indian units. The original source values are unchanged.",
+        "ribbon": [
+          "Design",
+          "Region & currency"
+        ],
+        "check": "india"
+      },
+      {
+        "do": "Choose Design › Edit theme. Set a primary colour and a body font. Apply.",
+        "see": "The theme is applied. Read the smallest text and check status colours are still meaningful.",
+        "ribbon": [
+          "Design",
+          "Edit theme"
+        ],
+        "check": "theme"
+      },
+      {
+        "do": "Run the brand and accessibility checks. Fix one clear issue, such as a missing title or an unreadable colour.",
+        "see": "The chosen issue is gone when you run the check again.",
+        "ribbon": [
+          "Review"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "review",
+    "title": "Review with someone else in mind",
+    "minutes": 7,
+    "goal": "Write feedback that a teammate can act on without asking you to explain it.",
+    "steps": [
+      {
+        "do": "Choose Comment. Click a chart, write one specific requested change and add it.",
+        "see": "The note appears in Comments and clicking it takes you back to the chart.",
+        "check": "comment"
+      },
+      {
+        "do": "Add a reply with the expected result. Mark the note resolved only after checking the result.",
+        "see": "The note has a clear decision trail. Open and resolved filters show the right items.",
+        "check": "resolved"
+      },
+      {
+        "do": "Open Prompt to preview how the comment turns into instructions. Keep the practice content local.",
+        "see": "The prompt names the part, describes the change and lists a check you could perform.",
+        "ribbon": [
+          "Review"
+        ],
+        "check": "prompt"
+      }
+    ]
+  },
+  {
+    "id": "refresh",
+    "title": "Preview a monthly refresh",
+    "minutes": 9,
+    "goal": "Replace a small practice dataset without losing a chart’s settings.",
+    "steps": [
+      {
+        "do": "Download the practice October CSV. Use Data › Load data to add it. Open Data › Manage and find the new dataset.",
+        "see": "The practice dataset has three rows and is embedded.",
+        "ribbon": [
+          "Data",
+          "Load data"
+        ],
+        "check": "practice-data",
+        "action": "csv-old"
+      },
+      {
+        "do": "Download the November CSV. In Data › Manage use Refresh from file next to the practice dataset. Pick November.",
+        "see": "The preview shows three → four rows, October → November, and NetSales totals of 300 → 410. No data changes yet.",
+        "ribbon": [
+          "Data",
+          "Manage"
+        ],
+        "action": "csv-new"
+      },
+      {
+        "do": "Apply the preview. Check the rows under Manage, then choose Undo.",
+        "see": "After applying there are four rows. Undo restores three rows. A browser recovery version is available if storage works.",
+        "ribbon": [
+          "Home",
+          "Undo"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "testing",
+    "title": "Draft, run and read test coverage",
+    "minutes": 8,
+    "goal": "Learn what planned, ran, passed and stale mean.",
+    "steps": [
+      {
+        "do": "Choose Testing › Draft tests › Quick draft. Open Coverage before running anything.",
+        "see": "The plan has cases, while executed and passed checks are still zero on a fresh practice copy.",
+        "ribbon": [
+          "Testing",
+          "Draft tests"
+        ],
+        "check": "plan"
+      },
+      {
+        "do": "Open the test plan and run it. Review one result and anything that needs a person.",
+        "see": "The result says what ran and what was observed. A failed or partial result is not a pass.",
+        "ribbon": [
+          "Testing"
+        ],
+        "check": "ran"
+      },
+      {
+        "do": "Edit the heading again and reopen Coverage.",
+        "see": "Results for the earlier revision are stale. Run the relevant checks again when your edits are ready.",
+        "ribbon": [
+          "Testing",
+          "Coverage"
+        ],
+        "check": "stale"
+      }
+    ]
+  },
+  {
+    "id": "numbers",
+    "title": "Verify numbers against a source",
+    "minutes": 8,
+    "goal": "Compare independent expectations and avoid certifying values you did not supply.",
+    "steps": [
+      {
+        "do": "Choose Testing › Numbers › Download the numbers as Excel. Inspect the columns.",
+        "see": "Each row identifies a chart point or KPI. The values already in the workbook are a starting template, not independent evidence.",
+        "ribbon": [
+          "Testing",
+          "Numbers"
+        ]
+      },
+      {
+        "do": "For practice only, change one chart value and clear the other Value cells. Import it as expected numbers.",
+        "see": "The import matches one value. The other values remain unverified. In real work, use the number from your independent source.",
+        "ribbon": [
+          "Testing",
+          "Numbers"
+        ],
+        "check": "source"
+      },
+      {
+        "do": "Run the case for that chart and read the mismatch. Correct the practice workbook or remove the practice expectation.",
+        "see": "The result names the value it checked and the mismatch. Nothing claims that other figures matched the source.",
+        "ribbon": [
+          "Testing"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "present",
+    "title": "Prepare a handout and a presentation",
+    "minutes": 6,
+    "goal": "Check what a reader sees and what stays in the working file.",
+    "steps": [
+      {
+        "do": "Add a speaker note from the tab’s menu. Rename the tab and open Presenter view.",
+        "see": "The note stays with the renamed tab. Use Esc to exit.",
+        "ribbon": [
+          "View"
+        ]
+      },
+      {
+        "do": "Use Consulting › PDF or PowerPoint on the practice file. Open the output.",
+        "see": "Tabs become pages or slides; chart pictures are legible at normal size. Review the footer and no missing content.",
+        "ribbon": [
+          "Consulting",
+          "PowerPoint"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "share",
+    "title": "Export and check a standalone copy",
+    "minutes": 8,
+    "goal": "Save, reopen and verify the exact file you would share.",
+    "steps": [
+      {
+        "do": "Choose File › Ready to publish? and read the findings. Under Offline check, download the test copy.",
+        "see": "The file opens without the editor. Disconnect and visit its tabs, filters and chart pop-ups before recording a pass.",
+        "ribbon": [
+          "File",
+          "Ready to publish?"
+        ]
+      },
+      {
+        "do": "Export HTML with a new filename. Open that export in a browser and check it shows just the dashboard.",
+        "see": "The file opens without the editor. It can also reopen in Mothership for editing.",
+        "ribbon": [
+          "File",
+          "Export HTML"
+        ],
+        "check": "saved"
+      },
+      {
+        "do": "Save the validation record. For a viewer release, set a version and as-of date under Publish and check that separate file.",
+        "see": "The record identifies a working revision and what was checked. The published copy has the intended data, comments and release details.",
+        "ribbon": [
+          "File",
+          "Publish"
+        ]
+      }
+    ]
+  }
+]

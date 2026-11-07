@@ -67,7 +67,7 @@
   MS.on('doc-opened', function () { L.evid = {}; }); MS.on('doc-closed', function () { L.evid = {}; L.close(); });
 
   /* ---------------------------------------------------------------- the results ring */
-  var COLORS = { Pass: 'var(--ok)', Fail: 'var(--danger)', 'Needs a person': 'var(--accent)', Blocked: 'var(--warn)', Skipped: 'var(--faint)', 'Not run': 'var(--line-strong)' };
+  var COLORS = { Pass: 'var(--ok)', Fail: 'var(--danger)', 'Needs a person': 'var(--accent)', Blocked: 'var(--warn)', Partial: 'var(--warn)', Stale: 'var(--faint)', Skipped: 'var(--faint)', 'Not run': 'var(--line-strong)' };
   L.COLORS = COLORS;
   L.ring = function (by, size, center) {
     size = size || 84;
@@ -196,7 +196,7 @@
   /* ---------------------------------------------------------------- prompt from failures */
   L.promptDialog = function () {
     if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
-    var fails = Q.failed().length, people = Q.cases().filter(function (c) { return c.status === 'Needs a person'; }).length;
+    var fails = Q.failed().length, people = Q.cases().filter(function (c) { return Q.statusOf(c) === 'Needs a person'; }).length;
     if (!fails && !people) return MS.toast(Q.cases().length ? 'Nothing failed. Run the tests first if you have not yet.' : 'No test cases yet. Testing › Test cases › Draft makes a set for you.', 'ok', 6000);
     var src = ''; try { src = MS.exportHtml({ dropComments: true }); } catch (e) {}
     var f = MS.form([

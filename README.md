@@ -1,9 +1,9 @@
 # ◆ HTML Mothership
 
-**PowerPoint for HTML dashboards, inside one HTML file.** Open any HTML dashboard (the *child*) inside Mothership and edit it directly: text, fonts, brand colours, chart tooltips, double-click drill-downs, chart commentary, tabs, filter pane, and How-to / FAQ / Methodology pages built from Word, PowerPoint, Excel, PDF, Markdown or images. Then export one standalone `.html` file that works anywhere, offline, without Mothership.
+**PowerPoint for HTML dashboards, inside one HTML file.** Open a compatible HTML dashboard (the *child*) inside Mothership and edit it directly: text, fonts, brand colours, chart tooltips, double-click drill-downs, chart commentary, tabs, filter pane, and How-to / FAQ / Methodology pages built from Word, PowerPoint, Excel, PDF, Markdown or images. Then export one standalone `.html` file that works anywhere, offline, without Mothership.
 
 - **Zero install, zero cost.** Double-click `mothership.html`. No server, no Node, no admin rights, no internet. Built for locked-down office laptops.
-- **Nothing leaves the laptop.** Every library is bundled in `vendor/`. Files are read in the browser, and nothing is uploaded.
+- **Local editing.** Editor libraries are bundled in `vendor/`; Mothership does not upload your files. Dashboard scripts, linked resources, plugins and external AI assistants can have their own network behaviour.
 - **Your export *is* your project.** Reopen an exported file in Mothership to keep editing.
 
 ![Mothership editing a sales dashboard](docs/screenshot-editor.png)
@@ -27,7 +27,7 @@
 13. [Roadmap ideas](#13-roadmap-ideas)
 14. [Licence](#14-licence)
 
-New to Mothership? Open it and click **Help › Guided tour** (2 minutes) or **Help › Tutorial** (7 short hands-on lessons). [`docs/TUTORIAL.md`](docs/TUTORIAL.md) has the same lessons on paper.
+**Current release: 3.9.0.** Open **Start here** for the guided workflow or **Help › Tutorial** for 11 practice lessons. The [user guide](docs/USER-GUIDE.md) and [practice handout](docs/TUTORIAL.md) are also available here. See [what changed](CHANGELOG.md).
 
 ---
 
@@ -45,12 +45,12 @@ HTML-Mothership/
 
 1. **Download** the repo (green *Code* button › *Download ZIP*) and unzip it anywhere, e.g. `Documents\HTML-Mothership`.
 2. **Double-click `mothership.html`.** It opens in Chrome or Edge. Firefox works too, except "Save as" falls back to a normal download.
-3. Click **Try a sample**, or **Open dashboard…** to load your own `.html`.
-4. Edit it. Then click **Export HTML** (Ctrl+E) to save the result to your laptop.
+3. Click **Try the sales sample**, or **Open dashboard** to load your own `.html`.
+4. Edit it. Then click **Export** (Ctrl+E) to save the result to your laptop.
 
 > **Tip.** If your dashboard loads its own `.js`, `.css`, images or `data.json` from next to it, use **Open folder…** instead. Mothership bundles all of them into the single exported file, including data the page `fetch()`es.
 
-**Which file to use?** `mothership.html` needs the `src/` and `vendor/` folders beside it. `dist/mothership-standalone.html` (about 5 MB) is fully self-contained, so you can copy just that one file.
+**Which file to use?** `mothership.html` needs the `src/` and `vendor/` folders beside it. `dist/mothership-standalone.html` is fully self-contained, so you can copy just that one file.
 
 ---
 
@@ -226,17 +226,23 @@ HTML-Mothership/
 | **A fresh start screen** | When nothing is open | A cleaner hero, the four ways to start, **Pick up where you left off** (the latest saved version of each dashboard), and the Edit / Review / Test / Publish strip. |
 | **MCP** | Both servers | `close_dashboard`; `save_test_document` and `test_document` take `format: "failures"` (and `goal: "fix" | "retest"`) for the prompt from failed tests. |
 
-### New in v3.8: test everything, and check the numbers against your source
+### Testing and verification (introduced in v3.8)
 
-| Feature | Where | What it does |
+**Testing › Draft tests** writes a plan. Quick draft samples important parts; **Full draft (bounded)** adds deeper checks. Run the tests, inspect failures, and use **Coverage** to distinguish planned, executed and passing checks. Limits and untested parts remain visible. Under **Testing › Numbers**, compare against a snapshot for regression testing or import only the expectations you have from an independent source.
+
+### New in 3.9.0: reliability and learning
+
+| Feature | Where | What changed |
 |---|---|---|
-| **Quick draft or Full draft** | **Testing › Draft tests**, **Test cases › Draft ▾** | **Quick draft** writes about one test per part (it samples the first bar, the first choice), as before. **Full draft: test everything** adds tests that go through every part: hover every point of every chart and check the pop-up shows the right label and value; pick every choice of every drop-down (each must change something, raise no script error and keep KPI cards in step with the charts, and the list is set back afterwards); double-click every category of a drill-down chart; tick every check box and press every button; check every table's Total row adds up and that clicking a heading sorts it; open every tab at laptop, tablet and phone width and look for a sideways scroll bar. |
-| **Coverage** | **Testing › Coverage**, the **% covered** chip in **Test cases** | Every part Mothership found (tabs, charts, KPI cards, drop-downs, check boxes, buttons, tables) with the cases that touch it, marked **fully**, **in part** or **not tested**, and the percentage tested fully. **Draft full tests** fills the gaps. The test document has the same table. |
-| **Expected numbers** | **Testing › Numbers**, the **Numbers** chip in **Test cases** | Tests can only say a number is *right* if they know what it should be. **Lock in today's numbers** keeps every chart value and KPI card once you have checked them; later runs fail if any of them change. Better still, **Download the numbers as Excel**, type in the figures from your source report, and **Import expected numbers** (Excel or CSV: What, Category, Series, Value). Each chart and KPI card gets a "shows the right numbers" test that names every value that differs (within 0.5%, to allow for rounding). |
-| **Fairer results** | Every run | A case only answers for the script errors raised while it runs, so one broken drop-down choice no longer fails every case after it. |
-| **MCP** | Both servers | `test_plan {"action": "draft", "depth": "full"}` (it returns the coverage too), `test_coverage`, and `test_baseline` (`lock`, `import` with rows, `rows`, `clear`). |
+| **Guided workflow** | Welcome › Start here, or **Help › Start here** | Import, Edit, Review, Check and Export checklist, with links to the relevant commands and help chapters. |
+| **Practice lessons and searchable guide** | **Help › Tutorial / User guide** | A separate sample copy, 11 lessons with expected results, downloadable practice data, and task and symptom guides included in the standalone file. |
+| **Import report** | **File › Import report** | Recognised chart libraries, limitations and linked or unresolved resources. |
+| **Preview refresh** | **Data › Refresh / Manage** | See changed columns, row counts, totals and dates before applying; missing required fields block a replacement. One undo restores the old data. |
+| **Recovery and export** | **File**, **View › Safe mode** | Unsaved-work protection, scoped export cancellation, and recovery checkpoints when leaving or changing mode. |
+| **Validation record and offline check** | **File › Ready to publish?** | Record an actual offline check for an exact working file, and export the revision, source expectations and current results as Markdown. |
+| **Folder and presentation fixes** | **Open folder**, tab notes, chart movement | Responsive images are embedded, XHR data callbacks fire once, speaker notes stay attached on rename, and Mac shows Command-drag for chart copying. |
 
-**How a test passes or fails.** Each step either acts (click, choose, hover, resize) or checks something it can measure: the text a KPI card shows, whether a chart drew, what a pop-up says, whether anything changed, whether a script error appeared, whether the page is wider than the screen, whether a total adds up, whether a value matches the expected numbers. A case passes when every step passes and fails at the first step that does not, with what it actually saw. A case with a "check by eye" step is marked **Needs a person**.
+The [changelog](CHANGELOG.md) lists all fixes and compatibility notes.
 
 ---
 
@@ -402,10 +408,10 @@ Read this before opening dashboards from other people.
 
 - **A dashboard's own scripts run with full access inside the editor.** To edit a page live, Mothership must share an origin with it. The browser warns that "allow-scripts + allow-same-origin can escape the sandbox", and that is accurate: a malicious dashboard could reach Mothership. **Only open dashboards you trust, or use Safe mode.**
 - **Safe mode** (View tab) loads the child with scripts **blocked**. You can still read it and edit text and styles. Charts won't draw.
-- **Network lock** (View tab) adds a Content-Security-Policy so the child can't load or send anything over the network while you edit. It also blocks CDN-hosted libraries, so use **Open folder** for dashboards that rely on them.
+- **Network lock** (View tab) applies a Content Security Policy that blocks common remote resources and requests while editing. It is not a security boundary or an offline check of the export. It also blocks CDN-hosted libraries, so use **Open folder** for dashboards that rely on them.
 - **Imported content is sanitised.** Word, PowerPoint, Markdown and HTML imports have scripts, event handlers, iframes, forms and `javascript:` links removed.
 - **Plugins are code.** They show their source before installing and can be disabled or removed under **Plugins › Installed**. Recipes are data only.
-- **Nothing is uploaded.** No analytics, no network calls. All libraries are local (`vendor/`).
+- **Mothership itself does not upload your files.** Its libraries are local. Trusted dashboards and installed plugins can make their own requests. An external AI assistant handles anything you send it under its own rules.
 
 ---
 
@@ -460,12 +466,16 @@ Stated plainly so nothing surprises you:
 No build step is needed to run or edit. Plain JavaScript (ES5-style, classic `<script>`s, because ES modules don't load from `file://`).
 
 ```bash
-npm install            # Playwright, only for tests
-npm test               # end-to-end: opens mothership.html from file://, edits each sample, exports, re-opens the export;
-                       # then the v2 features, then the MCP server driven over stdio
-npm run build          # regenerate samples/*.html, samples/samples.js and dist/mothership-standalone.html
-npm run serve          # optional: http://localhost:8080
+npm ci
+npx playwright install chromium
+python3 -m venv .venv
+# Activate .venv (on Windows use .venv\Scripts\activate), then:
+python -m pip install -r tests/requirements.txt
+npm run build
+npm test
 ```
+
+Python's PowerPoint reader is used only to validate a test output; users do not need it. Set `CHROMIUM_PATH` to a Chrome/Edge executable for the browser tests and both MCP integration suites. For a smaller portability check, install Firefox with Playwright and run `MOTHERSHIP_TEST_BROWSER=firefox npm run test:portable`. CI also checks that the generated standalone build, guide and lesson handout are current.
 
 | Path | Purpose |
 |---|---|

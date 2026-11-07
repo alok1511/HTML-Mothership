@@ -34,7 +34,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     s.kpis = s.kpis || {};
     s.comments = s.comments || [];
     s.tableRules = s.tableRules || {}; // colour rules per table: {tableKey: [{col, type, ...}]}
-    s.pageNotes = s.pageNotes || {};   // speaker notes for the dashboard's own tabs, by tab title
+    s.pageNotes = s.pageNotes || {};   // legacy notes, keyed by title
+    s.pageNotesById = s.pageNotesById || {};
     s.annotations = s.annotations || []; // notes pinned to chart points: [{id, chart, label, series, kind, text, dx, dy, fx, fy, color}]
     s.shapes = s.shapes || []; // drawn on charts: [{id, chart, kind, a:{fx,fy}|{label,series}, b, text, color, width, dash, fill, head, lift, show}]
     s.layout = s.layout || {};
@@ -2427,7 +2428,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   if (!EDITOR) {
     // errors before the runtime loaded were noted by the #ms-early script in <head>
     if (window.__msErrs && window.__msErrs.length) showErr(window.__msErrs[0].message);
-    window.addEventListener('error', function (e) { showErr(e && e.message); });
+    window.addEventListener('ms:load-error', function (e) { showErr(e.detail && e.detail.message); });
   }
 
   rt.refresh = function (force) {

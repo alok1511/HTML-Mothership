@@ -32,9 +32,9 @@ const SALES = fs.readFileSync(path.join(ROOT, 'samples/sales-dashboard.html'), '
     /* ---------------- welcome screen and an empty top bar */
     const w = await page.evaluate(() => ({
       chip: MS.$('#doc-chip').classList.contains('open'), x: getComputedStyle(MS.$('#btn-close')).display,
-      off: getComputedStyle(MS.$('#mode-switch')).pointerEvents, feats: MS.$$('.feature-strip .feat').length, h1: MS.$('.welcome h1').textContent
+      off: getComputedStyle(MS.$('#mode-switch')).pointerEvents, steps: MS.$$('.start-path span').map(n => n.textContent).join('|'), start: !!MS.$('[data-act=workflow]')
     }));
-    check('welcome: hero, feature strip; mode switch is off with nothing open', w.feats === 4 && /boardroom/.test(w.h1) && w.off === 'none' && !w.chip && w.x === 'none', w);
+    check('welcome: start workflow; mode switch is off with nothing open', w.steps === 'Import|Edit|Review|Check|Export' && w.start && w.off === 'none' && !w.chip && w.x === 'none', w);
 
     /* ---------------- the mode switch */
     await open(SALES, 'sales.html');

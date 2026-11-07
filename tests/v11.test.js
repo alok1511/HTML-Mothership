@@ -34,10 +34,10 @@ const SALES = fs.readFileSync(path.join(ROOT, 'samples/sales-dashboard.html'), '
     const d = await page.evaluate(() => {
       const quick = MS.qa.draft(), c0 = MS.qa.deep.coverage();
       const full = MS.qa.draft({ depth: 'full' }), c1 = MS.qa.deep.coverage();
-      return { quick, full, p0: c0.percent, un0: c0.untested, p1: c1.percent, un1: c1.untested, parts: c1.rows.map(r => r.kind + ':' + r.name), titles: MS.qa.cases().map(c => c.title) };
+      return { quick, full, p0: c0.percent, un0: c0.untested, p1: c1.percent, ran: c1.executed, passed: c1.passing, un1: c1.untested, parts: c1.rows.map(r => r.kind + ':' + r.name), titles: MS.qa.cases().map(c => c.title) };
     });
     check('quick draft leaves parts untested and says so', d.quick > 5 && d.p0 < 60 && d.un0.some(u => /Region/.test(u)) && d.un0.some(u => /Show target/.test(u)), d);
-    check('full draft adds cases and covers every part', d.full >= 5 && d.p1 === 100 && d.un1.length === 0, d);
+    check('full draft plans cases without counting unrun checks', d.full >= 5 && d.p1 === 100 && d.un1.length === 0 && d.ran === 0 && d.passed === 0, d);
     check('coverage finds the drop-down, check box, button, table, chart and KPI card', ['Drop-down:Region', 'Check box:Show target', 'Button:Reset', 'Table:Table 1'].every(x => d.parts.includes(x)) && d.parts.some(x => /^Chart:/.test(x)) && d.parts.some(x => /^KPI card:/.test(x)), d.parts);
     check('full draft titles: every point, every choice, totals, every width', ['Every point on', 'Every choice in', 'totals add up', 'fits at 390'].every(t => d.titles.some(x => x.indexOf(t) >= 0)), d.titles);
     const again = await page.evaluate(() => MS.qa.draft({ depth: 'full' }));
@@ -72,15 +72,15 @@ const SALES = fs.readFileSync(path.join(ROOT, 'samples/sales-dashboard.html'), '
     /* ---------------- the dialog: chips, draft menu, coverage dialog */
     await page.evaluate(() => MS.qa.dialog()); await wait(400);
     const ui = await page.evaluate(() => ({ chips: MS.$$('.qa-cov-chip').map(c => c.textContent.trim()), draft: [...MS.$$('.qa-tools button')].some(b => /Draft/.test(b.textContent)) }));
-    check('test dialog: coverage and numbers chips', ui.chips.some(c => /100% covered/.test(c)) && ui.chips.some(c => /Numbers not locked in/.test(c)) && ui.draft, ui);
+    check('test dialog: coverage and numbers chips', ui.chips.some(c => /100% planned/.test(c)) && ui.chips.some(c => /Numbers not locked in/.test(c)) && ui.draft, ui);
     await page.evaluate(() => MS.$$('.qa-cov-chip')[0].click()); await wait(400);
     const cd = await page.evaluate(() => ({ title: MS.$$('.dlg-head strong').pop().textContent, rows: MS.$$('.qa-cov-row').length, tags: MS.$$('.qa-cov-row .qa-cov-tag').map(t => t.textContent) }));
-    check('coverage dialog: one row per part, each tagged', /Test coverage/.test(cd.title) && cd.rows === d.parts.length && cd.tags.every(t => t === 'fully'), cd);
+    check('coverage dialog: one row per part, each tagged', /Test coverage/.test(cd.title) && cd.rows === d.parts.length && cd.tags.every(t => /Passed|Ran;|checked|Not run/.test(t)), cd);
     await page.evaluate(() => MS.$$('.dlg-x').forEach(x => x.click())); await wait(200);
     const dm = await page.evaluate(() => MS.qa.deep.draftMenu().filter(Boolean).map(i => i.label));
-    check('Draft menu: Quick draft, Full draft, Expected numbers, Coverage report', ['Quick draft', 'Full draft: test everything', 'Expected numbers', 'Coverage report'].every(l => dm.includes(l)), dm);
+    check('Draft menu: Quick draft, Full draft, Expected numbers, Coverage report', ['Quick draft', 'Full draft (bounded)', 'Expected numbers', 'Coverage report'].every(l => dm.includes(l)), dm);
     const md = await page.evaluate(() => MS.qa.document());
-    check('the test document has a Coverage section', /### Coverage/.test(md) && /\| Drop-down \| Region \| fully \|/.test(md), md.slice(md.indexOf('### Coverage'), md.indexOf('### Coverage') + 500));
+    check('the test document has a Coverage section', /### Coverage/.test(md) && /\| Drop-down \| Region \| Planned \|/.test(md), md.slice(md.indexOf('### Coverage'), md.indexOf('### Coverage') + 500));
 
     /* ---------------- expected numbers on a sample dashboard */
     await open(SALES, 'sales.html');
@@ -116,13 +116,13 @@ const SALES = fs.readFileSync(path.join(ROOT, 'samples/sales-dashboard.html'), '
       const text = 'What,Category,Series,Value\n"KPI: ' + k.label + '",,,"' + k.value.replace(/"/g, '""') + '"\n';
       const res = await MS.qa.deep.importFile(new File([text], 'expected.csv', { type: 'text/csv' }));
       const bytes = await MS.qa.deep.xlsx(), XL = await MS.lib('xlsx');
-      const wb = XL.read(new Uint8Array(bytes), { type: 'array' }), first = XL.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      const wb = XL.read(new Uint8Array(bytes), { type: 'array' }), first = XL.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
       const res2 = await MS.qa.deep.importFile(new File([bytes], 'expected.xlsx'));
-      return { res, sheets: wb.SheetNames, head: Object.keys(first[0] || {}), n: first.length, res2 };
+      return { res, sheets: wb.SheetNames, head: Object.keys(first[0] || {}), n: first.length, filled: first.filter(x => x.Value !== '').length, res2 };
     });
     check('CSV import', csv.res.matched === 1 && csv.res.notFound.length === 0, csv.res);
     check('Excel download: Expected numbers and How to use sheets', csv.sheets.join('|') === 'Expected numbers|How to use' && ['What', 'Category', 'Series', 'Value'].every(k => csv.head.includes(k)) && csv.n > 10, csv);
-    check('the downloaded Excel imports back cleanly', csv.res2.matched === csv.n && csv.res2.notFound.length === 0, csv.res2);
+    check('the downloaded Excel imports back cleanly', csv.res2.matched === 1 && csv.filled === 1 && csv.res2.notFound.length === 0, csv.res2);
 
     const undo = await page.evaluate(() => { MS.qa.deep.clearBaseline(); const gone = !MS.qa.deep.baseline(); MS.history.undo(); return { gone, back: !!MS.qa.deep.baseline() }; });
     check('remove the expected numbers, and undo brings them back', undo.gone && undo.back, undo);

@@ -230,7 +230,7 @@
     if (where !== 'here') return Promise.resolve(res);
     var save = MS.versions && MS.versions.save ? Promise.resolve(MS.versions.save('Before client names were removed', true)).catch(function () {}) : Promise.resolve();
     return save.then(function () {
-      return MS.openHtml(res.html, MS.doc.name, { folder: MS.doc.folder, unlocked: true }).then(function () { MS.audit.note('Removed client names (' + res.counts.map(function (c) { return c.n + '× → ' + (c.to || 'blank'); }).join(', ') + ')'); return res; });
+      return MS.openHtml(res.html, MS.doc.name, { folder: MS.doc.folder, unlocked: true, reload: true }).then(function (ok) { if (ok) MS.history.mark('Removed client names (' + res.counts.map(function (c) { return c.n + '× → ' + (c.to || 'blank'); }).join(', ') + ')'); return res; });
     });
   };
   Cf.scrubDialog = function () {

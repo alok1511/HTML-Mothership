@@ -460,7 +460,7 @@
   };
   // pick a comment: highlight its pin, show its card, and (from the pane) go to it in the dashboard
   R.select = function (id, go) {
-    R.current = id; R.showPane(true); R.renderPane(); R.renderPins();
+    R.current = id; R.showPane(true, { focus: !go }); R.renderPane(); R.renderPins();
     if (go) R.goTo(id);
     setTimeout(function () { var card = MS.$('#cmt-pane .cmt-card.cur'); if (card && card.scrollIntoView) card.scrollIntoView({ block: 'nearest' }); }, 20);
   };
@@ -481,9 +481,10 @@
     return x < 45 ? 'just now' : x < 3600 ? Math.round(x / 60) + ' min ago' : x < 86400 ? Math.round(x / 3600) + ' h ago' : new Date(Date.now() - x * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   }
   R.filter = MS.prefs.get('cmtFilter', 'open');
-  R.showPane = function (on) {
+  R.showPane = function (on, options) {
+    options = options || {};
     var host = MS.$('#cmt-pane'), ins = MS.$('#inspector'); if (!host || !ins) return;
-    if (on && document.body.classList.contains('no-right')) document.body.classList.remove('no-right');
+    if (on && !(options.deferDrawer && MS.view.compact())) MS.view.togglePanel('right', true, options.focus);
     host.hidden = !on; ins.hidden = !!on; R.paneOn = !!on;
     MS.$$('#right-tabs button').forEach(function (b) { b.classList.toggle('on', (b.getAttribute('data-pane') === 'comments') === !!on); });
     var bc = MS.$('#btn-cmts'); if (bc) bc.classList.toggle('on', !!on);
@@ -597,7 +598,7 @@
     if (m === 'interact') note('Switched to Interact mode');
     var d = cdoc(); if (d && d.body) { d.body.classList.toggle('ms-comment-mode', m === 'comment'); if (m === 'comment') { ensureCss(); markPass(); } }
     if (m !== 'comment') R.cancel();
-    if (m === 'comment') R.showPane(true); else R.renderPane();
+    if (m === 'comment') R.showPane(true, { deferDrawer: true }); else R.renderPane();
   });
   // selecting something in Edit mode brings the Format pane back
   MS.on('selection', function (el) { if (el && MS.mode === 'edit' && R.paneOn) R.showPane(false); });
@@ -609,8 +610,8 @@
   };
   R.bar = function () {
     var host = MS.$('#cmt-bar'); if (!host) return;
-    host.appendChild(h('button', { 'class': 'btn ghost', id: 'btn-cmts', title: 'Show all comments (like PowerPoint\'s Comments pane)', onclick: function () { R.showPane(!R.paneOn); } }, ['🗨 ', h('span', { 'class': 'lbl', text: 'Comments' }), h('span', { 'class': 'count', id: 'cmt-count' })]));
-    host.appendChild(h('button', { 'class': 'btn ghost', id: 'btn-prompt', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ ', h('span', { 'class': 'lbl', text: 'Prompt' })]));
+    host.appendChild(h('button', { 'class': 'btn ghost', id: 'btn-cmts', 'aria-label': 'Comments', title: 'Show all comments (like PowerPoint\'s Comments pane)', onclick: function () { R.showPane(!R.paneOn || !MS.view.panelVisible('right'), { focus: true }); } }, ['🗨 ', h('span', { 'class': 'lbl', text: 'Comments' }), h('span', { 'class': 'count', id: 'cmt-count' })]));
+    host.appendChild(h('button', { 'class': 'btn ghost', id: 'btn-prompt', 'aria-label': 'Make a prompt from comments', title: 'Turn all comments into one prompt for an AI assistant', onclick: function () { R.prompt(); } }, ['✨ ', h('span', { 'class': 'lbl', text: 'Prompt' })]));
     var rt0 = MS.$('#right-tabs');
     if (rt0 && !rt0.firstChild) {
       rt0.appendChild(h('button', { 'data-pane': 'format', 'class': 'on', onclick: function () { R.showPane(false); } }, ['Format']));

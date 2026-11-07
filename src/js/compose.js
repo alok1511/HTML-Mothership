@@ -242,39 +242,46 @@
       '<p>Start building from the <b>Insert</b> tab: sections, KPI cards, charts from your data, columns, callouts and a footer.</p>\n</main>\n</body>\n</html>\n';
   }
   var STARTER = {
-    how: '<h1>How to use this dashboard</h1><ol><li>Use the tabs at the top to move between pages.</li><li>Use the filter pane to narrow the data. Every chart and KPI card follows it.</li><li>Hover over a chart to see exact values. Double-click a bar or slice to drill down.</li><li>Use the breadcrumb above a chart to go back up.</li></ol>',
-    faq: '<h1>FAQs</h1><details><summary>Where does the data come from?</summary><p>Describe the source system and the refresh date.</p></details><details><summary>How often is it updated?</summary><p>For example, every Monday by 10 am.</p></details><details><summary>Whom do I contact?</summary><p>Name and email of the owner.</p></details>',
-    method: '<h1>Methodology</h1><h2>Definitions</h2><p>Define each KPI and how it is calculated.</p><h2>Data cleaning</h2><p>Note exclusions, adjustments and known gaps.</p><h2>Formats</h2><p>Amounts are in ₹ (lakh / crore). Dates follow the Indian financial year (April–March).</p>'
+    how: '<h1>How to use this dashboard</h1><p><b>Before sharing:</b> replace the examples below with the exact tabs, filters and charts in your report.</p>' +
+      '<h2>Start with the overview</h2><p>State who this dashboard is for, what period it covers, and what decision it supports.</p>' +
+      '<h2>Explore the numbers</h2><ol><li>Open the Overview tab. Read the headline and the key numbers.</li><li>If a filter is available, choose a region or period. Say which charts and cards should change.</li><li>Hover over a bar or line to see the value and units.</li><li>If the chart supports drill-down, double-click a point to see the next level. Use the breadcrumb to go back.</li><li>Use Reset to return to the starting view.</li></ol>' +
+      '<h2>If something looks different</h2><p>Check the selected period, filters and reporting units. See Methodology for definitions and the data date.</p>',
+    faq: '<h1>Frequently asked questions</h1><p>Replace these prompts with short, specific answers for your audience.</p>' +
+      '<details><summary>Where do the numbers come from?</summary><p>Name the source system or report, its owner and the reporting period.</p></details>' +
+      '<details><summary>When was the data last updated?</summary><p>Give the data-as-of date and the refresh schedule. Distinguish the release date from the data date.</p></details>' +
+      '<details><summary>Why does this total differ from another report?</summary><p>Explain differences in filters, exclusions, period, rounding or units. Point to the exact definition in Methodology.</p></details>' +
+      '<details><summary>Why is a chart empty?</summary><p>Explain whether the chosen filters have no records, data is missing, or the chart needs a separate source.</p></details>' +
+      '<details><summary>Who can help?</summary><p>Give the team or owner to contact. Ask readers to include the tab, filter choices and the number they saw.</p></details>',
+    method: '<h1>Methodology</h1><h2>Scope and period</h2><p>State the population, reporting period, refresh cadence and data-as-of date.</p>' +
+      '<h2>Source and owner</h2><p>Name the originating system or report and the responsible team. List any manual inputs.</p>' +
+      '<h2>Definitions</h2><p>Define each KPI, its formula, units, rounding and whether it follows filters. Example: net sales = invoiced value less returns, excluding tax.</p>' +
+      '<h2>Cleaning and exclusions</h2><p>Describe how blanks, duplicates and exceptions are handled. Note any coverage gaps and why comparisons may differ.</p>' +
+      '<h2>Verification</h2><p>Record the independent report used for key totals and what was checked. State anything not verified.</p>'
+  };
+  Cp.createDoc = function (title, tabs, opts) {
+    title = String(title || 'New dashboard');
+    opts = Object.assign({}, opts, { dirty: true, onLoad: function () {
+      var rt = MS.rt();
+      if (tabs && rt) {
+        rt.enableLayout('Overview');
+        rt.addTab('How to use', 'content', STARTER.how);
+        rt.addTab('FAQs', 'content', STARTER.faq);
+        rt.addTab('Methodology', 'content', STARTER.method);
+        rt.state.layout.ribbon.brand = title;
+        rt.refresh(); rt.showTab(rt.tabs()[0].id);
+        MS.decorate(); MS.history.clear(); MS.emit('structure');
+      }
+      MS.toast('New dashboard ready. Use Insert to add content, or Help › Start here for a walkthrough.', 'ok', 7000);
+    } });
+    return MS.openHtml(blankHtml(title), (title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'dashboard') + '.html', opts);
   };
   Cp.newDoc = function () {
     var f = MS.form([
       { key: 'title', label: 'Dashboard name', value: 'New dashboard' },
       { key: 'kind', label: 'Start with', type: 'select', value: 'tabs', options: [{ value: 'tabs', label: 'Tabs: Overview, How to use, FAQs, Methodology' }, { value: 'blank', label: 'One blank page' }] }
     ]);
-    var go = function () {
-      MS.dialog({ title: 'New dashboard', body: f, buttons: [{ label: 'Cancel', value: null }, { label: 'Create', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
-        if (!v) return;
-        var title = v.title || 'New dashboard';
-        if (v.kind === 'tabs') {
-          var off = MS.on('child-loaded', function () {
-            off && off();
-            setTimeout(function () {
-              var rt = MS.rt(); if (!rt) return;
-              rt.enableLayout('Overview');
-              rt.addTab('How to use', 'content', STARTER.how);
-              rt.addTab('FAQs', 'content', STARTER.faq);
-              rt.addTab('Methodology', 'content', STARTER.method);
-              rt.state.layout.ribbon.brand = title;
-              rt.refresh(); rt.showTab(rt.tabs()[0].id);
-              MS.decorate(); MS.history.clear(); MS.emit('structure');
-            }, 40);
-          });
-        }
-        MS.openHtml(blankHtml(title), title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() + '.html');
-        MS.toast('New dashboard ready. Use the Insert tab to add sections, KPI cards, charts and a footer.', 'ok', 7000);
-      });
-    };
-    if (MS.child && MS.dirty) MS.confirm('Start a new dashboard?', 'Unsaved changes to ' + MS.doc.name + ' are kept in Versions (autosave), but export first if you need the file.', 'Start new').then(function (ok) { if (ok) go(); });
-    else go();
+    return MS.dialog({ title: 'New dashboard', body: f, buttons: [{ label: 'Cancel', value: null }, { label: 'Create', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
+      return v ? Cp.createDoc(v.title, v.kind === 'tabs') : false;
+    });
   };
 })(window.MS);

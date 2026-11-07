@@ -28,7 +28,7 @@ const check = (name, ok, detail) => { console.log((ok ? '  ✓ ' : '  ✗ ') + n
   await page.goto(URL);
   for (const sample of ['sales', 'ops', 'risk']) {
     console.log('Sample: ' + sample);
-    await page.evaluate(id => MS.samples.open(id), sample);
+    await page.evaluate(id => MS.samples.open(id, { force: true }), sample);
     await page.waitForTimeout(2500);
     const r = await page.evaluate(() => {
       const rt = MS.rt(), out = {};

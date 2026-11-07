@@ -1,0 +1,45 @@
+name: Test and build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: python3 -m pip install -r tests/requirements.txt
+      - run: npx playwright install --with-deps chromium firefox
+      - name: Verify generated files
+        run: |
+          npm run build
+          git diff --exit-code
+      - name: Browser and MCP suites
+        run: |
+          export CHROMIUM_PATH="$(node -p 'require("playwright").chromium.executablePath()')"
+          # Playwright supplies --no-sandbox itself. The MCP launch smoke tests use
+          # the same browser directly in this disposable runner with repo fixtures.
+          export MOTHERSHIP_BROWSER="$RUNNER_TEMP/mothership-ci-chromium"
+          cat > "$MOTHERSHIP_BROWSER" <<'BROWSER'
+          #!/usr/bin/env bash
+          exec "$CHROMIUM_PATH" --no-sandbox "$@"
+          BROWSER
+          chmod +x "$MOTHERSHIP_BROWSER"
+          npm test
+      - name: Firefox file and download smoke test
+        run: npm run test:portable
+        env:
+          MOTHERSHIP_TEST_BROWSER: firefox

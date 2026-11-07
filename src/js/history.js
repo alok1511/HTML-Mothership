@@ -2,23 +2,40 @@
 (function (MS) {
   'use strict';
   var undo = [], redo = [], LIMIT = 200;
+  function validationState() { var rt = MS.rt && MS.rt(); return rt ? rt.state : MS.doc && MS.doc.state; }
+  function revision() { var s = validationState(); return s && s.validationRevision; }
+  function changed(op, label, before) {
+    var s = validationState();
+    if (s) {
+      if (op.validationNeutral) {
+        if (before) s.validationRevision = before;
+      } else if (MS.doc && MS.doc.session) {
+        s.validationRevision = MS.doc.session.id + ':' + (MS.doc.session.revision + 1);
+      }
+    }
+    MS.emit('changed', label);
+  }
   MS.history = {
     push: function (op, alreadyDone) {
+      var before = revision();
       if (!alreadyDone) op.redo();
       undo.push(op); if (undo.length > LIMIT) undo.shift();
       redo = [];
-      MS.emit('changed', op.label);
+      changed(op, op.label, before);
     },
     undo: function () {
       var op = undo.pop(); if (!op) return MS.toast('Nothing to undo');
+      var before = revision();
       try { op.undo(); } catch (e) { console.error(e); MS.toast('Undo failed: ' + e.message, 'error'); }
-      redo.push(op); MS.emit('changed', 'Undo ' + op.label); MS.status('Undid: ' + op.label);
+      redo.push(op); changed(op, 'Undo ' + op.label, before); MS.status('Undid: ' + op.label);
     },
     redo: function () {
       var op = redo.pop(); if (!op) return MS.toast('Nothing to redo');
+      var before = revision();
       try { op.redo(); } catch (e) { console.error(e); MS.toast('Redo failed: ' + e.message, 'error'); }
-      undo.push(op); MS.emit('changed', 'Redo ' + op.label); MS.status('Redid: ' + op.label);
+      undo.push(op); changed(op, 'Redo ' + op.label, before); MS.status('Redid: ' + op.label);
     },
+    mark: function (label) { changed({}, label, revision()); },
     clear: function () { undo = []; redo = []; MS.emit('history'); },
     canUndo: function () { return undo.length > 0; },
     canRedo: function () { return redo.length > 0; },
@@ -26,14 +43,14 @@
 
     /* Helpers for common kinds of change. */
     // Change runtime state (theme, charts, filters...). fn mutates rt.state.
-    state: function (label, fn) {
+    state: function (label, fn, opts) {
       var rt = MS.rt(); if (!rt) return;
       var before = JSON.stringify(rt.state);
       fn(rt.state, rt);
       var after = JSON.stringify(rt.state);
       if (before === after) { rt.refresh(true); return; }
       rt.refresh(true);
-      MS.history.push({ label: label,
+      MS.history.push({ label: label, validationNeutral: opts && opts.validationNeutral,
         undo: function () { MS.rt().setState(JSON.parse(before)); MS.emit('structure'); },
         redo: function () { MS.rt().setState(JSON.parse(after)); MS.emit('structure'); } }, true);
     },
@@ -60,7 +77,7 @@
       fn();
       var ops = undo.splice(start);
       if (!ops.length) return;
-      MS.history.push({ label: label,
+      MS.history.push({ label: label, validationNeutral: ops.every(function (o) { return o.validationNeutral; }),
         undo: function () { ops.slice().reverse().forEach(function (o) { o.undo(); }); },
         redo: function () { ops.forEach(function (o) { o.redo(); }); } }, true);
     }

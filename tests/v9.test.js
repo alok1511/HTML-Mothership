@@ -52,14 +52,15 @@ const SALES = fs.readFileSync(path.join(ROOT, 'samples/sales-dashboard.html'), '
     check('drag: the chart moves to where it is dropped', after !== before && after.split(',').pop() === 'regionChart', { before, after });
     await page.evaluate(() => MS.history.undo()); await wait(400);
     check('drag: one undo puts it back', await canvases() === before, await canvases());
-    // Ctrl held: copy
-    await page.keyboard.down('Control');
+    // Use the documented copy gesture on this platform.
+    const copyKey = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.down(copyKey);
     await page.mouse.move(a.x, a.y); await page.mouse.down();
     await page.mouse.move(a.x + 20, a.y + 10, { steps: 3 });
     await page.mouse.move(b.x + 80, b.y, { steps: 12 });
-    await page.mouse.up(); await page.keyboard.up('Control'); await wait(900);
+    await page.mouse.up(); await page.keyboard.up(copyKey); await wait(900);
     const copied = await page.evaluate(() => ({ canvases: MS.child.doc.querySelectorAll('canvas').length, charts: MS.rt().charts().length }));
-    check('drag with Ctrl: copies the chart (a working chart)', copied.canvases === 5 && copied.charts === 5, copied);
+    check('drag with the platform copy key: copies the chart (a working chart)', copied.canvases === 5 && copied.charts === 5, copied);
     await page.evaluate(() => MS.history.undo()); await wait(400);
     // Esc cancels
     await page.mouse.move(a.x, a.y); await page.mouse.down();

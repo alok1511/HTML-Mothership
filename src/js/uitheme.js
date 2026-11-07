@@ -4,6 +4,7 @@
   'use strict';
   var h = MS.h;
   var ACCENTS = [
+    { id: 'studio', name: 'Studio green', c: '#0b6b59' },
     { id: 'indigo', name: 'Indigo', c: '#4f46e5' }, { id: 'royal', name: 'Royal blue', c: '#2563eb' },
     { id: 'ocean', name: 'Ocean', c: '#0e7490' }, { id: 'teal', name: 'Teal', c: '#0d9488' },
     { id: 'emerald', name: 'Emerald', c: '#059669' }, { id: 'saffron', name: 'Saffron', c: '#d97706' },
@@ -11,6 +12,7 @@
     { id: 'graphite', name: 'Graphite', c: '#475569' }
   ];
   var PRESETS = [
+    { id: 'studio', name: 'Studio', s: { mode: 'light', accent: 'studio', bar: 'deep' } },
     { id: 'classic', name: 'Classic', s: { mode: 'light', accent: 'indigo', bar: 'deep' } },
     { id: 'daylight', name: 'Daylight', s: { mode: 'light', accent: 'royal', bar: 'plain' } },
     { id: 'ocean', name: 'Ocean', s: { mode: 'light', accent: 'ocean', bar: 'deep' } },
@@ -20,7 +22,7 @@
     { id: 'slate', name: 'Slate dark', s: { mode: 'dark', accent: 'teal', bar: 'plain' } },
     { id: 'contrast', name: 'High contrast', s: { mode: 'contrast', accent: 'royal', bar: 'plain' } }
   ];
-  var DEFAULT = { mode: 'light', accent: 'indigo', bar: 'deep', density: 'comfortable', size: 13, labels: true };
+  var DEFAULT = { mode: 'light', accent: 'studio', bar: 'deep', density: 'comfortable', size: 13, labels: true };
 
   function hex(c) { c = String(c || '').trim(); if (/^#[0-9a-f]{3}$/i.test(c)) c = '#' + c.slice(1).split('').map(function (x) { return x + x; }).join(''); return /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : null; }
   function rgb(c) { c = hex(c) || '#4f46e5'; return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
@@ -34,25 +36,32 @@
     if (s.accent === 'brand') { var r = MS.rt && MS.rt(), t = r && r.state.theme; return hex(t && t.colors && t.colors.primary) || '#4f46e5'; }
     var a = ACCENTS.filter(function (x) { return x.id === s.accent; })[0]; return a ? a.c : (hex(s.accent) || '#4f46e5');
   };
+  function barColor(s, a, dark) {
+    if (s.bar !== 'deep') return dark ? '#121521' : '#ffffff';
+    if (s.accent === 'studio') return dark ? '#0d1715' : '#152d28';
+    return dark ? '#0d0f18' : mix(a, '#0b1020', 0.72);
+  }
   U.isDark = function (s) { s = s || U.get(); return s.mode === 'dark' || (s.mode === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); };
   U.apply = function (s) {
     s = s || U.get();
     var root = document.documentElement, dark = U.isDark(s), contrast = s.mode === 'contrast';
     var a = U.accentColor(s);
-    if (dark && lum(a) < 0.08) a = mix(a, '#ffffff', 0.35);      // keep dark accents readable on dark panels
+    if (dark && s.accent === 'studio') a = '#8fe3c4';
+    else if (dark && lum(a) < 0.08) a = mix(a, '#ffffff', 0.35);      // keep dark accents readable on dark panels
     if (contrast) a = lum(a) > 0.2 ? mix(a, '#000000', 0.45) : a;
-    var panel = dark ? '#171a26' : '#ffffff';
+    var panel = dark ? (s.accent === 'studio' ? '#172520' : '#171a26') : '#ffffff';
     var vars = {
       '--accent': a, '--accent-hover': mix(a, dark ? '#ffffff' : '#000000', 0.12),
       '--accent-weak': mix(a, panel, dark ? 0.82 : 0.9), '--accent-line': mix(a, panel, dark ? 0.6 : 0.7),
       '--accent-ink': lum(a) > 0.45 ? '#111827' : '#ffffff',
-      '--bar-bg': s.bar === 'deep' ? (dark ? '#0d0f18' : mix(a, '#0b1020', 0.72)) : (dark ? '#121521' : '#ffffff'),
+      '--bar-bg': barColor(s, a, dark),
       '--bar-text': s.bar === 'deep' || dark ? '#eef0fb' : '#1f2333',
       '--bar-muted': s.bar === 'deep' || dark ? mix(a, '#ffffff', 0.7) : '#6b7185',
       '--ui-size': (+s.size || 13) + 'px'
     };
     Object.keys(vars).forEach(function (k) { root.style.setProperty(k, vars[k]); });
     root.setAttribute('data-ms-mode', contrast ? 'contrast' : dark ? 'dark' : 'light');
+    root.setAttribute('data-ms-accent', s.accent);
     root.setAttribute('data-ms-bar', s.bar === 'deep' ? 'deep' : 'plain');
     root.setAttribute('data-ms-density', s.density === 'compact' ? 'compact' : 'comfortable');
     root.classList.toggle('no-rlabels', s.labels === false);
@@ -67,7 +76,7 @@
   function same(a, b) { return a.mode === b.mode && a.accent === b.accent && a.bar === b.bar; }
   function card(p, cur, pick) {
     var a = U.accentColor(p.s), dark = p.s.mode === 'dark', c = p.s.mode === 'contrast';
-    var bar = p.s.bar === 'deep' ? (dark ? '#0d0f18' : mix(a, '#0b1020', 0.72)) : (dark ? '#121521' : '#ffffff');
+    var bar = barColor(p.s, a, dark);
     var bg = c ? '#ffffff' : dark ? '#0f121b' : '#eef0f6', pn = dark ? '#171a26' : '#ffffff', ln = c ? '#000' : dark ? '#2a2f42' : '#e3e5ec';
     var mini = h('div', { 'class': 'th-mini', style: 'background:' + bg + ';border-color:' + ln }, [
       h('i', { 'class': 'th-bar', style: 'background:' + bar + ';border-bottom:1px solid ' + ln }),
