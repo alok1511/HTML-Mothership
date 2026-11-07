@@ -11,7 +11,7 @@
   PT.has = function () { var g = PT.group(); return !!(g && g.tabs.length > 1); };
   PT.list = function () {
     var g = PT.group(true); if (!g) return [];
-    return g.tabs.map(function (t) { return { index: t.index, title: t.title, active: t.active }; });
+    return g.tabs.map(function (t) { return { index: t.index, title: t.title, active: t.active, notes: PT.getNotes(t) }; });
   };
   PT.active = function () { var g = PT.group(); return g ? g.tabs.filter(function (t) { return t.active; })[0] || null : null; };
   PT.find = function (which) {
@@ -96,6 +96,7 @@
   PT.rename = function (which, title) {
     var t = PT.find(which); if (!t) return false;
     if (title == null) return MS.prompt('Rename tab', t.title).then(function (v) { if (v) PT.rename(t.index, v); });
+    migrateNotes(PT.group());
     htmlOp('Rename tab', t.btn, function () { setText(t.btn, String(title).trim()); });
     MS.emit('structure');
     return true;
@@ -129,12 +130,31 @@
     return MS.confirm('Delete the "' + t.title + '" tab?', 'Its button and everything on it are removed. You can undo with Ctrl+Z.', 'Delete', true).then(function (ok) { return ok ? go() : false; });
   };
   // where "Insert" puts new things when the page has its own tabs: the panel on screen
-  // Speaker notes for one of the dashboard's own tabs (kept in the state by tab name; never shown in the export).
+  function noteKey(t) {
+    return t && (t.panel.getAttribute('data-ms-id') || (t.panel.id && 'panel:' + t.panel.id) || t.btn.getAttribute('data-ms-id'));
+  }
+  function migrateNotes(g) {
+    var r = rt(); if (!r || !g) return;
+    var s = r.state, legacy = s.pageNotes;
+    g.tabs.forEach(function (t) {
+      var id = noteKey(t);
+      if (!id || !Object.prototype.hasOwnProperty.call(legacy, t.title)) return;
+      if (!Object.prototype.hasOwnProperty.call(s.pageNotesById, id)) s.pageNotesById[id] = legacy[t.title];
+      delete legacy[t.title];
+    });
+  }
+  PT.getNotes = function (which) {
+    var t = which && which.panel ? which : PT.find(which);
+    migrateNotes(PT.group());
+    var r = rt(), key = noteKey(t);
+    return r && key && r.state.pageNotesById[key] || '';
+  };
   PT.notes = function (which, text) {
-    var t = PT.find(which), rt = MS.rt(); if (!t || !rt) return;
-    var put = function (v) { MS.history.state('Tab notes', function (s) { if (v) s.pageNotes[t.title] = v; else delete s.pageNotes[t.title]; }); };
+    var t = PT.find(which), key = noteKey(t); if (!key || !rt()) return;
+    var before = PT.getNotes(t);
+    var put = function (v) { MS.history.state('Tab notes', function (s) { if (v) s.pageNotesById[key] = v; else delete s.pageNotesById[key]; }); };
     if (text != null) return put(text);
-    var f = MS.form([{ key: 'n', label: 'Speaker notes (shown in Presenter view, never in the exported dashboard)', type: 'textarea', rows: 8, value: (rt.state.pageNotes || {})[t.title] || '' }]);
+    var f = MS.form([{ key: 'n', label: 'Speaker notes (visible in Presenter view; retained in working HTML)', type: 'textarea', rows: 8, value: before }]);
     MS.dialog({ title: '🗒 Notes for “' + t.title + '”', body: f, enterSubmits: false, buttons: [{ label: 'Cancel', value: null }, { label: 'Save', primary: true, value: function () { return f.values().n; } }] }).then(function (v) { if (v !== null) put(v); });
   };
   PT.insertHost = function () { var t = PT.active(); return t ? t.panel : null; };
@@ -176,6 +196,7 @@
     return sec;
   };
   MS.on('child-loaded', function (c) {
+    migrateNotes(PT.group(true));
     c.win.addEventListener('ms:pagetab', function (e) { MS.emit('tab-shown', e.detail); MS.emit('structure'); });
   });
 })(window.MS);

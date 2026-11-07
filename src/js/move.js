@@ -152,6 +152,7 @@
 
   /* ---------------------------------------------------------------- the drag */
   var S = null, swallowUntil = 0;
+  Mv.copyKey = /Mac/i.test(navigator.platform || '') ? 'Command' : 'Ctrl';
   Mv.active = function () { return !!(S && S.dragging); };
   Mv.swallowClick = function () { return Date.now() < swallowUntil; };
   function onDown(e) {
@@ -171,7 +172,7 @@
     u.ghost.style.height = Math.max(40, Math.min(150, r.height * 0.5)) + 'px';
     u.ghost.style.display = 'block';
     cdoc().documentElement.style.cursor = 'grabbing';
-    MS.status('Drop where the blue bar shows. Hold Ctrl to copy. Esc to cancel.');
+    MS.status('Drop where the blue bar shows. Hold ' + Mv.copyKey + ' to copy. Esc to cancel.');
   }
   function autoScroll(y) {
     var w = cwin(), h = w.innerHeight, edge = 48;
@@ -275,7 +276,7 @@
     Mv.barCss();
     b.innerHTML = '';
     var key = rt ? MS.blocks.chartKey(el) : null, unit = Mv.unitAt(el) || el;
-    var mv = btn('grip', 'Drag to move (hold Ctrl to copy)', function () {}, 'ms-mb-move');
+    var mv = btn('grip', 'Drag to move (hold ' + Mv.copyKey + ' to copy)', function () {}, 'ms-mb-move');
     mv.addEventListener('mousedown', function (e) { if (e.button === 0) Mv.startFrom(unit, e); });
     b.appendChild(mv);
     var nm = cdoc().createElement('span'); nm.className = 'ms-mb-name'; nm.textContent = key ? MS.charts.nameOf(key) : nameOf(unit); b.appendChild(nm);

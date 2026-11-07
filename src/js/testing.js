@@ -288,13 +288,14 @@
   // A fingerprint of what is on screen, to tell what a click changed.
   D.state = function () {
     var r = rt();
-    return { tab: Q.tabs().filter(function (t) { return t.active; }).map(function (t) { return t.title; })[0] || null, charts: r ? r.charts().map(function (c) { var d = r.chartData(c.key, true) || {}; return c.key + ':' + (d.labels || []).join('|') + ':' + (d.series || []).map(function (s) { return s.values.join(','); }).join(';'); }) : [], kpis: Q.kpis().map(function (k) { return k.value; }), dialogs: all('[role=dialog],dialog[open],.modal.show,.ms-modal-wrap').filter(visible).length, scroll: Math.round(cwin().pageYOffset) };
+    return { text: norm(cdoc().body.innerText).slice(0, 16000), tab: Q.tabs().filter(function (t) { return t.active; }).map(function (t) { return t.title; })[0] || null, charts: r ? r.charts().map(function (c) { var d = r.chartData(c.key, true) || {}; return c.key + ':' + (d.labels || []).join('|') + ':' + (d.series || []).map(function (s) { return s.values.join(','); }).join(';'); }) : [], kpis: Q.kpis().map(function (k) { return k.value; }), dialogs: all('[role=dialog],dialog[open],.modal.show,.ms-modal-wrap').filter(visible).length, scroll: Math.round(cwin().pageYOffset) };
   };
   D.changes = function (b) {
     var a = D.state(), out = [];
     if (a.tab !== b.tab) out.push('tab: ' + b.tab + ' → ' + a.tab);
     var ch = a.charts.filter(function (x, i) { return x !== b.charts[i]; }).length; if (ch) out.push(ch + ' chart(s) changed');
     var kp = a.kpis.filter(function (x, i) { return x !== b.kpis[i]; }).length; if (kp) out.push(kp + ' KPI value(s) changed');
+    if (a.text !== b.text && !out.length) out.push('visible text changed');
     if (a.dialogs !== b.dialogs) out.push(a.dialogs > b.dialogs ? 'a pop-up window opened' : 'a pop-up window closed');
     return out.length ? out : ['nothing visible changed'];
   };
@@ -326,6 +327,7 @@
     return { x: x0, y: y0, width: Math.max(0, x1 - x0), height: Math.max(0, y1 - y0), cx: f.left + (p ? p.x : r.left + r.width / 2) * s, cy: f.top + (p ? p.y : r.top + Math.min(r.height / 2, 200)) * s, scale: s, what: describe(el) };
   };
   MS.on('child-loaded', function (c) {
+    if (MS.rt()) Q.revision();
     try {
       var w = c.win; w.__msConsole = [];
       var ce = w.console.error; w.console.error = function () { try { if (w.__msConsole.length < 200) w.__msConsole.push(Array.prototype.map.call(arguments, function (x) { return x && x.message ? x.message : String(x); }).join(' ').slice(0, 300)); } catch (e) {} return ce.apply(this, arguments); };
@@ -415,7 +417,9 @@
   /* ================================================================ the test plan */
   Q.TYPES = ['Smoke', 'Navigation', 'Data', 'Interaction', 'Visual', 'Responsive', 'Accessibility', 'Export', 'Content'];
   Q.PRIORITIES = ['High', 'Medium', 'Low'];
-  Q.STATUSES = ['Not run', 'Pass', 'Fail', 'Blocked', 'Skipped', 'Needs a person'];
+  Q.STATUSES = ['Not run', 'Pass', 'Fail', 'Partial', 'Blocked', 'Skipped', 'Needs a person', 'Stale'];
+  Q.revision = function () { var r = rt(); if (!r) return null; return r.state.validationRevision || (r.state.validationRevision = MS.doc.session.id + ':0'); };
+  Q.statusOf = function (c, revision) { return c.status === 'Not run' ? c.status : c.revision && c.revision === (revision || Q.revision()) ? c.status : 'Stale'; };
   // Steps: {do, target, value, point}. "do" is one of these.
   Q.ACTIONS = {
     open_tab: 'Open a tab (target: tab name)', click: 'Click (target)', double_click: 'Double-click (target; point: a chart category)', hover: 'Hover (target; point: a chart category)',
@@ -431,18 +435,22 @@
   Q.plan = plan;
   Q.cases = function () { return plan().cases || []; };
   Q.get = function (id) { return Q.cases().filter(function (c) { return c.id === id; })[0] || null; };
-  function edit(label, fn) { MS.history.state(label, function (s) { s.tests = s.tests || { title: '', cases: [] }; s.tests.cases = s.tests.cases || []; fn(s.tests); }); MS.emit('tests'); }
+  function edit(label, fn) { MS.history.state(label, function (s) { s.tests = s.tests || { title: '', cases: [] }; s.tests.cases = s.tests.cases || []; fn(s.tests); }, { validationNeutral: true }); MS.emit('tests'); }
   function nextId(list) { var n = 0; list.forEach(function (c) { var m = /(\d+)$/.exec(c.id || ''); if (m) n = Math.max(n, +m[1]); }); return 'TC-' + String(n + 1).padStart(3, '0'); }
   function clean(c) {
     var x = { id: c.id, scenario: norm(c.scenario || 'General'), title: norm(c.title || 'Untitled test'), type: Q.TYPES.indexOf(c.type) >= 0 ? c.type : 'Interaction', priority: Q.PRIORITIES.indexOf(c.priority) >= 0 ? c.priority : 'Medium', pre: c.pre || '', steps: (c.steps || []).map(function (s) { var y = { do: s.do || s.action || 'manual' }; ['target', 'value', 'point'].forEach(function (k) { if (s[k] != null && s[k] !== '') y[k] = s[k]; }); return y; }), expected: c.expected || '', status: Q.STATUSES.indexOf(c.status) >= 0 ? c.status : 'Not run' };
-    ['actual', 'notes', 'by', 'at', 'area', 'ms'].forEach(function (k) { if (c[k]) x[k] = c[k]; });
+    ['actual', 'notes', 'by', 'at', 'area', 'ms', 'revision', 'stepResults'].forEach(function (k) { if (c[k] != null) x[k] = c[k]; });
     x.auto = x.steps.length > 0 && x.steps.every(function (s) { return s.do !== 'manual'; });
     return x;
   }
   Q.add = function (c) { var out; edit('Add test case', function (T) { out = clean(Object.assign({}, c, { id: c.id && !T.cases.some(function (x) { return x.id === c.id; }) ? c.id : nextId(T.cases) })); T.cases.push(out); }); return out; };
   Q.update = function (id, patch, label) {
     var out = null;
-    edit(label || 'Edit test case', function (T) { T.cases = T.cases.map(function (c) { if (c.id !== id) return c; out = clean(Object.assign({}, c, patch, { id: id })); return out; }); });
+    edit(label || 'Edit test case', function (T) { T.cases = T.cases.map(function (c) { if (c.id !== id) return c; var next = Object.assign({}, c, patch, { id: id });
+      if ((patch.steps && JSON.stringify(patch.steps) !== JSON.stringify(c.steps)) || (patch.expected != null && patch.expected !== c.expected)) {
+        next.status = 'Not run'; delete next.actual; delete next.revision; delete next.stepResults; delete next.at;
+      }
+      out = clean(next); return out; }); });
     if (!out) throw new Error('No test case ' + id);
     return out;
   };
@@ -450,9 +458,9 @@
   Q.clear = function () { MS.history.state('Delete all test cases', function (s) { delete s.tests; }); MS.emit('tests'); };
   Q.record = function (id, o) {
     var c = Q.get(id); if (!c) throw new Error('No test case ' + id + '. Cases: ' + Q.cases().map(function (x) { return x.id; }).join(', '));
-    var st = o.status ? (Q.STATUSES.filter(function (s) { return low(s) === low(o.status); })[0] || (low(o.status) === 'passed' ? 'Pass' : low(o.status) === 'failed' ? 'Fail' : null)) : c.status;
+    var st = o.status === 'Stale' ? null : o.status ? (Q.STATUSES.filter(function (s) { return low(s) === low(o.status); })[0] || (low(o.status) === 'passed' ? 'Pass' : low(o.status) === 'failed' ? 'Fail' : null)) : c.status;
     if (!st) throw new Error('Status must be one of: ' + Q.STATUSES.join(', '));
-    return Q.update(id, { status: st, actual: o.actual != null ? o.actual : c.actual, notes: o.notes != null ? o.notes : c.notes, by: o.by || c.by || '', at: new Date().toISOString() }, 'Test result ' + id);
+    return Q.update(id, { status: st, actual: o.actual != null ? o.actual : c.actual, notes: o.notes != null ? o.notes : c.notes, by: o.by || c.by || '', at: new Date().toISOString(), revision: Q.revision(), stepResults: null }, 'Test result ' + id);
   };
 
   /* ---------------------------------------------------------------- drafting test cases */
@@ -472,7 +480,7 @@
     var out = [], tabs = Q.tabs(), first = tabs.filter(function (t) { return t.active; })[0];
     var add = function (scenario, type, priority, title, steps, expected, pre) { var c = { scenario: scenario, type: type, priority: priority, title: title, steps: steps, expected: expected, pre: pre || '' }; out.push(c); return c; };
     var openFirst = first ? [{ do: 'open_tab', target: first.title }] : [];
-    add('Opens cleanly', 'Smoke', 'High', 'The dashboard opens without script errors', [{ do: 'expect_no_errors' }], 'No script errors or console errors.');
+    add('Opens cleanly', 'Smoke', 'High', 'The dashboard opens without script errors', [{ do: 'expect_no_errors', value: 'since open' }], 'No script errors or console errors.');
     var charts = r.charts();
     var vis1 = charts.filter(function (c) { return visible(c.el); });
     if (vis1.length) add('Opens cleanly', 'Smoke', 'High', 'Every chart on the first screen draws with data', openFirst.concat(vis1.map(function (c) { return { do: 'expect_chart_drawn', target: 'chart=' + MS.charts.nameOf(c.key) }; })), 'Each chart shows bars, lines or slices with numbers; none is blank.');
@@ -529,10 +537,10 @@
   /* ---------------------------------------------------------------- running */
   var shots = {};
   function lastChange() { return Q._last || []; }
-  function runStep(s, log) {
+  function runStep(s, log, index) {
     var t = s.target, v = s.value;
-    var pass = function (msg) { log.push({ step: Q.stepText(s), ok: true, note: msg || '' }); };
-    var fail = function (msg) { log.push({ step: Q.stepText(s), ok: false, note: msg }); throw Object.assign(new Error(msg), { stepFail: true }); };
+    var pass = function (msg, detail) { log.push({ index: index, step: Q.stepText(s), ok: true, note: msg || '', detail: detail }); };
+    var fail = function (msg, detail) { log.push({ index: index, step: Q.stepText(s), ok: false, note: msg, detail: detail }); throw Object.assign(new Error(msg), { stepFail: true }); };
     if (Q.STEPS[s.do]) return Promise.resolve().then(function () { return Q.STEPS[s.do](s, pass, fail); });
     switch (s.do) {
       case 'open_tab': return D.showTab(t || v).then(function (x) { pass('on “' + x.tab + '”'); });
@@ -549,7 +557,7 @@
       case 'expect_tooltip':
         return D.hover(t, { point: s.point }).then(function (x) { var txt = (x.tooltip || []).map(function (q) { return q.text; }).join(' / '); if (!txt) return fail('No pop-up appeared'); if (v && low(txt).indexOf(low(v)) < 0) return fail('The pop-up says “' + txt + '”, not “' + v + '”'); pass('pop-up: ' + txt); });
       case 'expect_changed': var ch = lastChange(); var what = low(v); var ok = ch.length && ch[0] !== 'nothing visible changed' && (!what || ch.some(function (q) { return low(q).indexOf(what) >= 0; })); return Promise.resolve(ok ? pass(ch.join('; ')) : fail('Expected a change' + (v ? ' to a ' + v : '') + ', but ' + (ch.join('; ') || 'nothing changed')));
-      case 'expect_no_errors': var er = D.errorsSince(D._errBase); var n = er.scriptErrors.length + er.consoleErrors.length; return Promise.resolve(n ? fail(n + ' error(s): ' + er.scriptErrors.concat(er.consoleErrors).slice(0, 3).join(' | ')) : pass('none'));
+      case 'expect_no_errors': var er = v === 'since open' ? D.errors() : D.errorsSince(D._errBase); var n = er.scriptErrors.length + er.consoleErrors.length; return Promise.resolve(n ? fail(n + ' error(s): ' + er.scriptErrors.concat(er.consoleErrors).slice(0, 3).join(' | ')) : pass('none'));
       case 'expect_no_overflow': var de = cdoc().documentElement, over = de.scrollWidth - de.clientWidth; return Promise.resolve(over > 4 ? fail('The page is ' + over + ' px wider than the screen (a sideways scroll bar)') : pass('fits'));
       case 'expect_numbers': var res = MS.numcheck ? MS.numcheck.run() : [], diff = res.filter(function (q) { return q.status === 'diff'; }); return Promise.resolve(diff.length ? fail(diff.map(function (q) { return q.what + ' shows ' + q.shown + ' but ' + q.against + ' adds up to ' + q.expected; }).join('; ')) : pass(res.length ? res.length + ' compared, all agree' : 'nothing to compare'));
       case 'expect_a11y': var f = MS.a11y ? MS.a11y.check().filter(function (q) { return q.kind !== 'cvd'; }) : [], max = +v || 0; return Promise.resolve(f.length > max ? fail(f.length + ' finding(s): ' + f.slice(0, 3).map(function (q) { return q.msg; }).join(' | ')) : pass(f.length + ' finding(s)'));
@@ -559,18 +567,18 @@
   }
   Q.runCase = function (id) {
     var c = Q.get(id); if (!c) return Promise.reject(new Error('No test case ' + id));
-    var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width, t0 = Date.now();
-    D._errBase = D.errorMark(); D._lastEl = null;
+    var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width, t0 = Date.now(), revision = Q.revision(), session = MS.doc.session;
+    D._errBase = D.errorMark(); D._lastEl = null; Q._last = [];
     c.steps.forEach(function (s, i) {
       chain = chain.then(function () {
-        if (Q.stopping) throw Object.assign(new Error('Stopped'), { stopped: true });
+        if (Q.stopping || !MS.doc || MS.doc.session !== session) throw Object.assign(new Error('Stopped'), { stopped: true });
         MS.emit('qa-step', { id: id, index: i, total: c.steps.length, text: stepWords(s), step: s });
-        return runStep(s, log);
+        return runStep(s, log, i);
       });
     });
     return chain.then(function () {
       var manual = log.some(function (x) { return x.ok === null; });
-      return { status: manual ? 'Needs a person' : 'Pass', log: log };
+      return { status: manual ? 'Needs a person' : log.some(function (x) { return x.detail && x.detail.partial; }) ? 'Partial' : 'Pass', log: log };
     }, function (e) {
       if (e.stopped) return { stopped: true, log: log };
       if (!e.stepFail) log.push({ step: '(error)', ok: false, note: e.message });
@@ -578,10 +586,10 @@
     }).then(function (res) {
       if (MS.view.width !== width) MS.view.setWidth(width, true);
       if (was !== MS.mode && was !== 'interact') MS.setMode(was);
-      if (res.stopped) return { id: id, title: c.title, status: 'Stopped', steps: res.log };
+      if (res.stopped || !MS.doc || MS.doc.session !== session) return { id: id, title: c.title, status: 'Stopped', steps: res.log };
       var ms = Date.now() - t0, failed = res.status === 'Fail' ? D._lastEl : null;
       var actual = res.log.map(function (x) { return (x.ok === false ? '✗ ' : x.ok ? '✓ ' : '• ') + x.step + (x.note ? ' → ' + x.note : ''); }).join('\n');
-      Q.update(id, { status: res.status, actual: actual, at: new Date().toISOString(), by: 'Mothership', ms: ms }, 'Test run ' + id);
+      Q.update(id, { status: res.status, actual: actual, at: new Date().toISOString(), by: 'Mothership', ms: ms, revision: revision, stepResults: res.log.filter(function (x) { return x.index != null; }).map(function (x) { return { index: x.index, ok: x.ok, detail: x.detail }; }) }, 'Test run ' + id);
       var out = { id: id, title: c.title, status: res.status, ms: ms, steps: res.log };
       if (failed && Q.live && Q.live.evidence) return Q.live.evidence(id, failed).then(function () { return out; }, function () { return out; });
       return out;
@@ -594,12 +602,12 @@
     o = o || {};
     if (Q.running) return Promise.reject(new Error('Tests are already running.'));
     var list = (ids && ids.length ? ids : Q.cases().map(function (c) { return c.id; })).filter(function (id) { return Q.get(id); });
-    var out = [], chain = Promise.resolve(), t0 = Date.now();
+    var out = [], chain = Promise.resolve(), t0 = Date.now(), session = MS.doc.session;
     Q.stopping = false; Q.running = { ids: list, total: list.length, started: t0, results: out };
     MS.emit('qa-run', { phase: 'start', ids: list, total: list.length });
     list.forEach(function (id, i) {
       chain = chain.then(function () {
-        if (Q.stopping) return;
+        if (Q.stopping || !MS.doc || MS.doc.session !== session) return;
         MS.emit('qa-run', { phase: 'case', id: id, index: i, total: list.length, title: Q.get(id).title });
         return Q.runCase(id).then(function (r) {
           if (r.status !== 'Stopped') out.push(r);
@@ -609,19 +617,19 @@
       });
     });
     var end = function (err) {
-      var stopped = Q.stopping; Q.running = null; Q.stopping = false; MS.status('');
+      var stopped = Q.stopping || !MS.doc || MS.doc.session !== session; Q.running = null; Q.stopping = false; MS.status('');
       var rec = { at: new Date().toISOString(), ms: Date.now() - t0, total: list.length, ran: out.length, stopped: !!stopped };
-      ['Pass', 'Fail', 'Needs a person'].forEach(function (k) { rec[k === 'Needs a person' ? 'person' : k.toLowerCase()] = out.filter(function (r) { return r.status === k; }).length; });
-      if (out.length) edit('Test run', function (T) { T.runs = (T.runs || []).concat([rec]).slice(-20); });
+      ['Pass', 'Fail', 'Partial', 'Needs a person'].forEach(function (k) { rec[k === 'Needs a person' ? 'person' : k.toLowerCase()] = out.filter(function (r) { return r.status === k; }).length; });
+      if (out.length && MS.doc && MS.doc.session === session) edit('Test run', function (T) { T.runs = (T.runs || []).concat([rec]).slice(-20); });
       MS.emit('qa-run', { phase: 'end', results: out, run: rec, error: err ? err.message : null });
       return rec;
     };
     return chain.then(function () { end(); return out; }, function (e) { end(e); throw e; });
   };
   Q.runs = function () { return plan().runs || []; };
-  Q.failed = function () { return Q.cases().filter(function (c) { return c.status === 'Fail'; }); };
+  Q.failed = function () { return Q.cases().filter(function (c) { return Q.statusOf(c) === 'Fail'; }); };
   Q.summary = function () {
-    var cs = Q.cases(), by = {}; Q.STATUSES.forEach(function (s) { by[s] = 0; }); cs.forEach(function (c) { by[c.status] = (by[c.status] || 0) + 1; });
+    var cs = Q.cases(), by = {}; Q.STATUSES.forEach(function (s) { by[s] = 0; }); cs.forEach(function (c) { var status = Q.statusOf(c); by[status] = (by[status] || 0) + 1; });
     var last = Q.runs().slice(-1)[0] || null;
     return { total: cs.length, automatic: cs.filter(function (c) { return c.auto; }).length, byStatus: by, lastRun: last };
   };
@@ -663,7 +671,7 @@
     L.push('', '## 3. Approach', '', '- **Environment:** a desktop browser (Chrome or Edge), the dashboard opened from disk (file://), network off for the offline checks.', '- **Kinds of test:** ' + Q.TYPES.join(', ') + '.', '- **Automatic steps** are run by Mothership (Testing › Run) or by an AI assistant through the Mothership MCP server. **Manual steps** (“check by eye”) need a person or an AI looking at screenshots.', '- **Entry:** the dashboard opens. **Exit:** every High case passes; any failure is logged as a defect with steps to reproduce.', '- **Severity of defects:** Critical (wrong numbers, page does not open) · Major (a feature does not work) · Minor (looks wrong, typo) · Trivial (cosmetic).');
     L.push('', '## 4. Test cases', '');
     L.push('| ID | Scenario | Test | Type | Priority | Status |', '|---|---|---|---|---|---|');
-    cs.forEach(function (c) { L.push('| ' + c.id + ' | ' + md(c.scenario) + ' | ' + md(c.title) + ' | ' + c.type + ' | ' + c.priority + ' | ' + c.status + ' |'); });
+    cs.forEach(function (c) { L.push('| ' + c.id + ' | ' + md(c.scenario) + ' | ' + md(c.title) + ' | ' + c.type + ' | ' + c.priority + ' | ' + Q.statusOf(c) + ' |'); });
     L.push('', '## 5. Steps and expected results');
     scen.forEach(function (sc) {
       L.push('', '### ' + sc);
@@ -689,7 +697,7 @@
       '| select \\| filter=Region \\| West | `ui_select {"target": "filter=Region", "value": "West"}` |', '| expect_text \\| kpi=Revenue \\| $1.2M | `ui_expect {"target": "kpi=Revenue", "text": "$1.2M"}` |', '| expect_chart_drawn \\| chart=Sales | `ui_expect {"target": "chart=Sales", "chart_drawn": true}` |',
       '| expect_no_errors | `ui_errors {}` (pass when both lists are empty) |', '| set_width \\| 390 | `ui_width {"width": 390}` |', '| manual \\| … | `ui_screenshot` then judge it; record with `test_record` |');
     L.push('', '## 8. Defect log', '', '| # | Test case | Severity | What happened | Steps to reproduce | Expected | Screenshot |', '|---|---|---|---|---|---|---|');
-    var fails = cs.filter(function (c) { return c.status === 'Fail'; });
+    var fails = cs.filter(function (c) { return Q.statusOf(c) === 'Fail'; });
     if (fails.length) fails.forEach(function (c, i) { L.push('| ' + (i + 1) + ' | ' + c.id + ' | ' + (c.priority === 'High' ? 'Major' : 'Minor') + ' | ' + md((c.actual || '').split('\n').filter(function (x) { return /^✗/.test(x); }).join(' ') || c.notes || '') + ' | ' + md(c.steps.map(stepWords).join('; ')) + ' | ' + md(c.expected) + ' | |'); });
     else L.push('| | | | | | | |');
     L.push('', '## 9. Sign-off', '', '| Role | Name | Date | Decision |', '|---|---|---|---|', '| Tester | | | |', '| Dashboard owner | | | Approve / Fix first |');
@@ -812,7 +820,7 @@
   };
 
   /* ================================================================ the Testing window */
-  var STATUS_CLS = { 'Pass': 'ok', 'Fail': 'bad', 'Blocked': 'warn', 'Skipped': '', 'Needs a person': 'info', 'Not run': '' };
+  var STATUS_CLS = { 'Pass': 'ok', 'Fail': 'bad', 'Blocked': 'warn', 'Partial': 'warn', 'Stale': 'warn', 'Skipped': '', 'Needs a person': 'info', 'Not run': '' };
   Q.dialog = function (o) {
     o = o || {};
     if (!rt()) return MS.toast('Turn off Safe mode to plan tests.', 'warn');
@@ -825,7 +833,7 @@
       var when = c.at ? ' · ' + c.at.slice(0, 16).replace('T', ' ') + (c.by ? ' by ' + c.by : '') : '';
       var pic = live && live.evid[c.id];
       return h('div', {}, bad.map(function (l) { return h('div', { 'class': 'qa-bad', text: l.replace(/^✗\s*/, '') }); }).concat([
-        pic && c.status === 'Fail' ? h('button', { 'class': 'qa-shot', title: 'What the failed step was looking at. Click to copy the picture.', onclick: function () { copyPic(pic); } }, [h('img', { src: pic, alt: 'Picture of the part that failed' })]) : null,
+        pic && Q.statusOf(c) === 'Fail' ? h('button', { 'class': 'qa-shot', title: 'What the failed step was looking at. Click to copy the picture.', onclick: function () { copyPic(pic); } }, [h('img', { src: pic, alt: 'Picture of the part that failed' })]) : null,
         h('details', { 'class': 'qa-log' }, [h('summary', { text: 'Run log: ' + lines.length + ' step' + (lines.length === 1 ? '' : 's') + when }), h('pre', { 'class': 'qa-actual', text: c.actual })])]));
     }
     function copyPic(url) {
@@ -836,7 +844,7 @@
     }
     function setFilter(s) { filt.status = filt.status === s ? '' : s; draw(); }
     function head() {
-      var S = Q.summary(), by = S.byStatus, ran = S.total - (by['Not run'] || 0);
+      var S = Q.summary(), by = S.byStatus, ran = S.total - (by['Not run'] || 0) - (by.Stale || 0);
       var lr = S.lastRun, tr = live && live.trend();
       var chips = h('div', { 'class': 'qa-chips' }, Q.STATUSES.filter(function (s) { return by[s]; }).map(function (s) {
         return h('button', { 'class': 'qa-chip ' + (STATUS_CLS[s] || '') + (filt.status === s ? ' on' : ''), title: filt.status === s ? 'Show all' : 'Show only "' + s + '"', onclick: function () { setFilter(s); } }, [h('i', { 'class': 'qa-sw', style: 'background:' + (live ? live.COLORS[s] : '') }), s + ' ', h('b', { text: String(by[s]) })]);
@@ -845,7 +853,7 @@
         live ? live.ring(by, 76, [h('b', { text: ran ? Math.round((by.Pass || 0) / ran * 100) + '%' : '–' }), h('small', { text: ran ? 'passed' : 'not run' })]) : null,
         h('div', { 'class': 'grow' }, [
           h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : ''),
-            Q.deep ? (function (C) { return h('button', { 'class': 'qa-cov-chip' + (C.percent < 100 ? ' part' : ''), title: C.untested.length ? 'Untested: ' + C.untested.slice(0, 8).join(', ') : 'Every part has a test', onclick: function () { Q.deep.coverageDialog().then(draw); } }, ['🎯 ' + C.percent + '% covered']); })(Q.deep.coverage()) : null,
+            Q.deep ? (function (C) { return h('button', { 'class': 'qa-cov-chip' + (C.percent < 100 ? ' part' : ''), title: C.untested.length ? 'Untested: ' + C.untested.slice(0, 8).join(', ') : 'Every part has a test', onclick: function () { Q.deep.coverageDialog().then(draw); } }, ['🎯 ' + (C.parts ? C.percent + '% planned' : 'No parts found')]); })(Q.deep.coverage()) : null,
             Q.deep ? h('button', { 'class': 'qa-cov-chip' + (Q.deep.baseline() ? '' : ' part'), title: 'The numbers "right numbers" tests check against', onclick: function (e) { MS.menu(e.currentTarget, Q.deep.numbersMenu()); } }, [Q.deep.baseline() ? '🔒 Numbers locked in' : '🔢 Numbers not locked in']) : null]),
           chips]),
         tr ? h('div', { 'class': 'qa-trend-box' }, [tr, h('small', { 'class': 'muted', text: 'Pass rate by run' })]) : null]);
@@ -857,17 +865,17 @@
       fixBtns.forEach(function (b) { b.style.display = fails || people ? '' : 'none'; });
       rerun.style.display = fails ? '' : 'none';
       list.innerHTML = '';
-      var cs = Q.cases().filter(function (c) { return (!filt.status || c.status === filt.status) && (!filt.text || low(c.id + ' ' + c.title + ' ' + c.scenario + ' ' + c.type).indexOf(filt.text) >= 0); });
-      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('div', { 'class': 'row gap center' }, [h('button', { 'class': 'btn', title: 'About one test per part', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Quick draft']), h('button', { 'class': 'btn primary', title: 'Every point, every drop-down choice, every drill-down, button, check box, table and tab at every width', onclick: function () { var n = Q.draft({ depth: 'full' }); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['🎯 Full draft: test everything'])])])); return; }
+      var cs = Q.cases().filter(function (c) { return (!filt.status || Q.statusOf(c) === filt.status) && (!filt.text || low(c.id + ' ' + c.title + ' ' + c.scenario + ' ' + c.type).indexOf(filt.text) >= 0); });
+      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('div', { 'class': 'row gap center' }, [h('button', { 'class': 'btn', title: 'About one test per part', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Quick draft']), h('button', { 'class': 'btn primary', title: 'Draft deeper tests. The coverage report lists limits and omissions.', onclick: function () { var n = Q.draft({ depth: 'full' }); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['🎯 Full draft (bounded)'])])])); return; }
       if (!cs.length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('p', { 'class': 'muted', text: 'No test case matches.' }), h('button', { 'class': 'btn sm', onclick: function () { filt.status = ''; filt.text = ''; search.value = ''; draw(); } }, ['Show all'])])); return; }
       var groups = []; cs.forEach(function (c) { if (groups.indexOf(c.scenario) < 0) groups.push(c.scenario); });
       groups.forEach(function (g) {
-        var inG = cs.filter(function (c) { return c.scenario === g; }), gp = inG.filter(function (c) { return c.status === 'Pass'; }).length, gf = inG.filter(function (c) { return c.status === 'Fail'; }).length;
+        var inG = cs.filter(function (c) { return c.scenario === g; }), gp = inG.filter(function (c) { return Q.statusOf(c) === 'Pass'; }).length, gf = inG.filter(function (c) { return Q.statusOf(c) === 'Fail'; }).length;
         list.appendChild(h('div', { 'class': 'qa-group' }, [h('span', { text: g }), h('span', { 'class': 'qa-gcount' + (gf ? ' bad' : gp === inG.length ? ' ok' : ''), text: gp + '/' + inG.length })]));
         inG.forEach(function (c) {
-          var st = h('select', { 'class': 'inp sm qa-st ' + (STATUS_CLS[c.status] || ''), title: 'Result' }, Q.STATUSES.map(function (s) { return h('option', { value: s, text: s, selected: s === c.status }); }));
+          var st = h('select', { 'class': 'inp sm qa-st ' + (STATUS_CLS[Q.statusOf(c)] || ''), title: 'Result' }, Q.STATUSES.filter(function (s) { return s !== 'Stale' || Q.statusOf(c) === 'Stale'; }).map(function (s) { return h('option', { value: s, text: s, selected: s === Q.statusOf(c) }); }));
           st.addEventListener('change', function () { Q.record(c.id, { status: st.value, by: 'Me' }); draw(); });
-          var row = h('div', { 'class': 'qa-row st-' + (STATUS_CLS[c.status] || 'none') + (c.status === 'Fail' ? ' fail' : '') }, [
+          var row = h('div', { 'class': 'qa-row st-' + (STATUS_CLS[Q.statusOf(c)] || 'none') + (Q.statusOf(c) === 'Fail' ? ' fail' : '') }, [
             h('span', { 'class': 'qa-id', text: c.id }),
             h('div', { 'class': 'grow' }, [h('div', { 'class': 'qa-title', text: c.title }), h('div', { 'class': 'qa-meta' }, [h('span', { text: c.type }), h('span', { 'class': 'qa-pri ' + low(c.priority), text: c.priority }), h('span', { text: c.steps.length + ' step' + (c.steps.length === 1 ? '' : 's') + (c.auto ? ' · automatic' : ' · some by eye') }), c.ms ? h('span', { 'class': 'qa-ms', title: 'How long the last run took', text: live ? live.secs(c.ms) : c.ms + ' ms' }) : null]),
               c.actual ? logOf(c) : null]),
@@ -947,10 +955,10 @@
   api('ui_width', { d: 'Testing: draw the dashboard at a width in px (1366 laptop, 820 tablet, 390 phone) or "auto". Returns how far the page spills off the side (0 = fits).', p: { width: ['string', 'px or auto', true] }, f: function (a) { return D.width(a.width); } });
   api('ui_locate', { d: 'Testing: where a part is in the editor window (for real mouse input and screenshots).', p: { target: TGT, point: ['string', 'A chart category'], series: ['number', ''], interact: ['boolean', 'Switch to Interact mode and remember the screen, for ui_after'] }, f: function (a) { return D.locate(a.target, { point: a.point, series: a.series, interact: !!a.interact }); } });
   api('ui_after', { d: 'Testing: after real mouse input (the MCP ui_mouse tool), what changed since ui_locate and what pop-up shows.', p: {}, f: function () { var m = D._mark || {}; return { changed: m.before ? D.changes(m.before) : [], tooltip: D.tooltip(m.el) }; } });
-  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; depth: "full" tests every point, every drop-down choice, every drill-down, button, check box, table and tab at every width; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'], depth: ['string', 'For draft: quick (default) or full'] },
+  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; depth: "full" drafts deeper checks within safety limits; use test_coverage to see what was planned and run; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'], depth: ['string', 'For draft: quick (default) or full'] },
     f: function (a) {
       var act = a.action || 'get';
-      if (act === 'draft') { var n = Q.draft({ replace: !!a.replace, depth: a.depth }); return { added: n, summary: Q.summary(), coverage: Q.deep ? (function (C) { return { percent: C.percent, parts: C.parts, untested: C.untested }; })(Q.deep.coverage()) : null, cases: Q.cases() }; }
+      if (act === 'draft') { var n = Q.draft({ replace: !!a.replace, depth: a.depth }); return { added: n, summary: Q.summary(), coverage: Q.deep ? (function (C) { return { percent: C.percent, parts: C.parts, planned: C.planned, executed: C.executed, passing: C.passing, untested: C.untested }; })(Q.deep.coverage()) : null, cases: Q.cases() }; }
       if (act === 'add') return Q.add(a['case'] || {});
       if (act === 'update') return Q.update(a.id, a['case'] || {});
       if (act === 'remove') { Q.remove(a.id); return { removed: a.id }; }

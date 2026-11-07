@@ -55,27 +55,23 @@
       <div class="welcome">
         <div class="hero-glow" aria-hidden="true"></div>
         <div class="big-mark">◆</div>
-        <div class="hero-pill"><span class="pulse-dot"></span>Works offline · one file · nothing leaves this laptop</div>
-        <h1>Make dashboards <span class="grad">boardroom-ready</span></h1>
-        <p class="lead">Open an HTML dashboard and edit it like a PowerPoint deck: text, fonts, brand colours, chart tooltips, drill-downs, tabs and help pages. Review it, test it, then export it as one HTML file.</p>
+        <div class="hero-pill">Local editor for HTML dashboards</div>
+        <h1>From dashboard to deliverable</h1>
+        <p class="lead">Edit an HTML dashboard like a slide deck. Review the figures and interactions, then share a single file people can open in a browser.</p>
         <div class="start-grid">
           <button class="start-card primary" data-act="open">📂<b>Open dashboard</b><small>An .html file, or a Mothership export</small></button>
           <button class="start-card" data-act="openFolder" title="Use this when the dashboard loads its own .js/.css/.json files">🗂<b>Open folder</b><small>Dashboard plus its scripts, styles and data</small></button>
           <button class="start-card" data-act="newDoc" title="Build a dashboard from scratch">✨<b>New dashboard</b><small>Start blank or with ready-made tabs</small></button>
-          <button class="start-card" data-act="sample">🧪<b>Try a sample</b><small>Sales, operations or risk</small></button>
+          <button class="start-card" data-act="sample">🧪<b>Try a sample</b><small>Explore the built-in sales dashboard</small></button>
         </div>
         <div id="recent" class="recent" hidden></div>
-        <div class="feature-strip">
-          <div class="feat"><span class="feat-ic">✎</span><b>Edit</b><small>Click, type, drag. Like slides.</small></div>
-          <div class="feat"><span class="feat-ic">💬</span><b>Review</b><small>Comments become an AI prompt.</small></div>
-          <div class="feat"><span class="feat-ic">☑</span><b>Test</b><small>Watch every click, fix what fails.</small></div>
-          <div class="feat"><span class="feat-ic">🚀</span><b>Publish</b><small>PDF, PowerPoint, locked HTML.</small></div>
+        <div class="start-path">
+          <span>Import</span><span>Edit</span><span>Review</span><span>Check</span><span>Export</span>
         </div>
         <div class="row gap center learn">
-          <button class="btn" data-act="tour">🧭 2-minute tour</button>
-          <button class="btn" data-act="tutorial">🎓 Hands-on tutorial</button>
-          <button class="btn" data-act="guide">📖 User guide</button>
-          <button class="btn" data-act="theme">🎨 Theme</button>
+          <button class="btn primary" data-act="workflow">Start here</button>
+          <button class="btn" data-act="tutorial">🎓 Practice lessons</button>
+          <button class="btn" data-act="guide">📖 Search the guide</button>
         </div>
         <p class="muted drop-hint">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
         <details class="steps-box">
@@ -95,7 +91,7 @@
   <aside id="right"><div id="right-tabs" class="rtabs"></div><div id="inspector"></div><div id="cmt-pane" hidden></div></aside>
 </div>
 
-<footer id="statusbar"><span id="status-mode" class="st-mode" hidden></span><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Works offline · nothing leaves this laptop</span><span id="zoomctl"></span></footer>
+<footer id="statusbar"><span id="status-mode" class="st-mode" hidden></span><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Local editing · check linked assets before sharing</span><span id="zoomctl"></span></footer>
 <div id="toasts" aria-live="polite"></div>
 <div id="dropzone"><div>Drop to open or add</div></div>
 
@@ -105,6 +101,7 @@
 <script src="src/js/history.js"></script>
 <script src="src/js/sanitize.js"></script>
 <script src="src/js/runtime.js"></script>
+<script src="src/js/assets.js"></script>
 <script src="src/js/loader.js"></script>
 <script src="src/js/childedit.js"></script>
 <script src="src/js/clipboard.js"></script>
@@ -136,7 +133,9 @@
 <script src="src/js/testrun.js"></script>
 <script src="src/js/testdeep.js"></script>
 <script src="src/js/publish.js"></script>
+<script src="src/js/learn-content.js"></script>
 <script src="src/js/help.js"></script>
+<script src="src/js/workflow.js"></script>
 <script src="src/js/panels.js"></script>
 <script src="src/js/ribbon.js"></script>
 <script src="src/js/palette.js"></script>

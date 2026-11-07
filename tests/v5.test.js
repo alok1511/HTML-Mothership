@@ -83,7 +83,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     });
     check('publish check: lists what to look at', pf.titles.length >= 7 && pf.n === pf.titles.length, pf.titles);
     check('publish check: open must-fix comment blocks it', pf.ready === false && pf.titles.some(t => /^fail: 1 must-fix/.test(t)), pf.titles);
-    check('publish check: offline sample passes the internet check', pf.titles.some(t => /^pass: Works offline/.test(t)), pf.titles);
+    check('publish check: sample has no detected dependencies, without claiming an offline pass', pf.titles.some(t => /^info: No linked resources detected/.test(t)) && !pf.titles.some(t => /^pass: Works offline/.test(t)), pf.titles);
 
     /* publish */
     const pub = await page.evaluate(async () => {
@@ -115,7 +115,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       const out = {};
       out.none = await MS.api.run('open_html', { html, name: 'p.html' }).then(() => 'opened', e => e.message);
       out.wrong = await MS.api.run('open_html', { html, name: 'p.html', password: 'nope' }).then(() => 'opened', e => e.message);
-      const ok = await MS.api.run('open_html', { html, name: 'p.html', password: 'secret12' });
+      const ok = await MS.api.run('open_html', { html, name: 'p.html', password: 'secret12', force: true });
       await new Promise(r => setTimeout(r, 300));
       out.ok = !!ok.charts; out.published = ok.published || MS.doc.integrity;
       out.badgeInEditor = !!MS.child.doc.getElementById('ms-badge');
@@ -140,7 +140,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       const t = await MS.api.run('publish_check', {});
       const b64 = btoa(unescape(encodeURIComponent(html)));
       const folder = await MS.api.run('open_folder_files', { files: [{ path: 'pub/p.html', name: 'p.html', b64 }], password: 'nope' }).then(() => 'opened', e => e.message);
-      return { item: t.items.find(x => /script errors/.test(x.title)), folder };
+      return { item: t.items.find(x => /script or resource errors/.test(x.title)), folder };
     }, pub.html);
     check('publish check: catches errors while the page loads', early.item && early.item.status === 'fail' && /early boom/.test(early.item.detail), early.item);
     check('lock: a locked file in a folder needs the right password', /Wrong password/.test(early.folder), early.folder);

@@ -48,9 +48,14 @@ const call = async (name, args) => {
   const st = await call('status');
   check('status: browser connected', st.json && st.json.connected, st);
 
+  let testedOpenGuard = false;
   for (const [file, lib] of [['sales-dashboard.html', 'Chart.js'], ['ops-dashboard.html', 'ECharts'], ['risk-dashboard.html', 'Plotly']]) {
     console.log('Sample: ' + file + ' (' + lib + ')');
-    const o = await call('open_file', { path: path.join(ROOT, 'samples', file) });
+    if (file === 'ops-dashboard.html') {
+      const refused = await call('open_file', { path: path.join(ROOT, 'samples', file) });
+      testedOpenGuard = /unsaved changes/i.test(refused.error || '');
+    }
+    const o = await call('open_file', { path: path.join(ROOT, 'samples', file), force: true });
     check('open_file', o.json && o.json.open && o.json.charts.length > 1, o.error || o.json);
     if (!o.json || !o.json.charts) continue;
     const first = o.json.charts[0];
@@ -68,6 +73,7 @@ const call = async (name, args) => {
     check('screenshot returns an image', shot.images.length === 1 && shot.images[0].data.length > 5000, shot.error);
   }
 
+  check('open_file refuses to replace unexported edits by default', testedOpenGuard);
   const f = await call('find', { selector: 'h1', limit: 1 });
   const t = f.json && f.json[0] && await call('set_text', { ref: f.json[0].ref, text: 'Risk review' });
   check('find + set_text', t && !t.error, f.error || (t && t.error));
@@ -104,7 +110,7 @@ const call = async (name, args) => {
   check('publish_html saves a sealed, locked copy', pb.json && pb.json.version === '2.0' && pb.json.locked && pubHtml.indexOf(pb.json.sha256) > 0 && /v2\.0\.html$/.test(pb.json.saved), pb.error || pb.json);
   const lockedOpen = pb.json ? await call('open_file', { path: pb.json.saved }) : { error: 'x' };
   check('open_file: a locked file needs its password', !!lockedOpen.error && /locked/i.test(lockedOpen.error), lockedOpen);
-  const unlocked = pb.json ? await call('open_file', { path: pb.json.saved, password: 'secret12' }) : { error: 'x' };
+  const unlocked = pb.json ? await call('open_file', { path: pb.json.saved, password: 'secret12', force: true }) : { error: 'x' };
   check('open_file: the right password opens it, seal intact', unlocked.json && unlocked.json.published && unlocked.json.published.ok === true, unlocked.error || (unlocked.json && unlocked.json.published));
   const pdf = await call('save_pdf', {});
   const pdfOk = pdf.json && fs.existsSync(pdf.json.saved) && fs.readFileSync(pdf.json.saved).slice(0, 4).toString() === '%PDF';

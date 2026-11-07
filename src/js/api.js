@@ -52,21 +52,15 @@
   }
 
   /* ---------------------------------------------------------- documents */
-  A.open_html = { d: 'Open a dashboard from its HTML source. A published file locked for editing needs its password.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'], password: ['string', 'Password, for a published file locked for editing'] },
+  var replaceProp = ['boolean', 'Replace a dashboard with unexported edits (default false)'];
+  A.open_html = { d: 'Open a dashboard from its HTML source. A published file locked for editing needs its password.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'], password: ['string', 'Password, for a published file locked for editing'], force: replaceProp },
     f: function (a) {
-      if (MS.publish.isLocked(a.html) && a.password == null) throw new Error('This file is locked for editing. Pass its password.');
-      return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password == null ? undefined : a.password }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
+      return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password, nonInteractive: true, force: a.force }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
     } };
-  A.open_folder_files = { d: 'Open a dashboard together with its scripts, styles, images and data (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true], password: ['string', 'Password, for a published file locked for editing'] },
-    f: function (a) { return Promise.resolve(MS.openFolder(a.files.map(fileOf), { password: a.password })).then(function (ok) { if (ok === false) throw new Error('Not opened: the dashboard is locked for editing.'); return settle(2500); }).then(function () { return A.outline.f({}); }); } };
-  A.new_dashboard = { d: 'Start a new dashboard from scratch.', p: { title: ['string', 'Dashboard name'], tabs: ['boolean', 'Start with Overview, How to use, FAQs and Methodology tabs (default true)'] },
-    f: function (a) {
-      MS.dirty = false; MS.compose.newDoc();
-      var dlg = document.querySelector('.dlg'); var inp = dlg.querySelectorAll('input,select');
-      inp[0].value = a.title || 'New dashboard'; inp[1].value = a.tabs === false ? 'blank' : 'tabs';
-      dlg.querySelector('.btn.primary').click();
-      return settle(1500).then(function () { return A.outline.f({}); });
-    } };
+  A.open_folder_files = { d: 'Open a dashboard and its assets (files as base64). The MCP open_folder tool fills this in for you.', p: { files: ['array', '[{path, name, b64}] with paths relative to the folder', true], password: ['string', 'Password for a locked file'], force: replaceProp },
+    f: function (a) { return MS.openFolder(a.files.map(fileOf), { password: a.password, nonInteractive: true, force: a.force }).then(function () { return settle(1800); }).then(function () { return A.outline.f({}); }); } };
+  A.new_dashboard = { d: 'Start a new dashboard from scratch.', p: { title: ['string', 'Dashboard name'], tabs: ['boolean', 'Start with Overview, How to use, FAQs and Methodology tabs (default true)'], force: replaceProp },
+    f: function (a) { return MS.compose.createDoc(a.title, a.tabs !== false, { nonInteractive: true, force: a.force }).then(function () { return settle(350); }).then(function () { return A.outline.f({}); }); } };
   A.outline = { d: 'Everything about the open dashboard: tabs, charts (names, kinds, categories, settings), datasets and their columns, KPI cards, filters, comments, theme, layout.', p: {},
     f: function () {
       if (!MS.child) return { open: false };
@@ -84,8 +78,10 @@
       };
     } };
   A.export_html = { d: 'The edited dashboard as one standalone HTML file (returns the HTML; the MCP tool saves it to a path).', p: { drop_comments: ['boolean', 'Leave review comments out'] },
-    f: function (a) { var h = MS.exportHtml({ dropComments: !!a.drop_comments }); MS.dirty = false; MS.emit('saved'); return { html: h, bytes: h.length, name: MS.exportName() }; } };
-  A.save_version = { d: 'Keep a named version in the browser (restore from File › Versions).', p: { name: ['string', 'Version name'] }, f: function (a) { return MS.versions.save(a.name || 'Saved by assistant', true).then(function () { return { ok: true }; }); } };
+    f: function (a) { var h = MS.exportHtml({ dropComments: !!a.drop_comments }), s = MS.doc.session; return { html: h, bytes: h.length, name: MS.exportName(), session: s.id, revision: s.revision }; } };
+  A.export_saved = { d: 'Acknowledge that the export was written to disk.', p: { session: ['string', 'Document session', true], revision: ['number', 'Export revision', true] },
+    f: function (a) { return { saved: !!(MS.doc && MS.doc.session.id === a.session && MS.versions.markSaved(MS.doc.session, a.revision)) }; } };
+  A.save_version = { d: 'Keep a named version in the browser (restore from File › Versions).', p: { name: ['string', 'Version name'] }, f: function (a) { return MS.versions.save(a.name || 'Saved by assistant', true).then(function (saved) { return { ok: !!saved }; }); } };
   A.undo = { d: 'Undo the last change.', p: {}, f: function () { MS.history.undo(); return { ok: true, canUndo: MS.history.canUndo() }; } };
   A.redo = { d: 'Redo.', p: {}, f: function () { MS.history.redo(); return { ok: true, canRedo: MS.history.canRedo() }; } };
   A.set_mode = { d: 'Edit, comment or interact mode.', p: { mode: ['string', 'edit | comment | interact', true] }, f: function (a) { MS.setMode(/^(interact|comment)$/.test(a.mode) ? a.mode : 'edit'); return done(); } };
@@ -363,8 +359,9 @@
       MS.history.state('Add dataset ' + a.name, function (s) { s.datasets[a.name] = a.expr ? { expr: a.expr, source: 'page' } : { scriptId: a.scriptId, source: 'page' }; });
       MS.emit('structure'); return { name: a.name, rows: rt().getRows(a.name).length };
     } };
-  A.refresh_dataset = { d: 'Replace an embedded dataset\'s rows (e.g. this month\'s data). Charts, KPI cards and filters keep their settings.', p: { name: ['string', 'Dataset', true], rows: ['array', 'New rows', true] },
-    f: function (a) { MS.history.state('Refresh ' + a.name, function (s) { s.datasets[a.name] = { rows: a.rows, source: 'file', refreshed: new Date().toISOString() }; }); return { rows: a.rows.length }; } };
+  A.refresh_dataset = { d: 'Preview or replace an embedded dataset. Missing or unusable columns used by a chart, KPI or filter block the refresh.', p: { name: ['string', 'Dataset', true], rows: ['array', 'New rows', true], apply: ['boolean', 'Apply the validated refresh (default true)'], period: ['string', 'Reporting period'] },
+    f: function (a) { var m = MS.data.previewRefresh(a.name, a.rows); return a.apply === false ? MS.data.refreshSummary(m) : MS.data.applyRefresh([m], a.period).then(function (r) { return r[0]; }); } };
+
   A.remove_dataset = { d: 'Remove a dataset (and its filters).', p: { name: ['string', 'Dataset', true] }, f: function (a) { MS.history.state('Remove dataset', function (s) { delete s.datasets[a.name]; s.filters = s.filters.filter(function (f) { return f.dataset !== a.name; }); }); return done(); } };
   A.dataset_rows = { d: 'Rows of a dataset (after the filter pane), for checking numbers.', p: { name: ['string', 'Dataset', true], limit: ['number', 'Max rows (default 50)'], filtered: ['boolean', 'Apply the current filters (default true)'] },
     f: function (a) { var r = rt(), rows = a.filtered === false ? r.getRows(a.name) : r.filteredRows(a.name); return { total: rows.length, rows: rows.slice(0, a.limit || 50) }; } };
@@ -548,7 +545,10 @@
         .then(function (all) {
           var m = MS.data.matchRefresh([].concat.apply([], all));
           if (a.apply === false) return m.map(function (x) { return { dataset: x.dataset, file: x.file, rows: x.after, was: x.before, missingColumns: x.missing }; });
-          return { refreshed: MS.data.applyRefresh(m), unmatched: files.map(function (f) { return f.name; }).filter(function (n) { return !m.some(function (x) { return x.file === n; }); }) };
+          var blocked = m.filter(function (x) { return x.blocked.length; });
+          return MS.data.applyRefresh(m.filter(function (x) { return !x.blocked.length; })).then(function (refreshed) {
+            return { refreshed: refreshed, blocked: blocked.map(MS.data.refreshSummary), unmatched: files.map(function (f) { return f.name; }).filter(function (n) { return !m.some(function (x) { return x.file === n; }); }) };
+          });
         });
     } };
   A.accessibility_check = { d: 'Accessibility check: pictures without alt text, hard-to-read text colours, tables without headings, tab buttons that need a mouse, unnamed buttons, page language and title. fix: true applies the automatic fixes (all but alt text).', p: { fix: ['boolean', 'Apply the automatic fixes'] },
@@ -563,11 +563,11 @@
     f: function (a) {
       var r = rt();
       if (a.from_comments) MS.present.setCommentMode(a.from_comments);
-      var tabs = r.layoutEnabled() ? r.tabs() : MS.pageTabs.list().map(function (t, j) { return { id: 'page:' + j, title: t.title, page: true, notes: (r.state.pageNotes || {})[t.title] || '' }; });
+      var tabs = r.layoutEnabled() ? r.tabs() : MS.pageTabs.list().map(function (t, j) { return { id: 'page:' + j, title: t.title, page: true, notes: t.notes }; });
       if (a.tab != null && a.text != null) {
         var t = tabs.filter(function (x) { return low(x.title) === low(a.tab); })[0]; if (!t) throw new Error('No tab "' + a.tab + '".');
         if (t.page) MS.pageTabs.notes(t.title, a.text); else MS.history.attrs('Tab notes', t.el, ['data-ms-notes'], function (x) { if (a.text) x.setAttribute('data-ms-notes', a.text); else x.removeAttribute('data-ms-notes'); });
-        tabs = r.layoutEnabled() ? r.tabs() : tabs.map(function (x) { x.notes = (r.state.pageNotes || {})[x.title] || ''; return x; });
+        tabs = r.layoutEnabled() ? r.tabs() : tabs.map(function (x, j) { x.notes = MS.pageTabs.getNotes(j); return x; });
       }
       return { fromComments: MS.present.commentMode(), tabs: tabs.filter(function (x) { return a.tab == null || low(x.title) === low(a.tab); }).map(function (x) { return { tab: x.title, notes: MS.present.notesFor(x) }; }) };
     } };

@@ -908,3 +908,57 @@ body[data-ms-ui-mode="none"] #mode-switch { opacity: .45; pointer-events: none; 
 .qa-cov-tag { flex: 0 0 76px; font-size: 11px; font-weight: 700; text-align: center; border-radius: 999px; padding: 1px 0; background: var(--panel-3); color: var(--muted); }
 .qa-cov-row.full .qa-cov-tag { background: var(--ok-weak); color: var(--ok); } .qa-cov-row.part .qa-cov-tag { background: var(--warn-weak); color: var(--warn); } .qa-cov-row.none .qa-cov-tag { background: var(--danger-weak); color: var(--danger); }
 .qa-cov-ids { flex: 0 0 150px; }
+
+/* Self-serve workflow: one reading column and a numbered rail for actual steps. */
+.start-path { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin: 16px auto 12px; color: var(--text-2); font-weight: 600; }
+.start-path span { display: flex; align-items: center; gap: 9px; }
+.start-path span:not(:last-child)::after { content: "›"; margin-right: 9px; color: var(--accent); }
+.workflow-layout { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(0, 2fr); gap: 24px; }
+.workflow-nav { display: grid; align-content: start; border-right: 1px solid var(--line); padding-right: 12px; }
+.workflow-step { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; text-align: left; font: inherit; padding: 11px 8px; display: flex; align-items: flex-start; gap: 9px; }
+.workflow-step.on { background: var(--accent-weak); box-shadow: inset 3px 0 var(--accent); }
+.workflow-step:hover { background: var(--hover); }
+.workflow-num { min-width: 1.35em; color: var(--text-2); font-variant-numeric: tabular-nums; font-weight: 700; }
+.workflow-step small { display: block; color: var(--text-2); margin-top: 2px; }
+.workflow-body h2 { margin-top: 0; }
+.workflow-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.workflow-check { display: flex; align-items: flex-start; gap: 8px; background: var(--panel-2); border-left: 3px solid var(--accent); padding: 12px; margin: 16px 0 12px; }
+.workflow-check input { margin: 3px 0 0; }
+.guide-prose, .guide-body { line-height: 1.62; }
+.guide-prose p, .guide-body p, .guide-body li { max-width: 75ch; }
+.guide-body { min-width: 0; }
+.guide-body h2 { font-size: clamp(21px, 2.3vw, 29px); line-height: 1.16; letter-spacing: -.01em; }
+.guide-body th { background: var(--panel-2); }
+.guide-body td, .guide-body th { padding: 8px 10px; }
+.guide-count { margin: 0 3px 2px; }
+.guide-note, .coach-example { padding: 10px 12px; background: var(--accent-weak); border-left: 3px solid var(--accent); }
+.guide-note { overflow-wrap: anywhere; }
+.report-section { border-top: 1px solid var(--line); padding-top: 2px; overflow-wrap: anywhere; }
+.report-section h3 { margin: 12px 0 3px; }
+.guide-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.guide-metrics div { padding: 4px 10px 12px; }
+.guide-metrics strong, .guide-metrics span { display: block; }
+.guide-metrics strong { font-size: 21px; font-variant-numeric: tabular-nums; }
+.guide-metrics span { color: var(--text-2); }
+.coach { max-height: min(650px, calc(100vh - 90px)); width: min(376px, calc(100vw - 30px)); overflow: auto; }
+.coach-example { line-height: 1.45; margin: 8px 0; }
+.coach .wrap { flex-wrap: wrap; }
+.refresh-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.refresh-item p { margin: 4px 0; }
+.refresh-item details { margin-top: 6px; }
+.refresh-item ul { margin: 5px 0; padding-left: 24px; }
+.refresh-block { color: var(--danger, var(--bad, #b91c1c)); font-weight: 600; }
+.guide button:focus-visible, .guide-body:focus-visible, .coach button:focus-visible, .workflow-layout button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 720px) {
+  .workflow-layout, .guide { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .workflow-nav { display: flex; flex-wrap: wrap; border-right: 0; padding-right: 0; }
+  .workflow-step { flex: 1 1 auto; padding: 8px; }
+  .workflow-step small { display: none; }
+  .guide-side { width: 100%; }
+  .guide-toc { max-height: 135px; }
+  .guide-body { min-height: 140px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach, .spot, .spot-card, .coach-bar i { animation: none; transition: none; }
+  .pulse { animation: none; }
+}

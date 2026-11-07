@@ -60,7 +60,7 @@
   function info() {
     var rt = MS.rt();
     if (!rt.layoutEnabled() && MS.pageTabs.has()) {
-      var pts = MS.pageTabs.list(), k = 0; pts.forEach(function (t, j) { if (t.active) k = j; t.notes = (rt.state.pageNotes || {})[t.title] || ''; t.id = 'page:' + j; });
+      var pts = MS.pageTabs.list(), k = 0; pts.forEach(function (t, j) { if (t.active) k = j; t.id = 'page:' + j; });
       return { i: k, n: pts.length, cur: pts[k], next: pts[k + 1] };
     }
     var vis = rt.tabs().filter(function (t) { return !t.hidden; });
@@ -89,14 +89,14 @@
   // Write the comments into each tab's own speaker notes (so they stay when the comments are cleared).
   Pr.bakeNotes = function () {
     var rt = MS.rt(), n = 0, mode = Pr.commentMode() === 'off' ? 'resolved' : Pr.commentMode();
-    var tabs = rt.layoutEnabled() ? rt.tabs() : MS.pageTabs.list().map(function (t, j) { return { id: 'page:' + j, title: t.title, page: true, notes: (rt.state.pageNotes || {})[t.title] || '' }; });
+    var tabs = rt.layoutEnabled() ? rt.tabs() : MS.pageTabs.list().map(function (t, j) { return { id: 'page:' + j, title: t.title, page: true, notes: t.notes, index: j }; });
     MS.history.group('Notes from comments', function () {
       tabs.forEach(function (t) {
         var keep = Pr.commentMode(); rt.state.layout.commentNotes = mode;
         var txt = Pr.notesFor(t); rt.state.layout.commentNotes = keep;
         if (txt === (t.notes || '')) return;
         n++;
-        if (t.page) MS.history.state('Tab notes', function (s) { s.pageNotes[t.title] = txt; });
+        if (t.page) MS.pageTabs.notes(t.index, txt);
         else MS.history.attrs('Tab notes', t.el, ['data-ms-notes'], function (x) { x.setAttribute('data-ms-notes', txt); });
       });
       if (n) MS.history.state('Notes from comments', function (s) { s.layout.commentNotes = 'off'; });

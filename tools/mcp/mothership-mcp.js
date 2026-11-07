@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '2.9.0';
+var VERSION = '3.9.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -278,12 +278,12 @@ function referenced(htmlPath) {
   scan(htmlPath, html, /url\(\s*['"]?([^'")]+)['"]?\s*\)/g);
   return out.filter(function (f) { return path.relative(dir, f).indexOf('..') !== 0; });
 }
-function openFiles(main, others, password) {
+function openFiles(main, others, password, force) {
   var dir = path.dirname(main), top = path.basename(dir) || 'dashboard';
   var files = [{ full: main }].concat(others.map(function (f) { return { full: f }; })).map(function (f) {
     return { name: path.basename(f.full), path: top + '/' + path.relative(dir, f.full).replace(/\\/g, '/'), b64: fs.readFileSync(f.full).toString('base64') };
   });
-  return api('open_folder_files', { files: files, password: password });
+  return api('open_folder_files', { files: files, password: password, force: !!force });
 }
 
 /* ------------------------------------------------------------------ tools that need the file system */
@@ -309,27 +309,27 @@ var LOCAL = {
       var s = { editor: EDITOR, browser: B.exe || (process.env.MOTHERSHIP_ATTACH ? 'attached on port ' + process.env.MOTHERSHIP_ATTACH : findBrowser()), mode: B.mode, connected: !!(B.ws && B.ws.open && B.session), headless: HEADLESS && B.mode !== 'attached', saveFolder: OUT, lastError: B.error };
       return ensure().then(function () { return api('outline', {}); }).then(function (o) { s.dashboard = o.open ? { name: o.name, charts: o.charts.length, tabs: o.tabs.length, unsavedChanges: o.unsavedChanges } : null; return s; }, function (e) { s.lastError = e.message; return s; });
     } },
-  open_file: { description: 'Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline. A published file locked for editing needs its password.', props: { path: ['string', 'Path to the .html file', true], password: ['string', 'Password, for a published file locked for editing'] },
+  open_file: { description: 'Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline. A published file locked for editing needs its password.', props: { path: ['string', 'Path to the .html file', true], password: ['string', 'Password, for a published file locked for editing'], force: ['boolean', 'Replace unexported edits (default false)'] },
     run: function (a) {
       var full = resolvePath(a.path); if (!/\.html?$/i.test(full)) throw new Error('Give an .html file. For a folder use open_folder.');
       var refs = referenced(full);
-      if (!refs.length) return api('open_html', { html: fs.readFileSync(full, 'utf8'), name: path.basename(full), password: a.password });
-      return openFiles(full, refs, a.password);
+      if (!refs.length) return api('open_html', { html: fs.readFileSync(full, 'utf8'), name: path.basename(full), password: a.password, force: !!a.force });
+      return openFiles(full, refs, a.password, a.force);
     } },
-  open_folder: { description: 'Open a dashboard folder (its HTML with scripts, styles, data and images).', props: { path: ['string', 'Folder path', true], main: ['string', 'Which .html file is the dashboard (default: index.html or the only one)'] },
+  open_folder: { description: 'Open a dashboard folder (its HTML with scripts, styles, data and images).', props: { path: ['string', 'Folder path', true], main: ['string', 'Which .html file is the dashboard (default: index.html or the only one)'], password: ['string', 'Password for a locked file'], force: ['boolean', 'Replace unexported edits (default false)'] },
     run: function (a) {
       var dir = resolvePath(a.path), all = walk(dir, '', [], { files: 4000, bytes: 150e6 });
       var htmls = all.filter(function (f) { return /\.html?$/i.test(f.rel); });
       var main = a.main ? htmls.filter(function (f) { return f.rel === a.main || path.basename(f.rel) === a.main; })[0]
         : (htmls.length === 1 ? htmls[0] : htmls.filter(function (f) { return /^index\.html?$/i.test(f.rel); })[0]);
       if (!main) throw new Error(htmls.length ? 'Say which page is the dashboard with main. Pages: ' + htmls.map(function (f) { return f.rel; }).join(', ') : 'No .html file in ' + dir);
-      return openFiles(main.full, all.filter(function (f) { return !/\.html?$/i.test(f.rel); }).map(function (f) { return f.full; }));
+      return openFiles(main.full, all.filter(function (f) { return !/\.html?$/i.test(f.rel); }).map(function (f) { return f.full; }), a.password, a.force);
     } },
   export_html: { description: 'Save the edited dashboard as one standalone HTML file (opens anywhere, offline).', props: { path: ['string', 'Where to save (default: <name>-edited.html in the save folder)'], drop_comments: ['boolean', 'Leave review comments out of the file'] },
     run: function (a) {
       return api('export_html', { drop_comments: !!a.drop_comments }).then(function (r) {
         var file = outPath(a.path, String(r.name || 'dashboard.html').replace(/(-edited)?\.html?$/i, '') + '-edited.html'); fs.writeFileSync(file, r.html, 'utf8');
-        return { saved: file, size: Math.round(r.bytes / 1024) + ' KB' };
+        return api('export_saved', { session: r.session, revision: r.revision }).then(function () { return { saved: file, size: Math.round(r.bytes / 1024) + ' KB' }; });
       });
     } },
   screenshot: { description: 'See the dashboard: a picture of the editor, of just the dashboard, or of one chart.', props: { what: ['string', '"dashboard" (default), "editor" (whole window) or a chart name'], path: ['string', 'Also save the PNG here'] },
@@ -428,7 +428,7 @@ var LOCAL = {
     run: function (a) { return LOCAL.screenshot.run({ what: a.chart, path: a.path }); } }
 };
 // in-page tools that the file-system versions above replace
-var HIDDEN = { open_folder_files: 1, insert_content_file: 1, comments_tracker: 1, apply_tracker: 1, publish: 1, ui_after: 1 };
+var HIDDEN = { open_folder_files: 1, export_saved: 1, insert_content_file: 1, comments_tracker: 1, apply_tracker: 1, publish: 1, ui_after: 1 };
 
 function schemaOf(props) {
   var p = {}, req = [];

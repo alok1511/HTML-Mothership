@@ -1,7 +1,7 @@
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '2.9.0';
+  MS.VERSION = '3.9.0';
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };
@@ -57,18 +57,20 @@
       { id: 'risk', label: 'Risk dashboard (Plotly)' }
     ],
     menu: function () { return MS.samples.list.map(function (s) { return { label: s.label, run: function () { MS.samples.open(s.id); } }; }); },
-    open: function (id) {
+    open: function (id, opts) {
       var go = function () {
         var s = window.MS_SAMPLES && window.MS_SAMPLES[id];
         if (!s) return MS.toast('Sample not found. Run "node tools/build.js" or keep the samples folder next to mothership.html.', 'error');
-        MS.openHtml(s.html, s.name);
+        return MS.openHtml(s.html, opts && opts.name || s.name, opts);
       };
       if (window.MS_SAMPLES) return go();
       MS.busy(true);
-      var sc = document.createElement('script'); sc.src = 'samples/samples.js';
-      sc.onload = function () { MS.busy(false); go(); };
-      sc.onerror = function () { MS.busy(false); MS.toast('Could not load samples/samples.js.', 'error'); };
-      document.head.appendChild(sc);
+      return new Promise(function (resolve, reject) {
+        var sc = document.createElement('script'); sc.src = 'samples/samples.js';
+        sc.onload = function () { MS.busy(false); Promise.resolve(go()).then(resolve, reject); };
+        sc.onerror = function () { MS.busy(false); MS.toast('Could not load samples/samples.js.', 'error'); resolve(false); };
+        document.head.appendChild(sc);
+      });
     }
   };
 
@@ -119,7 +121,7 @@
     window.addEventListener('drop', function (e) { if (!e.dataTransfer || !e.dataTransfer.files.length) return; e.preventDefault(); depth = 0; dz.classList.remove('on'); routeDrop(Array.prototype.slice.call(e.dataTransfer.files)); });
     MS.on('changed', function (label) { MS.status(label ? 'Done: ' + label : ''); MS.$('#doc-name').classList.add('dirty'); });
     MS.on('saved', function () { MS.$('#doc-name').classList.remove('dirty'); });
-    MS.on('doc-opened', function () { MS.$('#doc-name').classList.remove('dirty'); });
+    MS.on('doc-opened', function () { MS.$('#doc-name').classList.toggle('dirty', !!MS.dirty); });
     // zoom controls in the status bar, Ctrl + mouse wheel over the dashboard, and refit when panels change size
     var zc = MS.$('#zoomctl');
     zc.appendChild(h('button', { 'class': 'zbtn', title: 'Zoom out (Ctrl + wheel)', onclick: function () { V.step(-1); } }, ['−']));

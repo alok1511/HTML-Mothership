@@ -14,6 +14,7 @@
     saveVersion: need(MS.versions.savePrompt),
     versions: MS.versions.list,
     theme: function () { MS.ui.dialog(); }, palette: function () { MS.palette(); }, darkMode: function () { MS.ui.toggleDark(); },
+    workflow: function () { return MS.workflow.open(); },
     tour: function () { MS.help.tour(); }, tutorial: function () { MS.help.tutorial(); }, guide: function () { MS.help.guide(); }, newDoc: function () { MS.compose.newDoc(); },
     print: need(function () { MS.child.win.focus(); MS.child.win.print(); }),
     reload: need(function () { MS.reload(); }),
@@ -26,8 +27,20 @@
     find: need(MS.edit.findReplace),
     present: needRt(function () { MS.present.start(false); }),
     presenter: needRt(function () { MS.present.start(true); }),
-    safe: function () { MS.settings.safe = !MS.settings.safe; MS.toast(MS.settings.safe ? 'Safe mode on: dashboard scripts are blocked. Use it to inspect files you don\'t trust.' : 'Safe mode off.', 'ok'); if (MS.doc) MS.openHtml(MS.doc.source, MS.doc.name, { folder: MS.doc.folder, state: MS.doc.state, unlocked: true }); MS.ribbon.render(); },
-    netLock: function () { MS.settings.netLock = !MS.settings.netLock; MS.prefs.set('netLock', MS.settings.netLock); MS.toast(MS.settings.netLock ? 'Network lock on: the dashboard can\'t load or send anything over the internet while editing. Online-only libraries (CDN) will not load.' : 'Network lock off.', 'ok', 7000); if (MS.child) MS.reload(); MS.ribbon.render(); }
+    safe: function () {
+      var on = !MS.settings.safe;
+      var apply = function () { MS.settings.safe = on; };
+      var update = function () { MS.toast(on ? 'Safe mode on. Scripts are blocked and your edits are kept.' : 'Safe mode off. Scripts can run again.', 'ok'); MS.ribbon.render(); };
+      if (!MS.child) { apply(); update(); return Promise.resolve(true); }
+      return MS.reload({ checkpoint: 'Recovery before changing Safe mode', before: apply }).then(function (ok) { if (ok) update(); return ok; });
+    },
+    netLock: function () {
+      var on = !MS.settings.netLock;
+      var apply = function () { MS.settings.netLock = on; MS.prefs.set('netLock', on); };
+      var update = function () { MS.toast(on ? 'Network lock on. Remote resources are blocked while you edit.' : 'Network lock off.', 'ok'); MS.ribbon.render(); };
+      if (!MS.child) { apply(); update(); return Promise.resolve(true); }
+      return MS.reload({ checkpoint: 'Recovery before changing Network lock', before: apply }).then(function (ok) { if (ok) update(); return ok; });
+    }
   };
 
   MS.RIBBON = [
@@ -36,6 +49,7 @@
         { icon: '✨', label: 'New', title: 'Start a new dashboard from scratch', run: function () { MS.compose.newDoc(); } },
         { icon: '📂', label: 'Open', title: 'Open a dashboard (.html), a Mothership export, a brand skill, a recipe (.json) or a plugin (Ctrl+O)', run: MS.cmd.open },
         { icon: '🗂', label: 'Open folder', title: 'Open a dashboard together with its scripts, styles, images and data files. Everything is bundled into one file.', run: MS.cmd.openFolder },
+        { icon: '📋', label: 'Import report', title: 'See supported charts and unresolved assets', run: need(MS.workflow.importDialog) },
         { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } },
         { icon: '✕', label: 'Close', title: 'Close this dashboard and go back to the start screen. Asks first if there are changes you have not exported.', run: MS.cmd.close }] },
       { name: 'Save', items: [
@@ -181,7 +195,7 @@
       { name: 'Datasets', items: [
         { icon: '🔍', label: 'Find data', title: 'Find tables of data inside the dashboard\'s scripts', run: needRt(MS.data.discover) },
         { icon: '⛁', label: 'Load data', title: 'Load JSON, CSV or Excel as a dataset', run: needRt(MS.data.loadFile) },
-        { icon: '↻', label: 'Refresh', title: 'Re-read this month\'s CSV / Excel files for every dataset in one go, then export. Mothership remembers the files where the browser allows it.', run: needRt(MS.data.refreshAll) },
+        { icon: '↻', label: 'Refresh', title: 'Preview the columns, totals and periods in this month\'s data files before applying a refresh. Mothership remembers the files where the browser allows it.', run: needRt(MS.data.refreshAll) },
         { icon: '☰', label: 'Manage', title: 'View, download, refresh or remove datasets', run: needRt(MS.data.manage) }] },
       { name: 'Tables', items: [
         { icon: '🎨', label: 'Colour rules', title: 'Colour a table\'s cells by value: red / amber / green, colour scale, data bars, top N (select a table first)', run: needRt(function () { MS.tables.rulesDialog(); }) }] },
@@ -215,7 +229,7 @@
         { icon: '🔍', label: 'Search', title: 'Find any command, chart, tab or help topic (Ctrl+K)', run: MS.cmd.palette }] },
       { name: 'Safety', items: [
         { icon: '🛡', label: 'Safe mode', title: 'Open the dashboard with its scripts blocked (for files you don\'t trust)', run: MS.cmd.safe, toggle: function () { return MS.settings.safe; } },
-        { icon: '🔒', label: 'Network lock', title: 'Block all internet access from the dashboard while editing', run: MS.cmd.netLock, toggle: function () { return MS.settings.netLock; } }] }
+        { icon: '🔒', label: 'Network lock', title: 'Block common network requests while editing; check exports separately', run: MS.cmd.netLock, toggle: function () { return MS.settings.netLock; } }] }
     ] },
     { tab: 'Review', groups: [
       { name: 'Comment', items: [
@@ -239,9 +253,9 @@
     { tab: 'Testing', groups: [
       { name: 'Plan', items: [
         { icon: '☑', label: 'Test cases', title: 'Plan, run and record tests of this dashboard: scenarios, steps, expected results and status', run: needRt(function () { MS.qa.dialog(); }) },
-        { icon: '✨', label: 'Draft tests', title: 'Mothership writes test cases from the dashboard. Quick: about one per part. Full: every point, every drop-down choice, every drill-down, button, check box, table and tab at every width.', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.draftMenu()); }) },
+        { icon: '✨', label: 'Draft tests', title: 'Mothership writes test cases from the dashboard. Quick samples important parts. Full drafts deeper checks and reports safety limits.', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.draftMenu()); }) },
         { icon: '🔢', label: 'Numbers', title: 'Lock in today\'s numbers, or import the figures from your source report, so "right numbers" tests run automatically', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.numbersMenu()); }) },
-        { icon: '🎯', label: 'Coverage', title: 'Every part of the dashboard and the test cases that touch it', run: needRt(function () { MS.qa.deep.coverageDialog(); }) }] },
+        { icon: '🎯', label: 'Coverage', title: 'Separate planned, executed and passing checks for recognised parts', run: needRt(function () { MS.qa.deep.coverageDialog(); }) }] },
       { name: 'Run', items: [
         { icon: '▷', label: 'Run all', title: 'Run every test case while you watch: a pointer shows each click and hover, and a progress card shows the case, the step and the results so far. Steps to check by eye are marked "Needs a person".', run: needRt(function () { MS.qa.live.start(); }) },
         { icon: '↻', label: 'Rerun failed', title: 'Run only the cases that failed last time', run: needRt(function () { var f = MS.qa.failed(); if (!f.length) return MS.toast('No failed test cases.', 'ok'); MS.qa.live.start(f.map(function (x) { return x.id; })); }) },
@@ -264,6 +278,7 @@
     } },
     { tab: 'Help', groups: [
       { name: 'Learn', items: [
+        { icon: '☑', label: 'Start here', title: 'Follow the dashboard workflow from import to export', run: MS.cmd.workflow },
         { icon: '🧭', label: 'Quick tour', title: 'A 2-minute tour of the screen', run: function () { MS.help.tour(); } },
         { icon: '🎓', label: 'Tutorial', title: 'Hands-on lessons with a sample dashboard. Each step shows you where to click.', run: function () { MS.help.tutorial(); } },
         { icon: '📖', label: 'User guide', title: 'How to do everything, searchable', run: function () { MS.help.guide(); } }] },

@@ -118,32 +118,36 @@
     var add = function (status, title, detail, fix) { out.push({ status: status, title: title, detail: detail || '', fix: fix || '' }); };
     // script errors
     var errs = childErrors();
-    if (errs.length) add('fail', 'The dashboard had script errors', errs.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
-    else add('pass', 'No script errors');
+    if (errs.length) add('fail', 'The dashboard had script or resource errors', errs.slice(0, 3).join('; '), 'Reload (File › Reload). If it repeats, part of the page will not work for viewers.');
+    else if (!r) add('info', 'Script checks not run', 'Scripts are disabled in Safe mode.');
+    else add('pass', 'No script or resource errors observed');
     // charts that drew nothing
     var charts = r ? r.charts() : [], empty = charts.filter(function (c) { var x = r.chartData(c.key, true); return !x || !x.labels.length || !x.series.some(function (s) { return s.values.some(function (v) { return v != null; }); }); });
     var bare = MS.$$('canvas', d).filter(function (cv) { return !charts.some(function (c) { return c.el === cv || c.el.contains(cv); }) && !cv.closest('[data-ms-editor]') && cv.width > 50; });
     if (empty.length || bare.length) add('warn', (empty.length + bare.length) + ' chart(s) show no numbers', empty.map(function (c) { return MS.charts.nameOf(c.key); }).concat(bare.length ? [bare.length + ' blank drawing area(s)'] : []).join(', '), 'Check the data, or open the folder so the chart\'s files are bundled.');
-    else add('pass', charts.length + ' chart(s) drew their numbers');
+    else if (charts.length) add('pass', charts.length + ' chart(s) drew their numbers');
+    else add('info', 'No supported charts to check');
     var unnamed = charts.filter(function (c) { return /^Chart \d+$/.test(MS.charts.nameOf(c.key)); });
     if (unnamed.length) add('warn', unnamed.length + ' chart(s) have no title', 'Viewers and summaries call them “' + MS.charts.nameOf(unnamed[0].key) + '”.', 'Double-click the chart › Commentary & size › Title.');
     // numbers
     try {
-      var nc = MS.numcheck.run(), diffs = nc.filter(function (x) { return x.status === 'diff'; });
+      var nc = r ? MS.numcheck.run() : [], diffs = nc.filter(function (x) { return x.status === 'diff'; }), ok = nc.filter(function (x) { return x.status === 'ok'; }).length;
       if (diffs.length) add('warn', diffs.length + ' number(s) don\'t add up', diffs.slice(0, 2).map(function (x) { return x.what + ' ' + x.shown + ' vs ' + x.against + ' ' + x.expected; }).join('; '), 'Review › Number check.');
-      else add('pass', 'KPI cards match their charts', nc.filter(function (x) { return x.status === 'ok'; }).length + ' check(s)');
-    } catch (e) {}
+      else if (ok) add('pass', 'Compared totals agree', ok + ' comparison(s). These are consistency checks.');
+      else add('info', 'No comparable totals to check', 'Use Testing › Numbers to compare with independent source figures.');
+    } catch (e) { add('warn', 'Number comparison could not run', e.message); }
     // comments
     var cm = MS.review ? MS.review.list() : [], must = cm.filter(function (c) { return !c.done && c.prio === 'must'; }), open = cm.filter(function (c) { return !c.done; });
     if (must.length) add('fail', must.length + ' must-fix comment(s) still open', must.slice(0, 2).map(function (c) { return '“' + c.text.slice(0, 60) + '”'; }).join('; '), 'Fix them, or mark them done in the Review tab.');
     else if (open.length) add('warn', open.length + ' review comment(s) still open', 'None are must-fix.', 'Publishing leaves comments out of the file.');
     else add('pass', 'No open review comments');
-    // internet
-    var html = MS.exportHtml({ dropComments: true });
-    var net = [], re = /<(?:script|link|img|iframe|source)\b[^>]*?(?:src|href)\s*=\s*["'](https?:)?\/\/([^\/"']+)/gi, m;
-    while ((m = re.exec(html))) if (net.indexOf(m[2]) < 0) net.push(m[2]);
-    if (net.length) add('warn', 'Needs the internet for ' + net.length + ' file(s)', net.slice(0, 4).join(', '), 'On a locked-down laptop these may not load. Use File › Open folder with local copies.');
-    else add('pass', 'Works offline (no internet files)');
+    // This is a dependency scan, not an offline run.
+    var html = MS.exportHtml({ dropComments: true }), refs = MS.assets.scan(d);
+    var linked = refs.external.concat(refs.relative, refs.local);
+    if (linked.length) add('warn', 'Linked resources detected: ' + linked.length, linked.slice(0, 6).join(' · '), 'See File › Import report. Bundle local files or replace remote dependencies before sharing.');
+    else add('info', 'No linked resources detected', 'This scan cannot see every request made by scripts. Check the exported file offline.');
+    if (refs.modules || refs.frames) add('warn', 'Browser modules or embedded pages detected', 'Check them separately; they may depend on an origin, local files or an internet connection.');
+    add('info', 'Offline verification is a separate check', 'Use Offline check to test an actual file with your connection off.');
     // size
     var mb = html.length / 1048576;
     if (mb > 20) add('warn', 'Large file: ' + mb.toFixed(1) + ' MB', 'Email often stops at 10–25 MB.', 'Share through OneDrive, SharePoint or Teams, or remove unused datasets (Data › Manage).');
@@ -161,12 +165,70 @@
       return h('div', { 'class': 'pf-item pf-' + x.status }, [h('span', { 'class': 'pf-ic', text: ICON[x.status] }), h('div', { 'class': 'grow' }, [h('div', { 'class': 'pf-title', text: x.title })].concat(x.detail ? [h('div', { 'class': 'pf-detail', text: x.detail })] : []).concat(x.fix && x.status !== 'pass' ? [h('div', { 'class': 'pf-fix', text: x.fix })] : []))]);
     }));
   }
+  Pf.offlineDialog = function () {
+    if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
+    var session = MS.doc.session, revision = session.revision, html = MS.exportHtml(), name = MS.exportName('-offline-check');
+    var downloaded = false;
+    var answer = h('input', { type: 'checkbox', disabled: true }), feedback = h('p', { 'class': 'muted small', text: 'Nothing recorded yet.' });
+    var button = h('button', { 'class': 'btn', onclick: function () { MS.download(name, html); downloaded = true; answer.disabled = false; feedback.textContent = 'Test this file: ' + name; } }, ['Download the copy to test']);
+    return MS.dialog({ title: 'Verify an exported file offline', wide: true, enterSubmits: false, body: h('div', { 'class': 'guide-prose' }, [
+      h('ol', {}, ['Download the copy below.', 'Disconnect from the internet, then open that file in a fresh browser tab. It should open without Mothership.', 'Visit all tabs. Try the main filters, chart pop-ups and drill-downs. Check one known number and look for blank charts or missing images.', 'Reconnect and record the result here. Check the exact file you plan to send if you change anything or publish a different copy.'].map(function (t) { return h('li', { text: t }); })),
+      button, feedback, h('label', { 'class': 'row gap' }, [answer, 'I opened this downloaded copy offline and performed the checks.'])
+    ]), buttons: [{ label: 'Close', value: null }, { label: 'Record offline pass', primary: true, value: function () {
+      if (!downloaded || !answer.checked) { MS.dialogError('Test the downloaded copy offline and tick the confirmation first.'); return false; }
+      return true;
+    } }] }).then(function (ok) {
+      if (!ok) return false;
+      return sha256(html).then(function (digest) {
+        if (MS.doc && MS.doc.session === session) session.offline = { digest: digest, name: name, at: new Date().toISOString(), revision: revision };
+        MS.toast('Offline pass recorded for ' + name + '.', 'ok');
+        return true;
+      }).catch(function (e) { MS.toast('Could not identify the test file: ' + e.message, 'warn'); return false; });
+    });
+  };
+  Pf.record = function () {
+    if (!MS.child) return Promise.reject(new Error('Open a dashboard first.'));
+    var session = MS.doc.session, rev = MS.qa && MS.qa.revision(), r = rt(), s = r && r.state || {};
+    var doc = MS.doc.name, items = Pf.run(), html = MS.exportHtml(), coverage = r && MS.qa.deep ? MS.qa.deep.coverage() : null;
+    var status = r && MS.qa ? MS.qa.summary().byStatus : {}, baseline = r && MS.qa.deep ? MS.qa.deep.baselineText() : 'Not checked';
+    var periods = Object.keys(s.datasets || {}).map(function (k) { var d = s.datasets[k]; return k + ': ' + (d.period || 'period not recorded'); });
+    var comments = (s.comments || []).filter(function (c) { return !c.done; });
+    var record = { name: MS.exportName('-validation').replace(/\.html$/, '.md'), dashboard: doc, revision: rev, at: new Date().toISOString(),
+      publishedVersion: s.publish && s.publish.version || null, dataAsOf: s.publish && s.publish.asOf || null, periods: periods,
+      checks: items, results: status, coverage: coverage, expectationSource: baseline, openComments: comments.length,
+      mustFixComments: comments.filter(function (c) { return c.prio === 'must'; }).length };
+    return sha256(html).catch(function () { return null; }).then(function (digest) {
+      record.sha256 = digest;
+      record.offline = digest && session.offline && session.offline.digest === digest ? session.offline : null;
+      function md(x) { return String(x == null ? '' : x).replace(/[\r\n]+/g, ' ').replace(/\|/g, '\\|'); }
+      var L = ['# Dashboard validation record', '', '- Dashboard: ' + md(doc), '- Recorded: ' + record.at, '- Revision: ' + (rev || 'not available'),
+        '- Working export SHA-256: ' + (digest || 'unavailable'), '- Publish version: ' + md(record.publishedVersion || 'working copy'), '- Data as of: ' + md(record.dataAsOf || 'not recorded'),
+        '- Data periods: ' + md(periods.join('; ') || 'not recorded'), '- Expected numbers: ' + md(baseline),
+        '- Offline: ' + (record.offline ? 'Manually checked ' + md(record.offline.name) + ' at ' + record.offline.at : 'Not verified for this file'), '- Open review comments: ' + record.openComments + ' (' + record.mustFixComments + ' must fix)', '',
+        '## Check results', '', '| Status | Check | Evidence |', '|---|---|---|'];
+      items.forEach(function (x) { L.push('| ' + x.status + ' | ' + md(x.title) + ' | ' + md(x.detail) + ' |'); });
+      L.push('', '## Test execution', '', Object.keys(status).map(function (k) { return k + ': ' + status[k]; }).join(' · ') || 'Not run.');
+      if (coverage) {
+        L.push('', coverage.planned + ' of ' + coverage.parts + ' recognised parts fully planned; ' + coverage.executed + ' ran; ' + coverage.passing + ' passed.');
+        L.push('', '| Part | Plan | Current result |', '|---|---|---|');
+        coverage.rows.forEach(function (x) { L.push('| ' + md(x.kind + ': ' + x.name) + ' | ' + (x.full ? 'Planned' : x.cases.length ? 'Partial' : 'No case') + (x.limit ? ' (' + md(x.limit) + ')' : '') + ' | ' + (x.passing ? 'Passed' : x.executed ? md(x.result || 'Ran; full pass not shown') : x.stale ? 'Stale' : 'Not run') + ' |'); });
+      }
+      L.push('', 'This record applies to the named revision and working export hash. After editing, refreshing data, or producing a different publish copy, check the new file before sharing.');
+      record.markdown = L.join('\n') + '\n';
+      return record;
+    });
+  };
   Pf.dialog = function () {
     if (!MS.child) return MS.toast('Open a dashboard first.', 'warn');
     var items = Pf.run(), bad = items.filter(function (x) { return x.status === 'fail'; }).length, warn = items.filter(function (x) { return x.status === 'warn'; }).length;
-    MS.dialog({ title: 'Ready to publish?', wide: true, body: h('div', {}, [h('p', { 'class': 'pf-sum', html: bad ? '<b>' + bad + ' thing(s) to fix</b> before sharing' + (warn ? ', and ' + warn + ' to look at.' : '.') : warn ? '<b>Nearly ready.</b> ' + warn + ' thing(s) to look at.' : '<b>Ready to publish.</b>' }), checklist(items)]),
-      buttons: [{ label: 'Close', value: null }, { label: 'Publish…', primary: !bad, value: 'pub' }] }).then(function (v) { if (v === 'pub') Pub.dialog(true); });
+    return MS.dialog({ title: 'Ready to publish?', wide: true, body: h('div', {}, [h('p', { 'class': 'pf-sum', text: bad ? bad + ' issue(s) to fix before sharing.' : warn ? warn + ' item(s) to review before sharing.' : 'No blocking issues found in this scan. Check the exported file before sending.' }), checklist(items)]),
+      buttons: [{ label: 'Close', value: null }, { label: 'Offline check…', value: 'offline' }, { label: 'Save validation record', value: 'record' }, { label: 'Publish…', primary: !bad, value: 'pub' }] }).then(function (v) {
+        if (v === 'pub') return Pub.dialog(true);
+        if (v === 'offline') return Pf.offlineDialog();
+        if (v === 'record') return Pf.record().then(function (x) { MS.download(x.name, x.markdown, 'text/markdown'); });
+      });
   };
+  MS.api.add('validation_record', { d: 'Get the shareable validation record for the working export, including a hash, provenance and current test results.', p: {}, f: Pf.record });
 
   /* ================================================================ publish */
   var Pub = MS.publish = {};
@@ -258,8 +320,8 @@
   MS.on('doc-opened', function (doc) {
     if (!doc || !doc.source) return;
     Pub.verify(doc.source).then(function (v) {
-      if (!v) return;
-      MS.doc.integrity = v;
+      if (!v || MS.doc !== doc) return;
+      doc.integrity = v;
       if (v.ok) MS.status('Published version ' + v.version + (v.by ? ' by ' + v.by : '') + ': unchanged since it was published.');
       else MS.toast('This file says it is published version ' + v.version + (v.by ? ' by ' + v.by : '') + ', but it was changed outside Mothership afterwards. Check it before sharing it on.', 'warn', 12000);
     }).catch(function () {});

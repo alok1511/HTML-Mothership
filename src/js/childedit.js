@@ -227,10 +227,13 @@
     var rt = MS.rt();
     if (rt) rt.tagTree(el);
     var id = el.getAttribute('data-ms-id');
-    var ovBefore = rt && id ? rt.state.textOverrides[id] : undefined;
+    var state = rt ? rt.state : MS.doc && MS.doc.state;
+    if (state && !state.textOverrides) state.textOverrides = {};
+    var ovBefore = state && id ? state.textOverrides[id] : undefined;
     function put(html, ov) {
       el.innerHTML = html;
-      if (rt && id) { if (ov === undefined) delete rt.state.textOverrides[id]; else rt.state.textOverrides[id] = ov; }
+      var current = rt ? rt.state : state;
+      if (current && id) { if (ov === undefined) delete current.textOverrides[id]; else current.textOverrides[id] = ov; }
       MS.afterDomChange(el);
     }
     // static text could be rewritten by the page's scripts on load: store an override that the runtime re-applies

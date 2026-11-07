@@ -50,95 +50,113 @@
     card.style.left = Math.max(10, Math.min(x, innerWidth - cw - 10)) + 'px'; card.style.top = y + 'px';
   };
 
-  /* ---------------------------------------------------------- tutorial (hands-on, checks your progress) */
-  var did = {};
-  MS.on('changed', function (label) { if (label) did[label] = true; });
-  MS.on('saved', function () { did.saved = true; });
-  MS.on('prompt-opened', function () { did.prompt = true; });
-  MS.on('mode', function (m) { if (m === 'interact') did.interact = true; });
+  /* ---------------------------------------------------------- practice lessons */
+  var CONTENT = window.MS_LEARN || { guide: [], lessons: [], practice: {} };
+  var LESSONS = H.LESSONS = CONTENT.lessons, tut = null;
+  function practice() { return MS.doc && MS.doc.session.practice; }
+  MS.on('saved', function () { if (practice()) practice().saved = true; });
+  MS.on('prompt-opened', function () { if (practice()) practice().prompt = true; });
   function rt() { return MS.rt(); }
-  function anyChart(fn) { var r = rt(); return !!r && Object.keys(r.state.charts).some(function (k) { return fn(r.state.charts[k], k); }); }
-  function inDoc(sel) { return !!(MS.child && MS.child.doc.querySelector(sel)); }
-  var LESSONS = [
-    { title: 'Getting around', steps: [
-      { text: 'Open the sample sales dashboard.', point: ['File', 'Samples'], check: function () { return MS.doc && /sales/i.test(MS.doc.name); }, doIt: function () { MS.samples.open('sales'); } },
-      { text: 'Click any heading in the dashboard to select it. The Format panel on the right fills in.', check: function () { return !!MS.sel; } },
-      { text: 'Double-click the heading and type a new title. Press Enter or click away when done.', check: function () { return did['Edit text']; } },
-      { text: 'Undo it with Ctrl+Z (or Home › Undo), then redo with Ctrl+Y.', point: ['Home', 'Undo'], check: function () { return MS.history.canRedo() || did.redone; } },
-      { text: 'Zoom: press + in the bottom-right corner, then ⤢ Fit.', check: function () { return MS.view.zoom === 'fit' && did.zoomed; } }] },
-    { title: 'Tabs and pages', steps: [
-      { text: 'Turn the dashboard into tabs: Layout › Tab ribbon. (If your dashboard already has its own tabs, use Layout › Add tab instead.)', point: ['Layout', 'Tab ribbon'], check: function () { return rt() && rt().layoutEnabled(); }, doIt: function () { MS.tabs.ensureLayout(); } },
-      { text: 'Add a text tab for a How-to page: Insert › Text tab.', point: ['Insert', 'Text tab'], check: function () { return rt() && rt().tabs().length >= 2; } },
-      { text: 'Add a page header to it: Insert › Header. Double-click its text to edit.', point: ['Insert', 'Header'], check: function () { return inDoc('.ms-banner'); } },
-      { text: 'Add a footer that shows under every tab: Insert › Footer.', point: ['Insert', 'Footer'], check: function () { return inDoc('.ms-page-footer'); } },
-      { text: 'Drag a tab in the left panel to reorder it, or rename it with a double-click.', check: function () { return did['Reorder tabs'] || did['Rename tab']; } }] },
-    { title: 'Charts that explain themselves', steps: [
-      { text: 'Give every chart a title, subtitle and inference: Layout › Commentary.', point: ['Layout', 'Commentary'], check: function () { return inDoc('.ms-block .ms-visual canvas, .ms-block [_echarts_instance_], .ms-block .js-plotly-plot'); } },
-      { text: 'Double-click a chart, open the Look tab, and pick a font and a "Dark pop-up". Press Apply.', check: function () { return anyChart(function (c) { return c.style; }); } },
-      { text: 'Double-click a chart again, open Tooltip, choose "₹ crore" and Apply. Hover over the chart in Interact mode to see it.', check: function () { return anyChart(function (c) { return c.tooltip; }); } }] },
-    { title: 'Drill-down and filters', steps: [
-      { text: 'Double-click the "Sales by region" chart, open "Data & drill-down" and press "Use this data". Then Apply.', check: function () { return anyChart(function (c) { return c.binding; }); } },
-      { text: 'Add a filter pane: Layout › Filter pane, tick one or two fields, Save.', point: ['Layout', 'Filter pane'], check: function () { return rt() && rt().state.filters.length > 0; } },
-      { text: 'Switch to Interact (top centre, or Alt+3) and double-click a bar to drill down. Use the breadcrumb above the chart to go back.', check: function () { var r = rt(); return !!r && Object.keys(r.drill).some(function (k) { return r.drill[k].length; }); } }] },
-    { title: 'Build from scratch', steps: [
-      { text: 'Add a row of KPI cards: Insert › KPI cards. Pick a dataset so the numbers follow the filters.', point: ['Insert', 'KPI cards'], check: function () { return inDoc('.ms-kpi'); } },
-      { text: 'Add a new chart from data: Insert › Chart.', point: ['Insert', 'Chart'], check: function () { return inDoc('[data-ms-chart]'); } },
-      { text: 'Add a section with its own title: Insert › Section. Select its title, then insert a chart into it.', point: ['Insert', 'Section'], check: function () { return inDoc('.ms-section'); } },
-      { text: 'Click any text and give it a hover pop-up in the right panel (Hover pop-up).', check: function () { return inDoc('[data-ms-tip]'); } }] },
-    { title: 'Review and AI prompt', steps: [
-      { text: 'Press 💬 Comment at the top, click something, and write your comment in the Comments pane on the right.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'element'; }); } },
-      { text: 'Still in Comment mode, drag a box around part of the screen. Write a comment. Scroll: the box stays on the content.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'area'; }); } },
-      { text: 'Switch to Interact, use a filter or drill down, then press ⚡ in the Comments pane (or Review › What I did) and describe what should change.', check: function () { return MS.review.list().some(function (c) { return c.kind === 'interaction'; }); } },
-      { text: 'Press ✨ Prompt and copy the result into your AI assistant, with the exported file attached.', check: function () { return did.prompt; } }] },
-    { title: 'Brand and share', steps: [
-      { text: 'Design › Edit theme: change the primary colour and fonts. (Or Load brand to use a SKILL.md brand file.)', point: ['Design', 'Edit theme'], check: function () { return rt() && !!rt().state.theme; } },
-      { text: 'Present it: press ▶ Present (or F5). Arrow keys change tabs, Esc ends.', check: function () { return did.presented; } },
-      { text: 'Export HTML to save the finished file on this laptop.', point: ['File', 'Export HTML'], check: function () { return did.saved; } }] }
-  ];
-  H.LESSONS = LESSONS;
-  var tut = null, poll = null;
+  function chartSetting(key) { var r = rt(); return r && Object.keys(r.state.charts).some(function (k) { return r.state.charts[k][key]; }); }
+  var CHECKS = {
+    heading: function () { return MS.child.doc.querySelector('h1').textContent !== practice().heading; },
+    interact: function () { return MS.mode === 'interact'; },
+    tabs: function () { return rt() && rt().tabs().some(function (t) { return /how to use/i.test(t.title); }); },
+    tooltip: function () { return chartSetting('tooltip'); },
+    binding: function () { return chartSetting('binding'); },
+    filter: function () { return rt() && rt().state.filters.length > 0; },
+    india: function () { var o = MS.locale.get(); return o.country === 'IN' && o.currency === 'INR' && o.units === 'indian'; },
+    theme: function () { return rt() && !!rt().state.theme; },
+    comment: function () { return MS.review.list().some(function (c) { return c.kind === 'element'; }); },
+    resolved: function () { return MS.review.list().some(function (c) { return c.done && c.replies && c.replies.length; }); },
+    prompt: function () { return practice().prompt; },
+    'practice-data': function () { var r = rt(); return r && Object.keys(r.state.datasets).some(function (n) { var d = r.state.datasets[n]; return d.rows && d.rows.length === 3 && /sales-practice-2026-10/i.test(d.file || n); }); },
+    plan: function () { return MS.qa.cases().length > 0; },
+    ran: function () { return MS.qa.cases().some(function (c) { return !!(c.stepResults && c.stepResults.length); }); },
+    stale: function () { return !!MS.qa.summary().byStatus.Stale; },
+    source: function () { var b = MS.qa.deep.baseline(); return b && b.from === 'file' && MS.qa.deep.rows(b).length === 1; },
+    saved: function () { return practice().saved; }
+  };
+  H.practice = function (lesson) {
+    return MS.samples.open('sales', { name: 'Mothership practice - sales.html', onLoad: function () {
+      MS.doc.session.practice = { heading: (MS.child.doc.querySelector('h1') || {}).textContent };
+      MS.setMode('edit');
+    } }).then(function (ok) {
+      if (ok) H.tutorial(lesson == null ? 0 : lesson);
+      return ok;
+    });
+  };
   H.tutorial = function (lesson) {
     if (tut) tut.remove();
-    var L = MS.prefs.get('tutDone', {});
-    var panel = tut = h('div', { 'class': 'coach' });
-    function close() { clearInterval(poll); panel.remove(); tut = null; clearSpot(); }
+    var completed = MS.prefs.get('lessonDone', {}), checked = {}, panel = tut = h('aside', { 'class': 'coach', 'aria-label': 'Practice lessons' });
+    function close() { panel.remove(); tut = null; clearSpot(); }
+    function head(title, sub, back) {
+      panel.innerHTML = '';
+      panel.appendChild(h('div', { 'class': 'coach-head' }, [
+        back ? h('button', { 'class': 'icon-btn', title: 'All lessons', 'aria-label': 'All lessons', onclick: menu }, ['☰']) : null,
+        h('strong', { 'class': 'grow', text: title }), sub ? h('small', { 'class': 'muted', text: sub }) : null,
+        h('button', { 'class': 'icon-btn', title: 'Close lessons', 'aria-label': 'Close lessons', onclick: close }, ['✕'])]));
+    }
     function menu() {
-      clearInterval(poll); panel.innerHTML = '';
-      panel.appendChild(h('div', { 'class': 'coach-head' }, [h('strong', { text: '🎓 Tutorial' }), h('button', { 'class': 'icon-btn', title: 'Close', onclick: close }, ['✕'])]));
-      panel.appendChild(h('p', { 'class': 'muted', text: 'Short hands-on lessons. Each step ticks itself when you do it. Use the sample dashboard, so nothing of yours changes.' }));
+      clearSpot(); head('Practice lessons', Object.keys(completed).length + ' / ' + LESSONS.length);
+      panel.appendChild(h('p', { 'class': 'muted', text: 'Follow the lessons in order for a complete walkthrough, or pick one task. Lessons use a separate sales practice copy.' }));
       LESSONS.forEach(function (ls, i) {
-        panel.appendChild(h('button', { 'class': 'coach-lesson', onclick: function () { run(i, 0); } }, [h('span', { text: (L[i] ? '✓ ' : (i + 1) + '. ') + ls.title }), h('small', { 'class': 'muted', text: ls.steps.length + ' steps' })]));
+        panel.appendChild(h('button', { 'class': 'coach-lesson', onclick: function () { run(i, 0); } }, [
+          h('span', { text: (completed[ls.id] ? '✓ ' : (i + 1) + '. ') + ls.title }), h('small', { 'class': 'muted', text: ls.minutes + ' min' })]));
       });
+      if (practice()) panel.appendChild(h('button', { 'class': 'btn sm', onclick: function () { H.practice(0); } }, ['Restart with a fresh copy']));
     }
     function run(i, k) {
-      clearInterval(poll); clearSpot();
-      var ls = LESSONS[i], st = ls.steps[k];
-      if (!st) { L[i] = true; MS.prefs.set('tutDone', L); MS.toast('Lesson done: ' + ls.title, 'ok'); return LESSONS[i + 1] ? run(i + 1, 0) : menu(); }
-      if (!MS.child && i > 0 && k === 0) MS.samples.open('sales');
-      panel.innerHTML = '';
-      var status = h('div', { 'class': 'coach-status', text: 'Waiting for you…' });
-      panel.appendChild(h('div', { 'class': 'coach-head' }, [h('button', { 'class': 'icon-btn', title: 'All lessons', onclick: menu }, ['☰']), h('strong', { 'class': 'grow', text: ls.title }), h('small', { 'class': 'muted', text: (k + 1) + ' / ' + ls.steps.length }), h('button', { 'class': 'icon-btn', title: 'Close', onclick: close }, ['✕'])]));
-      panel.appendChild(h('div', { 'class': 'coach-bar' }, [h('i', { style: { width: Math.round(k / ls.steps.length * 100) + '%' } })]));
-      panel.appendChild(h('p', { 'class': 'coach-text', text: st.text }));
-      panel.appendChild(status);
-      panel.appendChild(h('div', { 'class': 'row gap' }, [
-        st.point ? h('button', { 'class': 'btn sm', onclick: function () { H.pointAt(st.point[0], st.point[1]); } }, ['👀 Show me']) : null,
-        st.doIt ? h('button', { 'class': 'btn sm', onclick: function () { st.doIt(); } }, ['Do it for me']) : null,
-        h('span', { 'class': 'grow' }),
-        h('button', { 'class': 'btn sm', onclick: function () { run(i, k + 1); } }, ['Skip'])]));
-      if (st.point) H.pointAt(st.point[0], st.point[1]);
-      var done = false;
-      poll = setInterval(function () {
-        var ok = false; try { ok = st.check(); } catch (e) {}
-        if (ok && !done) { done = true; status.textContent = '✓ Done!'; status.classList.add('ok'); setTimeout(function () { if (tut === panel) run(i, k + 1); }, 900); }
-      }, 600);
+      clearSpot();
+      var ls = LESSONS[i]; if (!ls) return menu();
+      if (!practice()) {
+        head(ls.title, ls.minutes + ' min', true);
+        panel.appendChild(h('p', { text: ls.goal }));
+        panel.appendChild(h('p', { 'class': 'muted', text: 'Open the built-in practice dashboard to follow this lesson. If you have unsaved work, you will be asked what to do with it.' }));
+        panel.appendChild(h('button', { 'class': 'btn primary', onclick: function () { H.practice(i); } }, ['Open practice copy']));
+        return;
+      }
+      var st = ls.steps[k];
+      if (!st) {
+        var all = ls.steps.every(function (_, j) { return checked[ls.id + ':' + j]; });
+        if (all) { completed[ls.id] = true; MS.prefs.set('lessonDone', completed); }
+        head(ls.title, all ? 'Complete' : 'Some steps skipped', true);
+        panel.appendChild(h('p', { text: all ? 'Lesson complete. Keep practising or try this task on your own dashboard.' : 'You can return to the skipped steps whenever you are ready.' }));
+        panel.appendChild(h('div', { 'class': 'row gap wrap' }, [
+          h('button', { 'class': 'btn', onclick: function () { run(i, 0); } }, ['Repeat lesson']),
+          i + 1 < LESSONS.length ? h('button', { 'class': 'btn primary', onclick: function () { run(i + 1, 0); } }, ['Next lesson']) : h('button', { 'class': 'btn primary', onclick: menu }, ['All lessons'])]));
+        return;
+      }
+      var check = CHECKS[st.check], owner = MS.doc.session;
+      head(ls.title, 'Step ' + (k + 1) + ' / ' + ls.steps.length, true);
+      panel.appendChild(h('div', { 'class': 'coach-bar', 'aria-hidden': 'true' }, [h('i', { style: { width: Math.round((k + 1) / ls.steps.length * 100) + '%' } })]));
+      panel.appendChild(h('p', { 'class': 'coach-text', text: st.do }));
+      panel.appendChild(h('p', { 'class': 'coach-example' }, [h('strong', { text: 'You should see: ' }), st.see]));
+      if (MS.settings.safe) panel.appendChild(h('p', { 'class': 'guide-note', text: 'Safe mode is on. For this trusted sample, switch it off in View to practise charts.' }));
+      var feedback = h('p', { 'class': 'coach-status', role: 'status', text: check ? 'Check this step after trying it.' : 'Confirm the result once you see it.' });
+      panel.appendChild(feedback);
+      function next(skip) {
+        if (!MS.doc || MS.doc.session !== owner) { feedback.textContent = 'Open the practice copy again to continue.'; return; }
+        if (!skip && check) {
+          var ok = false; try { ok = check(); } catch (e) {}
+          if (!ok) { feedback.textContent = 'This result was not found yet. Read the expected result and try again.'; return; }
+        }
+        if (!skip) checked[ls.id + ':' + k] = true;
+        run(i, k + 1);
+      }
+      var files = Object.keys(CONTENT.practice).sort(), f = st.action === 'csv-old' ? files[0] : st.action === 'csv-new' ? files[1] : '';
+      panel.appendChild(h('div', { 'class': 'row gap wrap' }, [
+        st.ribbon ? h('button', { 'class': 'btn sm', onclick: function () { H.pointAt(st.ribbon[0], st.ribbon[1]); } }, ['Show me']) : null,
+        f ? h('button', { 'class': 'btn sm', onclick: function () { MS.download(f, CONTENT.practice[f], 'text/csv'); } }, ['Download practice CSV']) : null,
+        k ? h('button', { 'class': 'btn sm', onclick: function () { run(i, k - 1); } }, ['Back']) : null,
+        h('button', { 'class': 'btn sm', onclick: function () { next(true); } }, ['Skip']),
+        h('button', { 'class': 'btn sm primary', onclick: function () { next(false); } }, [check ? 'Check step' : 'I checked this'])]));
     }
     document.body.appendChild(panel);
     if (lesson != null) run(lesson, 0); else menu();
+    panel.querySelector('button').focus();
+    return panel;
   };
-  MS.on('history', function () { if (MS.history.canRedo()) did.redone = true; });
-  var z0 = null; setInterval(function () { if (MS.view && MS.view.zoom !== 'fit' && MS.view.zoom !== z0) { did.zoomed = true; } z0 = MS.view && MS.view.zoom; }, 800);
-  setInterval(function () { if (MS.present && MS.present.on) did.presented = true; }, 800);
 
   /* ---------------------------------------------------------- user guide */
   var K = function (k) { return '<kbd>' + k + '</kbd>'; };
@@ -172,12 +190,14 @@
     { id: 'shortcuts', title: 'Keyboard shortcuts', html: '<table class="keys">' + [['Ctrl+K', 'Search commands, charts, tabs and help'], ['Alt+1 / Alt+2 / Alt+3', 'Edit / Comment / Interact mode'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+C, X, V', 'Copy, cut, paste blocks'], ['Ctrl+D', 'Duplicate'], ['Delete', 'Delete the selection'], ['Enter', 'Edit the selected text'], ['Esc', 'Deselect / cancel commenting'], ['Alt+↑', 'Select the parent'], ['Alt+→ / Alt+←', 'Next / previous tab'], ['Ctrl+F', 'Find & replace'], ['Ctrl+S', 'Save a version'], ['Ctrl+E', 'Export HTML'], ['Ctrl+Shift+E', 'Save as…'], ['Ctrl+O', 'Open'], ['Ctrl+wheel', 'Zoom the dashboard'], ['F5', 'Present']].map(function (r) { return '<tr><td><kbd>' + r[0] + '</kbd></td><td>' + r[1] + '</td></tr>'; }).join('') + '</table>' },
     { id: 'troubleshooting', title: 'Problems and fixes', html: '<dl><dt>Charts are blank</dt><dd>The dashboard loads its libraries or data from separate files or the internet. Use File › Open folder. If it needs the internet, turn off View › Network lock.</dd><dt>"Use this data" doesn\'t appear</dt><dd>The data isn\'t in the page (it may be fetched from a server). Use "the numbers drawn in this chart", or load a CSV/Excel export from the Data tab.</dd><dt>My text change came back after reload</dt><dd>That text is written by the page\'s script. Mothership re-applies your edit after the script runs; if the script writes it later, edit it in the source data instead.</dd><dt>Copy prompt didn\'t work</dt><dd>Some browsers block copying from local files. Click in the prompt box, press Ctrl+A then Ctrl+C, or use Save as .md.</dd><dt>Versions/autosave are off</dt><dd>The browser blocks storage for local files (some Firefox or locked-down setups). Export still works.</dd><dt>The page looks squashed</dt><dd>View › Draw at › Auto, then ⤢ Fit.</dd></dl>' }
   ];
+  GUIDE = CONTENT.guide.concat(GUIDE.filter(function (old) { return !CONTENT.guide.some(function (s) { return s.id === old.id; }); }));
   H.GUIDE = GUIDE;
   H.guide = function (id) {
-    var search = h('input', { 'class': 'inp', type: 'search', placeholder: 'Search the guide…' });
-    var toc = h('div', { 'class': 'guide-toc' }), content = h('div', { 'class': 'guide-body' });
+    var search = h('input', { 'class': 'inp', type: 'search', placeholder: 'Search tasks or symptoms…', 'aria-label': 'Search the guide' });
+    var toc = h('nav', { 'class': 'guide-toc', 'aria-label': 'Guide chapters' }), content = h('div', { 'class': 'guide-body', tabindex: '0', 'aria-label': 'Guide chapter' });
+    var count = h('p', { 'class': 'guide-count muted small', role: 'status' });
     function show(sec, q) {
-      MS.$$('button', toc).forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-id') === sec.id); });
+      MS.$$('button', toc).forEach(function (b) { var on = b.getAttribute('data-id') === sec.id; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); if (on) b.scrollIntoView({ block: 'nearest' }); });
       content.innerHTML = '<h2>' + sec.title + '</h2>' + sec.html;
       if (q) MS.$$('p,li,dd,td', content).forEach(function (n) { if (n.textContent.toLowerCase().indexOf(q) >= 0) n.classList.add('hit'); });
       content.scrollTop = 0;
@@ -186,25 +206,29 @@
       var q = search.value.trim().toLowerCase();
       var hits = GUIDE.filter(function (s) { return !q || (s.title + ' ' + s.html.replace(/<[^>]+>/g, ' ')).toLowerCase().indexOf(q) >= 0; });
       toc.innerHTML = '';
+      count.textContent = hits.length + ' chapter' + (hits.length === 1 ? '' : 's');
       hits.forEach(function (s) { toc.appendChild(h('button', { 'data-id': s.id, onclick: function () { show(s, q); } }, [s.title])); });
       if (hits.length) show(hits.filter(function (s) { return s.id === id; })[0] || hits[0], q); else content.innerHTML = '<p class="muted">Nothing found. Try a simpler word, e.g. "font", "drill" or "export".</p>';
       id = null;
     }
     search.addEventListener('input', draw);
-    MS.dialog({ title: '📖 Mothership user guide', wide: true, enterSubmits: false, body: h('div', { 'class': 'guide' }, [h('div', { 'class': 'guide-side' }, [search, toc]), content]),
-      buttons: [{ label: '🎓 Start the tutorial', value: 'tut' }, { label: 'Close', primary: true, value: null }] }).then(function (v) { if (v === 'tut') H.tutorial(); });
+    MS.dialog({ title: '📖 Mothership user guide', xwide: true, enterSubmits: false, body: h('div', { 'class': 'guide' }, [h('div', { 'class': 'guide-side' }, [search, count, toc]), content]),
+      buttons: [{ label: 'Save guide', value: 'save' }, { label: 'Practice lessons', value: 'tut' }, { label: 'Close', primary: true, value: null }] }).then(function (v) {
+      if (v === 'tut') H.tutorial();
+      if (v === 'save') MS.download('Mothership user guide.md', CONTENT.markdown, 'text/markdown');
+    });
     draw();
   };
   H.about = function () {
     MS.dialog({ title: 'About Mothership', body: h('div', {}, [
       h('p', { html: '<b>HTML Mothership ' + MS.VERSION + '</b>: a PowerPoint-style editor for HTML dashboards.' }),
-      h('p', { text: 'It runs entirely in this browser, offline, with nothing to install. Your files never leave this laptop.' }),
+      h('p', { text: 'The editor runs locally with nothing to install. A dashboard can have its own scripts and linked resources; see the import report before sharing.' }),
       h('p', { 'class': 'muted', text: 'Bundled open-source libraries (Chart.js, ECharts, Plotly, SheetJS, Mammoth, PDF.js, JSZip, Marked) are listed with their licences in THIRD_PARTY_NOTICES.md.' })]),
       buttons: [{ label: 'Close', primary: true, value: null }] });
   };
   // first visit: offer the tour (once)
   setTimeout(function () {
     if (MS.prefs.get('toured', false) || MS.child) return;
-    MS.toast('New here? Help › Quick tour shows you around in 2 minutes.', '', 7000);
+    MS.toast('New here? Start here shows the workflow, or open a practice lesson.', '', 7000);
   }, 1500);
 })(window.MS);

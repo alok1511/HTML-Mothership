@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '2.9.0'
+VERSION = '3.9.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -415,7 +415,7 @@ def referenced(html_path):
     return [p for p in out if not os.path.relpath(p, folder).startswith('..')]
 
 
-def open_files(main, others, password=None):
+def open_files(main, others, password=None, force=False):
     folder = os.path.dirname(main)
     top = os.path.basename(folder) or 'dashboard'
     files = []
@@ -423,7 +423,7 @@ def open_files(main, others, password=None):
         with open(full, 'rb') as f:
             files.append({'name': os.path.basename(full), 'path': top + '/' + os.path.relpath(full, folder).replace('\\', '/'),
                           'b64': base64.b64encode(f.read()).decode()})
-    args = {'files': files}
+    args = {'files': files, 'force': bool(force)}
     if password is not None:
         args['password'] = password
     return B.api('open_folder_files', args)
@@ -450,11 +450,11 @@ def t_open_file(a):
     refs = referenced(full)
     if not refs:
         with open(full, encoding='utf-8', errors='replace') as f:
-            args = {'html': f.read(), 'name': os.path.basename(full)}
+            args = {'html': f.read(), 'name': os.path.basename(full), 'force': bool(a.get('force'))}
         if a.get('password') is not None:
             args['password'] = a['password']
         return B.api('open_html', args)
-    return open_files(full, refs, a.get('password'))
+    return open_files(full, refs, a.get('password'), a.get('force'))
 
 
 def t_open_folder(a):
@@ -470,7 +470,7 @@ def t_open_folder(a):
         main = next((f for f in htmls if re.match(r'^index\.html?$', f['rel'], re.I)), None)
     if not main:
         raise ToolError(('Say which page is the dashboard with main. Pages: ' + ', '.join(f['rel'] for f in htmls)) if htmls else 'No .html file in ' + folder)
-    return open_files(main['full'], [f['full'] for f in files if not re.search(r'\.html?$', f['rel'], re.I)])
+    return open_files(main['full'], [f['full'] for f in files if not re.search(r'\.html?$', f['rel'], re.I)], a.get('password'), a.get('force'))
 
 
 def t_export_html(a):
@@ -479,6 +479,7 @@ def t_export_html(a):
     full = out_path(a.get('path'), name)
     with open(full, 'w', encoding='utf-8', newline='') as f:
         f.write(r['html'])
+    B.api('export_saved', {'session': r['session'], 'revision': r['revision']})
     return {'saved': full, 'size': '%d KB' % round(r['bytes'] / 1024)}
 
 
@@ -657,9 +658,9 @@ def t_compare_file(a):
 LOCAL = {
     'status': ('Is Mothership running? Which browser, which editor file, and what is open.', {}, t_status),
     'open_file': ('Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline. A published file locked for editing needs its password.',
-                  {'path': ['string', 'Path to the .html file', True], 'password': ['string', 'Password, for a published file locked for editing']}, t_open_file),
+                  {'path': ['string', 'Path to the .html file', True], 'password': ['string', 'Password, for a published file locked for editing'], 'force': ['boolean', 'Replace unexported edits (default false)']}, t_open_file),
     'open_folder': ('Open a dashboard folder (its HTML with scripts, styles, data and images).',
-                    {'path': ['string', 'Folder path', True], 'main': ['string', 'Which .html file is the dashboard (default: index.html or the only one)']}, t_open_folder),
+                    {'path': ['string', 'Folder path', True], 'main': ['string', 'Which .html file is the dashboard (default: index.html or the only one)'], 'password': ['string', 'Password for a locked file'], 'force': ['boolean', 'Replace unexported edits (default false)']}, t_open_folder),
     'export_html': ('Save the edited dashboard as one standalone HTML file (opens anywhere, offline).',
                     {'path': ['string', 'Where to save (default: <name>-edited.html in the save folder)'], 'drop_comments': ['boolean', 'Leave review comments out of the file']}, t_export_html),
     'screenshot': ('See the dashboard: a picture of the editor, of just the dashboard, or of one chart.',
@@ -708,7 +709,7 @@ LOCAL = {
     'chart_image': ('A PNG of one chart (shown to you, optionally saved).', {'chart': ['string', 'Chart name or key', True], 'path': ['string', 'Also save it here']},
                     lambda a: t_screenshot({'what': a.get('chart'), 'path': a.get('path')})),
 }
-HIDDEN = {'open_folder_files', 'insert_content_file', 'comments_tracker', 'apply_tracker', 'publish', 'ui_after'}
+HIDDEN = {'open_folder_files', 'export_saved', 'insert_content_file', 'comments_tracker', 'apply_tracker', 'publish', 'ui_after'}
 
 
 def schema_of(props):
