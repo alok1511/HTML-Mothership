@@ -45,8 +45,8 @@ HTML-Mothership/
 
 1. **Download** the repo (green *Code* button › *Download ZIP*) and unzip it anywhere, e.g. `Documents\HTML-Mothership`.
 2. **Double-click `mothership.html`.** It opens in Chrome or Edge. Firefox works too, except "Save as" falls back to a normal download.
-3. Click **Try a sample**, or **Open dashboard…** to load your own `.html`.
-4. Edit it. Then click **Export HTML** (Ctrl+E) to save the result to your laptop.
+3. Click **Try the sales sample**, or **Open dashboard** to load your own `.html`.
+4. Edit it. Then click **Export** (Ctrl+E) to save the result to your laptop.
 
 > **Tip.** If your dashboard loads its own `.js`, `.css`, images or `data.json` from next to it, use **Open folder…** instead. Mothership bundles all of them into the single exported file, including data the page `fetch()`es.
 

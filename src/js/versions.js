@@ -116,7 +116,7 @@
         MS.h('button', { 'class': 'btn sm primary', onclick: function () { MS.openHtml(a.html, a.doc, { dirty: true }).then(function (ok) { if (ok) bar.remove(); }); } }, ['Recover']),
         MS.h('button', { 'class': 'btn sm', onclick: function () { bar.remove(); MS.store.del('kv', 'autosave'); } }, ['Discard'])
       ]);
-      MS.$('#empty').appendChild(bar);
+      MS.$('.welcome').prepend(bar);
     }).catch(function () {});
   };
   window.addEventListener('beforeunload', function (e) { if (MS.dirty) { e.preventDefault(); e.returnValue = ''; } });

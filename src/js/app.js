@@ -45,6 +45,47 @@
       { label: 'Draw at: 820 px (tablet)', run: function () { V.setWidth(820); } },
       { label: 'Draw at: 390 px (phone)', run: function () { V.setWidth(390); } }]));
   };
+  // Keep desktop panel preferences separate from the single drawer on a small screen.
+  var compact = window.matchMedia('(max-width: 1000px)');
+  V.compact = function () { return compact.matches; };
+  function syncPanels() {
+    MS.$$('#panel-tools [data-panel]').forEach(function (b) {
+      var side = b.getAttribute('data-panel');
+      b.setAttribute('aria-expanded', String(V.panelVisible(side)));
+    });
+  }
+  V.panelVisible = function (side) {
+    return compact.matches ? document.body.getAttribute('data-ms-drawer') === side : !document.body.classList.contains('no-' + side);
+  };
+  V.togglePanel = function (side, open, focus) {
+    var body = document.body;
+    if (open == null) open = !V.panelVisible(side);
+    if (compact.matches) {
+      if (open) body.setAttribute('data-ms-drawer', side);
+      else if (V.panelVisible(side)) body.removeAttribute('data-ms-drawer');
+      if (open && focus) MS.$('#' + side).focus();
+    } else {
+      body.classList.toggle('no-' + side, !open);
+    }
+    syncPanels();
+  };
+  function bootPanels() {
+    MS.$$('#panel-tools [data-panel]').forEach(function (b) {
+      b.addEventListener('click', function () { V.togglePanel(b.getAttribute('data-panel'), null, true); });
+    });
+    document.addEventListener('keydown', function (e) {
+      var side = document.body.getAttribute('data-ms-drawer');
+      if (e.defaultPrevented || e.key !== 'Escape' || !side || !MS.$('#' + side).contains(e.target)) return;
+      e.stopImmediatePropagation();
+      V.togglePanel(side, false);
+      MS.$('#panel-tools [data-panel="' + side + '"]').focus();
+    });
+    function closeDrawer() { document.body.removeAttribute('data-ms-drawer'); syncPanels(); }
+    if (compact.addEventListener) compact.addEventListener('change', closeDrawer);
+    else if (compact.addListener) compact.addListener(closeDrawer);
+    MS.on('doc-closed', closeDrawer);
+    syncPanels();
+  }
   MS.stageWidth = function (px) { V.setWidth(px); }; // older plugins
   function wheelZoom(e) { if (!(e.ctrlKey || e.metaKey) || !MS.child) return; e.preventDefault(); V.step(e.deltaY < 0 ? 1 : -1); }
   MS.on('child-loaded', function (c) { V.layout(); c.win.addEventListener('wheel', wheelZoom, { passive: false }); });
@@ -101,6 +142,7 @@
   function boot() {
     MS.ribbon.render();
     MS.review.bar();
+    bootPanels();
     MS.outline.render();
     MS.inspector.render();
     MS.plugins.boot();

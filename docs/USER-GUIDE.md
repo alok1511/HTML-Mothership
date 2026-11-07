@@ -51,7 +51,7 @@ A missing-file scan can see markup and CSS references, including responsive imag
 | Comment | Leave feedback without editing | Pins a note; drag a box to mark an area |
 | Interact | Test what viewers experience | Uses the dashboard's own tabs, buttons and filters |
 
-The **left outline** lists tabs and charts. The **right Format panel** changes with the selection. If you selected a word or an icon instead of the whole card, use the selection path or **Alt+↑** to select its parent. Double-click a heading, edit it, then click away to commit. Use **Home › Replace** when you need the same wording changed throughout the dashboard; check that your search is specific enough.
+The **left outline** lists tabs and charts. The **right Format panel** changes with the selection. On a smaller screen, use **Outline** or **Inspector** at the bottom to open a panel over the canvas. Press the same button or **Esc** from inside the panel to close it. Open **Comments** at the top to jump straight to review notes. If you selected a word or an icon instead of the whole card, use the selection path or **Alt+↑** to select its parent. Double-click a heading, edit it, then click away to commit. Use **Home › Replace** when you need the same wording changed throughout the dashboard; check that your search is specific enough.
 
 **Make a chart card easier to read.** Select its heading. Set the font, size and colour on the right. Select the card to change its background or border. Drag a corner to resize it. Drag the card to move it; hold **Command** on Mac or **Ctrl** on Windows/Linux to copy. Use **Home › Duplicate** if you prefer a button. A blue marker shows where it will land. Press **Esc** to cancel a drag.
 
@@ -151,7 +151,7 @@ Choose **Comment** and click an element, or drag a box around the area. Describe
 
 If the fault happens after interacting, reproduce it in **Interact**, then use **Review › What I did** to capture what led to it. Save the **Excel tracker** for a meeting; reimport the edited tracker to update tracked comments. Use **File › Compare** to review a saved version against the current dashboard before resolving the feedback.
 
-**AI assistance is optional.** The **Prompt** button turns selected comments into a brief. Review it before copying. Share only data your organisation allows with that assistant. When it returns changes, compare versions and rerun checks. The editor does not send the prompt itself.
+**AI assistance is optional.** **Review › Make prompt** turns selected comments into a brief. The top bar also has a **Prompt** shortcut on wider screens. Review it before copying. Share only data your organisation allows with that assistant. When it returns changes, compare versions and rerun checks. The editor does not send the prompt itself.
 
 <!-- guide:testing -->
 ## Test interactions and verify numbers

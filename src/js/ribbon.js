@@ -220,8 +220,8 @@
         { icon: '📱', label: 'Phone', title: '390 px wide', run: function () { MS.view.setWidth(390); }, toggle: function () { return MS.view.width === 390; } },
         { icon: '⋯', label: 'Other', title: 'Full HD, 1440 px or the panel width', run: function (e) { MS.view.menu(e.currentTarget); } }] },
       { name: 'Panels', items: [
-        { icon: '◧', label: 'Outline', run: function () { document.body.classList.toggle('no-left'); } },
-        { icon: '◨', label: 'Inspector', run: function () { document.body.classList.toggle('no-right'); } },
+        { icon: '◧', label: 'Outline', run: function () { MS.view.togglePanel('left', null, true); } },
+        { icon: '◨', label: 'Inspector', run: function () { MS.view.togglePanel('right', null, true); } },
         { icon: '⠿', label: 'Toolbar', title: 'The small toolbar that floats above what you select (move, draw, picture, duplicate, delete)', run: function () { MS.move.toggleBar(); MS.ribbon.render(); }, toggle: function () { return MS.move.barOn; } }] },
       { name: 'Mothership', items: [
         { icon: '🎨', label: 'Theme', title: 'Mothership\'s own look: light or dark, accent colour, spacing and text size', run: MS.cmd.theme },
@@ -292,17 +292,38 @@
   var R = MS.ribbon = { active: MS.prefs.get('ribbonTab', 'Home') };
   R.render = function () {
     var tabsEl = MS.$('#ribbon-tabs'), body = MS.$('#ribbon-body');
+    var tabsLeft = tabsEl.scrollLeft, expanded = !!MS.child || !!R.emptyExpanded;
+    body.hidden = !expanded;
     tabsEl.innerHTML = ''; body.innerHTML = '';
     MS.RIBBON.forEach(function (t) {
-      tabsEl.appendChild(h('button', { 'class': 'rtab' + (t.tab === R.active ? ' on' : ''), onclick: function () { R.active = t.tab; MS.prefs.set('ribbonTab', t.tab); R.render(); } }, [t.tab]));
+      var active = t.tab === R.active;
+      tabsEl.appendChild(h('button', {
+        'class': 'rtab' + (active ? ' on' : ''),
+        'aria-pressed': String(active && expanded), 'aria-controls': 'ribbon-body',
+        'aria-expanded': String(active && expanded),
+        onclick: function () {
+          if (!MS.child) R.emptyExpanded = !active || !expanded;
+          R.active = t.tab;
+          MS.prefs.set('ribbonTab', t.tab);
+          R.render();
+          tabsEl.querySelector('.on').focus();
+        }
+      }, [t.tab]));
     });
+    tabsEl.scrollLeft = tabsLeft;
+    var activeTab = tabsEl.querySelector('.on');
+    if (activeTab) {
+      var strip = tabsEl.getBoundingClientRect(), button = activeTab.getBoundingClientRect();
+      if (button.left < strip.left) tabsEl.scrollLeft += button.left - strip.left;
+      if (button.right > strip.right) tabsEl.scrollLeft += button.right - strip.right;
+    }
     var tab = MS.RIBBON.filter(function (t) { return t.tab === R.active; })[0] || MS.RIBBON[1];
     var groups = typeof tab.groups === 'function' ? tab.groups() : tab.groups;
     groups.forEach(function (g) {
       var items = h('div', { 'class': 'rgroup-items' });
       g.items.forEach(function (it) {
         if (it.type === 'font') return items.appendChild(fontControls());
-        var b = h('button', { 'class': 'rbtn' + (it.toggle && it.toggle() ? ' on' : ''), title: it.title || it.label, 'data-id': it.id || '' }, [h('span', { 'class': 'ri' }, [MS.icon.has(it.icon) ? MS.icon(it.icon, 'solo') : it.icon]), h('span', { 'class': 'rl', text: it.label })]);
+        var b = h('button', { 'class': 'rbtn' + (it.toggle && it.toggle() ? ' on' : ''), title: it.title || it.label, 'aria-label': it.label, 'data-id': it.id || '' }, [h('span', { 'class': 'ri' }, [MS.icon.has(it.icon) ? MS.icon(it.icon, 'solo') : it.icon]), h('span', { 'class': 'rl', text: it.label })]);
         b.addEventListener('click', function (e) { it.run(e); });
         items.appendChild(b);
       });
@@ -339,6 +360,8 @@
     }
   };
   MS.on('selection', R.sync); MS.on('changed', R.sync); MS.on('history', R.sync);
+  MS.on('child-loaded', function () { if (MS.$('#ribbon-body').hidden) R.render(); });
+  MS.on('doc-closed', function () { R.emptyExpanded = false; R.render(); });
   MS.on('plugins', function () { if (R.active === 'Plugins') R.render(); });
   MS.on('theme', R.render); MS.on('fonts', R.render);
 

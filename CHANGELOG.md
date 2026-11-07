@@ -1,6 +1,12 @@
 # Changelog
 
-## 3.9.0 — Reliability and self-serve learning
+## 3.9.0 — Studio redesign, reliability and self-serve learning
+
+### Changed
+
+- Redesigned the welcome screen around opening a file, trying the sales sample and finding self-serve learning.
+- Introduced the Studio theme with a new visual style for the ribbon, mode controls, buttons, panels and dialogs. Existing theme choices remain available.
+- On smaller screens, open Outline or Inspector over the dashboard from the bottom bar. The ribbon tabs and tools scroll horizontally.
 
 ### Fixed
 

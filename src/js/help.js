@@ -8,7 +8,7 @@
   function clearSpot() { MS.$$('.spot, .spot-card').forEach(function (n) { n.remove(); }); MS.$$('.pulse').forEach(function (n) { n.classList.remove('pulse'); }); }
   function spot(target) {
     MS.$$('.spot').forEach(function (n) { n.remove(); });
-    if (!target) return null;
+    if (!target || !target.getClientRects().length) return null;
     var r = target.getBoundingClientRect();
     var s = h('div', { 'class': 'spot', style: { left: (r.left - 6) + 'px', top: (r.top - 6) + 'px', width: (r.width + 12) + 'px', height: (r.height + 12) + 'px' } });
     document.body.appendChild(s);
@@ -16,10 +16,13 @@
   }
   // Switch the ribbon to a tab and make one of its buttons pulse.
   H.pointAt = function (tab, label) {
-    if (tab && MS.ribbon.active !== tab) { MS.ribbon.active = tab; MS.prefs.set('ribbonTab', tab); MS.ribbon.render(); }
+    if (tab && (MS.ribbon.active !== tab || MS.$('#ribbon-body').hidden)) {
+      if (!MS.child) MS.ribbon.emptyExpanded = true;
+      MS.ribbon.active = tab; MS.prefs.set('ribbonTab', tab); MS.ribbon.render();
+    }
     MS.$$('.pulse').forEach(function (n) { n.classList.remove('pulse'); });
     var b = label ? MS.$$('#ribbon-body .rbtn').filter(function (x) { return (x.querySelector('.rl') || {}).textContent === label; })[0] : MS.$$('#ribbon-tabs .rtab').filter(function (x) { return x.textContent === tab; })[0];
-    if (b) { b.classList.add('pulse'); setTimeout(function () { b.classList.remove('pulse'); }, 4000); }
+    if (b) { b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); b.classList.add('pulse'); setTimeout(function () { b.classList.remove('pulse'); }, 4000); }
     return b;
   };
 
@@ -28,23 +31,23 @@
     { sel: '#ribbon-tabs', title: 'The ribbon', text: 'Works like PowerPoint. <b>Insert</b> adds tabs, sections, KPI cards, charts and footers. <b>Design</b> loads your brand. <b>Charts</b> sets pop-ups and drill-down. <b>Review</b> collects comments. <b>Help</b> has the tutorial.' },
     { sel: '#appbar .seg.mode', title: 'Edit or Interact', text: '<b>Edit</b>: click anything to select it, double-click text to type. <b>Interact</b>: use the dashboard like your audience will (filters, pop-ups, drill-down).' },
     { sel: '#cmt-bar', title: 'Comments → AI prompt', text: 'Press <b>💬 Comment</b> (next to Edit), then click anything or drag a box. <b>🗨 Comments</b> lists them all, like PowerPoint: go to one, reply, resolve. <b>✨ Prompt</b> turns them into instructions for an AI assistant.' },
-    { sel: '#left', title: 'Outline', text: 'Every tab, chart, dataset and comment. Click a chart to jump to it. Drag tabs to reorder them.' },
+    { sel: '#left', fallback: '[data-panel=left]', title: 'Outline', text: 'Every tab, chart, dataset and comment. Click a chart to jump to it. Drag tabs to reorder them. On a smaller screen, open it with <b>Outline</b> at the bottom.' },
     { sel: '#stage', title: 'Your dashboard', text: 'This is the real page, drawn at desktop width and scaled to fit. Double-click a chart for its settings: commentary, look, pop-up and drill-down.' },
-    { sel: '#right', title: 'Format panel', text: 'Shows options for whatever you selected: font, size, colour, spacing, box, hover pop-up and (for charts) the chart\'s look.' },
+    { sel: '#right', fallback: '[data-panel=right]', title: 'Format panel', text: 'Shows options for whatever you selected: font, size, colour, spacing, box, hover pop-up and (for charts) the chart\'s look. On a smaller screen, open it with <b>Inspector</b> at the bottom.' },
     { sel: '#zoomctl', title: 'Zoom', text: 'Zoom in for detail or press Fit. <b>Ctrl + mouse wheel</b> over the dashboard also zooms.' },
     { sel: '#btn-export', title: 'Export', text: 'Saves one .html file on this laptop. Anyone can open it in a browser, and it reopens here for more editing.' }
   ];
   H.tour = function (i) {
     i = i || 0; clearSpot();
-    var st = TOUR[i]; if (!st) { MS.prefs.set('toured', true); return; }
-    var t = MS.$(st.sel), r = spot(t) || { left: innerWidth / 2 - 160, top: 120, width: 0, height: 0, bottom: 120, right: innerWidth / 2 };
+    var st = TOUR[i]; if (!st) return;
+    var r = spot(MS.$(st.sel)) || (st.fallback && spot(MS.$(st.fallback))) || { left: innerWidth / 2 - 160, top: 120, width: 0, height: 0, bottom: 120, right: innerWidth / 2 };
     var card = h('div', { 'class': 'spot-card' }, [
       h('div', { 'class': 'muted', text: (i + 1) + ' of ' + TOUR.length }), h('h3', { text: st.title }), h('p', { html: st.text }),
-      h('div', { 'class': 'row gap' }, [h('button', { 'class': 'btn sm', onclick: function () { clearSpot(); MS.prefs.set('toured', true); } }, ['Skip']), h('span', { 'class': 'grow' }),
+      h('div', { 'class': 'row gap' }, [h('button', { 'class': 'btn sm', onclick: clearSpot }, ['Skip']), h('span', { 'class': 'grow' }),
         i ? h('button', { 'class': 'btn sm', onclick: function () { H.tour(i - 1); } }, ['Back']) : null,
-        h('button', { 'class': 'btn sm primary', onclick: function () { if (i === TOUR.length - 1) { clearSpot(); MS.prefs.set('toured', true); MS.toast('Tour done. Try Help › Tutorial for hands-on lessons.', 'ok', 5000); } else H.tour(i + 1); } }, [i === TOUR.length - 1 ? 'Finish' : 'Next'])])]);
+        h('button', { 'class': 'btn sm primary', onclick: function () { if (i === TOUR.length - 1) { clearSpot(); MS.toast('Tour done. Try Help › Tutorial for hands-on lessons.', 'ok', 5000); } else H.tour(i + 1); } }, [i === TOUR.length - 1 ? 'Finish' : 'Next'])])]);
     document.body.appendChild(card);
-    var cw = 320, ch = card.offsetHeight, x = r.left, y = r.bottom + 14;
+    var cw = card.offsetWidth, ch = card.offsetHeight, x = r.left, y = r.bottom + 14;
     if (y + ch > innerHeight - 10) y = Math.max(10, r.top - ch - 14);
     if (r.height > innerHeight * 0.5) { y = Math.min(innerHeight - ch - 20, r.top + 40); x = r.right + 14 > innerWidth - cw ? r.left + 40 : r.right + 14; }
     card.style.left = Math.max(10, Math.min(x, innerWidth - cw - 10)) + 'px'; card.style.top = y + 'px';
@@ -226,9 +229,4 @@
       h('p', { 'class': 'muted', text: 'Bundled open-source libraries (Chart.js, ECharts, Plotly, SheetJS, Mammoth, PDF.js, JSZip, Marked) are listed with their licences in THIRD_PARTY_NOTICES.md.' })]),
       buttons: [{ label: 'Close', primary: true, value: null }] });
   };
-  // first visit: offer the tour (once)
-  setTimeout(function () {
-    if (MS.prefs.get('toured', false) || MS.child) return;
-    MS.toast('New here? Start here shows the workflow, or open a practice lesson.', '', 7000);
-  }, 1500);
 })(window.MS);

@@ -13,7 +13,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f46e5'/%3E%3Cpath d='M7 21h18M10 21l2-7h8l2 7M13 14l3-5 3 5' stroke='white' stroke-width='2.4' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="src/css/mothership.css">
 </head>
-<body>
+<body data-ms-ui-mode="none">
 <header id="appbar">
   <div class="ab-left">
     <div class="logo"><span class="mark">◆</span> <span class="lbl">Mothership</span></div>
@@ -26,53 +26,90 @@
   <div class="ab-mid">
     <div class="seg mode" id="mode-switch" role="group" aria-label="Mode">
       <span class="glider" aria-hidden="true"></span>
-      <button class="seg-btn on" data-mode="edit" title="Edit (Alt+1): click to select, double-click to type, drag to move">✎ <span class="lbl">Edit</span></button>
-      <button class="seg-btn" data-mode="comment" title="Comment (Alt+2): click anything, or drag a box, to leave a review note. Tabs still switch.">💬 <span class="lbl">Comment</span></button>
-      <button class="seg-btn" data-mode="interact" title="Interact (Alt+3): use the dashboard as a viewer would: filters, tooltips, drill-down">☝ <span class="lbl">Interact</span></button>
+      <button class="seg-btn on" data-mode="edit" aria-label="Edit" title="Edit (Alt+1): click to select, double-click to type, drag to move">✎ <span class="lbl">Edit</span></button>
+      <button class="seg-btn" data-mode="comment" aria-label="Comment" title="Comment (Alt+2): click anything, or drag a box, to leave a review note. Tabs still switch.">💬 <span class="lbl">Comment</span></button>
+      <button class="seg-btn" data-mode="interact" aria-label="Interact" title="Interact (Alt+3): use the dashboard as a viewer would: filters, tooltips, drill-down">☝ <span class="lbl">Interact</span></button>
     </div>
   </div>
   <div class="ab-right">
-    <button class="cmdk-btn" id="btn-cmdk" title="Search every command, chart, tab and help topic (Ctrl+K)">🔍 <span class="lbl">Search…</span><kbd>Ctrl K</kbd></button>
+    <button class="cmdk-btn" id="btn-cmdk" aria-label="Search commands and help" title="Search every command, chart, tab and help topic (Ctrl+K)">🔍 <span class="lbl">Search…</span><kbd>Ctrl K</kbd></button>
     <div id="cmt-bar" class="cmt-bar"></div>
     <span class="ab-sep" aria-hidden="true"></span>
-    <button class="icon-btn" id="btn-theme" title="Mothership theme: light, dark, accent colour, spacing">🎨</button>
-    <button class="btn" id="btn-present" title="Present (F5)">▶ <span class="lbl">Present</span></button>
-    <button class="btn primary" id="btn-export" title="Save the edited dashboard as an .html file (Ctrl+E)">⬇ <span class="lbl">Export</span></button>
+    <button class="icon-btn" id="btn-theme" aria-label="Mothership theme" title="Mothership theme: light, dark, accent colour, spacing">🎨</button>
+    <button class="btn" id="btn-present" aria-label="Present" title="Present (F5)">▶ <span class="lbl">Present</span></button>
+    <button class="btn primary" id="btn-export" aria-label="Export" title="Save the edited dashboard as an .html file (Ctrl+E)">⬇ <span class="lbl">Export</span></button>
   </div>
 </header>
 
-<nav id="ribbon">
+<nav id="ribbon" aria-label="Editor tools">
   <div id="ribbon-tabs"></div>
   <div id="ribbon-body"></div>
 </nav>
 
 <div id="workspace">
-  <aside id="left"><div id="outline"></div></aside>
+  <aside id="left" aria-label="Dashboard outline" tabindex="-1"><div id="outline"></div></aside>
   <main id="stage">
     <div id="stage-frame-host"></div>
     <div id="mode-frame" data-mode="edit" aria-live="polite"></div>
     <div id="empty">
       <div class="welcome">
-        <div class="hero-glow" aria-hidden="true"></div>
-        <div class="big-mark">◆</div>
-        <div class="hero-pill">Local editor for HTML dashboards</div>
-        <h1>From dashboard to deliverable</h1>
-        <p class="lead">Edit an HTML dashboard like a slide deck. Review the figures and interactions, then share a single file people can open in a browser.</p>
-        <div class="start-grid">
-          <button class="start-card primary" data-act="open">📂<b>Open dashboard</b><small>An .html file, or a Mothership export</small></button>
-          <button class="start-card" data-act="openFolder" title="Use this when the dashboard loads its own .js/.css/.json files">🗂<b>Open folder</b><small>Dashboard plus its scripts, styles and data</small></button>
-          <button class="start-card" data-act="newDoc" title="Build a dashboard from scratch">✨<b>New dashboard</b><small>Start blank or with ready-made tabs</small></button>
-          <button class="start-card" data-act="sample">🧪<b>Try a sample</b><small>Explore the built-in sales dashboard</small></button>
-        </div>
+        <section class="studio-hero" aria-labelledby="studio-title">
+          <div class="studio-intro">
+            <p class="studio-kicker"><span aria-hidden="true"></span> HTML dashboard studio</p>
+            <h1 id="studio-title">From dashboard<br>to <em>deliverable.</em></h1>
+            <p class="lead">Edit an HTML dashboard like a slide deck. Check the numbers, test the interactions, and share a single file people can open in a browser.</p>
+            <div class="studio-actions">
+              <button type="button" class="btn primary lg" data-act="open">📂 <span>Open dashboard</span></button>
+              <button type="button" class="btn lg" data-act="sample">▷ <span>Try the sales sample</span></button>
+            </div>
+            <div class="studio-more">
+              <button type="button" class="btn ghost" data-act="openFolder" title="Open a dashboard with its scripts, styles and data">🗂 <span>Open folder</span></button>
+              <button type="button" class="btn ghost" data-act="newDoc">＋ <span>New dashboard</span></button>
+            </div>
+          </div>
+          <div class="studio-learning">
+            <div>
+              <h2>Get up to speed</h2>
+              <div class="start-path" aria-label="Dashboard workflow">
+                <span>Import</span><span>Edit</span><span>Review</span><span>Check</span><span>Export</span>
+              </div>
+            </div>
+            <div class="studio-actions">
+              <button type="button" class="btn primary" data-act="workflow">Start here</button>
+              <button type="button" class="btn" data-act="tutorial">🎓 <span>Practice lessons</span></button>
+              <button type="button" class="btn" data-act="guide">📖 <span>Search the guide</span></button>
+            </div>
+          </div>
+          <figure class="studio-preview">
+            <div class="preview-head">
+              <span class="preview-label">✦ &nbsp; Sample workspace</span>
+              <span class="preview-file">HTML</span>
+            </div>
+            <div class="preview-body" aria-hidden="true">
+              <div class="preview-metric"><span>Sales overview</span><strong>Revenue</strong></div>
+              <div class="preview-plot">
+                <svg viewBox="0 0 400 158" width="400" height="158" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="studio-area" x1="0" x2="0" y1="0" y2="1">
+                      <stop stop-color="#a8f0ca" stop-opacity=".32"/>
+                      <stop offset="1" stop-color="#a8f0ca" stop-opacity=".03"/>
+                    </linearGradient>
+                  </defs>
+                  <path class="preview-grid" d="M1 12.5h398M1 47.5h398M1 82.5h398M1 117.5h398M1 153.5h398M1 12v142M81 12v142M161 12v142M241 12v142M321 12v142M399 12v142"/>
+                  <path fill="url(#studio-area)" d="M1 133L81 100 161 115 241 61 321 72 399 22V154H1Z"/>
+                  <path class="preview-line" d="M1 133L81 100 161 115 241 61 321 72 399 22"/>
+                  <path class="preview-marker" d="M241 61v93"/>
+                  <circle cx="241" cy="61" r="10" fill="#ffc87c" fill-opacity=".16"/>
+                  <circle cx="241" cy="61" r="4" fill="#ffc87c"/>
+                </svg>
+                <span class="preview-note">Review point</span>
+              </div>
+              <div class="preview-axis"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span></div>
+            </div>
+            <figcaption><span class="preview-dot" aria-hidden="true"></span> Illustrative sales dashboard</figcaption>
+          </figure>
+        </section>
         <div id="recent" class="recent" hidden></div>
-        <div class="start-path">
-          <span>Import</span><span>Edit</span><span>Review</span><span>Check</span><span>Export</span>
-        </div>
-        <div class="row gap center learn">
-          <button class="btn primary" data-act="workflow">Start here</button>
-          <button class="btn" data-act="tutorial">🎓 Practice lessons</button>
-          <button class="btn" data-act="guide">📖 Search the guide</button>
-        </div>
         <p class="muted drop-hint">Or drag &amp; drop a file anywhere: a dashboard (.html), brand guidelines (SKILL.md / .skill), a recipe (.json) or a plugin (.js).</p>
         <details class="steps-box">
           <summary>Quick start in six steps</summary>
@@ -88,10 +125,16 @@
       </div>
     </div>
   </main>
-  <aside id="right"><div id="right-tabs" class="rtabs"></div><div id="inspector"></div><div id="cmt-pane" hidden></div></aside>
+  <aside id="right" aria-label="Dashboard inspector" tabindex="-1"><div id="right-tabs" class="rtabs"></div><div id="inspector"></div><div id="cmt-pane" hidden></div></aside>
 </div>
 
-<footer id="statusbar"><span id="status-mode" class="st-mode" hidden></span><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Local editing · check linked assets before sharing</span><span id="zoomctl"></span></footer>
+<footer id="statusbar">
+  <div id="panel-tools" role="group" aria-label="Workspace panels">
+    <button type="button" class="icon-btn" data-panel="left" aria-controls="left" aria-expanded="false" aria-label="Outline" title="Toggle outline">◧ <span>Outline</span></button>
+    <button type="button" class="icon-btn" data-panel="right" aria-controls="right" aria-expanded="false" aria-label="Inspector" title="Toggle inspector">◨ <span>Inspector</span></button>
+  </div>
+  <span id="status-mode" class="st-mode" hidden></span><span id="status-msg">Ready</span><span class="spacer"></span><span id="status-right">Local editing · check linked assets before sharing</span><span id="zoomctl"></span>
+</footer>
 <div id="toasts" aria-live="polite"></div>
 <div id="dropzone"><div>Drop to open or add</div></div>
 
