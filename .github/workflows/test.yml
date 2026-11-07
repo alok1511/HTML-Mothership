@@ -30,6 +30,14 @@ jobs:
       - name: Browser and MCP suites
         run: |
           export CHROMIUM_PATH="$(node -p 'require("playwright").chromium.executablePath()')"
+          # Playwright supplies --no-sandbox itself. The MCP launch smoke tests use
+          # the same browser directly in this disposable runner with repo fixtures.
+          export MOTHERSHIP_BROWSER="$RUNNER_TEMP/mothership-ci-chromium"
+          cat > "$MOTHERSHIP_BROWSER" <<'BROWSER'
+          #!/usr/bin/env bash
+          exec "$CHROMIUM_PATH" --no-sandbox "$@"
+          BROWSER
+          chmod +x "$MOTHERSHIP_BROWSER"
           npm test
       - name: Firefox file and download smoke test
         run: npm run test:portable

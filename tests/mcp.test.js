@@ -15,10 +15,10 @@ const cp = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = fs.mkdtempSync(path.join(os.tmpdir(), 'mothership-mcp-'));
 let failures = 0;
-const check = (name, ok, detail) => { console.log((ok ? '  ✓ ' : '  ✗ ') + name + (ok ? '' : '  → ' + JSON.stringify(detail).slice(0, 400))); if (!ok) failures++; };
+const check = (name, ok, detail) => { console.log((ok ? '  ✓ ' : '  ✗ ') + name + (ok ? '' : '  → ' + String(JSON.stringify(detail)).slice(0, 400))); if (!ok) failures++; };
 
 const env = Object.assign({}, process.env, { MOTHERSHIP_OUT: OUT });
-if (process.env.CHROMIUM_PATH) env.MOTHERSHIP_BROWSER = process.env.CHROMIUM_PATH;
+if (!env.MOTHERSHIP_BROWSER && env.CHROMIUM_PATH) env.MOTHERSHIP_BROWSER = env.CHROMIUM_PATH;
 // MOTHERSHIP_MCP=python tests the Python server instead of the Node one
 const PY = process.env.MOTHERSHIP_MCP === 'python' || process.argv.indexOf('--python') >= 0;
 const srv = PY ? cp.spawn(process.env.PYTHON || 'python3', [path.join(ROOT, 'tools/mcp/mothership_mcp.py')], { env }) : cp.spawn(process.execPath, [path.join(ROOT, 'tools/mcp/mothership-mcp.js')], { env });
