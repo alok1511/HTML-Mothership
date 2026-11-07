@@ -1131,3 +1131,13 @@ body[data-ms-ui-mode="none"] #appbar .cmdk-btn .lbl { display: inline; }
 .qa-draft-progress [role="status"] { font-weight: 650; }
 .qa-pager { display: flex; gap: 9px; justify-content: flex-end; align-items: center; margin-top: 8px; }
 .qa-pager[hidden] { display: none; }
+
+.qa-target-issues { margin: 10px 0; padding: 8px 12px; background: var(--warn-weak); border-radius: 8px; }
+.qa-target-issues li { margin: 4px 0; overflow-wrap: anywhere; }
+.qa-cov-row .grow { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .qa-cov-row { flex-wrap: wrap; gap: 6px; }
+  .qa-cov-row .grow { min-width: min(160px, 100%); }
+  .qa-cov-row .qa-cov-ids { display: none; }
+  .qa-cov-kind { flex-basis: 75px; }
+}

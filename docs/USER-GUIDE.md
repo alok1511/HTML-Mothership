@@ -168,6 +168,19 @@ If the fault happens after interacting, reproduce it in **Interact**, then use *
 
 **Example:** a filter offers 27 choices. The deeper test can sample up to 25 alternatives to the starting choice. Read the actual checked count, then exercise omitted choices manually or add targeted cases. Check combinations of filters separately. A few passing tests are useful evidence; they do not certify the dashboard.
 
+### Pick the run that matches your goal
+
+- **Run smoke** checks up to 12 high-priority automatic cases with a 20-second budget. It covers things such as opening tabs, drawing charts and checking supplied numbers. It creates a quick plan if there are no eligible cases. Use **Run all** when you need broader coverage. The runner keeps completed cases if you stop, and saves the run as one undoable change.
+- **Coverage** explains unavailable checks, disabled controls, draft limits and unresolved targets. Use **Show item** to jump to a recognised chart or control. If a legacy case points to a name used by two items, draft again or edit that case. The runner marks ambiguous targets **Blocked**.
+- **Isolated run** is for dashboards whose scripts may stall the browser. Export a smoke or full job from **Testing › Isolated run**, then run it from the repository folder. First install with `npm ci`, `npx playwright install chromium`, and `npm run build`. Run `npm run test:isolated -- "dashboard - isolated job.json"`, then use **Import results** in the same menu. Add `--timeout 60` for a one-minute limit. The separate browser runs offline. A timeout keeps any completed results and leaves unfinished cases unrun. Keep the job file local because it includes dashboard data. Import results while the matching dashboard revision and test plan are still open.
+
+### Reuse a plan after a monthly refresh
+
+1. After checking the current dashboard, open **Testing › Changed sections › Set comparison baseline**. A completed **Run all** also creates a baseline.
+2. For a reusable copy, choose **Testing › Test packs › Save test pack**. Load the JSON pack into the next copy with **Load test pack**. This merges case definitions without importing past outcomes or source expectations. Reuse the same exported dashboard or keep your original HTML element IDs stable. Review Coverage after loading a pack into a rebuilt dashboard.
+3. Refresh your data and open **Changed sections**. Read the changed tabs and dataset names. Use **Draft changed** to add missing checks and **Run changed** for existing cases scoped to those sections. Shared smoke checks can also run. Shared code, global filters, unmapped data or a removed section can broaden the scope to the whole dashboard.
+4. Run cross-tab checks with **Run all** when needed, review results, and save a fresh comparison baseline after sign-off. Import the new period’s independently supplied expectations before verifying its figures.
+
 **Verify numbers against a source:**
 
 1. Go to **Testing › Numbers › Download the numbers as Excel**. The template lists the chart, category, series and stable reference where available.

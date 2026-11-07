@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Give same-named charts, tabs and controls distinct draft targets. Block ambiguous legacy targets and explain skipped checks in Coverage, with a link to the affected item.
+- Run a bounded set of critical smoke checks, save completed results together without redrawing the dashboard, and run heavy jobs in a separate local browser with a hard timeout.
+- Save and load reusable test packs. Compare sections and datasets to a baseline, then draft or run checks for the changed sections.
+
 - Draft test cases in short batches with a cancel control. Cancelling keeps the existing plan.
 - Avoid reloading dashboard visuals when saving a draft. Calculate coverage from one index of test targets and show long plans 60 cases at a time.
 

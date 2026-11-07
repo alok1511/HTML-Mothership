@@ -1179,7 +1179,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       var rows = filteredRows(f.dataset); rt.filterValues[f.dataset] = saved;
       var vals = Array.from(new Set(rows.map(function (r) { return r[f.field]; }).filter(function (v) { return v !== undefined && v !== null && v !== ''; }).map(String)));
       vals.sort(function (a, b) { var x = Number(a), y = Number(b); return (!isNaN(x) && !isNaN(y)) ? x - y : a.localeCompare(b); });
-      var sel = el('select', { 'data-field': f.field, onchange: function () { fv[f.field] = sel.value; rt.drill = {}; rt.refresh(); } },
+      var sel = el('select', { 'data-field': f.field, 'data-ms-filter-dataset': f.dataset, onchange: function () { fv[f.field] = sel.value; rt.drill = {}; rt.refresh(); } },
         [el('option', { value: '', text: 'All' })].concat(vals.map(function (v) { var o = el('option', { value: v, text: v }); if (fv[f.field] === v) o.selected = true; return o; })));
       pane.appendChild(el('label', { 'class': 'ms-filter' }, [el('span', { text: f.label || f.field }), sel]));
     });

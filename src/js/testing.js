@@ -49,23 +49,15 @@
     var vis = out.filter(visible); return vis.length ? vis.concat(out.filter(function (e) { return !visible(e); })) : out;
   }
   function chartEl(name, charts) { var k = MS.api.chartKey(name, charts), c = charts ? charts.find(function (x) { return x.key === k; }) : rt().chart(k); return c ? c.el : null; }
-  function tabBtn(name) {
-    var r = rt(), q = low(name), g = r.pageTabs && r.pageTabs();
-    if (g) { var t = g.tabs.filter(function (x) { return low(x.title) === q; })[0] || g.tabs.filter(function (x) { return low(x.title).indexOf(q) >= 0; })[0]; if (t) return t.btn; }
-    if (r.layoutEnabled()) { var b = MS.$$('#ms-ribbon .ms-tabbtn', cdoc()).filter(function (x) { return low(x.textContent) === q || low(x.textContent).indexOf(q) >= 0; })[0]; if (b) return b; }
-    return null;
+  function matchNamed(items, label, name, strict) {
+    var q = low(name), exact = items.filter(function (item) { return low(label(item)) === q; });
+    var hits = exact.length ? exact : items.filter(function (item) { return low(label(item)).includes(q); });
+    if (strict && hits.length > 1) throw Q.block('“' + name + '” matches ' + hits.length + ' items. Draft again or select a specific target.');
+    return hits[0];
   }
-  function kpiEl(name, kpis) {
-    kpis = kpis || Q.kpis();
-    var q = low(name), hit = kpis.find(function (k) { return low(k.label) === q; }) || kpis.find(function (k) { return low(k.label).indexOf(q) >= 0; });
-    return hit ? hit.el : null;
-  }
-  function filterEl(name) {
-    var q = low(name);
-    return all('#ms-filter-pane select, select, input').filter(function (s) {
-      var lab = s.closest('label'), t = low((lab && lab.textContent) || s.getAttribute('aria-label') || s.name || s.id || s.getAttribute('data-field'));
-      return t.indexOf(q) >= 0 || low(s.getAttribute('data-field')) === q;
-    })[0] || null;
+  function filterName(s) {
+    var lab = s.closest('label');
+    return (lab && lab.querySelector('span') || lab || {}).textContent || s.getAttribute('aria-label') || s.name || s.id || s.getAttribute('data-field');
   }
   // A target: "text=…", "chart=…", "tab=…", "kpi=…", "button=…", "filter=…", "ref=…", "css=…",
   // a ref from ui_snapshot, or a CSS selector (anything else is looked up as text).
@@ -73,19 +65,46 @@
     opts = opts || {};
     if (target && target.nodeType === 1) return target;
     var t = String(target == null ? '' : target).trim(); if (!t) throw new Error('Say what to act on (a ref, text=…, chart=…, tab=…, kpi=…, button=…, filter=… or a CSS selector).');
-    var m = /^(text|chart|tab|kpi|button|link|filter|ref|css|label)\s*[=:]\s*([\s\S]+)$/i.exec(t), kind = m ? m[1].toLowerCase() : '', v = m ? m[2].trim() : t, el = null;
-    if (kind === 'chart') el = chartEl(v, opts.parts && opts.parts.charts);
-    else if (kind === 'tab') el = tabBtn(v);
-    else if (kind === 'kpi') el = kpiEl(v, opts.parts && opts.parts.kpis);
-    else if (kind === 'filter') el = filterEl(v);
-    else if (kind === 'button' || kind === 'link') el = byText(v, kind === 'link' ? 'a' : 'button,[role=button],a,input[type=button],input[type=submit],summary')[0];
-    else if (kind === 'text' || kind === 'label') el = byText(v)[0];
+    var m = /^(qa|text|chart|tab|kpi|button|link|filter|ref|css|label)\s*[=:]\s*([\s\S]+)$/i.exec(t), kind = m ? m[1].toLowerCase() : '', v = m ? m[2].trim() : t, el = null;
+    if (kind === 'qa') el = Q.resolveIdentity(v, opts);
+    else if (kind === 'chart') {
+      if (!opts.strict) el = chartEl(v, opts.parts && opts.parts.charts);
+      else {
+        var charts = (opts.parts && opts.parts.charts) || rt().charts();
+        var keyed = charts.find(function (c) { return c.key === v; });
+        var chart = keyed || matchNamed(charts, function (c) { return opts.parts && opts.parts.chartNames ? opts.parts.chartNames.get(c) : MS.charts.nameOf(c.key, c, charts); }, v, true);
+        el = chart && chart.el;
+      }
+    } else if (kind === 'tab') {
+      var tab = matchNamed((opts.parts && opts.parts.tabs) || Q.tabs(), function (x) { return x.title; }, v, opts.strict);
+      el = tab && tab.el;
+    } else if (kind === 'kpi') {
+      var k = matchNamed((opts.parts && opts.parts.kpis) || Q.kpis(), function (x) { return x.label; }, v, opts.strict);
+      el = k && k.el;
+    } else if (kind === 'filter') {
+      var fields = all('select,input');
+      el = opts.strict ? matchNamed(fields, filterName, v, true) : fields.find(function (f) { return low(filterName(f)).includes(low(v)) || low(f.getAttribute('data-field')) === low(v); });
+    }
+    else if (kind === 'button' || kind === 'link') {
+      var buttons = kind === 'link' ? 'a[href]' : 'button,[role=button],a,input[type=button],input[type=submit],summary';
+      el = opts.strict ? matchNamed(all(buttons), function (b) { return controlName(b, kind); }, v, true) : byText(v, buttons)[0];
+    } else if (kind === 'text' || kind === 'label') el = byText(v)[0];
     else {
       var d = cdoc();
-      if (kind === 'ref' || /^[\w-]+$/.test(v)) el = d.querySelector('[data-ms-ref="' + v + '"],[data-ms-id="' + v + '"]');
-      if (!el && kind !== 'ref') { try { el = d.querySelector(v); } catch (e) {} }
+      if (kind === 'ref' || /^[\w-]+$/.test(v)) {
+        var nodes = MS.$$('[data-ms-ref="' + CSS.escape(v) + '"],[data-ms-id="' + CSS.escape(v) + '"]', d);
+        if (opts.strict && nodes.length > 1) throw Q.block('Reference “' + v + '” appears more than once. Draft again or choose an individual item.');
+        el = nodes[0];
+      }
+      if (!el && kind !== 'ref') {
+        var matches = [];
+        try { matches = opts.strict ? MS.$$(v, d) : [d.querySelector(v)]; } catch (e) {}
+        if (opts.strict && matches.length > 1) throw Q.block('Selector “' + v + '” matches ' + matches.length + ' items. Choose a specific target.');
+        el = matches[0];
+      }
       if (!el && !kind) el = byText(v)[0];
     }
+    if (!el && opts.strict) throw Q.block('Target “' + Q.targetLabel(t) + '” could not be found. Draft again or edit this case to choose the new item.');
     if (!el && !opts.quiet) throw new Error('Nothing matches "' + t + '". Use ui_snapshot to see the parts and their refs.');
     if (el && opts.track !== false) D._lastEl = el;
     return el;
@@ -239,11 +258,17 @@
     return wait(120).then(function () { return { scrollY: Math.round(cwin().pageYOffset) }; });
   };
   D.showTab = function (name) {
-    var r = rt(), g = r.pageTabs && r.pageTabs(), q = low(name);
-    var t = g && (g.tabs.filter(function (x) { return low(x.title) === q; })[0] || g.tabs.filter(function (x) { return low(x.title).indexOf(q) >= 0; })[0]);
-    if (t) { r.showPageTab(t.index); MS.emit('structure'); return wait(400).then(function () { return { tab: t.title }; }); }
-    if (r.layoutEnabled()) { var tb = r.tabs().filter(function (x) { return low(x.title) === q || low(x.title).indexOf(q) >= 0; })[0]; if (tb) { r.showTab(tb.id); MS.emit('structure'); return wait(400).then(function () { return { tab: tb.title }; }); } }
-    return Promise.reject(new Error('No tab called "' + name + '". Tabs: ' + Q.tabs().map(function (x) { return x.title; }).join(', ')));
+    var r = rt(), tabs = Q.tabs(), key = String(name || '');
+    var target = /^(qa|tab)=/i.test(key) ? D.find(key, { strict: true }) : null;
+    var tab = target ? tabs.find(function (t) { return t.el === target || t.panel === target; }) : matchNamed(tabs, function (t) { return t.title; }, name, true);
+    if (!tab) return Promise.reject(Q.block('No tab called “' + Q.targetLabel(key) + '”. Draft again or edit this case.'));
+    if (!tab.active) {
+      if (tab.native) r.showTab(tab.id);
+      else r.showPageTab(tab.index);
+      MS.emit('structure');
+      return wait(400).then(function () { return { tab: tab.title }; });
+    }
+    return Promise.resolve({ tab: tab.title });
   };
   // Wait for text or a part to appear (or go away).
   D.waitFor = function (o) {
@@ -346,12 +371,13 @@
   Q.tabs = function () {
     var r = rt(); if (!r) return [];
     var g = r.pageTabs && r.pageTabs();
-    if (g && g.tabs.length > 1) return g.tabs.map(function (t) { return { title: t.title, active: !!t.active, el: t.btn, panel: t.panel }; });
-    if (r.layoutEnabled()) return r.tabs().filter(function (t) { return !t.hidden; }).map(function (t) { return { title: t.title, active: t.id === r.activeTab, el: MS.$('#ms-ribbon [data-ms-tabbtn="' + t.id + '"]', cdoc()), panel: r.tabEl(t.id) }; });
+    if (g && g.tabs.length > 1) return g.tabs.map(function (t) { return { title: t.title, active: !!t.active, el: t.btn, panel: t.panel, index: t.index }; });
+    if (r.layoutEnabled()) return r.tabs().filter(function (t) { return !t.hidden; }).map(function (t) { return { title: t.title, active: t.id === r.activeTab, native: true, id: t.id, el: MS.$('#ms-ribbon [data-ms-tabbtn="' + t.id + '"]', cdoc()), panel: r.tabEl(t.id) }; });
     return [];
   };
   function tabOfEl(el, tabs) { var t = (tabs || Q.tabs()).find(function (x) { return x.panel && x.panel.contains(el); }); return t ? t.title : null; }
-  Q.tabOf = tabOfEl; D.all = all; D.describe = describe;
+  Q.tabOf = tabOfEl;
+  Q.tabFor = function (el, tabs) { return (tabs || Q.tabs()).find(function (t) { return t.el === el || t.panel && t.panel.contains(el); }); }; D.all = all; D.describe = describe;
   Q.kpis = function () {
     var d = cdoc(), out = [];
     var candidates = MS.$$('[data-ms-kpi],.ms-kpi,[class*="kpi"],[class*="metric"],[class*="stat-card"],[class*="scorecard"]', d).filter(function (e) { return !e.closest(OWN) && !/kpis|kpi-row|kpi-grid|metrics/.test(e.className || '') && /\d/.test(e.textContent || '') && (e.textContent || '').length < 160 && !e.querySelector('canvas,svg,table'); });
@@ -451,7 +477,21 @@
   Q.plan = plan;
   Q.cases = function () { return plan().cases || []; };
   Q.get = function (id) { return Q.cases().filter(function (c) { return c.id === id; })[0] || null; };
-  function edit(label, fn) { MS.history.state(label, function (s) { s.tests = s.tests || { title: '', cases: [] }; s.tests.cases = s.tests.cases || []; fn(s.tests); }, { validationNeutral: true }); MS.emit('tests'); }
+  function setPlan(label, next) {
+    var before = rt().state.tests;
+    function put(t) {
+      if (t) rt().state.tests = t;
+      else delete rt().state.tests;
+      MS.emit('tests');
+    }
+    MS.history.push({ label: label, validationNeutral: true, undo: function () { put(before); }, redo: function () { put(next); } });
+  }
+  function edit(label, fn) {
+    var current = plan(), next = Object.assign({}, current, { cases: (current.cases || []).slice() });
+    fn(next);
+    setPlan(label, next);
+  }
+  Q.editPlan = edit;
   function lastId(list) { return list.reduce(function (n, c) { var m = /(\d+)$/.exec(c.id || ''); return m ? Math.max(n, +m[1]) : n; }, 0); }
   function caseId(n) { return 'TC-' + String(n).padStart(3, '0'); }
   function clean(c) {
@@ -460,6 +500,17 @@
     x.auto = x.steps.length > 0 && x.steps.every(function (s) { return s.do !== 'manual'; });
     return x;
   }
+  Q.addPack = function (definitions, title) {
+    var n = 0, existing = Q.cases(), seen = new Set(existing.map(packKey)), last = lastId(existing), added = [];
+    definitions.forEach(function (definition) {
+      var c = clean(Object.assign({}, definition, { status: 'Not run' })), key = packKey(c);
+      if (seen.has(key)) return;
+      seen.add(key); c.id = caseId(++last); added.push(c); n++;
+    });
+    if (n) edit('Import test pack', function (t) { t.cases = t.cases.concat(added); if (!t.title) t.title = title; });
+    return n;
+  };
+  function packKey(c) { return JSON.stringify([low(c.title), c.steps, c.expected]); }
   Q.add = function (c) { var out; edit('Add test case', function (T) { out = clean(Object.assign({}, c, { id: c.id && !T.cases.some(function (x) { return x.id === c.id; }) ? c.id : caseId(lastId(T.cases) + 1) })); T.cases.push(out); }); return out; };
   Q.update = function (id, patch, label) {
     var out = null;
@@ -472,7 +523,7 @@
     return out;
   };
   Q.remove = function (id) { edit('Delete test case', function (T) { T.cases = T.cases.filter(function (c) { return c.id !== id; }); }); };
-  Q.clear = function () { MS.history.state('Delete all test cases', function (s) { delete s.tests; }); MS.emit('tests'); };
+  Q.clear = function () { if (rt().state.tests) setPlan('Delete all test cases'); };
   Q.record = function (id, o) {
     var c = Q.get(id); if (!c) throw new Error('No test case ' + id + '. Cases: ' + Q.cases().map(function (x) { return x.id; }).join(', '));
     var st = o.status === 'Stale' ? null : o.status ? (Q.STATUSES.filter(function (s) { return low(s) === low(o.status); })[0] || (low(o.status) === 'passed' ? 'Pass' : low(o.status) === 'failed' ? 'Fail' : null)) : c.status;
@@ -495,31 +546,32 @@
   function* generate(ctx) {
     var r = ctx.runtime, out = [], tabs = ctx.tabs, first = tabs.filter(function (t) { return t.active; })[0];
     var add = function (scenario, type, priority, title, steps, expected, pre) { var c = { scenario: scenario, type: type, priority: priority, title: title, steps: steps, expected: expected, pre: pre || '' }; out.push(c); return c; };
-    var openFirst = first ? [{ do: 'open_tab', target: first.title }] : [];
+    var openFirst = first ? [{ do: 'open_tab', target: ctx.tabTargets.get(first).target }] : [];
     add('Opens cleanly', 'Smoke', 'High', 'The dashboard opens without script errors', [{ do: 'expect_no_errors', value: 'since open' }], 'No script errors or console errors.');
     var charts = ctx.charts;
     var vis1 = charts.filter(function (c) { return visible(c.el); });
-    if (vis1.length) add('Opens cleanly', 'Smoke', 'High', 'Every chart on the first screen draws with data', openFirst.concat(vis1.map(function (c) { return { do: 'expect_chart_drawn', target: 'chart=' + ctx.name(c) }; })), 'Each chart shows bars, lines or slices with numbers; none is blank.');
+    if (vis1.length) add('Opens cleanly', 'Smoke', 'High', 'Every chart on the first screen draws with data', openFirst.concat(vis1.map(function (c) { return { do: 'expect_chart_drawn', target: ctx.chartTargets.get(c).target }; })), 'Each chart shows bars, lines or slices with numbers; none is blank.');
     for (var t of tabs) {
       yield;
+      var tab = ctx.tabTargets.get(t);
       var inTab = charts.filter(function (c) { return t.panel && t.panel.contains(c.el); });
-      add('Navigation', 'Navigation', 'High', 'Open the “' + t.title + '” tab', [{ do: 'open_tab', target: t.title }, { do: 'expect_visible', target: 'tab=' + t.title }].concat(inTab.map(function (c) { return { do: 'expect_chart_drawn', target: 'chart=' + ctx.name(c) }; })).concat([{ do: 'expect_no_errors' }]), 'The tab opens, its charts draw, and nothing errors.');
+      add('Navigation', 'Navigation', 'High', 'Open the “' + tab.name + '” tab', [{ do: 'open_tab', target: tab.target }, { do: 'expect_visible', target: /^qa=/.test(tab.target) ? tab.target : 'tab=' + t.title }].concat(inTab.map(function (c) { return { do: 'expect_chart_drawn', target: ctx.chartTargets.get(c).target }; })).concat([{ do: 'expect_no_errors' }]), 'The tab opens, its charts draw, and nothing errors.');
     }
     for (var c of charts) {
       yield;
-      var nm = ctx.name(c), t = tabOfEl(c.el, tabs), go = t ? [{ do: 'open_tab', target: t }] : [], d = ctx.data(c), cs = r.state.charts[c.key] || {};
+      var item = ctx.chartTargets.get(c), nm = item.name, t = tabOfEl(c.el, tabs), go = Q.openSteps(c.el, tabs, ctx.tabTargets), d = ctx.data(c), cs = r.state.charts[c.key] || {};
       var area = (t ? t + ' › ' : '') + nm;
-      add('Charts', 'Data', 'High', '“' + nm + '” shows the right numbers', go.concat([{ do: 'expect_chart_drawn', target: 'chart=' + nm }, { do: 'manual', value: 'Compare each value (' + d.labels.slice(0, 6).join(', ') + (d.labels.length > 6 ? '…' : '') + ') with the source report' }]), 'Every value matches the source; the units and currency are right.').area = area;
+      add('Charts', 'Data', 'High', '“' + nm + '” shows the right numbers', go.concat([{ do: 'expect_chart_drawn', target: item.target }, { do: 'manual', value: 'Compare each value (' + d.labels.slice(0, 6).join(', ') + (d.labels.length > 6 ? '…' : '') + ') with the source report' }]), 'Every value matches the source; the units and currency are right.').area = area;
       var canPoint = d.labels.length && D.canPoint(c);
-      if (d.labels.length) add('Charts', 'Interaction', 'Medium', 'Hovering “' + nm + '” shows a pop-up with the value', go.concat(canPoint ? [{ do: 'hover', target: 'chart=' + nm, point: d.labels[0] }, { do: 'expect_tooltip', target: 'chart=' + nm, point: d.labels[0], value: d.labels[0] }] : [{ do: 'manual', value: 'Hover “' + d.labels[0] + '” on the chart: a pop-up shows its name and value' }]), 'A pop-up names “' + d.labels[0] + '” and shows its value, formatted (e.g. $1.2M).').area = area;
-      if (cs.drill || (cs.binding && cs.binding.levels && cs.binding.levels.length > 1)) add('Charts', 'Interaction', 'Medium', 'Double-clicking “' + nm + '” drills down', go.concat([{ do: 'double_click', target: 'chart=' + nm, point: d.labels[0] }, { do: 'expect_changed', value: 'chart' }, { do: 'manual', value: 'The next level (or the records) for ' + d.labels[0] + ' shows, with a way back' }]), 'The chart shows the detail behind “' + d.labels[0] + '”.').area = area;
-      add('Content', 'Content', 'Low', '“' + nm + '” has a clear title, axis labels and a source', go.concat([{ do: 'screenshot', target: 'chart=' + nm }, { do: 'manual', value: 'Title says what the chart shows; axes and legend are readable; the source and date are given' + (cs.source ? '' : ' (no source is set in Mothership)') }]), 'Title, axes, legend and source are present and readable.').area = area;
+      if (d.labels.length) add('Charts', 'Interaction', 'Medium', 'Hovering “' + nm + '” shows a pop-up with the value', go.concat(canPoint ? [{ do: 'hover', target: item.target, point: d.labels[0] }, { do: 'expect_tooltip', target: item.target, point: d.labels[0], value: d.labels[0] }] : [{ do: 'manual', value: 'Hover “' + d.labels[0] + '” on the chart: a pop-up shows its name and value' }]), 'A pop-up names “' + d.labels[0] + '” and shows its value, formatted (e.g. $1.2M).').area = area;
+      if (cs.drill || (cs.binding && cs.binding.levels && cs.binding.levels.length > 1)) add('Charts', 'Interaction', 'Medium', 'Double-clicking “' + nm + '” drills down', go.concat([{ do: 'double_click', target: item.target, point: d.labels[0] }, { do: 'expect_changed', value: 'chart' }, { do: 'manual', value: 'The next level (or the records) for ' + d.labels[0] + ' shows, with a way back' }]), 'The chart shows the detail behind “' + d.labels[0] + '”.').area = area;
+      add('Content', 'Content', 'Low', '“' + nm + '” has a clear title, axis labels and a source', go.concat([{ do: 'screenshot', target: item.target }, { do: 'manual', value: 'Title says what the chart shows; axes and legend are readable; the source and date are given' + (cs.source ? '' : ' (no source is set in Mothership)') }]), 'Title, axes, legend and source are present and readable.').area = area;
     }
     var kp = ctx.kpis;
     for (var k of kp) {
       yield;
-      var t = tabOfEl(k.el, tabs), go = t ? [{ do: 'open_tab', target: t }] : [];
-      add('KPI cards', 'Data', 'High', 'KPI “' + k.label + '” shows the right value', go.concat([{ do: 'expect_text', target: 'kpi=' + k.label, value: k.value }, { do: 'manual', value: 'Check ' + k.value + ' against the source for the same period and filters' }]), '“' + k.label + '” shows ' + k.value + ', the same as the source.').area = (t ? t + ' › ' : '') + 'KPI ' + k.label;
+      var item = ctx.kpiTargets.get(k), t = tabOfEl(k.el, tabs), go = Q.openSteps(k.el, tabs, ctx.tabTargets);
+      add('KPI cards', 'Data', 'High', 'KPI “' + item.name + '” shows the right value', go.concat([{ do: 'expect_text', target: item.target, value: k.value }, { do: 'manual', value: 'Check ' + k.value + ' against the source for the same period and filters' }]), '“' + k.label + '” shows ' + k.value + ', the same as the source.').area = (t ? t + ' › ' : '') + 'KPI ' + k.label;
     }
     if (kp.length && charts.length) add('KPI cards', 'Data', 'High', 'KPI cards agree with the chart totals', [{ do: 'expect_numbers' }], 'Each KPI equals the total of the charts that show the same measure.');
     for (var f of r.state.filters || []) {
@@ -527,18 +579,24 @@
       var row = r.getRows(f.dataset).find(function (x) { return x[f.field] != null && x[f.field] !== ''; });
       if (!row) continue;
       var firstValue = String(row[f.field]);
-      add('Filters', 'Interaction', 'High', 'Filtering by “' + (f.label || f.field) + '” updates the dashboard', [{ do: 'select', target: 'filter=' + (f.label || f.field), value: firstValue }, { do: 'expect_changed', value: 'chart' }, { do: 'manual', value: 'Charts and KPI cards now show only ' + firstValue }, { do: 'select', target: 'filter=' + (f.label || f.field), value: 'All' }], 'Charts and KPI cards change to ' + firstValue + ' only, and go back with “All”.');
+      var control = all('#ms-filter-pane select').find(function (e) { return e.getAttribute('data-field') === f.field && e.getAttribute('data-ms-filter-dataset') === f.dataset; });
+      var filter = control ? Q.identity(control, f.label || f.field) : 'filter=' + (f.label || f.field);
+      add('Filters', 'Interaction', 'High', 'Filtering by “' + (f.label || f.field) + '” updates the dashboard', [{ do: 'select', target: filter, value: firstValue }, { do: 'expect_changed', value: 'chart' }, { do: 'manual', value: 'Charts and KPI cards now show only ' + firstValue }, { do: 'select', target: filter, value: 'All' }], 'Charts and KPI cards change to ' + firstValue + ' only, and go back with “All”.');
     }
     var candidates = controls(tabs, function () { return true; }).map(function (e) {
       var kind = controlKind(e);
-      return { kind: kind, name: kind === 'button' || kind === 'link' ? controlName(e, kind) : '', href: e.getAttribute('href') };
+      return { kind: kind, name: kind === 'button' || kind === 'link' ? controlName(e, kind) : '', href: e.getAttribute('href'), el: e };
     });
-    var ctl = candidates.filter(function (x) { return x.kind === 'button' && x.name; }).slice(0, 12);
-    ctl.forEach(function (b) { add('Buttons and links', 'Interaction', 'Medium', 'The “' + b.name + '” button works', [{ do: 'click', target: 'button=' + b.name }, { do: 'expect_no_errors' }, { do: 'manual', value: 'It does what its label says' }], 'Clicking it does what it says, with no errors.'); });
+    var buttons = candidates.filter(function (x) { return x.kind === 'button' && x.name && !x.el.disabled; });
+    var named = Q.namedTargets(buttons, function (b) { return b.name; }, function (b) { return b.el; }, 'button', tabs, true);
+    buttons.slice(0, 12).forEach(function (b) {
+      var item = named.get(b);
+      add('Buttons and links', 'Interaction', 'Medium', 'The “' + item.name + '” button works', Q.openSteps(b.el, tabs, ctx.tabTargets).concat([{ do: 'click', target: item.target }, { do: 'expect_no_errors' }, { do: 'manual', value: 'It does what its label says' }]), 'Clicking it does what it says, with no errors.');
+    });
     var links = candidates.filter(function (x) { return x.kind === 'link'; }).slice(0, 10);
     links.forEach(function (l) { add('Buttons and links', 'Content', 'Low', 'The “' + (l.name || l.href) + '” link goes to the right place', [{ do: 'manual', value: 'The link (' + l.href + ') opens the right page or section; it does not need the internet if the dashboard is meant to work offline' }], 'The link works.'); });
     var tbls = all('table').slice(0, 8);
-    tbls.forEach(function (t, i) { var nm = norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40); add('Tables', 'Data', 'Medium', 'Table “' + nm + '” has headings and the right rows', (t.id ? [{ do: 'expect_visible', target: 'css=#' + t.id }] : []).concat([{ do: 'manual', value: 'Headings are clear; row totals and the grand total add up; numbers are aligned and formatted alike' }]), 'Headings, rows and totals are right.'); });
+    tbls.forEach(function (t, i) { var nm = norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40); add('Tables', 'Data', 'Medium', 'Table “' + nm + '” has headings and the right rows', Q.openSteps(t, tabs, ctx.tabTargets).concat([{ do: 'expect_visible', target: Q.identity(t, nm) }]).concat([{ do: 'manual', value: 'Headings are clear; row totals and the grand total add up; numbers are aligned and formatted alike' }]), 'Headings, rows and totals are right.'); });
     add('Accessibility', 'Accessibility', 'Medium', 'The accessibility scan finds nothing serious', [{ do: 'expect_a11y', value: 0 }], 'Pictures have alt text, text is readable against its background, tables have headings.');
     [1366, 820, 390].forEach(function (w) { add('Screen sizes', 'Responsive', w === 390 ? 'Low' : 'Medium', 'Readable at ' + w + ' px wide (' + (w === 1366 ? 'laptop' : w === 820 ? 'tablet' : 'phone') + ')', [{ do: 'set_width', value: w }, { do: 'expect_no_overflow' }, { do: 'screenshot' }, { do: 'manual', value: 'Nothing overlaps or is cut off; charts resize' }, { do: 'set_width', value: 'auto' }], 'The page fits the width; nothing overlaps or is cut off.'); });
     add('Export', 'Export', 'Low', 'The exported file opens offline and looks the same', [{ do: 'manual', value: 'File › Export HTML, open the file with the network off: charts, tabs, filters and pop-ups all work' }], 'The exported file works offline and matches the editor.');
@@ -563,8 +621,16 @@
         return data.get(c);
       }
     };
+    ctx.tabTargets = Q.namedTargets(tabs, function (t) { return t.title; }, function (t) { return t.el; }, '', tabs);
+    ctx.chartTargets = Q.namedTargets(charts, ctx.name, function (c) { return c.el; }, 'chart', tabs);
+    ctx.kpiTargets = Q.namedTargets(ctx.kpis, function (k) { return k.label; }, function (k) { return k.el; }, 'kpi', tabs);
     var cases = yield* generate(ctx);
     if (Q.deep) cases = cases.concat(yield* Q.deep.draftSteps(o, ctx));
+    if (o.sections) {
+      var inScope = Q.workflow.scope(o.sections), scoped = [];
+      for (var candidate of cases) { yield; if (inScope(candidate)) scoped.push(candidate); }
+      cases = scoped;
+    }
     var previous = rt().state.tests;
     var existing = o.replace ? [] : Q.cases();
     var titles = new Set(existing.map(function (c) { return low(c.title); })), last = lastId(existing), added = [];
@@ -576,26 +642,14 @@
       c.id = caseId(++last);
       added.push(clean(c));
     }
-    return { previous: previous, next: Object.assign({}, previous, {
+    return { next: Object.assign({}, previous, {
       title: (previous && previous.title) || (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'Dashboard') + ' test plan',
       cases: existing.concat(added)
     }), added: added.length };
   }
   function commitDraft(o, d) {
     if (!d.added && !o.replace) return 0;
-    // Drafting changes test metadata only. Avoid refreshing every chart and filter.
-    function put(t) {
-      var state = rt().state;
-      if (t) state.tests = Object.assign({}, t, { cases: t.cases ? t.cases.slice() : [] });
-      else delete state.tests;
-      MS.emit('tests');
-    }
-    MS.history.push({
-      label: (o.depth === 'full' ? 'Draft full test cases' : 'Draft test cases') + (o.replace ? ' (replace)' : ''),
-      validationNeutral: true,
-      undo: function () { put(d.previous); },
-      redo: function () { put(d.next); }
-    });
+    setPlan((o.depth === 'full' ? 'Draft full test cases' : 'Draft test cases') + (o.replace ? ' (replace)' : ''), d.next);
     return d.added;
   }
   Q.drain = function (steps) {
@@ -650,11 +704,15 @@
 
   /* ---------------------------------------------------------------- running */
   var shots = {};
+  function readableStep(s) {
+    return Q.stepText(Object.assign({}, s, { target: Q.targetLabel(s.target) }));
+  }
   function lastChange() { return Q._last || []; }
   function runStep(s, log, index) {
     var t = s.target, v = s.value;
-    var pass = function (msg, detail) { log.push({ index: index, step: Q.stepText(s), ok: true, note: msg || '', detail: detail }); };
-    var fail = function (msg, detail) { log.push({ index: index, step: Q.stepText(s), ok: false, note: msg, detail: detail }); throw Object.assign(new Error(msg), { stepFail: true }); };
+    var pass = function (msg, detail) { log.push({ index: index, step: readableStep(s), ok: true, note: msg || '', detail: detail }); };
+    var fail = function (msg, detail) { log.push({ index: index, step: readableStep(s), ok: false, note: msg, detail: detail }); throw Object.assign(new Error(msg), { stepFail: true }); };
+    if (t && !['open_tab', 'expect_count', 'expect_hidden', 'manual', 'screenshot'].includes(s.do)) D.find(t, { strict: true, track: false });
     if (Q.STEPS[s.do]) return Promise.resolve().then(function () { return Q.STEPS[s.do](s, pass, fail); });
     switch (s.do) {
       case 'open_tab': return D.showTab(t || v).then(function (x) { pass('on “' + x.tab + '”'); });
@@ -676,69 +734,123 @@
       case 'expect_numbers': var res = MS.numcheck ? MS.numcheck.run() : [], diff = res.filter(function (q) { return q.status === 'diff'; }); return Promise.resolve(diff.length ? fail(diff.map(function (q) { return q.what + ' shows ' + q.shown + ' but ' + q.against + ' adds up to ' + q.expected; }).join('; ')) : pass(res.length ? res.length + ' compared, all agree' : 'nothing to compare'));
       case 'expect_a11y': var f = MS.a11y ? MS.a11y.check().filter(function (q) { return q.kind !== 'cvd'; }) : [], max = +v || 0; return Promise.resolve(f.length > max ? fail(f.length + ' finding(s): ' + f.slice(0, 3).map(function (q) { return q.msg; }).join(' | ')) : pass(f.length + ' finding(s)'));
       case 'screenshot': return Promise.resolve(pass('taken by the MCP server (ui_screenshot) when an AI runs the test'));
-      default: log.push({ step: Q.stepText(s), ok: null, note: 'for a person to check' }); return Promise.resolve();
+      default: log.push({ step: readableStep(s), ok: null, note: 'for a person to check' }); return Promise.resolve();
     }
   }
-  Q.runCase = function (id) {
-    var c = Q.get(id); if (!c) return Promise.reject(new Error('No test case ' + id));
-    var log = [], chain = Promise.resolve(), was = MS.mode, width = MS.view.width, t0 = Date.now(), revision = Q.revision(), session = MS.doc.session;
+  Q.checkRun = function () {
+    var run = Q.running;
+    if (run && run.deadline && Date.now() >= run.deadline) { run.reason = 'Time budget reached'; Q.stopping = true; }
+    if (run && (!MS.doc || MS.doc.session !== run.session || Q.revision() !== run.revision)) {
+      run.reason = 'The dashboard changed'; Q.stopping = true;
+    }
+    if (Q.stopping) throw Object.assign(new Error('Stopped'), { stopped: true });
+  };
+  Q.runCase = async function (id, collect) {
+    var c = Q.get(id); if (!c) throw new Error('No test case ' + id);
+    var log = [], was = MS.mode, width = MS.view.width, t0 = Date.now(), revision = Q.revision(), child = MS.child;
+    var status, error;
     D._errBase = D.errorMark(); D._lastEl = null; Q._last = [];
-    c.steps.forEach(function (s, i) {
-      chain = chain.then(function () {
-        if (Q.stopping || !MS.doc || MS.doc.session !== session) throw Object.assign(new Error('Stopped'), { stopped: true });
-        MS.emit('qa-step', { id: id, index: i, total: c.steps.length, text: stepWords(s), step: s });
-        return runStep(s, log, i);
-      });
+    try {
+      for (var [i, step] of c.steps.entries()) {
+        Q.checkRun();
+        if (MS.child !== child) throw Object.assign(new Error('Stopped'), { stopped: true });
+        MS.emit('qa-step', { id: id, index: i, total: c.steps.length, text: stepWords(step), step: step });
+        await runStep(step, log, i);
+      }
+      status = log.some(function (x) { return x.ok === null; }) ? 'Needs a person' :
+        log.some(function (x) { return x.detail && x.detail.partial; }) ? 'Partial' : 'Pass';
+    } catch (e) {
+      error = e.message;
+      status = e.stopped ? 'Stopped' : e.blocked ? 'Blocked' : 'Fail';
+      if (!e.stopped && !e.stepFail) log.push({ index: i, step: step ? readableStep(step) : '(error)', ok: false, note: e.message, detail: e.blocked ? { blocked: true } : undefined });
+    } finally {
+      if (MS.child === child) {
+        if (MS.view.width !== width) MS.view.setWidth(width, true);
+        if (was !== MS.mode && was !== 'interact') MS.setMode(was);
+      }
+    }
+    if (MS.child !== child) status = 'Stopped';
+    var out = { id: id, title: c.title, status: status, ms: Date.now() - t0, steps: log };
+    if (error) out.error = error;
+    if (status === 'Stopped') return out;
+    var result = resultCase(c, out, revision, 'Mothership');
+    if (collect) collect.set(id, { original: c, result: result });
+    else if (Q.get(id) === c) edit('Test run ' + id, function (t) { t.cases = t.cases.map(function (x) { return x === c ? result : x; }); });
+    var failed = status === 'Fail' ? D._lastEl : null;
+    if (failed && Q.live && Q.live.evidence) try { await Q.live.evidence(id, failed); } catch (e) {}
+    return out;
+  };
+  function resultCase(c, out, revision, by) {
+    return Object.assign({}, c, {
+      status: out.status, at: new Date().toISOString(), by: by, ms: out.ms, revision: revision,
+      actual: out.steps.map(function (x) { return (x.ok === false ? '✗ ' : x.ok ? '✓ ' : '• ') + x.step + (x.note ? ' → ' + x.note : ''); }).join('\n'),
+      stepResults: out.steps.filter(function (x) { return x.index != null; }).map(function (x) { return { index: x.index, ok: x.ok, detail: x.detail }; })
     });
-    return chain.then(function () {
-      var manual = log.some(function (x) { return x.ok === null; });
-      return { status: manual ? 'Needs a person' : log.some(function (x) { return x.detail && x.detail.partial; }) ? 'Partial' : 'Pass', log: log };
-    }, function (e) {
-      if (e.stopped) return { stopped: true, log: log };
-      if (!e.stepFail) log.push({ step: '(error)', ok: false, note: e.message });
-      return { status: 'Fail', log: log, error: e.message };
-    }).then(function (res) {
-      if (MS.view.width !== width) MS.view.setWidth(width, true);
-      if (was !== MS.mode && was !== 'interact') MS.setMode(was);
-      if (res.stopped || !MS.doc || MS.doc.session !== session) return { id: id, title: c.title, status: 'Stopped', steps: res.log };
-      var ms = Date.now() - t0, failed = res.status === 'Fail' ? D._lastEl : null;
-      var actual = res.log.map(function (x) { return (x.ok === false ? '✗ ' : x.ok ? '✓ ' : '• ') + x.step + (x.note ? ' → ' + x.note : ''); }).join('\n');
-      Q.update(id, { status: res.status, actual: actual, at: new Date().toISOString(), by: 'Mothership', ms: ms, revision: revision, stepResults: res.log.filter(function (x) { return x.index != null; }).map(function (x) { return { index: x.index, ok: x.ok, detail: x.detail }; }) }, 'Test run ' + id);
-      var out = { id: id, title: c.title, status: res.status, ms: ms, steps: res.log };
-      if (failed && Q.live && Q.live.evidence) return Q.live.evidence(id, failed).then(function () { return out; }, function () { return out; });
-      return out;
+  }
+  Q.storeRun = function (record, results, baseline) {
+    if (!results.size) return;
+    edit('Test run' + (record.scope ? ' (' + record.scope + ')' : ''), function (t) {
+      t.cases = t.cases.map(function (c) {
+        var entry = results.get(c.id);
+        return entry && entry.original === c ? entry.result : c;
+      });
+      t.runs = (t.runs || []).concat([record]).slice(-20);
+      if (baseline) t.changeBaseline = baseline;
     });
   };
-  // Run cases one after another. o.onProgress is told about each case; Q.stop() ends the run after the current step.
-  Q.running = null;
-  Q.stop = function () { if (Q.running) { Q.stopping = true; MS.emit('qa-run', { phase: 'stopping' }); } };
-  Q.run = function (ids, o) {
-    o = o || {};
-    if (Q.running || drafting) return Promise.reject(new Error(Q.running ? 'Tests are already running.' : 'Wait for the test draft or cancel it before running tests.'));
-    var list = (ids && ids.length ? ids : Q.cases().map(function (c) { return c.id; })).filter(function (id) { return Q.get(id); });
-    var out = [], chain = Promise.resolve(), t0 = Date.now(), session = MS.doc.session;
-    Q.stopping = false; Q.running = { ids: list, total: list.length, started: t0, results: out };
-    MS.emit('qa-run', { phase: 'start', ids: list, total: list.length });
-    list.forEach(function (id, i) {
-      chain = chain.then(function () {
-        if (Q.stopping || !MS.doc || MS.doc.session !== session) return;
-        MS.emit('qa-run', { phase: 'case', id: id, index: i, total: list.length, title: Q.get(id).title });
-        return Q.runCase(id).then(function (r) {
-          if (r.status !== 'Stopped') out.push(r);
-          MS.status('Testing… ' + out.length + ' of ' + list.length);
-          MS.emit('qa-run', { phase: 'result', result: r, index: i, total: list.length });
-        });
-      });
+  Q.runRecord = function (results, total, started, options) {
+    var rec = { at: new Date().toISOString(), ms: Date.now() - started, total: total, ran: results.length, stopped: !!options.stopped, scope: options.scope, reason: options.reason || '' };
+    ['Pass', 'Fail', 'Partial', 'Blocked', 'Needs a person'].forEach(function (k) {
+      rec[k === 'Needs a person' ? 'person' : k.toLowerCase()] = results.filter(function (r) { return r.status === k; }).length;
     });
-    var end = function (err) {
-      var stopped = Q.stopping || !MS.doc || MS.doc.session !== session; Q.running = null; Q.stopping = false; MS.status('');
-      var rec = { at: new Date().toISOString(), ms: Date.now() - t0, total: list.length, ran: out.length, stopped: !!stopped };
-      ['Pass', 'Fail', 'Partial', 'Needs a person'].forEach(function (k) { rec[k === 'Needs a person' ? 'person' : k.toLowerCase()] = out.filter(function (r) { return r.status === k; }).length; });
-      if (out.length && MS.doc && MS.doc.session === session) edit('Test run', function (T) { T.runs = (T.runs || []).concat([rec]).slice(-20); });
-      MS.emit('qa-run', { phase: 'end', results: out, run: rec, error: err ? err.message : null });
-      return rec;
-    };
-    return chain.then(function () { end(); return out; }, function (e) { end(e); throw e; });
+    return rec;
+  };
+  Q.externalRun = function (job, results, record) {
+    var cases = new Map(Q.cases().map(function (c) { return [c.id, c]; })), changes = new Map(), rev = Q.revision();
+    results.forEach(function (out) {
+      var c = cases.get(out.id);
+      if (c) changes.set(c.id, { original: c, result: resultCase(c, out, rev, 'Isolated browser') });
+    });
+    Q.storeRun(record, changes, !record.stopped && job.scope === 'all' ? job.baseline : null);
+  };
+  Q.running = null;
+  Q.stop = function () { if (Q.running) { Q.stopping = true; Q.running.reason = 'Stopped by user'; MS.emit('qa-run', { phase: 'stopping' }); } };
+  Q.run = async function (ids, o) {
+    o = o || {};
+    if (!MS.doc || !rt()) throw new Error('Open a dashboard with scripts enabled first.');
+    if (Q.running || drafting) throw new Error(Q.running ? 'Tests are already running.' : 'Wait for the test draft or cancel it before running tests.');
+    var cases = new Map(Q.cases().map(function (c) { return [c.id, c]; }));
+    var list = (ids && ids.length ? ids : Array.from(cases.keys())).filter(function (id) { return cases.has(id); });
+    var out = [], results = new Map(), t0 = Date.now(), session = MS.doc.session, revision = Q.revision(), baseline, error;
+    var scope = o.scope || (ids && ids.length ? 'selected' : 'all');
+    Q.stopping = false;
+    var run = Q.running = { ids: list, total: list.length, started: t0, results: out, scope: scope, session: session, revision: revision, deadline: o.budgetMs ? t0 + o.budgetMs : 0 };
+    MS.emit('qa-run', { phase: 'start', ids: list, total: list.length });
+    try {
+      if (scope === 'all' && list.length && Q.workflow) {
+        try { baseline = await Q.workflow.snapshot(); } catch (e) { Q.checkRun(); }
+      }
+      for (var [i, id] of list.entries()) {
+        // Even synchronous checks yield between cases so the runner can paint and Stop works.
+        await wait(0);
+        Q.checkRun();
+        var c = Q.get(id);
+        if (c !== cases.get(id)) continue;
+        MS.emit('qa-run', { phase: 'case', id: id, index: i, total: list.length, title: c.title });
+        var result = await Q.runCase(id, results);
+        if (result.status !== 'Stopped') out.push(result);
+        MS.status('Testing… ' + out.length + ' of ' + list.length);
+        MS.emit('qa-run', { phase: 'result', result: result, index: i, total: list.length });
+      }
+    } catch (e) { if (!e.stopped) { error = e; throw e; } }
+    finally {
+      var stopped = Q.stopping || !MS.doc || MS.doc.session !== session || out.length !== list.length;
+      var record = Q.runRecord(out, list.length, t0, { scope: scope, stopped: stopped, reason: run.reason });
+      Q.running = null; Q.stopping = false; MS.status('');
+      if (results.size && MS.doc && MS.doc.session === session) Q.storeRun(record, results, !stopped && Q.revision() === revision ? baseline : null);
+      MS.emit('qa-run', { phase: 'end', results: out, run: record, error: error ? error.message : null });
+    }
+    return out;
   };
   Q.runs = function () { return plan().runs || []; };
   Q.failed = function () { return Q.cases().filter(function (c) { return Q.statusOf(c) === 'Fail'; }); };
@@ -818,7 +930,7 @@
     return L.join('\n') + '\n';
   };
   function stepWords(s) {
-    var t = s.target ? String(s.target).replace(/^(\w+)=/, function (m, k) { return { chart: 'chart ', tab: 'tab ', kpi: 'KPI ', button: 'button ', filter: 'filter ', text: '', css: '', ref: '' }[k] || ''; }) : '';
+    var t = s.target ? String(Q.targetLabel(s.target)).replace(/^(\w+)=/, function (m, k) { return { chart: 'chart ', tab: 'tab ', kpi: 'KPI ', button: 'button ', filter: 'filter ', text: '', css: '', ref: '' }[k] || ''; }) : '';
     switch (s.do) {
       case 'open_tab': return 'Open the “' + (s.target || s.value) + '” tab.';
       case 'click': return 'Click ' + (s.point != null ? '“' + s.point + '” on ' : '') + t + '.';
@@ -1038,6 +1150,9 @@
       h('button', { 'class': 'btn sm', title: 'Quick or full draft, expected numbers, coverage', onclick: function (e) { if (Q.deep) MS.menu(e.currentTarget, Q.deep.draftMenu()); else Q.draftInUI(); } }, ['✨ Draft ▾']),
       h('button', { 'class': 'btn sm', onclick: function () { Q.editDialog(null).then(draw); } }, ['＋ Add case']),
       fixBtns[0], rerun,
+      h('button', { 'class': 'btn sm', onclick: function () { Q.workflow.changeDialog(); } }, ['Changed sections']),
+      h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.workflow.packMenu()); } }, ['Test packs']),
+      h('button', { 'class': 'btn sm', onclick: function () { Q.workflow.smokeInUI(); } }, ['Run smoke']),
       h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export']),
       h('button', { 'class': 'btn sm primary', title: 'Run every case. The window closes so you can watch the steps on the dashboard.', onclick: function () { if (live) live.start(); } }, ['▶ Run all'])]);
     function turnPage(delta) {
@@ -1110,21 +1225,42 @@
   api('ui_width', { d: 'Testing: draw the dashboard at a width in px (1366 laptop, 820 tablet, 390 phone) or "auto". Returns how far the page spills off the side (0 = fits).', p: { width: ['string', 'px or auto', true] }, f: function (a) { return D.width(a.width); } });
   api('ui_locate', { d: 'Testing: where a part is in the editor window (for real mouse input and screenshots).', p: { target: TGT, point: ['string', 'A chart category'], series: ['number', ''], interact: ['boolean', 'Switch to Interact mode and remember the screen, for ui_after'] }, f: function (a) { return D.locate(a.target, { point: a.point, series: a.series, interact: !!a.interact }); } });
   api('ui_after', { d: 'Testing: after real mouse input (the MCP ui_mouse tool), what changed since ui_locate and what pop-up shows.', p: {}, f: function () { var m = D._mark || {}; return { changed: m.before ? D.changes(m.before) : [], tooltip: D.tooltip(m.el) }; } });
-  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; depth: "full" drafts deeper checks within safety limits; use test_coverage to see what was planned and run; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'], depth: ['string', 'For draft: quick (default) or full'] },
+  api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; depth: "full" drafts deeper checks within safety limits; use test_coverage to see what was planned and run; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'], depth: ['string', 'For draft: quick (default) or full'], scope: ['string', 'For draft: changed to limit to changed sections'] },
     f: function (a) {
       var act = a.action || 'get';
-      if (act === 'draft') return Q.draftAsync({ replace: !!a.replace, depth: a.depth }).then(async function (n) {
+      if (act === 'draft') return (async function () {
+        var sections;
+        if (a.scope === 'changed') {
+          var d = await Q.workflow.changes();
+          if (d.first) throw new Error('Set a comparison baseline or complete Run all first.');
+          if (a.replace) throw new Error('A changed-section draft adds cases to the existing plan.');
+          sections = d.changed;
+        }
+        var n = await Q.draftAsync({ replace: !!a.replace, depth: a.depth, sections: sections });
         var cases = Q.cases(), summary = Q.summary(), C = null;
         try { if (Q.deep) C = await Q.deep.coverageAsync(); } catch (e) { if (e.name !== 'AbortError') throw e; }
         return { added: n, summary: summary, coverage: C ? { percent: C.percent, parts: C.parts, planned: C.planned, executed: C.executed, passing: C.passing, untested: C.untested } : null, cases: cases };
-      });
+      })();
       if (act === 'add') return Q.add(a['case'] || {});
       if (act === 'update') return Q.update(a.id, a['case'] || {});
       if (act === 'remove') { Q.remove(a.id); return { removed: a.id }; }
       if (act === 'clear') { Q.clear(); return { cleared: true }; }
       return { title: plan().title || '', summary: Q.summary(), actions: Q.ACTIONS, cases: Q.cases() };
     } });
-  api('test_run', { d: 'Testing: run test cases (all, or the ids given). Automatic steps run; “manual” steps are left for you and the case is marked "Needs a person". Records each result in the plan.', p: { ids: ['array', 'Test case ids (default: all)'] }, f: function (a) { return Q.run(a.ids).then(function (res) { return { summary: Q.summary(), results: res }; }); } });
+  api('test_run', { d: 'Testing: run all cases, selected ids, the high-priority smoke checks, or cases for changed sections. Record completed results together.',
+    p: { ids: ['array', 'Explicit test case ids'], scope: ['string', 'all | smoke | changed'] },
+    f: async function (a) {
+      var results;
+      if (a.scope === 'smoke') results = await Q.workflow.runSmoke(false);
+      else if (a.scope === 'changed') {
+        var d = await Q.workflow.changes();
+        if (d.first) throw new Error('Set a comparison baseline or complete Run all first.');
+        var ids = (await Q.workflow.scopedCases(d.changed)).map(function (c) { return c.id; });
+        results = ids.length ? await Q.run(ids, { scope: 'changed' }) : [];
+      } else results = await Q.run(a.ids);
+      return { summary: Q.summary(), results: results };
+    } });
+
   api('test_record', { d: 'Testing: record the result of a test case: status (Pass, Fail, Blocked, Skipped, Needs a person, Not run), what actually happened, notes, who tested.', p: { id: ['string', 'Test case id', true], status: ['string', 'Pass | Fail | Blocked | Skipped', true], actual: ['string', 'What actually happened'], notes: ['string', 'Notes, defect details, severity'], by: ['string', 'Tester'] }, f: function (a) { return Q.record(a.id, a); } });
   api('test_document', { d: 'Testing: the full test document (purpose, scope, what is tested, approach, test cases with steps and expected results, results, traceability, MCP how-to, defect log, sign-off). format: markdown (default) | html | json | xlsx (base64) | prompt (a prompt for an AI tester) | failures (a prompt built from the failed cases: find the cause, fix, test again).', p: { format: ['string', 'markdown | html | json | xlsx | prompt | failures'], mcp: ['boolean', 'For prompt / failures: the AI has the MCP tools (default true)'], goal: ['string', 'For failures: fix (default) or retest (find the cause only)'], person: ['boolean', 'For failures: include the "needs a person" cases (default true)'] },
     f: function (a) {

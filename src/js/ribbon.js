@@ -257,9 +257,15 @@
         { icon: '🔢', label: 'Numbers', title: 'Lock in today\'s numbers, or import the figures from your source report, so "right numbers" tests run automatically', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.deep.numbersMenu()); }) },
         { icon: '🎯', label: 'Coverage', title: 'Separate planned, executed and passing checks for recognised parts', run: needRt(function () { MS.qa.deep.coverageDialog(); }) }] },
       { name: 'Run', items: [
+        { icon: '⚡', label: 'Run smoke', title: 'Run up to 12 high-priority automatic checks with a 20-second budget', run: needRt(function () { MS.qa.workflow.smokeInUI(); }) },
         { icon: '▷', label: 'Run all', title: 'Run every test case while you watch: a pointer shows each click and hover, and a progress card shows the case, the step and the results so far. Steps to check by eye are marked "Needs a person".', run: needRt(function () { MS.qa.live.start(); }) },
         { icon: '↻', label: 'Rerun failed', title: 'Run only the cases that failed last time', run: needRt(function () { var f = MS.qa.failed(); if (!f.length) return MS.toast('No failed test cases.', 'ok'); MS.qa.live.start(f.map(function (x) { return x.id; })); }) },
         { icon: '🐞', label: 'Script errors', title: 'Script and console errors since the dashboard opened', run: needRt(function () { var e = MS.qa.drv.errors(false), all = e.scriptErrors.concat(e.consoleErrors); MS.toast(all.length ? all.length + ' error(s): ' + all.slice(0, 3).join(' · ') : 'No script errors since the dashboard opened.', all.length ? 'warn' : 'ok', 8000); }) }] },
+      { name: 'Reuse', items: [
+        { icon: '↻', label: 'Changed sections', title: 'Compare to the baseline, then draft or run checks for changed tabs or data', run: needRt(function () { MS.qa.workflow.changeDialog(); }) },
+        { icon: '📁', label: 'Test packs', title: 'Save or load reusable test definitions', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.workflow.packMenu()); }) },
+        { icon: '🛡', label: 'Isolated run', title: 'Export a job to a separate browser process and import its results', run: needRt(function () { MS.qa.workflow.isolatedDialog(); }) }
+      ] },
       { name: 'Export', items: [
         { icon: '📝', label: 'Test document', title: 'A complete test document: purpose, scope, approach, test cases with steps and expected results, results, defect log, sign-off', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(0, 4)); }) },
         { icon: '🤖', label: 'AI tester', title: 'Copy a prompt that has another AI test the dashboard, with or without the MCP server', run: needRt(function (e) { MS.menu(e.currentTarget, MS.qa.exportItems().slice(5, 7)); }) },

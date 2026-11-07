@@ -104,7 +104,7 @@ window.MS = window.MS || {};
         resolve(v);
       };
       var btns = (o.buttons || [{ label: 'Cancel', value: null }, { label: 'OK', value: true, primary: true }]).map(function (b) {
-        return MS.h('button', { 'class': 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''), onclick: function () {
+        return MS.h('button', { 'class': 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''), disabled: !!b.disabled, onclick: function () {
           var v = typeof b.value === 'function' ? b.value() : b.value;
           if (v === false) { if (!err.textContent) shake(); return; } // validation failed, keep open
           close(v);
