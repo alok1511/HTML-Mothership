@@ -251,7 +251,18 @@ const note = label => console.log('  ✓ ' + label);
       assert.deepEqual(afterDraft.afterUndo, ['Keep my existing test']);
       assert.equal(afterDraft.afterRedo, afterDraft.n);
       assert.equal(afterDraft.same, 0);
-      note('large drafts yield to cancellation, preserve the plan, and paginate, search and undo after completion');
+      const resolution = await page.evaluate(() => {
+        const driver = MS.qa.drv, find = driver.find, calls = new Map();
+        driver.find = (target, options) => {
+          calls.set(target, (calls.get(target) || 0) + 1);
+          return find(target, options);
+        };
+        try {
+          return { parts: MS.qa.deep.coverage().parts, mostLookups: Math.max(...calls.values()) };
+        } finally { driver.find = find; }
+      });
+      assert.deepEqual(resolution, { parts: 360, mostLookups: 1 });
+      note('large drafts yield to cancellation, paginate and undo, and coverage resolves each target once');
 
       assert.deepEqual(errors.filter(x => !/deliberate async failure/.test(x)), []);
       await ctx.close();
