@@ -8,12 +8,12 @@
   function rt() { var r = MS.rt(); if (!r) throw new Error(MS.child ? 'The dashboard\'s scripts are off (Safe mode).' : 'No dashboard is open. Use open_file or new_dashboard first.'); return r; }
   function low(x) { return String(x == null ? '' : x).trim().toLowerCase(); }
   function doc() { if (!MS.child) throw new Error('No dashboard is open.'); return MS.child.doc; }
-  function chartKey(c) {
-    var r = rt(), cs = r.charts();
+  function chartKey(c, charts) {
+    var cs = charts || rt().charts();
     if (c == null || c === '') { var k = MS.charts.selectedKey(); if (k) return k; throw new Error('Say which chart (its name or key).'); }
-    var hit = cs.filter(function (x) { return x.key === c; })[0] || cs.filter(function (x) { return low(MS.charts.nameOf(x.key)) === low(c); })[0] || cs.filter(function (x) { return low(MS.charts.nameOf(x.key)).indexOf(low(c)) >= 0; })[0];
+    var hit = cs.filter(function (x) { return x.key === c; })[0] || cs.filter(function (x) { return low(MS.charts.nameOf(x.key, x, cs)) === low(c); })[0] || cs.filter(function (x) { return low(MS.charts.nameOf(x.key, x, cs)).indexOf(low(c)) >= 0; })[0];
     if (!hit && typeof c === 'number') hit = cs[c];
-    if (!hit) throw new Error('No chart called "' + c + '". Charts: ' + cs.map(function (x) { return MS.charts.nameOf(x.key); }).join(', '));
+    if (!hit) throw new Error('No chart called "' + c + '". Charts: ' + cs.map(function (x) { return MS.charts.nameOf(x.key, x, cs); }).join(', '));
     return hit.key;
   }
   function tabOf(t) {

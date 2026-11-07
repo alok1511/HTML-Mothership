@@ -34,7 +34,7 @@
 
   /* ---------------------------------------------------------------- locked-in numbers */
   function plan() { return Q.plan(); }
-  function edit(label, fn) { MS.history.state(label, function (s) { s.tests = s.tests || { title: '', cases: [] }; s.tests.cases = s.tests.cases || []; fn(s.tests); }); MS.emit('tests'); }
+  function edit(label, fn) { Q.editPlan(label, fn); }
   X.legacyBaseline = function () { var b = plan().baseline; return !!(b && b.from === 'file' && b.schema !== 2); };
   X.baseline = function () { return X.legacyBaseline() ? null : plan().baseline || null; };
   // Today's numbers: every chart's categories and values, and every KPI card.
@@ -44,7 +44,7 @@
       var d = r.chartData(c.key, true); if (!d || !d.labels || !d.labels.length) return;
       charts[c.key] = { name: MS.charts.nameOf(c.key), labels: d.labels.map(String), series: d.series.map(function (s) { return { name: s.name, values: s.values.map(function (v) { return v == null || !isFinite(+v) ? null : +v; }) }; }) };
     });
-    return { schema: 2, at: new Date().toISOString(), from: 'dashboard', charts: charts, kpis: Q.kpis().map(function (k) { return { label: k.label, value: k.value }; }) };
+    return { schema: 2, at: new Date().toISOString(), from: 'dashboard', charts: charts, kpis: Q.kpis().map(function (k) { return { label: k.label, value: k.value, ref: MS.api.refOf(k.el) }; }) };
   };
   X.lock = function () {
     var b = X.capture();
@@ -59,7 +59,7 @@
       var c = b.charts[k];
       c.series.forEach(function (s) { c.labels.forEach(function (l, i) { if (s.values[i] != null) rows.push({ What: c.name, Category: l, Series: c.series.length > 1 ? s.name : '', Value: s.values[i], Ref: k }); }); });
     });
-    b.kpis.forEach(function (k) { rows.push({ What: 'KPI: ' + k.label, Category: '', Series: '', Value: k.value }); });
+    b.kpis.forEach(function (k) { rows.push({ What: 'KPI: ' + k.label, Category: '', Series: '', Value: k.value, Ref: k.ref || '' }); });
     return rows;
   };
   // A source baseline is sparse. Dashboard values describe the available targets, never the expected values.
@@ -74,11 +74,11 @@
       var km = /^kpi\s*[:\-]\s*(.+)$/i.exec(what);
       var keys = Object.keys(now.charts).filter(function (k) { return low(k) === low(g.ref || what) || (!g.ref && low(now.charts[k].name) === low(what)); });
       if (km || (!keys.length && !g.category && !g.ref)) {
-        var lab = low(km ? km[1] : what), ks = now.kpis.filter(function (x) { return low(x.label) === lab; });
+        var lab = low(km ? km[1] : what), ks = now.kpis.filter(function (x) { return g.ref ? low(x.ref) === low(g.ref) : low(x.label) === lab; });
         if (ks.length !== 1) return unmatched(what, ks.length ? 'ambiguous KPI name' : 'not found');
-        var kid = 'kpi:' + lab;
+        var kid = 'kpi:' + (ks[0].ref || lab);
         if (matched[kid]) return unmatched(what, 'duplicate expectation');
-        matched[kid] = true; b.kpis.push({ label: ks[0].label, value: String(val) }); return;
+        matched[kid] = true; b.kpis.push({ label: ks[0].label, ref: ks[0].ref, value: String(val) }); return;
       }
       if (keys.length !== 1) return unmatched(what, keys.length ? 'ambiguous chart name; use the Ref from the template' : 'not found');
       var key = keys[0], c = now.charts[key], label = low(g.category), i = c.labels.map(low).indexOf(label);
@@ -141,6 +141,7 @@
     var chain = Promise.resolve(); X.burst = true;
     jobs.forEach(function (j) {
       chain = chain.then(function () {
+        Q.checkRun();
         return D.hover(c.el, { point: j.i, series: j.si, wait: 140 }).then(function (x) {
           var txt = (x.tooltip || []).map(function (q) { return q.text; }).join(' / ');
           var where = j.label + (d.series.length > 1 ? ' (' + j.series + ')' : '');
@@ -162,6 +163,7 @@
     var labels = d.labels.slice(0, CAP.drill).map(String), bad = [], ok = 0, chain = Promise.resolve(); X.burst = true;
     labels.forEach(function (l, i) {
       chain = chain.then(function () {
+        Q.checkRun();
         var before = D.state(), depth = (r.drill[c.key] || []).length;
         return D.click(c.el, { point: i, double: true, wait: 300 }).then(function () {
           var deeper = (r.drill[c.key] || []).length > depth, modal = cdoc().querySelector('.ms-modal-wrap'), ch = D.changes(before);
@@ -187,8 +189,9 @@
     function count() { var e = D.errors(); return e.scriptErrors.length + e.consoleErrors.length; }
     opts.forEach(function (o) {
       chain = chain.then(function () {
+        Q.checkRun();
         var before = D.state(), e0 = count();
-        return D.select(el, o.value).then(function () {
+        return D.select(s.target, o.value).then(function () {
           var ch = D.changes(before), e1 = count(), txt = norm(o.textContent), why = [];
           if (e1 > e0) why.push((e1 - e0) + ' script error(s): ' + D.errors().scriptErrors.concat(D.errors().consoleErrors).slice(-1)[0]);
           if (ch[0] === 'nothing visible changed') why.push('nothing changed');
@@ -197,7 +200,9 @@
         }, function (e) { bad.push('“' + norm(o.textContent) + '”: ' + e.message); });
       });
     });
-    return chain.then(function () { return D.select(el, orig).then(function () {}, function () {}); }).then(function () {
+    return chain.finally(function () {
+      if (MS.child && MS.child.doc === el.ownerDocument) return Promise.resolve().then(function () { return D.select(s.target, orig); }).catch(function () {});
+    }).then(function () {
       var n = opts.length;
       if (!n) return fail('The list has only one choice.');
       return bad.length ? fail(bad.length + ' of ' + n + ' choices have problems: ' + list(bad, 5)) : pass(ok + ' of ' + alternatives.length + ' alternatives checked' + (count() > errs0 ? '' : ', no errors observed'), { checked: ok, total: alternatives.length, partial: ok < alternatives.length });
@@ -237,11 +242,12 @@
   // Today's numbers against the locked-in (or imported) ones.
   Q.STEPS.expect_baseline = function (s, pass, fail) {
     var b = X.baseline(); if (!b) return pass('No trusted expectation. Lock in a snapshot or reimport a source file.', { partial: true });
-    var r = rt(), t = String(s.target || ''), m = /^kpi\s*=\s*(.+)$/i.exec(t);
-    if (m) {
-      var want = b.kpis.filter(function (k) { return low(k.label) === low(m[1]); })[0]; if (!want) return pass('No expected value was supplied for KPI “' + m[1] + '”.', { partial: true });
-      var k = Q.kpis().filter(function (x) { return low(x.label) === low(m[1]); })[0] || Q.kpis().filter(function (x) { return low(x.label).indexOf(low(m[1])) >= 0; })[0];
-      if (!k) return fail('KPI “' + m[1] + '” is not on the page.');
+    var r = rt(), t = String(s.target || ''), el = D.find(t);
+    var k = Q.kpis().find(function (item) { return item.el === el; });
+    if (k) {
+      var ref = MS.api.refOf(k.el), expected = b.kpis.filter(function (item) { return item.ref ? item.ref === ref : low(item.label) === low(k.label); });
+      var want = expected.length === 1 ? expected[0] : null;
+      if (!want) return pass('No unambiguous expected value was supplied for KPI “' + k.label + '”.', { partial: true });
       var a = numbersIn(k.value)[0], e = numbersIn(want.value)[0];
       var okK = low(k.value) === low(want.value) || (a && e && Math.abs(a.v - e.v) <= Math.max(a.tol, e.tol, Math.abs(e.v) * 0.005));
       return okK ? pass('shows ' + k.value + ', as expected') : fail('Shows ' + k.value + '; expected ' + want.value + (b.from === 'file' ? ' (from your source file)' : ' (locked in ' + b.at.slice(0, 10) + ')'));
@@ -280,71 +286,95 @@
   });
 
   /* ---------------------------------------------------------------- full test cases */
-  function targetOf(e) {
-    if (e.id) return 'css=#' + CSS.escape(e.id);
-    if (e.name) return 'css=' + e.tagName.toLowerCase() + '[name="' + e.name + '"]';
-    var lab = e.closest('label'); if (lab && norm(lab.textContent)) return 'filter=' + norm(lab.textContent).replace(norm(e.textContent), '').trim().slice(0, 40);
-    if (e.getAttribute('data-field')) return 'css=' + e.tagName.toLowerCase() + '[data-field="' + e.getAttribute('data-field') + '"]';
-    return MS.api.refOf(e);
-  }
   function nameOf(e) {
     var lab = e.closest('label'), t = norm(e.getAttribute('aria-label') || (lab && norm(lab.textContent).replace(norm(e.textContent), '')) || e.getAttribute('data-field') || e.name || e.id || e.innerText || e.value || '');
     return t.slice(0, 50) || D.describe(e);
   }
   function buttonName(e) { return norm(e.innerText || e.value || e.getAttribute('aria-label')).slice(0, 50); }
-  function goTo(el) { var t = Q.tabOf(el); return t ? [{ do: 'open_tab', target: t }] : []; }
-  X.parts = function () {
+  function tableName(t, i) { return norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40); }
+  function* partSteps(ctx) {
     var r = rt(), own = function (e) { return !e.closest('#ms-ribbon') && !e.closest('[data-ms-editor]'); };
-    var tabEls = Q.tabs().map(function (t) { return t.el; });
+    var tabs = ctx ? ctx.tabs : Q.tabs(), tabEls = new Set(tabs.map(function (t) { return t.el; }));
+    var buttons = [], buttonNames = new Map();
+    for (var e of D.all('button,[role=button],input[type=button],input[type=submit]')) {
+      yield;
+      if (!own(e) || tabEls.has(e) || e.closest('.ms-crumbs,table')) continue;
+      var name = buttonName(e);
+      if (name) { buttons.push(e); buttonNames.set(e, name); }
+    }
+    yield;
     return {
-      tabs: Q.tabs(),
-      charts: r.charts(),
-      kpis: Q.kpis(),
+      tabs: tabs,
+      charts: ctx ? ctx.charts : r.charts(),
+      kpis: ctx ? ctx.kpis : Q.kpis(),
       selects: D.all('select').filter(own),
       checks: D.all('input[type=checkbox],input[type=radio]').filter(own),
-      buttons: D.all('button,[role=button],input[type=button],input[type=submit]').filter(function (e) { return own(e) && tabEls.indexOf(e) < 0 && norm(e.innerText || e.value || e.getAttribute('aria-label')) && !e.closest('.ms-crumbs') && !e.closest('table'); }),
+      buttons: buttons,
+      buttonNames: buttonNames,
       links: D.all('a[href]').filter(own),
       tables: D.all('table').filter(function (t) { return own(t) && !t.closest('.ms-modal-wrap'); })
     };
-  };
-  X.generate = function (o) {
-    o = o || {}; var out = [], r = rt(); if (!r || !MS.child) return out;
+  }
+  X.parts = function () { return Q.drain(partSteps()); };
+  X.draftSteps = function* (o, ctx) {
+    var out = [], r = ctx.runtime, tabs = ctx.tabs;
     var add = function (scenario, type, priority, title, steps, expected, area) { var c = { scenario: scenario, type: type, priority: priority, title: title, steps: steps, expected: expected }; if (area) c.area = area; out.push(c); return c; };
-    var b = X.baseline(), P = X.parts();
+    var b = X.baseline();
     // Locked-in numbers make "the right numbers" automatic, at any depth.
     if (b) {
-      P.charts.forEach(function (c) { if (!b.charts[c.key]) return; var nm = MS.charts.nameOf(c.key); add('Numbers', 'Data', 'High', '“' + nm + '” matches the expected numbers', goTo(c.el).concat([{ do: 'expect_baseline', target: 'chart=' + nm }]), 'Supplied values match the ' + (b.from === 'file' ? 'source file' : 'snapshot') + '. Unspecified values are not checked.', nm); });
-      P.kpis.forEach(function (k) { if (!b.kpis.some(function (x) { return low(x.label) === low(k.label); })) return; add('Numbers', 'Data', 'High', 'KPI “' + k.label + '” matches the expected value', goTo(k.el).concat([{ do: 'expect_baseline', target: 'kpi=' + k.label }]), 'Shows the ' + (b.from === 'file' ? 'source' : 'locked-in') + ' value.', 'KPI ' + k.label); });
+      var refs = new Set(b.kpis.filter(function (k) { return k.ref; }).map(function (k) { return k.ref; }));
+      var labels = new Set(b.kpis.filter(function (k) { return !k.ref; }).map(function (k) { return low(k.label); }));
+      for (var c of ctx.charts) {
+        yield;
+        if (!b.charts[c.key]) continue;
+        var item = ctx.chartTargets.get(c), nm = item.name; add('Numbers', 'Data', 'High', '“' + nm + '” matches the expected numbers', Q.openSteps(c.el, tabs, ctx.tabTargets).concat([{ do: 'expect_baseline', target: item.target }]), 'Supplied values match the ' + (b.from === 'file' ? 'source file' : 'snapshot') + '. Unspecified values are not checked.', nm);
+      }
+      for (var k of ctx.kpis) {
+        yield;
+        if (!refs.has(MS.api.refOf(k.el)) && !labels.has(low(k.label))) continue;
+        var item = ctx.kpiTargets.get(k);
+        add('Numbers', 'Data', 'High', 'KPI “' + item.name + '” matches the expected value', Q.openSteps(k.el, tabs, ctx.tabTargets).concat([{ do: 'expect_baseline', target: item.target }]), 'Shows the ' + (b.from === 'file' ? 'source' : 'locked-in') + ' value.', 'KPI ' + k.label);
+      }
     }
     if (o.depth !== 'full') return out;
-    P.charts.forEach(function (c) {
-      var nm = MS.charts.nameOf(c.key), d = r.chartData(c.key, true) || { labels: [] }, cs = r.state.charts[c.key] || {}, go = goTo(c.el);
-      if (!d.labels.length) return;
-      var canPoint = false; try { canPoint = !!D.chartPoint(c.el, 0); } catch (e) {}
-      if (canPoint) add('Every point', 'Data', 'High', 'Every point on “' + nm + '” shows its value', go.concat([{ do: 'expect_points', target: 'chart=' + nm }]), 'All ' + Math.min(d.labels.length, CAP.points) + ' categories' + (d.series.length > 1 ? ' × ' + Math.min(d.series.length, CAP.series) + ' series' : '') + ' show a pop-up with their own name and value.', nm);
-      if (cs.drill || (cs.binding && cs.binding.levels && cs.binding.levels.length)) add('Every point', 'Interaction', 'Medium', 'Every category of “' + nm + '” drills down', go.concat([{ do: 'expect_drill_all', target: 'chart=' + nm }]), 'Double-clicking any category shows its detail, and the chart comes back.', nm);
-    });
-    P.selects.forEach(function (e) {
-      if (e.options.length < 2) return; var nm = nameOf(e);
-      add('Every choice', 'Interaction', 'High', 'Every choice in “' + nm + '” works', goTo(e).concat([{ do: 'try_options', target: targetOf(e) }, { do: 'expect_no_errors' }]), 'Each of the ' + Math.min(e.options.length, CAP.options) + ' choices changes the dashboard, with no errors, and KPI cards still agree with the charts.', 'Drop-down ' + nm);
-    });
-    P.checks.slice(0, CAP.checks).forEach(function (e) {
-      var nm = nameOf(e), t = targetOf(e);
-      add('Every choice', 'Interaction', 'Medium', (e.type === 'radio' ? 'Choosing' : 'Ticking') + ' “' + nm + '” works', goTo(e).concat([{ do: 'click', target: t }, { do: 'expect_changed' }, { do: 'expect_no_errors' }].concat(e.type === 'checkbox' ? [{ do: 'click', target: t }] : [])), 'The dashboard changes, with no errors.', (e.type === 'radio' ? 'Option ' : 'Check box ') + nm);
-    });
-    P.buttons.slice(0, CAP.buttons).forEach(function (e) {
-      var nm = buttonName(e);
-      var target = targetOf(e), duplicate = P.buttons.filter(function (b) { return buttonName(b) === nm; }).length > 1;
-      add('Every button', 'Interaction', 'Medium', 'The “' + nm + '” button works' + (duplicate ? ' (' + target + ')' : ''), goTo(e).concat([{ do: 'click', target: target }, { do: 'expect_no_errors' }, { do: 'expect_changed' }]), 'Clicking it changes something on screen, with no errors.', 'Button ' + nm);
-    });
-    P.tables.slice(0, CAP.tables).forEach(function (t, i) {
-      var nm = norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40), tg = t.id ? 'css=#' + t.id : MS.api.refOf(t);
-      add('Tables', 'Data', 'Medium', 'Table “' + nm + '”: totals add up and sorting works', goTo(t).concat([{ do: 'expect_table_totals', target: tg }, { do: 'expect_sort', target: tg }]), 'The Total row equals the sum of the rows; clicking a heading sorts.', 'Table ' + nm);
-    });
-    var tabs = P.tabs;
+    for (var c of ctx.charts) {
+      yield;
+      var item = ctx.chartTargets.get(c), nm = item.name, d = ctx.data(c), cs = r.state.charts[c.key] || {}, go = Q.openSteps(c.el, tabs, ctx.tabTargets);
+      if (!d.labels.length) continue;
+      if (D.canPoint(c)) add('Every point', 'Data', 'High', 'Every point on “' + nm + '” shows its value', go.concat([{ do: 'expect_points', target: item.target }]), 'All ' + Math.min(d.labels.length, CAP.points) + ' categories' + (d.series.length > 1 ? ' × ' + Math.min(d.series.length, CAP.series) + ' series' : '') + ' show a pop-up with their own name and value.', nm);
+      if (cs.drill || (cs.binding && cs.binding.levels && cs.binding.levels.length)) add('Every point', 'Interaction', 'Medium', 'Every category of “' + nm + '” drills down', go.concat([{ do: 'expect_drill_all', target: item.target }]), 'Double-clicking any category shows its detail, and the chart comes back.', nm);
+    }
+    var P = yield* partSteps(ctx);
+    var selects = Q.namedTargets(P.selects, nameOf, function (e) { return e; }, '', tabs, true);
+    var checks = Q.namedTargets(P.checks, nameOf, function (e) { return e; }, '', tabs, true);
+    var buttons = Q.namedTargets(P.buttons, function (e) { return P.buttonNames.get(e); }, function (e) { return e; }, '', tabs, true);
+    var tables = Q.namedTargets(P.tables.map(function (e, i) { return { el: e, name: tableName(e, i) }; }), function (t) { return t.name; }, function (t) { return t.el; }, '', tabs, true);
+    for (var e of P.selects) {
+      yield;
+      if (e.disabled || optionsOf(e).length === 0) continue;
+      var item = selects.get(e), nm = item.name;
+      add('Every choice', 'Interaction', 'High', 'Every choice in “' + nm + '” works', Q.openSteps(e, tabs, ctx.tabTargets).concat([{ do: 'try_options', target: item.target }, { do: 'expect_no_errors' }]), 'Each of the ' + Math.min(e.options.length, CAP.options) + ' choices changes the dashboard, with no errors, and KPI cards still agree with the charts.', 'Drop-down ' + nm);
+    }
+    for (var e of P.checks.slice(0, CAP.checks)) {
+      yield;
+      if (e.disabled) continue;
+      var item = checks.get(e), nm = item.name, t = item.target;
+      add('Every choice', 'Interaction', 'Medium', (e.type === 'radio' ? 'Choosing' : 'Ticking') + ' “' + nm + '” works', Q.openSteps(e, tabs, ctx.tabTargets).concat([{ do: 'click', target: t }, { do: 'expect_changed' }, { do: 'expect_no_errors' }].concat(e.type === 'checkbox' ? [{ do: 'click', target: t }] : [])), 'The dashboard changes, with no errors.', (e.type === 'radio' ? 'Option ' : 'Check box ') + nm);
+    }
+    for (var e of P.buttons.slice(0, CAP.buttons)) {
+      yield;
+      if (e.disabled) continue;
+      var item = buttons.get(e), nm = item.name, target = item.target;
+      add('Every button', 'Interaction', 'Medium', 'The “' + nm + '” button works', Q.openSteps(e, tabs, ctx.tabTargets).concat([{ do: 'click', target: target }, { do: 'expect_no_errors' }, { do: 'expect_changed' }]), 'Clicking it changes something on screen, with no errors.', 'Button ' + nm);
+    }
+    for (var [table, item] of Array.from(tables).slice(0, CAP.tables)) {
+      yield;
+      var t = table.el, nm = item.name, tg = item.target;
+      add('Tables', 'Data', 'Medium', 'Table “' + nm + '”: totals add up and sorting works', Q.openSteps(t, tabs, ctx.tabTargets).concat([{ do: 'expect_table_totals', target: tg }, { do: 'expect_sort', target: tg }]), 'The Total row equals the sum of the rows; clicking a heading sorts.', 'Table ' + nm);
+    }
     [1366, 820, 390].forEach(function (w) {
       var steps = [{ do: 'set_width', value: w }];
-      if (tabs.length) tabs.forEach(function (t) { steps.push({ do: 'open_tab', target: t.title }, { do: 'expect_no_overflow' }); }); else steps.push({ do: 'expect_no_overflow' });
+      if (tabs.length) tabs.forEach(function (t) { steps.push({ do: 'open_tab', target: ctx.tabTargets.get(t).target }, { do: 'expect_no_overflow' }); }); else steps.push({ do: 'expect_no_overflow' });
       steps.push({ do: 'expect_no_errors' }, { do: 'set_width', value: 'auto' });
       add('Every screen', 'Responsive', w === 390 ? 'Low' : 'Medium', (tabs.length ? 'Every tab fits' : 'The page fits') + ' at ' + w + ' px (' + (w === 1366 ? 'laptop' : w === 820 ? 'tablet' : 'phone') + ')', steps, 'No sideways scroll bar on any tab, and no errors.');
     });
@@ -352,56 +382,113 @@
   };
 
   /* ---------------------------------------------------------------- coverage */
-  X.coverage = function () {
-    var P = X.parts(), cs = Q.cases(), rows = [], rev = Q.revision();
-    function is(s, kind, name) { var t = low(s.target); return t === kind + '=' + low(name) || (kind === 'tab' && s.do === 'open_tab' && t === low(name)); }
-    function at(s, el) { if (!s.target) return false; try { return D.find(s.target, { quiet: true }) === el; } catch (e) { return false; } }
-    function row(kind, name, touch, complete, limit) {
-      var cases = [], planned = false, executed = false, passing = false, stale = false, result = null;
-      cs.forEach(function (c) {
-        var hit = false, status = Q.statusOf(c, rev);
-        c.steps.forEach(function (s, i) {
-          if (!touch(s)) return;
-          hit = true;
-          var thorough = complete(s), step = (c.stepResults || []).filter(function (x) { return x.index === i; })[0];
-          if (thorough && !limit) planned = true;
-          if (status === 'Stale') stale = true;
-          if (step && status !== 'Stale') {
-            executed = true;
-            if (step.detail && step.detail.total != null) result = step.detail.checked + ' of ' + step.detail.total + ' checked';
-            if (thorough && !limit && status === 'Pass' && step.ok && !(step.detail && step.detail.partial)) passing = true;
-          }
-        });
-        if (hit) cases.push(c.id);
-      });
-      rows.push({ kind: kind, name: name, cases: cases, full: planned, executed: executed, passing: passing, stale: stale, limit: limit || '', result: result });
+  X.coverageSteps = function* () {
+    var r = rt(), P = yield* partSteps(), cs = Q.cases(), rows = [], rev = Q.revision();
+    var targets = new Map(), byElement = new Map(), issues = new Map();
+    P.chartNames = new Map();
+    for (var chart of P.charts) { yield; P.chartNames.set(chart, MS.charts.nameOf(chart.key, chart, P.charts)); }
+    for (var c of cs) {
+      var status = Q.statusOf(c, rev), results = new Map();
+      (c.stepResults || []).forEach(function (step) { if (!results.has(step.index)) results.set(step.index, step); });
+      for (var [i, s] of c.steps.entries()) {
+        yield;
+        var target = s.target || (s.do === 'open_tab' ? s.value : null);
+        if (!target || ['manual', 'expect_hidden', 'expect_count'].includes(s.do)) continue;
+        if (s.do === 'open_tab' && !/^(tab|qa)=/i.test(target)) target = 'tab=' + target;
+        if (!targets.has(target)) {
+          var el = null, problem = null;
+          try { el = D.find(target, { strict: true, parts: P, track: false }); } catch (e) { problem = e.message; }
+          targets.set(target, { element: el, problem: problem });
+        }
+        var resolved = targets.get(target);
+        if (resolved.element) {
+          if (!byElement.has(resolved.element)) byElement.set(resolved.element, []);
+          byElement.get(resolved.element).push({ id: c.id, action: s.do, result: results.get(i), status: status });
+        } else if (resolved.problem && !issues.has(target)) {
+          issues.set(target, { caseId: c.id, title: c.title, target: Q.targetLabel(target), reason: resolved.problem });
+        }
+      }
     }
-    P.tabs.forEach(function (t) { row('Tab', t.title, function (s) { return is(s, 'tab', t.title); }, function (s) { return s.do === 'open_tab'; }); });
-    P.charts.forEach(function (c) {
-      var nm = MS.charts.nameOf(c.key), d = rt().chartData(c.key, true), limit = '';
-      if (d && (d.labels.length > CAP.points || d.series.length > CAP.series)) limit = 'Tooltip limit: ' + CAP.points + ' categories × ' + CAP.series + ' series';
-      row('Chart', nm, function (s) { return at(s, c.el); }, function (s) { return s.do === 'expect_points'; }, limit);
-    });
-    P.kpis.forEach(function (k) { row('KPI card', k.label, function (s) { return is(s, 'kpi', k.label); }, function (s) { return /^expect_(baseline|text)$/.test(s.do); }); });
-    P.selects.forEach(function (e) {
+    function row(kind, name, element, actions, limit) {
+      var cases = new Set(), planned = false, executed = false, passing = false, stale = false, blocked = false, result = null;
+      (byElement.get(element) || []).forEach(function (entry) {
+        cases.add(entry.id);
+        var thorough = actions.includes(entry.action), step = entry.result;
+        if (thorough && !limit) planned = true;
+        if (entry.status === 'Stale') stale = true;
+        if (step && entry.status !== 'Stale') {
+          if (step.detail && step.detail.blocked) { blocked = true; return; }
+          executed = true;
+          if (step.detail && step.detail.total != null) result = step.detail.checked + ' of ' + step.detail.total + ' checked';
+          if (thorough && !limit && entry.status === 'Pass' && step.ok && !(step.detail && step.detail.partial)) passing = true;
+        }
+      });
+      var item = { kind: kind, name: name, cases: Array.from(cases), full: planned, executed: executed, passing: passing, stale: stale, blocked: blocked,
+        limit: limit || '', result: result, reason: limit || (planned ? '' : cases.size ? 'Only a representative or manual check is planned.' : 'No case targets this item. Draft tests or add a case.') };
+      Object.defineProperty(item, 'element', { value: element });
+      rows.push(item);
+    }
+    var tabNames = Q.namedTargets(P.tabs, function (t) { return t.title; }, function (t) { return t.el; }, '', P.tabs);
+    var chartNames = Q.namedTargets(P.charts, function (c) { return P.chartNames.get(c); }, function (c) { return c.el; }, 'chart', P.tabs);
+    var kpiNames = Q.namedTargets(P.kpis, function (k) { return k.label; }, function (k) { return k.el; }, 'kpi', P.tabs);
+    var selectNames = Q.namedTargets(P.selects, nameOf, function (e) { return e; }, '', P.tabs);
+    var checkNames = Q.namedTargets(P.checks, nameOf, function (e) { return e; }, '', P.tabs);
+    var buttonNames = Q.namedTargets(P.buttons, function (e) { return P.buttonNames.get(e); }, function (e) { return e; }, '', P.tabs);
+    for (var t of P.tabs) { yield; row('Tab', tabNames.get(t).name, t.el, ['open_tab']); }
+    for (var c of P.charts) {
+      yield;
+      var d = r.chartData(c.key, true, c), limit = '';
+      if (!d || !d.labels.length) limit = 'No categories available to check.';
+      else if (!D.canPoint(c)) limit = 'This chart exposes no automatic tooltip target. Check it by eye.';
+      else if (d.labels.length > CAP.points || d.series.length > CAP.series) limit = 'Tooltip limit: ' + CAP.points + ' categories × ' + CAP.series + ' series';
+      row('Chart', chartNames.get(c).name, c.el, ['expect_points'], limit);
+    }
+    for (var k of P.kpis) { yield; row('KPI card', kpiNames.get(k).name, k.el, ['expect_baseline', 'expect_text']); }
+    for (var e of P.selects) {
+      yield;
       var n = optionsOf(e).length;
-      row('Drop-down', nameOf(e), function (s) { return at(s, e); }, function (s) { return s.do === 'try_options'; }, n > CAP.options ? 'At most ' + CAP.options + ' of ' + n + ' alternatives' : '');
-    });
-    P.checks.forEach(function (e) { row(e.type === 'radio' ? 'Option' : 'Check box', nameOf(e), function (s) { return at(s, e); }, function (s) { return s.do === 'click'; }); });
-    P.buttons.forEach(function (e) { row('Button', buttonName(e), function (s) { return at(s, e); }, function (s) { return s.do === 'click'; }); });
-    P.tables.forEach(function (t, i) {
-      var nm = norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40);
-      row('Table', nm, function (s) { return at(s, t); }, function (s) { return s.do === 'expect_table_totals'; });
-    });
+      row('Drop-down', selectNames.get(e).name, e, ['try_options'], e.disabled ? 'This control is disabled.' :
+        !n ? 'No other enabled choice.' : n > CAP.options ? 'At most ' + CAP.options + ' of ' + n + ' alternatives' : '');
+    }
+    for (var [i, e] of P.checks.entries()) {
+      yield;
+      row(e.type === 'radio' ? 'Option' : 'Check box', checkNames.get(e).name, e, ['click'],
+        e.disabled ? 'This control is disabled.' : i >= CAP.checks && !byElement.has(e) ? 'Draft limit: first ' + CAP.checks + ' options.' : '');
+    }
+    for (var [i, e] of P.buttons.entries()) {
+      yield;
+      row('Button', buttonNames.get(e).name, e, ['click'],
+        e.disabled ? 'This control is disabled.' : i >= CAP.buttons && !byElement.has(e) ? 'Draft limit: first ' + CAP.buttons + ' buttons.' : '');
+    }
+    for (var [i, t] of P.tables.entries()) {
+      yield;
+      row('Table', tableName(t, i), t, ['expect_table_totals'],
+        i >= CAP.tables && !byElement.has(t) ? 'Draft limit: first ' + CAP.tables + ' tables.' : '');
+    }
+    var chartElements = new Set(P.charts.map(function (c) { return c.el; }));
+    for (var canvas of D.all('canvas')) {
+      yield;
+      if (!chartElements.has(canvas) && !rt().chartOf(canvas)) row('Canvas', canvas.id || 'Unnamed canvas', canvas, [], 'No supported chart adapter recognised this canvas.');
+    }
     var full = rows.filter(function (x) { return x.full; }).length, touched = rows.filter(function (x) { return x.cases.length; }).length;
     var ran = rows.filter(function (x) { return x.executed; }).length, passed = rows.filter(function (x) { return x.passing; }).length;
     function pct(n) { return rows.length ? Math.floor(n / rows.length * 100) : 0; }
     return { parts: rows.length, covered: full, touched: touched, percent: pct(full), planned: full, executed: ran, passing: passed, executedPercent: pct(ran), passingPercent: pct(passed), revision: rev, numbersLocked: !!X.baseline(),
       untested: rows.filter(function (x) { return !x.cases.length; }).map(function (x) { return x.kind + ': ' + x.name; }),
-      partly: rows.filter(function (x) { return x.cases.length && !x.full; }).map(function (x) { return x.kind + ': ' + x.name; }), rows: rows };
+      issues: Array.from(issues.values()), partly: rows.filter(function (x) { return x.cases.length && !x.full; }).map(function (x) { return x.kind + ': ' + x.name; }), rows: rows };
+  };
+  X.coverage = function () { return Q.drain(X.coverageSteps()); };
+  X.coverageAsync = async function () {
+    var child = MS.child, session = MS.doc && MS.doc.session, revision = session && session.revision;
+    function check() {
+      if (child !== MS.child || !session || session.revision !== revision) throw Object.assign(new Error('The dashboard or test plan changed. Open coverage again.'), { name: 'AbortError' });
+    }
+    var coverage = await Q.batches(X.coverageSteps(), check);
+    check();
+    return coverage;
   };
   function planStatus(x) { return x.full ? 'Planned' : x.cases.length ? 'Partial plan' : 'No case'; }
-  function runStatus(x) { return x.passing ? 'Passed' : x.executed ? (x.result || 'Ran; full pass not shown') : x.stale ? 'Stale; rerun' : 'Not run'; }
+  function runStatus(x) { return x.passing ? 'Passed' : x.executed ? (x.result || 'Ran; full pass not shown') : x.stale ? 'Stale; rerun' : x.blocked ? 'Blocked' : 'Not run'; }
   X.baselineText = function () {
     var b = X.baseline();
     if (X.legacyBaseline()) return 'Older import: source values cannot be distinguished from dashboard values. Reimport the original source file.';
@@ -411,24 +498,38 @@
   X.coverageMd = function (head) {
     var C = X.coverage(), L = [head || '## Coverage', '', C.planned + ' of ' + C.parts + ' parts have a complete plan for the checks below; ' + C.executed + ' ran and ' + C.passing + ' passed on this revision. ' + X.baselineText(), '', '| Part | Name | Plan | Run | Test cases |', '|---|---|---|---|---|'];
     C.rows.forEach(function (x) { L.push('| ' + x.kind + ' | ' + String(x.name).replace(/\|/g, '\\|') + ' | ' + planStatus(x) + (x.limit ? ' (' + x.limit + ')' : '') + ' | ' + runStatus(x) + ' | ' + x.cases.join(', ') + ' |'); });
+    if (C.issues.length) {
+      L.push('', 'Unresolved test targets', '');
+      C.issues.forEach(function (x) { L.push('- ' + x.caseId + ' · ' + x.title + ' · ' + x.reason); });
+    }
     return L.join('\n') + '\n';
   };
-  X.coverageDialog = function () {
+  X.coverageDialog = async function () {
     if (!MS.child || !rt()) return MS.toast('Open a dashboard with scripts enabled first.', 'warn');
-    var C = X.coverage();
+    var C;
+    try { C = await X.coverageAsync(); } catch (e) { return MS.toast(e.message, 'warn'); }
     var tbl = h('div', { 'class': 'qa-cov' }, C.rows.map(function (x) {
       return h('div', { 'class': 'qa-cov-row' + (x.passing ? ' full' : x.cases.length ? ' part' : ' none') },
-        [h('span', { 'class': 'qa-cov-kind', text: x.kind }), h('div', { 'class': 'grow' }, [h('strong', { text: x.name }), h('div', { 'class': 'muted small', text: planStatus(x) + (x.limit ? ' · ' + x.limit : '') })]),
-          h('span', { 'class': 'qa-cov-tag', text: runStatus(x) }), h('span', { 'class': 'qa-cov-ids', text: x.cases.slice(0, 6).join(', ') })]);
+        [h('span', { 'class': 'qa-cov-kind', text: x.kind }), h('div', { 'class': 'grow' }, [h('strong', { text: x.name }), h('div', { 'class': 'muted small', text: planStatus(x) + (x.reason ? ' · ' + x.reason : '') })]),
+          h('span', { 'class': 'qa-cov-tag', text: runStatus(x) }), h('span', { 'class': 'qa-cov-ids', text: x.cases.slice(0, 6).join(', ') }),
+          h('button', { 'class': 'btn sm', 'aria-label': 'Show ' + x.name, onclick: function (e) {
+            e.currentTarget.closest('.dlg').querySelector('.dlg-x').click();
+            Q.showTarget(x.element).catch(function (err) { MS.toast(err.message, 'warn'); });
+          } }, ['Show item'])]);
     }));
     var head = h('div', { 'class': 'guide-metrics' }, [['Planned', C.planned], ['Ran', C.executed], ['Passed', C.passing]].map(function (a) {
       return h('div', {}, [h('strong', { text: a[1] + ' / ' + C.parts }), h('span', { text: a[0] })]);
     }));
     return MS.dialog({ title: '🎯 Test coverage', sub: 'A plan is a list of checks. Only current run results count as executed or passed.', wide: true, enterSubmits: false,
-      body: h('div', {}, [head, h('p', { 'class': 'muted small', text: X.baselineText() }), tbl,
+      body: h('div', {}, [head, h('p', { 'class': 'muted small', text: X.baselineText() }),
+        C.issues.length ? h('details', { open: true, 'class': 'qa-target-issues' }, [
+          h('summary', { text: C.issues.length + ' test target(s) need attention' }),
+          h('ul', {}, C.issues.slice(0, 20).map(function (x) { return h('li', { text: x.caseId + ' · ' + x.title + ' · ' + x.reason }); })),
+          C.issues.length > 20 ? h('p', { 'class': 'muted', text: 'First 20 shown. The coverage API and test document contain the full list.' }) : null
+        ]) : null, tbl,
         h('p', { 'class': 'muted small', text: 'Coverage is limited to the listed parts and check types. Some interactions, links, other filter states and visual details need a person.' })]),
       buttons: [{ label: 'Close', value: null }, { label: 'Draft deeper tests', primary: C.percent < 100, value: 'full' }] }).then(function (v) {
-        if (v === 'full') { var n = Q.draft({ depth: 'full' }); MS.toast(n + ' new checks planned. Run them to get results.', 'ok', 6000); }
+        if (v === 'full') return Q.draftInUI({ depth: 'full' });
       });
   };
 
@@ -436,17 +537,16 @@
   X.numbersMenu = function () {
     var b = X.baseline(), base = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'dashboard') + ' - expected numbers.xlsx';
     return [
-      { icon: '🔒', label: b ? 'Lock in today\'s numbers again' : 'Lock in today\'s numbers', title: 'Keep every chart value and KPI card as they are now. Later runs check the numbers have not changed.', run: function () { var x = X.lock(); var n = Q.draft(); MS.toast('Locked in ' + x.charts + ' chart(s) and ' + x.kpis + ' KPI card(s)' + (n ? '; ' + n + ' number test(s) added' : '') + '.', 'ok', 6000); } },
+      { icon: '🔒', label: b ? 'Lock in today\'s numbers again' : 'Lock in today\'s numbers', title: 'Keep every chart value and KPI card as they are now. Later runs check the numbers have not changed.', run: function () { var x = X.lock(); MS.toast('Locked in ' + x.charts + ' chart(s) and ' + x.kpis + ' KPI card(s).', 'ok', 6000); return Q.draftInUI(); } },
       { icon: '📗', label: 'Download the numbers as Excel', title: 'Fill in the figures from your source report, then import them', run: function () { X.xlsx().then(function (bf) { MS.download(base, new Blob([bf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); }); } },
-      { icon: '📥', label: 'Import expected numbers (Excel or CSV)…', title: 'Columns: What (chart or "KPI: name"), Category, Series, Value', run: function () { MS.pickFiles('.xlsx,.xls,.csv').then(function (f) { if (!f[0]) return; X.importFile(f[0]).then(function (res) { var n = res.matched ? Q.draft() : 0; MS.toast(res.matched + ' expected number(s) imported' + (res.notFound.length ? '; not found: ' + res.notFound.slice(0, 3).join(', ') + (res.notFound.length > 3 ? '…' : '') : '') + (n ? '. ' + n + ' number test(s) added.' : '.'), res.notFound.length ? 'warn' : 'ok', 8000); }, function (e) { MS.toast('Could not read the file: ' + e.message, 'error'); }); }); } },
+      { icon: '📥', label: 'Import expected numbers (Excel or CSV)…', title: 'Columns: What (chart or "KPI: name"), Category, Series, Value', run: function () { MS.pickFiles('.xlsx,.xls,.csv').then(function (f) { if (!f[0]) return; X.importFile(f[0]).then(function (res) { MS.toast(res.matched + ' expected number(s) imported' + (res.notFound.length ? '; not found: ' + res.notFound.slice(0, 3).join(', ') + (res.notFound.length > 3 ? '…' : '') : '') + '.', res.notFound.length ? 'warn' : 'ok', 8000); if (res.matched) return Q.draftInUI(); }, function (e) { MS.toast('Could not read the file: ' + e.message, 'error'); }); }); } },
       b ? { icon: '🗑', label: 'Remove the expected numbers', run: function () { X.clearBaseline(); MS.toast('Expected numbers removed.', 'ok'); } } : null
     ].filter(Boolean);
   };
-  X.draftMenu = function (after) {
-    var done = function (n, what) { MS.toast(n ? n + ' new test case(s) drafted' + (what ? ' (' + what + ')' : '') + '. Run the tests to see results.' : 'Every drafted case is already in the plan.', n ? 'ok' : '', 6000); if (after) after(); };
+  X.draftMenu = function () {
     return [
-      { icon: '✨', label: 'Quick draft', title: 'About one test per part, sampling the first bar, the first choice', run: function () { done(Q.draft()); } },
-      { icon: '🎯', label: 'Full draft (bounded)', title: 'Deeper checks for charts, controls, tables and layouts; limits and untested parts appear in Coverage', run: function () { done(Q.draft({ depth: 'full' }), 'full'); } },
+      { icon: '✨', label: 'Quick draft', title: 'Representative tests for charts, filters and other parts', run: function () { return Q.draftInUI(); } },
+      { icon: '🎯', label: 'Full draft (bounded)', title: 'Deeper checks for charts, controls, tables and layouts; limits and untested parts appear in Coverage', run: function () { return Q.draftInUI({ depth: 'full' }); } },
       '-',
       { icon: '🔢', label: 'Expected numbers', run: function (e) { MS.menu(e && e.currentTarget || MS.$('.qa-tools'), X.numbersMenu()); } },
       { icon: '◔', label: 'Coverage report', run: X.coverageDialog }
@@ -455,13 +555,13 @@
 
   /* ---------------------------------------------------------------- API (and the MCP tools) */
   MS.api.add('test_baseline', { d: 'Testing: the expected numbers that "right numbers" tests check against. action: get (default) | lock (keep today\'s chart values and KPI cards) | import (rows: [{what: chart name or "KPI: name", category, series, value}], e.g. from the source report) | clear | rows (the numbers as rows, to fill in).', p: { action: ['string', 'get | lock | import | clear | rows'], rows: ['array', 'For import: [{what, category, series, value}]'] },
-    f: function (a) {
+    f: async function (a) {
       var act = a.action || 'get';
-      if (act === 'lock') { var x = X.lock(); x.added = Q.draft(); return x; }
-      if (act === 'import') { var res = X.importRows(a.rows || []); res.added = res.matched ? Q.draft() : 0; return res; }
+      if (act === 'lock') { var x = X.lock(); x.added = await Q.draftAsync(); return x; }
+      if (act === 'import') { var res = X.importRows(a.rows || []); res.added = res.matched ? await Q.draftAsync() : 0; return res; }
       if (act === 'clear') { X.clearBaseline(); return { cleared: true }; }
       if (act === 'rows') return X.rows();
       return X.baseline() || { none: true, note: X.baselineText() };
     } });
-  MS.api.add('test_coverage', { d: 'Testing: every part of the dashboard (tabs, charts, KPI cards, drop-downs, check boxes, buttons, tables) and the test cases that touch it, with the percentage covered and what is untested.', p: {}, f: function () { return X.coverage(); } });
+  MS.api.add('test_coverage', { d: 'Testing: every part of the dashboard (tabs, charts, KPI cards, drop-downs, check boxes, buttons, tables) and the test cases that touch it, with the percentage covered and what is untested.', p: {}, f: function () { return X.coverageAsync(); } });
 })(window.MS);

@@ -124,7 +124,7 @@
     clearInterval(tick); tick = setInterval(function () { var t = card && card.querySelector('.qr-time'); if (t && st && card.classList.contains('running')) t.textContent = clock(Date.now() - st.started); }, 500);
   }
   function counts() {
-    var c = { Pass: 0, Fail: 0, 'Needs a person': 0 };
+    var c = { Pass: 0, Fail: 0, Partial: 0, Blocked: 0, Skipped: 0, 'Needs a person': 0 };
     Object.keys(st.res).forEach(function (k) { var s = st.res[k].status; if (c[s] != null) c[s]++; });
     return c;
   }
@@ -156,12 +156,13 @@
       return;
     }
     // finished
-    var S = Q.summary(), f = c.Fail, ran = done, person = c['Needs a person'], allOk = !f && ran;
-    var title = st.stopped ? 'Stopped after ' + ran + ' of ' + n : !ran ? 'Nothing ran' : f ? f + ' of ' + ran + ' failed' : person ? ran - person + ' passed, ' + person + ' for a person' : 'All ' + ran + ' passed';
+    var S = Q.summary(), f = c.Fail, ran = done, person = c['Needs a person'], allOk = !f && ran && c.Pass === ran;
+    var incomplete = (c.Partial || 0) + (c.Blocked || 0) + (c.Skipped || 0);
+    var title = st.stopped ? 'Stopped after ' + ran + ' of ' + n : !ran ? 'Nothing ran' : f ? f + ' of ' + ran + ' failed' : person || incomplete ? c.Pass + ' passed, ' + (person + incomplete) + ' need review' : 'All ' + ran + ' passed';
     card.classList.toggle('has-fail', !!f); card.classList.toggle('all-ok', !!allOk);
     card.appendChild(h('div', { 'class': 'qr-head' }, [
       L.ring(c, 58, [h('b', { text: ran ? Math.round(c.Pass / ran * 100) + '%' : '–' })]),
-      h('div', { 'class': 'grow qr-what' }, [h('div', { 'class': 'qr-title', text: title }), h('div', { 'class': 'qr-sub', text: 'Done in ' + secs(st.ms) + ' · plan: ' + S.byStatus.Pass + ' pass, ' + S.byStatus.Fail + ' fail, ' + S.byStatus['Not run'] + ' not run' })]),
+      h('div', { 'class': 'grow qr-what' }, [h('div', { 'class': 'qr-title', text: title }), h('div', { 'class': 'qr-sub', text: (st.reason ? st.reason + ' · ' : '') + 'Done in ' + secs(st.ms) + ' · plan: ' + S.byStatus.Pass + ' pass, ' + S.byStatus.Fail + ' fail, ' + S.byStatus['Not run'] + ' not run' })]),
       h('button', { 'class': 'icon-btn', title: 'Close', 'aria-label': 'Close', onclick: L.close }, ['✕'])]));
     card.appendChild(dots());
     var acts = [h('button', { 'class': 'btn sm', onclick: function () { L.close(); Q.dialog({ status: f ? 'Fail' : '' }); } }, ['☑ See results'])];
@@ -174,7 +175,7 @@
     if (!card || !st) return;
     if (e.phase === 'case') { st.idx = e.index; st.id = e.id; st.step = null; draw(); }
     else if (e.phase === 'result') { if (e.result.status !== 'Stopped') st.res[e.result.id] = e.result; draw(); }
-    else if (e.phase === 'end') { st.ms = e.run.ms; st.stopped = e.run.stopped; card.classList.remove('running', 'stopping'); L.watching = false; clearInterval(tick); setTimeout(L.hide, 900); draw(); }
+    else if (e.phase === 'end') { st.ms = e.run.ms; st.stopped = e.run.stopped; st.reason = e.run.reason; card.classList.remove('running', 'stopping'); L.watching = false; clearInterval(tick); setTimeout(L.hide, 900); draw(); }
   });
   MS.on('qa-step', function (e) {
     if (!card || !st || !card.classList.contains('running')) return;
@@ -183,14 +184,14 @@
   });
 
   // Run cases where you can watch them: closes the Testing window and shows the runner card.
-  L.start = function (ids) {
+  L.start = function (ids, opts) {
     if (!MS.child || !MS.rt()) return MS.toast('Open a dashboard first.', 'warn');
     if (Q.running) return MS.toast('Tests are already running.', 'warn');
     var list = (ids && ids.length ? ids : Q.cases().map(function (c) { return c.id; })).filter(function (id) { return Q.get(id); });
     if (!list.length) return MS.toast('There are no test cases to run. Testing › Test cases › Draft makes a set for you.', 'warn', 6000);
     var open = MS.$('.qa'); if (open) { var x = open.closest('.dlg') && open.closest('.dlg').querySelector('.dlg-x'); if (x) x.click(); }
     L.watching = true; build(list);
-    return Q.run(list).then(function (res) { return res; }, function (er) { MS.toast(er.message, 'error'); L.close(); });
+    return Q.run(list, Object.assign({ scope: ids && ids.length ? 'selected' : 'all' }, opts)).then(function (res) { return res; }, function (er) { MS.toast(er.message, 'error'); L.close(); });
   };
 
   /* ---------------------------------------------------------------- prompt from failures */
