@@ -156,7 +156,7 @@ If the fault happens after interacting, reproduce it in **Interact**, then use *
 <!-- guide:testing -->
 ## Test interactions and verify numbers
 
-**Drafting makes a plan. Running creates evidence.** Open **Testing › Draft tests**. Choose Quick draft for representative cases or **Full draft (bounded)** for more detailed checks. Run the plan and watch what it does. Review the failed steps and manually check any case that needs a person.
+**Drafting makes a plan. Running creates evidence.** Open **Testing › Draft tests**. Choose **Quick draft** for representative cases or **Full draft (bounded)** for more detailed checks. Use **Cancel draft** while it works to keep your existing cases. New cases are added together and can be undone in one step. Search works across the whole plan, and **Previous** and **Next** show 60 matches at a time. Run the plan and watch what it does. Review the failed steps and manually check any case that needs a person.
 
 | Label | Meaning |
 |---|---|

@@ -48,15 +48,16 @@
     var out = pick(exact).concat(pick(part));
     var vis = out.filter(visible); return vis.length ? vis.concat(out.filter(function (e) { return !visible(e); })) : out;
   }
-  function chartEl(name) { var k = MS.api.chartKey(name), c = rt().chart(k); return c ? c.el : null; }
+  function chartEl(name, charts) { var k = MS.api.chartKey(name, charts), c = charts ? charts.find(function (x) { return x.key === k; }) : rt().chart(k); return c ? c.el : null; }
   function tabBtn(name) {
     var r = rt(), q = low(name), g = r.pageTabs && r.pageTabs();
     if (g) { var t = g.tabs.filter(function (x) { return low(x.title) === q; })[0] || g.tabs.filter(function (x) { return low(x.title).indexOf(q) >= 0; })[0]; if (t) return t.btn; }
     if (r.layoutEnabled()) { var b = MS.$$('#ms-ribbon .ms-tabbtn', cdoc()).filter(function (x) { return low(x.textContent) === q || low(x.textContent).indexOf(q) >= 0; })[0]; if (b) return b; }
     return null;
   }
-  function kpiEl(name) {
-    var q = low(name), hit = Q.kpis().filter(function (k) { return low(k.label) === q; })[0] || Q.kpis().filter(function (k) { return low(k.label).indexOf(q) >= 0; })[0];
+  function kpiEl(name, kpis) {
+    kpis = kpis || Q.kpis();
+    var q = low(name), hit = kpis.find(function (k) { return low(k.label) === q; }) || kpis.find(function (k) { return low(k.label).indexOf(q) >= 0; });
     return hit ? hit.el : null;
   }
   function filterEl(name) {
@@ -73,9 +74,9 @@
     if (target && target.nodeType === 1) return target;
     var t = String(target == null ? '' : target).trim(); if (!t) throw new Error('Say what to act on (a ref, text=…, chart=…, tab=…, kpi=…, button=…, filter=… or a CSS selector).');
     var m = /^(text|chart|tab|kpi|button|link|filter|ref|css|label)\s*[=:]\s*([\s\S]+)$/i.exec(t), kind = m ? m[1].toLowerCase() : '', v = m ? m[2].trim() : t, el = null;
-    if (kind === 'chart') el = chartEl(v);
+    if (kind === 'chart') el = chartEl(v, opts.parts && opts.parts.charts);
     else if (kind === 'tab') el = tabBtn(v);
-    else if (kind === 'kpi') el = kpiEl(v);
+    else if (kind === 'kpi') el = kpiEl(v, opts.parts && opts.parts.kpis);
     else if (kind === 'filter') el = filterEl(v);
     else if (kind === 'button' || kind === 'link') el = byText(v, kind === 'link' ? 'a' : 'button,[role=button],a,input[type=button],input[type=submit],summary')[0];
     else if (kind === 'text' || kind === 'label') el = byText(v)[0];
@@ -86,7 +87,7 @@
       if (!el && !kind) el = byText(v)[0];
     }
     if (!el && !opts.quiet) throw new Error('Nothing matches "' + t + '". Use ui_snapshot to see the parts and their refs.');
-    if (el) D._lastEl = el;
+    if (el && opts.track !== false) D._lastEl = el;
     return el;
   };
   D.findAll = function (target) {
@@ -104,11 +105,17 @@
   // Where a chart's data point is, in the dashboard's coordinates.
   D.chartPoint = function (el, label, series) {
     var r = rt(), c = r.chartOf(el) || r.charts().filter(function (x) { return el.contains(x.el); })[0]; if (!c) throw new Error('That is not a chart.');
-    var d = r.chartData(c.key, true) || { labels: [] }, i = typeof label === 'number' ? label : d.labels.map(low).indexOf(low(label));
-    if (i < 0) throw new Error('The chart has no “' + label + '”. It shows: ' + d.labels.slice(0, 20).join(', '));
-    var p = inner(c, i, series || 0) || (c.a.point ? c.a.point(c.inst, i, series || 0) : null); if (!p) throw new Error('Could not find that point on the chart.');
+    var i = label;
+    if (typeof label !== 'number') {
+      var d = r.chartData(c.key, true, c) || { labels: [] };
+      i = d.labels.map(low).indexOf(low(label));
+      if (i < 0) throw new Error('The chart has no “' + label + '”. It shows: ' + d.labels.slice(0, 20).join(', '));
+    }
+    var p = pointAt(c, i, series || 0); if (!p) throw new Error('Could not find that point on the chart.');
     var b = c.el.getBoundingClientRect(); return { x: b.left + p.x, y: b.top + p.y, el: c.el, chart: c };
   };
+  function pointAt(c, i, s) { return inner(c, i, s) || (c.a.point ? c.a.point(c.inst, i, s) : null); }
+  D.canPoint = function (c) { try { return !!pointAt(c, 0, 0); } catch (e) { return false; } };
   // The middle of a bar or slice (the adapters give its top, for notes), so a hover lands on it.
   function inner(c, i, s) {
     try {
@@ -343,16 +350,14 @@
     if (r.layoutEnabled()) return r.tabs().filter(function (t) { return !t.hidden; }).map(function (t) { return { title: t.title, active: t.id === r.activeTab, el: MS.$('#ms-ribbon [data-ms-tabbtn="' + t.id + '"]', cdoc()), panel: r.tabEl(t.id) }; });
     return [];
   };
-  function tabOfEl(el) { var t = Q.tabs().filter(function (x) { return x.panel && x.panel.contains(el); })[0]; return t ? t.title : null; }
+  function tabOfEl(el, tabs) { var t = (tabs || Q.tabs()).find(function (x) { return x.panel && x.panel.contains(el); }); return t ? t.title : null; }
   Q.tabOf = tabOfEl; D.all = all; D.describe = describe;
   Q.kpis = function () {
-    var d = cdoc(), out = [], seen = [];
-    var cands = MS.$$('[data-ms-kpi],.ms-kpi,[class*="kpi"],[class*="metric"],[class*="stat-card"],[class*="scorecard"]', d).filter(function (e) { return !e.closest(OWN) && !/kpis|kpi-row|kpi-grid|metrics/.test(e.className || '') && /\d/.test(e.textContent || '') && (e.textContent || '').length < 160 && e.querySelectorAll('canvas,svg,table').length === 0; });
-    cands.forEach(function (e) {
-      if (seen.some(function (s) { return s.contains(e) || e.contains(s) && s !== e; })) { if (seen.some(function (s) { return e.contains(s); })) { seen = seen.filter(function (s) { return !e.contains(s); }); } else return; }
-      seen.push(e);
-    });
-    seen.forEach(function (e) {
+    var d = cdoc(), out = [];
+    var candidates = MS.$$('[data-ms-kpi],.ms-kpi,[class*="kpi"],[class*="metric"],[class*="stat-card"],[class*="scorecard"]', d).filter(function (e) { return !e.closest(OWN) && !/kpis|kpi-row|kpi-grid|metrics/.test(e.className || '') && /\d/.test(e.textContent || '') && (e.textContent || '').length < 160 && !e.querySelector('canvas,svg,table'); });
+    var set = new Set(candidates);
+    candidates.forEach(function (e) {
+      for (var p = e.parentElement; p; p = p.parentElement) if (set.has(p)) return;
       var v = e.querySelector('.ms-kpi-value,[class*="value"],[class*="number"],[class*="figure"],strong,b,h2,h3') || null;
       var val = v ? norm(v.textContent) : (norm(e.innerText).match(/[-+]?[₹$€£¥]?\s?\(?[\d][\d,.]*\)?\s?(%|Cr|cr|L|K|M|B|bn|mn|k|m)?/) || [''])[0];
       var lab = norm((e.querySelector('.ms-kpi-label,[class*="label"],[class*="title"],small,span') || {}).textContent || norm(e.innerText).replace(val, '')).slice(0, 60);
@@ -366,6 +371,19 @@
     var drawn = b.width > 20 && b.height > 20 && d.labels.length > 0 && d.series.some(function (s) { return s.values.some(function (v) { return v != null; }); });
     return { name: MS.charts.nameOf(key), key: key, kind: MS.charts.kindName ? MS.charts.kindName(info.type) : info.type, library: c.lib, visible: visible(c.el), drawn: drawn, tab: tabOfEl(c.el), labels: d.labels.slice(0, 60), series: d.series.map(function (s) { return { name: s.name, values: s.values.slice(0, 60), total: s.values.reduce(function (a, v) { return a + (+v || 0); }, 0) }; }), drillLevel: (r.drill && r.drill[key] || []).length, hasDrill: !!((r.state.charts[key] || {}).drill), source: (r.state.charts[key] || {}).source || null };
   };
+  function controls(tabs, vis) {
+    var tabEls = new Set(tabs.map(function (t) { return t.el; }));
+    return all('button,a[href],[role=button],select,input,textarea,summary').filter(function (e) {
+      return vis(e) && !tabEls.has(e) && !e.closest('#ms-ribbon');
+    }).slice(0, 80);
+  }
+  function controlKind(e) {
+    return e.tagName === 'SELECT' ? 'dropdown' : e.tagName === 'A' ? 'link' : e.tagName === 'INPUT' ? (e.type === 'checkbox' || e.type === 'radio' ? e.type : 'textbox') : e.tagName === 'TEXTAREA' ? 'textbox' : 'button';
+  }
+  function controlName(e, kind) {
+    var lab = e.closest('label');
+    return norm(e.getAttribute('aria-label') || (kind === 'dropdown' || kind === 'textbox' ? (lab && norm(lab.textContent).replace(norm(e.textContent), '')) || e.getAttribute('placeholder') || e.name || e.id : e.innerText || e.value || e.title)).slice(0, 80);
+  }
   // A Playwright-style snapshot: the parts a tester can act on, each with a ref.
   Q.snapshot = function (o) {
     o = o || {}; var r = rt(), d = cdoc(), vis = function (e) { return o.all || visible(e); };
@@ -373,11 +391,9 @@
     out.headings = all('h1,h2,h3').filter(vis).slice(0, 40).map(function (e) { return { level: +e.tagName[1], text: norm(e.textContent).slice(0, 100), ref: refOf(e) }; });
     out.kpis = Q.kpis().filter(function (k) { return vis(k.el); }).map(function (k) { return { label: k.label, value: k.value, ref: refOf(k.el), linkedToData: !!k.bound }; });
     out.charts = r ? r.charts().filter(function (c) { return vis(c.el); }).map(function (c) { var s = Q.chartState(c.key); return { name: s.name, kind: s.kind, ref: refOf(c.el), drawn: s.drawn, tab: s.tab, labels: s.labels.slice(0, 12), series: s.series.map(function (x) { return x.name; }), points: s.labels.length, drillDown: s.hasDrill }; }) : [];
-    var tabEls = Q.tabs().map(function (t) { return t.el; });
-    out.controls = all('button,a[href],[role=button],select,input,textarea,summary').filter(function (e) { return vis(e) && tabEls.indexOf(e) < 0 && !e.closest('#ms-ribbon'); }).slice(0, 80).map(function (e) {
-      var kind = e.tagName === 'SELECT' ? 'dropdown' : e.tagName === 'A' ? 'link' : e.tagName === 'INPUT' ? (e.type === 'checkbox' || e.type === 'radio' ? e.type : 'textbox') : e.tagName === 'TEXTAREA' ? 'textbox' : 'button';
-      var lab = e.closest('label'), name = norm(e.getAttribute('aria-label') || (kind === 'dropdown' || kind === 'textbox' ? (lab && norm(lab.textContent).replace(norm(e.textContent), '')) || e.getAttribute('placeholder') || e.name || e.id : e.innerText || e.value || e.title));
-      var x = { kind: kind, name: name.slice(0, 80), ref: refOf(e) };
+    out.controls = controls(Q.tabs(), vis).map(function (e) {
+      var kind = controlKind(e);
+      var x = { kind: kind, name: controlName(e, kind), ref: refOf(e) };
       if (kind === 'dropdown') { x.value = norm((e.options[e.selectedIndex] || {}).textContent); x.options = Array.prototype.map.call(e.options, function (q) { return norm(q.textContent); }).slice(0, 30); }
       else if (kind === 'textbox') x.value = e.value;
       else if (kind === 'checkbox' || kind === 'radio') x.checked = e.checked;
@@ -436,14 +452,15 @@
   Q.cases = function () { return plan().cases || []; };
   Q.get = function (id) { return Q.cases().filter(function (c) { return c.id === id; })[0] || null; };
   function edit(label, fn) { MS.history.state(label, function (s) { s.tests = s.tests || { title: '', cases: [] }; s.tests.cases = s.tests.cases || []; fn(s.tests); }, { validationNeutral: true }); MS.emit('tests'); }
-  function nextId(list) { var n = 0; list.forEach(function (c) { var m = /(\d+)$/.exec(c.id || ''); if (m) n = Math.max(n, +m[1]); }); return 'TC-' + String(n + 1).padStart(3, '0'); }
+  function lastId(list) { return list.reduce(function (n, c) { var m = /(\d+)$/.exec(c.id || ''); return m ? Math.max(n, +m[1]) : n; }, 0); }
+  function caseId(n) { return 'TC-' + String(n).padStart(3, '0'); }
   function clean(c) {
     var x = { id: c.id, scenario: norm(c.scenario || 'General'), title: norm(c.title || 'Untitled test'), type: Q.TYPES.indexOf(c.type) >= 0 ? c.type : 'Interaction', priority: Q.PRIORITIES.indexOf(c.priority) >= 0 ? c.priority : 'Medium', pre: c.pre || '', steps: (c.steps || []).map(function (s) { var y = { do: s.do || s.action || 'manual' }; ['target', 'value', 'point'].forEach(function (k) { if (s[k] != null && s[k] !== '') y[k] = s[k]; }); return y; }), expected: c.expected || '', status: Q.STATUSES.indexOf(c.status) >= 0 ? c.status : 'Not run' };
     ['actual', 'notes', 'by', 'at', 'area', 'ms', 'revision', 'stepResults'].forEach(function (k) { if (c[k] != null) x[k] = c[k]; });
     x.auto = x.steps.length > 0 && x.steps.every(function (s) { return s.do !== 'manual'; });
     return x;
   }
-  Q.add = function (c) { var out; edit('Add test case', function (T) { out = clean(Object.assign({}, c, { id: c.id && !T.cases.some(function (x) { return x.id === c.id; }) ? c.id : nextId(T.cases) })); T.cases.push(out); }); return out; };
+  Q.add = function (c) { var out; edit('Add test case', function (T) { out = clean(Object.assign({}, c, { id: c.id && !T.cases.some(function (x) { return x.id === c.id; }) ? c.id : caseId(lastId(T.cases) + 1) })); T.cases.push(out); }); return out; };
   Q.update = function (id, patch, label) {
     var out = null;
     edit(label || 'Edit test case', function (T) { T.cases = T.cases.map(function (c) { if (c.id !== id) return c; var next = Object.assign({}, c, patch, { id: id });
@@ -475,42 +492,50 @@
       return s;
     });
   };
-  Q.generate = function (o) {
-    o = o || {}; var r = rt(); if (!r) throw new Error('Turn off Safe mode to draft tests.');
-    var out = [], tabs = Q.tabs(), first = tabs.filter(function (t) { return t.active; })[0];
+  function* generate(ctx) {
+    var r = ctx.runtime, out = [], tabs = ctx.tabs, first = tabs.filter(function (t) { return t.active; })[0];
     var add = function (scenario, type, priority, title, steps, expected, pre) { var c = { scenario: scenario, type: type, priority: priority, title: title, steps: steps, expected: expected, pre: pre || '' }; out.push(c); return c; };
     var openFirst = first ? [{ do: 'open_tab', target: first.title }] : [];
     add('Opens cleanly', 'Smoke', 'High', 'The dashboard opens without script errors', [{ do: 'expect_no_errors', value: 'since open' }], 'No script errors or console errors.');
-    var charts = r.charts();
+    var charts = ctx.charts;
     var vis1 = charts.filter(function (c) { return visible(c.el); });
-    if (vis1.length) add('Opens cleanly', 'Smoke', 'High', 'Every chart on the first screen draws with data', openFirst.concat(vis1.map(function (c) { return { do: 'expect_chart_drawn', target: 'chart=' + MS.charts.nameOf(c.key) }; })), 'Each chart shows bars, lines or slices with numbers; none is blank.');
-    tabs.forEach(function (t) {
+    if (vis1.length) add('Opens cleanly', 'Smoke', 'High', 'Every chart on the first screen draws with data', openFirst.concat(vis1.map(function (c) { return { do: 'expect_chart_drawn', target: 'chart=' + ctx.name(c) }; })), 'Each chart shows bars, lines or slices with numbers; none is blank.');
+    for (var t of tabs) {
+      yield;
       var inTab = charts.filter(function (c) { return t.panel && t.panel.contains(c.el); });
-      add('Navigation', 'Navigation', 'High', 'Open the “' + t.title + '” tab', [{ do: 'open_tab', target: t.title }, { do: 'expect_visible', target: 'tab=' + t.title }].concat(inTab.map(function (c) { return { do: 'expect_chart_drawn', target: 'chart=' + MS.charts.nameOf(c.key) }; })).concat([{ do: 'expect_no_errors' }]), 'The tab opens, its charts draw, and nothing errors.');
-    });
-    charts.forEach(function (c) {
-      var nm = MS.charts.nameOf(c.key), t = tabOfEl(c.el), go = t ? [{ do: 'open_tab', target: t }] : [], d = r.chartData(c.key, true) || { labels: [] }, cs = r.state.charts[c.key] || {};
+      add('Navigation', 'Navigation', 'High', 'Open the “' + t.title + '” tab', [{ do: 'open_tab', target: t.title }, { do: 'expect_visible', target: 'tab=' + t.title }].concat(inTab.map(function (c) { return { do: 'expect_chart_drawn', target: 'chart=' + ctx.name(c) }; })).concat([{ do: 'expect_no_errors' }]), 'The tab opens, its charts draw, and nothing errors.');
+    }
+    for (var c of charts) {
+      yield;
+      var nm = ctx.name(c), t = tabOfEl(c.el, tabs), go = t ? [{ do: 'open_tab', target: t }] : [], d = ctx.data(c), cs = r.state.charts[c.key] || {};
       var area = (t ? t + ' › ' : '') + nm;
       add('Charts', 'Data', 'High', '“' + nm + '” shows the right numbers', go.concat([{ do: 'expect_chart_drawn', target: 'chart=' + nm }, { do: 'manual', value: 'Compare each value (' + d.labels.slice(0, 6).join(', ') + (d.labels.length > 6 ? '…' : '') + ') with the source report' }]), 'Every value matches the source; the units and currency are right.').area = area;
-      var canPoint = false; try { canPoint = !!(d.labels.length && D.chartPoint(c.el, 0)); } catch (e) {}
+      var canPoint = d.labels.length && D.canPoint(c);
       if (d.labels.length) add('Charts', 'Interaction', 'Medium', 'Hovering “' + nm + '” shows a pop-up with the value', go.concat(canPoint ? [{ do: 'hover', target: 'chart=' + nm, point: d.labels[0] }, { do: 'expect_tooltip', target: 'chart=' + nm, point: d.labels[0], value: d.labels[0] }] : [{ do: 'manual', value: 'Hover “' + d.labels[0] + '” on the chart: a pop-up shows its name and value' }]), 'A pop-up names “' + d.labels[0] + '” and shows its value, formatted (e.g. $1.2M).').area = area;
       if (cs.drill || (cs.binding && cs.binding.levels && cs.binding.levels.length > 1)) add('Charts', 'Interaction', 'Medium', 'Double-clicking “' + nm + '” drills down', go.concat([{ do: 'double_click', target: 'chart=' + nm, point: d.labels[0] }, { do: 'expect_changed', value: 'chart' }, { do: 'manual', value: 'The next level (or the records) for ' + d.labels[0] + ' shows, with a way back' }]), 'The chart shows the detail behind “' + d.labels[0] + '”.').area = area;
       add('Content', 'Content', 'Low', '“' + nm + '” has a clear title, axis labels and a source', go.concat([{ do: 'screenshot', target: 'chart=' + nm }, { do: 'manual', value: 'Title says what the chart shows; axes and legend are readable; the source and date are given' + (cs.source ? '' : ' (no source is set in Mothership)') }]), 'Title, axes, legend and source are present and readable.').area = area;
-    });
-    var kp = Q.kpis();
-    kp.forEach(function (k) {
-      var t = tabOfEl(k.el), go = t ? [{ do: 'open_tab', target: t }] : [];
+    }
+    var kp = ctx.kpis;
+    for (var k of kp) {
+      yield;
+      var t = tabOfEl(k.el, tabs), go = t ? [{ do: 'open_tab', target: t }] : [];
       add('KPI cards', 'Data', 'High', 'KPI “' + k.label + '” shows the right value', go.concat([{ do: 'expect_text', target: 'kpi=' + k.label, value: k.value }, { do: 'manual', value: 'Check ' + k.value + ' against the source for the same period and filters' }]), '“' + k.label + '” shows ' + k.value + ', the same as the source.').area = (t ? t + ' › ' : '') + 'KPI ' + k.label;
-    });
+    }
     if (kp.length && charts.length) add('KPI cards', 'Data', 'High', 'KPI cards agree with the chart totals', [{ do: 'expect_numbers' }], 'Each KPI equals the total of the charts that show the same measure.');
-    (r.state.filters || []).forEach(function (f) {
-      var vals = Array.from(new Set(r.getRows(f.dataset).map(function (x) { return x[f.field]; }).filter(function (v) { return v != null && v !== ''; }).map(String))).slice(0, 2);
-      if (!vals.length) return;
-      add('Filters', 'Interaction', 'High', 'Filtering by “' + (f.label || f.field) + '” updates the dashboard', [{ do: 'select', target: 'filter=' + (f.label || f.field), value: vals[0] }, { do: 'expect_changed', value: 'chart' }, { do: 'manual', value: 'Charts and KPI cards now show only ' + vals[0] }, { do: 'select', target: 'filter=' + (f.label || f.field), value: 'All' }], 'Charts and KPI cards change to ' + vals[0] + ' only, and go back with “All”.');
+    for (var f of r.state.filters || []) {
+      yield;
+      var row = r.getRows(f.dataset).find(function (x) { return x[f.field] != null && x[f.field] !== ''; });
+      if (!row) continue;
+      var firstValue = String(row[f.field]);
+      add('Filters', 'Interaction', 'High', 'Filtering by “' + (f.label || f.field) + '” updates the dashboard', [{ do: 'select', target: 'filter=' + (f.label || f.field), value: firstValue }, { do: 'expect_changed', value: 'chart' }, { do: 'manual', value: 'Charts and KPI cards now show only ' + firstValue }, { do: 'select', target: 'filter=' + (f.label || f.field), value: 'All' }], 'Charts and KPI cards change to ' + firstValue + ' only, and go back with “All”.');
+    }
+    var candidates = controls(tabs, function () { return true; }).map(function (e) {
+      var kind = controlKind(e);
+      return { kind: kind, name: kind === 'button' || kind === 'link' ? controlName(e, kind) : '', href: e.getAttribute('href') };
     });
-    var ctl = Q.snapshot({ all: true }).controls.filter(function (x) { return x.kind === 'button' && x.name; }).slice(0, 12);
+    var ctl = candidates.filter(function (x) { return x.kind === 'button' && x.name; }).slice(0, 12);
     ctl.forEach(function (b) { add('Buttons and links', 'Interaction', 'Medium', 'The “' + b.name + '” button works', [{ do: 'click', target: 'button=' + b.name }, { do: 'expect_no_errors' }, { do: 'manual', value: 'It does what its label says' }], 'Clicking it does what it says, with no errors.'); });
-    var links = Q.snapshot({ all: true }).controls.filter(function (x) { return x.kind === 'link'; }).slice(0, 10);
+    var links = candidates.filter(function (x) { return x.kind === 'link'; }).slice(0, 10);
     links.forEach(function (l) { add('Buttons and links', 'Content', 'Low', 'The “' + (l.name || l.href) + '” link goes to the right place', [{ do: 'manual', value: 'The link (' + l.href + ') opens the right page or section; it does not need the internet if the dashboard is meant to work offline' }], 'The link works.'); });
     var tbls = all('table').slice(0, 8);
     tbls.forEach(function (t, i) { var nm = norm((t.caption && t.caption.textContent) || (t.previousElementSibling && t.previousElementSibling.textContent) || 'Table ' + (i + 1)).slice(0, 40); add('Tables', 'Data', 'Medium', 'Table “' + nm + '” has headings and the right rows', (t.id ? [{ do: 'expect_visible', target: 'css=#' + t.id }] : []).concat([{ do: 'manual', value: 'Headings are clear; row totals and the grand total add up; numbers are aligned and formatted alike' }]), 'Headings, rows and totals are right.'); });
@@ -523,15 +548,104 @@
     if (MS.story && MS.story.steps().length) add('Storyline', 'Interaction', 'Low', 'The storyline plays through all ' + MS.story.steps().length + ' steps', [{ do: 'manual', value: 'Consulting › Play: each step lights up its part and shows its headline; arrow keys move through it' }], 'Every step shows the right part and headline.');
     return out;
   };
-  Q.draft = function (o) {
-    o = o || {};
-    var cases = Q.generate(o).concat(Q.deep ? Q.deep.generate(o) : []), n = 0;
-    edit((o.depth === 'full' ? 'Draft full test cases' : 'Draft test cases') + (o.replace ? ' (replace)' : ''), function (T) {
-      if (o.replace) T.cases = [];
-      if (!T.title) T.title = (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'Dashboard') + ' test plan';
-      cases.forEach(function (c) { if (!o.replace && T.cases.some(function (x) { return low(x.title) === low(c.title); })) return; c.id = nextId(T.cases); T.cases.push(clean(c)); n++; });
+  function* draftSteps(o) {
+    var r = rt(); if (!r) throw new Error('Open a dashboard with scripts enabled to draft tests.');
+    yield;
+    var tabs = Q.tabs(), charts = r.charts(), names = new Map(), data = new Map();
+    yield;
+    var ctx = { runtime: r, tabs: tabs, charts: charts, kpis: Q.kpis(),
+      name: function (c) {
+        if (!names.has(c)) names.set(c, MS.charts.nameOf(c.key, c, charts));
+        return names.get(c);
+      },
+      data: function (c) {
+        if (!data.has(c)) data.set(c, r.chartData(c.key, true, c) || { labels: [], series: [] });
+        return data.get(c);
+      }
+    };
+    var cases = yield* generate(ctx);
+    if (Q.deep) cases = cases.concat(yield* Q.deep.draftSteps(o, ctx));
+    var previous = rt().state.tests;
+    var existing = o.replace ? [] : Q.cases();
+    var titles = new Set(existing.map(function (c) { return low(c.title); })), last = lastId(existing), added = [];
+    for (var c of cases) {
+      yield;
+      var title = low(c.title);
+      if (!o.replace && titles.has(title)) continue;
+      titles.add(title);
+      c.id = caseId(++last);
+      added.push(clean(c));
+    }
+    return { previous: previous, next: Object.assign({}, previous, {
+      title: (previous && previous.title) || (MS.doc ? MS.doc.name.replace(/\.html?$/i, '') : 'Dashboard') + ' test plan',
+      cases: existing.concat(added)
+    }), added: added.length };
+  }
+  function commitDraft(o, d) {
+    if (!d.added && !o.replace) return 0;
+    // Drafting changes test metadata only. Avoid refreshing every chart and filter.
+    function put(t) {
+      var state = rt().state;
+      if (t) state.tests = Object.assign({}, t, { cases: t.cases ? t.cases.slice() : [] });
+      else delete state.tests;
+      MS.emit('tests');
+    }
+    MS.history.push({
+      label: (o.depth === 'full' ? 'Draft full test cases' : 'Draft test cases') + (o.replace ? ' (replace)' : ''),
+      validationNeutral: true,
+      undo: function () { put(d.previous); },
+      redo: function () { put(d.next); }
     });
-    return n;
+    return d.added;
+  }
+  Q.drain = function (steps) {
+    var n; do { n = steps.next(); } while (!n.done);
+    return n.value;
+  };
+  Q.batches = async function (steps, check) {
+    // A timer yields to browser input and painting even when the work is entirely local.
+    for (;;) {
+      await wait(0);
+      if (check) check();
+      var deadline = performance.now() + 8, next;
+      do { next = steps.next(); if (next.done) return next.value; } while (performance.now() < deadline);
+    }
+  };
+  Q.draft = function (o) { o = o || {}; return commitDraft(o, Q.drain(draftSteps(o))); };
+  var drafting = false;
+  Q.draftAsync = async function (o) {
+    o = o || {};
+    if (drafting || Q.running) throw new Error(drafting ? 'A test draft is already in progress.' : 'Stop the test run before drafting new cases.');
+    var child = MS.child, session = MS.doc && MS.doc.session, rev = session && session.revision;
+    function check() {
+      if (o.signal && o.signal.aborted) throw Object.assign(new Error('Draft cancelled.'), { name: 'AbortError' });
+      if (!session || !MS.doc || child !== MS.child || MS.doc.session !== session || session.revision !== rev || Q.running) throw new Error('The dashboard or test plan changed. Start the draft again.');
+    }
+    drafting = true;
+    try {
+      var draft = await Q.batches(draftSteps(o), check);
+      check();
+      return commitDraft(o, draft);
+    } finally {
+      drafting = false;
+    }
+  };
+  Q.draftInUI = async function (o) {
+    if (drafting || Q.running) { MS.toast(drafting ? 'A test draft is already in progress.' : 'Stop the test run before drafting new cases.', 'warn'); return; }
+    var controller = new AbortController(), back = document.activeElement;
+    var cancel = h('button', { 'class': 'btn sm', onclick: function () { controller.abort(); } }, ['Cancel draft']);
+    var bar = h('div', { 'class': 'qa-draft-progress' }, [h('span', { role: 'status', text: 'Drafting test cases…' }), cancel]);
+    (MS.$$('.dlg').pop() || document.body).appendChild(bar);
+    cancel.focus();
+    try {
+      var n = await Q.draftAsync(Object.assign({}, o, { signal: controller.signal }));
+      MS.toast(n ? n + ' new test case(s) drafted. Run them to see results.' : 'Every drafted case is already in the plan.', n ? 'ok' : '', 6000);
+    } catch (e) {
+      MS.toast(e.message, e.name === 'AbortError' ? '' : 'warn');
+    } finally {
+      if (document.activeElement === cancel && back && back.isConnected) back.focus();
+      bar.remove();
+    }
   };
 
   /* ---------------------------------------------------------------- running */
@@ -600,7 +714,7 @@
   Q.stop = function () { if (Q.running) { Q.stopping = true; MS.emit('qa-run', { phase: 'stopping' }); } };
   Q.run = function (ids, o) {
     o = o || {};
-    if (Q.running) return Promise.reject(new Error('Tests are already running.'));
+    if (Q.running || drafting) return Promise.reject(new Error(Q.running ? 'Tests are already running.' : 'Wait for the test draft or cancel it before running tests.'));
     var list = (ids && ids.length ? ids : Q.cases().map(function (c) { return c.id; })).filter(function (id) { return Q.get(id); });
     var out = [], chain = Promise.resolve(), t0 = Date.now(), session = MS.doc.session;
     Q.stopping = false; Q.running = { ids: list, total: list.length, started: t0, results: out };
@@ -826,7 +940,7 @@
     if (!rt()) return MS.toast('Turn off Safe mode to plan tests.', 'warn');
     var body = h('div', { 'class': 'qa' }), list = h('div', { 'class': 'qa-list' }), stats = h('div', { 'class': 'qa-stats' });
     var filt = { text: '', status: o.status || '' }, live = Q.live;
-    var search = h('input', { 'class': 'inp', placeholder: 'Find a test…' }); search.addEventListener('input', function () { filt.text = low(search.value); draw(); });
+    var search = h('input', { 'class': 'inp', placeholder: 'Find a test…' }); search.addEventListener('input', function () { filt.text = low(search.value); page = 0; draw(); });
     // The run log: failed steps shown, the rest folded away.
     function logOf(c) {
       var lines = c.actual.split('\n'), bad = lines.filter(function (l) { return /^✗/.test(l); });
@@ -842,9 +956,24 @@
       Promise.resolve().then(function () { return navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]); })
         .then(function () { MS.toast('Picture copied.', 'ok'); }, function () { MS.download('test-failure.png', url); });
     }
-    function setFilter(s) { filt.status = filt.status === s ? '' : s; draw(); }
-    function head() {
-      var S = Q.summary(), by = S.byStatus, ran = S.total - (by['Not run'] || 0) - (by.Stale || 0);
+    var page = 0, pageSize = 60, coverageJob;
+    function setFilter(s) { filt.status = filt.status === s ? '' : s; page = 0; draw(); }
+    function coverageChip() {
+      var button = h('button', { 'class': 'qa-cov-chip', onclick: Q.deep.coverageDialog }, ['🎯 Coverage']);
+      var session = MS.doc.session, revision = session.revision;
+      if (!coverageJob || coverageJob.session !== session || coverageJob.revision !== revision) {
+        coverageJob = { session: session, revision: revision, task: Q.deep.coverageAsync() };
+      }
+      coverageJob.task.then(function (c) {
+        if (!button.isConnected || !c) return;
+        button.classList.toggle('part', c.percent < 100);
+        button.title = c.untested.length ? 'Untested: ' + c.untested.slice(0, 8).join(', ') : 'Every part has a test';
+        button.textContent = c.parts ? '🎯 ' + c.percent + '% planned' : 'No parts found';
+      }, function () {});
+      return button;
+    }
+    function head(S) {
+      var by = S.byStatus, ran = S.total - (by['Not run'] || 0) - (by.Stale || 0);
       var lr = S.lastRun, tr = live && live.trend();
       var chips = h('div', { 'class': 'qa-chips' }, Q.STATUSES.filter(function (s) { return by[s]; }).map(function (s) {
         return h('button', { 'class': 'qa-chip ' + (STATUS_CLS[s] || '') + (filt.status === s ? ' on' : ''), title: filt.status === s ? 'Show all' : 'Show only "' + s + '"', onclick: function () { setFilter(s); } }, [h('i', { 'class': 'qa-sw', style: 'background:' + (live ? live.COLORS[s] : '') }), s + ' ', h('b', { text: String(by[s]) })]);
@@ -853,29 +982,41 @@
         live ? live.ring(by, 76, [h('b', { text: ran ? Math.round((by.Pass || 0) / ran * 100) + '%' : '–' }), h('small', { text: ran ? 'passed' : 'not run' })]) : null,
         h('div', { 'class': 'grow' }, [
           h('div', { 'class': 'qa-total' }, [h('b', { text: S.total + ' test case' + (S.total === 1 ? '' : 's') }), ' · ' + S.automatic + ' automatic' + (lr ? ' · last run ' + lr.at.slice(0, 16).replace('T', ' ') + ', ' + live.secs(lr.ms) : ''),
-            Q.deep ? (function (C) { return h('button', { 'class': 'qa-cov-chip' + (C.percent < 100 ? ' part' : ''), title: C.untested.length ? 'Untested: ' + C.untested.slice(0, 8).join(', ') : 'Every part has a test', onclick: function () { Q.deep.coverageDialog().then(draw); } }, ['🎯 ' + (C.parts ? C.percent + '% planned' : 'No parts found')]); })(Q.deep.coverage()) : null,
+            Q.deep ? coverageChip() : null,
             Q.deep ? h('button', { 'class': 'qa-cov-chip' + (Q.deep.baseline() ? '' : ' part'), title: 'The numbers "right numbers" tests check against', onclick: function (e) { MS.menu(e.currentTarget, Q.deep.numbersMenu()); } }, [Q.deep.baseline() ? '🔒 Numbers locked in' : '🔢 Numbers not locked in']) : null]),
           chips]),
         tr ? h('div', { 'class': 'qa-trend-box' }, [tr, h('small', { 'class': 'muted', text: 'Pass rate by run' })]) : null]);
     }
     function draw() {
       var S = Q.summary(); stats.innerHTML = '';
-      if (S.total) stats.appendChild(head());
+      if (S.total) stats.appendChild(head(S));
       var fails = S.byStatus.Fail || 0, people = S.byStatus['Needs a person'] || 0;
       fixBtns.forEach(function (b) { b.style.display = fails || people ? '' : 'none'; });
       rerun.style.display = fails ? '' : 'none';
-      list.innerHTML = '';
+      list.innerHTML = ''; pager.hidden = true;
       var cs = Q.cases().filter(function (c) { return (!filt.status || Q.statusOf(c) === filt.status) && (!filt.text || low(c.id + ' ' + c.title + ' ' + c.scenario + ' ' + c.type).indexOf(filt.text) >= 0); });
-      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('div', { 'class': 'row gap center' }, [h('button', { 'class': 'btn', title: 'About one test per part', onclick: function () { var n = Q.draft(); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['✨ Quick draft']), h('button', { 'class': 'btn primary', title: 'Draft deeper tests. The coverage report lists limits and omissions.', onclick: function () { var n = Q.draft({ depth: 'full' }); MS.toast(n + ' test cases drafted.', 'ok'); draw(); } }, ['🎯 Full draft (bounded)'])])])); return; }
-      if (!cs.length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('p', { 'class': 'muted', text: 'No test case matches.' }), h('button', { 'class': 'btn sm', onclick: function () { filt.status = ''; filt.text = ''; search.value = ''; draw(); } }, ['Show all'])])); return; }
-      var groups = []; cs.forEach(function (c) { if (groups.indexOf(c.scenario) < 0) groups.push(c.scenario); });
-      groups.forEach(function (g) {
-        var inG = cs.filter(function (c) { return c.scenario === g; }), gp = inG.filter(function (c) { return Q.statusOf(c) === 'Pass'; }).length, gf = inG.filter(function (c) { return Q.statusOf(c) === 'Fail'; }).length;
-        list.appendChild(h('div', { 'class': 'qa-group' }, [h('span', { text: g }), h('span', { 'class': 'qa-gcount' + (gf ? ' bad' : gp === inG.length ? ' ok' : ''), text: gp + '/' + inG.length })]));
-        inG.forEach(function (c) {
-          var st = h('select', { 'class': 'inp sm qa-st ' + (STATUS_CLS[Q.statusOf(c)] || ''), title: 'Result' }, Q.STATUSES.filter(function (s) { return s !== 'Stale' || Q.statusOf(c) === 'Stale'; }).map(function (s) { return h('option', { value: s, text: s, selected: s === Q.statusOf(c) }); }));
+      if (!Q.cases().length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('div', { 'class': 'qa-empty-ic' }, ['☑']), h('b', { text: 'No test cases yet.' }), h('p', { 'class': 'muted', text: 'Let Mothership draft a full set from this dashboard (tabs, charts, KPI cards, filters, buttons, screen sizes, accessibility, export), then edit them, or add your own.' }), h('div', { 'class': 'row gap center' }, [h('button', { 'class': 'btn', title: 'About one test per part', onclick: function () { return Q.draftInUI(); } }, ['✨ Quick draft']), h('button', { 'class': 'btn primary', title: 'Draft deeper tests. The coverage report lists limits and omissions.', onclick: function () { return Q.draftInUI({ depth: 'full' }); } }, ['🎯 Full draft (bounded)'])])])); return; }
+      if (!cs.length) { list.appendChild(h('div', { 'class': 'qa-empty' }, [h('p', { 'class': 'muted', text: 'No test case matches.' }), h('button', { 'class': 'btn sm', onclick: function () { filt.status = ''; filt.text = ''; search.value = ''; page = 0; draw(); } }, ['Show all'])])); return; }
+      var groups = new Map(), revision = Q.revision();
+      cs.forEach(function (c) {
+        if (!groups.has(c.scenario)) groups.set(c.scenario, { cases: [], pass: 0, fail: 0 });
+        var g = groups.get(c.scenario), status = Q.statusOf(c, revision);
+        g.cases.push({ c: c, status: status });
+        if (status === 'Pass') g.pass++;
+        if (status === 'Fail') g.fail++;
+      });
+      page = Math.min(page, Math.floor((cs.length - 1) / pageSize));
+      var start = page * pageSize, end = Math.min(start + pageSize, cs.length), offset = 0;
+      groups.forEach(function (g, name) {
+        var first = Math.max(0, start - offset), last = end - offset;
+        offset += g.cases.length;
+        if (last <= 0 || first >= g.cases.length) return;
+        list.appendChild(h('div', { 'class': 'qa-group' }, [h('span', { text: name }), h('span', { 'class': 'qa-gcount' + (g.fail ? ' bad' : g.pass === g.cases.length ? ' ok' : ''), text: g.pass + '/' + g.cases.length })]));
+        g.cases.slice(first, last).forEach(function (item) {
+          var c = item.c, status = item.status;
+          var st = h('select', { 'class': 'inp sm qa-st ' + (STATUS_CLS[status] || ''), title: 'Result' }, Q.STATUSES.filter(function (s) { return s !== 'Stale' || status === 'Stale'; }).map(function (s) { return h('option', { value: s, text: s, selected: s === status }); }));
           st.addEventListener('change', function () { Q.record(c.id, { status: st.value, by: 'Me' }); draw(); });
-          var row = h('div', { 'class': 'qa-row st-' + (STATUS_CLS[Q.statusOf(c)] || 'none') + (Q.statusOf(c) === 'Fail' ? ' fail' : '') }, [
+          var row = h('div', { 'class': 'qa-row st-' + (STATUS_CLS[status] || 'none') + (status === 'Fail' ? ' fail' : '') }, [
             h('span', { 'class': 'qa-id', text: c.id }),
             h('div', { 'class': 'grow' }, [h('div', { 'class': 'qa-title', text: c.title }), h('div', { 'class': 'qa-meta' }, [h('span', { text: c.type }), h('span', { 'class': 'qa-pri ' + low(c.priority), text: c.priority }), h('span', { text: c.steps.length + ' step' + (c.steps.length === 1 ? '' : 's') + (c.auto ? ' · automatic' : ' · some by eye') }), c.ms ? h('span', { 'class': 'qa-ms', title: 'How long the last run took', text: live ? live.secs(c.ms) : c.ms + ' ms' }) : null]),
               c.actual ? logOf(c) : null]),
@@ -886,18 +1027,32 @@
           list.appendChild(row);
         });
       });
+      pager.hidden = cs.length <= pageSize;
+      pageLabel.textContent = (start + 1) + '–' + end + ' of ' + cs.length;
+      prev.disabled = page === 0;
+      next.disabled = end === cs.length;
     }
     var fixBtns = [h('button', { 'class': 'btn sm qa-fix', title: 'A prompt for an AI assistant, built from the failed cases: find the cause, fix it, test again', onclick: function () { if (live) live.promptDialog(); } }, ['✨ Prompt from failures'])];
     var rerun = h('button', { 'class': 'btn sm', title: 'Run only the cases that failed', onclick: function () { if (live) live.start(Q.failed().map(function (x) { return x.id; })); } }, ['↻ Rerun failed']);
     var tools = h('div', { 'class': 'row gap wrap qa-tools' }, [search, h('span', { 'class': 'grow' }),
-      h('button', { 'class': 'btn sm', title: 'Quick or full draft, expected numbers, coverage', onclick: function (e) { if (Q.deep) MS.menu(e.currentTarget, Q.deep.draftMenu(draw)); else { Q.draft(); draw(); } } }, ['✨ Draft ▾']),
+      h('button', { 'class': 'btn sm', title: 'Quick or full draft, expected numbers, coverage', onclick: function (e) { if (Q.deep) MS.menu(e.currentTarget, Q.deep.draftMenu()); else Q.draftInUI(); } }, ['✨ Draft ▾']),
       h('button', { 'class': 'btn sm', onclick: function () { Q.editDialog(null).then(draw); } }, ['＋ Add case']),
       fixBtns[0], rerun,
       h('button', { 'class': 'btn sm', onclick: function (e) { MS.menu(e.currentTarget, Q.exportItems()); } }, ['⬇ Export']),
       h('button', { 'class': 'btn sm primary', title: 'Run every case. The window closes so you can watch the steps on the dashboard.', onclick: function () { if (live) live.start(); } }, ['▶ Run all'])]);
-    body.appendChild(tools); body.appendChild(stats); body.appendChild(list);
+    function turnPage(delta) {
+      page += delta; draw(); list.scrollTop = 0;
+      if (delta > 0 && next.disabled) prev.focus();
+      if (delta < 0 && prev.disabled) next.focus();
+    }
+    var prev = h('button', { 'class': 'btn sm', onclick: function () { turnPage(-1); } }, ['Previous']);
+    var next = h('button', { 'class': 'btn sm', onclick: function () { turnPage(1); } }, ['Next']);
+    var pageLabel = h('span', { role: 'status' });
+    var pager = h('div', { 'class': 'qa-pager' }, [prev, pageLabel, next]);
+    body.appendChild(tools); body.appendChild(stats); body.appendChild(list); body.appendChild(pager);
     draw();
-    var off = MS.on('tests', function () { if (body.isConnected) draw(); });
+    var redraw = MS.debounce(function () { if (body.isConnected) draw(); }, 0);
+    var off = MS.on('tests', redraw);
     MS.dialog({ title: '☑ Test cases', sub: 'Plan, run and record tests of this dashboard. Automatic steps run here while you watch; “check by eye” steps need a person, or an AI through the MCP server. Export a full test document, or a prompt built from what failed.', wide: true, enterSubmits: false, body: body, buttons: [{ label: 'Close', primary: true, value: null }] }).then(function () { if (typeof off === 'function') off(); });
   };
   Q.exportItems = function () {
@@ -958,7 +1113,11 @@
   api('test_plan', { d: 'Testing: the test plan. action: get (default) | draft (Mothership writes test cases from the dashboard; depth: "full" drafts deeper checks within safety limits; use test_coverage to see what was planned and run; replace: true starts over) | add | update | remove | clear. A case: {title, scenario, type (' + Q.TYPES.join(', ') + '), priority (High, Medium, Low), pre, steps: [{do, target, value, point}], expected}. Step "do" words: ' + Object.keys(Q.ACTIONS).join(', ') + '.', p: { action: ['string', 'get | draft | add | update | remove | clear'], case: ['object', 'For add / update'], id: ['string', 'For update / remove'], replace: ['boolean', 'For draft: replace the existing cases'], depth: ['string', 'For draft: quick (default) or full'] },
     f: function (a) {
       var act = a.action || 'get';
-      if (act === 'draft') { var n = Q.draft({ replace: !!a.replace, depth: a.depth }); return { added: n, summary: Q.summary(), coverage: Q.deep ? (function (C) { return { percent: C.percent, parts: C.parts, planned: C.planned, executed: C.executed, passing: C.passing, untested: C.untested }; })(Q.deep.coverage()) : null, cases: Q.cases() }; }
+      if (act === 'draft') return Q.draftAsync({ replace: !!a.replace, depth: a.depth }).then(async function (n) {
+        var cases = Q.cases(), summary = Q.summary(), C = null;
+        try { if (Q.deep) C = await Q.deep.coverageAsync(); } catch (e) { if (e.name !== 'AbortError') throw e; }
+        return { added: n, summary: summary, coverage: C ? { percent: C.percent, parts: C.parts, planned: C.planned, executed: C.executed, passing: C.passing, untested: C.untested } : null, cases: cases };
+      });
       if (act === 'add') return Q.add(a['case'] || {});
       if (act === 'update') return Q.update(a.id, a['case'] || {});
       if (act === 'remove') { Q.remove(a.id); return { removed: a.id }; }

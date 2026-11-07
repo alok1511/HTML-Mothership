@@ -452,13 +452,13 @@
     var w = id.replace(/^#/, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_.]+/g, ' ').replace(/\b(chart|canvas|plot|graph|div|container|el|wrap|wrapper)\b/gi, '').replace(/\s+/g, ' ').trim();
     return w.length > 1 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '';
   }
-  C.nameOf = function (key) {
-    var rt = MS.rt(), c = rt && rt.chart(key); if (!c) return 'Chart';
-    var b = c.el.closest('.ms-block'), info = rt.chartInfo(key) || {}, cs = rt.state.charts[key] || {};
+  C.nameOf = function (key, chart, charts) {
+    var rt = MS.rt(), c = chart || (rt && rt.chart(key)); if (!c) return 'Chart';
+    var b = c.el.closest('.ms-block'), info = rt.chartInfo(key, c) || {}, cs = rt.state.charts[key] || {};
     var t = (b && b.querySelector('.ms-title') && b.querySelector('.ms-title').textContent.trim()) || cs.title || info.title || MS.blocks.guessTitle(c.el);
     if (!t) { var n = c.el; for (var i = 0; i < 3 && n && !t; i++, n = n.parentElement) t = (n.getAttribute && (n.getAttribute('aria-label') || n.getAttribute('title'))) || humanize(n.id); }
     if (!t) {
-      var same = rt.charts().filter(function (x) { return (rt.chartInfo(x.key) || {}).type === info.type; });
+      var same = (charts || rt.charts()).filter(function (x) { return (rt.chartInfo(x.key, x) || {}).type === info.type; });
       t = C.kindName(info.type) + (same.length > 1 ? ' ' + (same.map(function (x) { return x.key; }).indexOf(key) + 1) : '');
     }
     return t.replace(/\s+/g, ' ');

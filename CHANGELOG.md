@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Draft test cases in short batches with a cancel control. Cancelling keeps the existing plan.
+- Avoid reloading dashboard visuals when saving a draft. Calculate coverage from one index of test targets and show long plans 60 cases at a time.
+
 ## 3.9.0 — Studio redesign, reliability and self-serve learning
 
 ### Changed

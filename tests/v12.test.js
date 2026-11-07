@@ -213,6 +213,46 @@ const note = label => console.log('  ✓ ' + label);
       assert.deepEqual([data.fresh, data.period, data.back, data.saved], [1, '2026-11-01', 2, true]);
       note('refresh blocks missing measures, previews totals and period, and rolls back in one undo');
 
+      const largeDashboard = '<title>Large test plan</title><h1>Large test plan</h1>' +
+        Array.from({ length: 180 }, (_, i) => '<div class="kpi"><span class="label">Measure ' + i +
+          '</span><strong>' + (i + 1) + '</strong></div><select id="filter-' + i +
+          '"><option>All</option><option>North</option></select>').join('');
+      await open(largeDashboard, 'large-test-plan.html');
+      const cancel = await page.evaluate(async () => {
+        MS.qa.add({ title: 'Keep my existing test', steps: [{ do: 'manual', value: 'Check the source' }] });
+        const task = new Promise(resolve => setTimeout(() => {
+          const cancel = MS.$('.qa-draft-progress button');
+          resolve(!!cancel);
+          if (cancel) cancel.click();
+        }, 0));
+        await MS.qa.draftInUI({ depth: 'full', replace: true });
+        return { handledInput: await task, titles: MS.qa.cases().map(c => c.title) };
+      });
+      assert.deepEqual(cancel, { handledInput: true, titles: ['Keep my existing test'] });
+      await page.evaluate(() => MS.qa.dialog());
+      await page.getByRole('button', { name: /^Draft/ }).click();
+      await page.getByRole('menuitem', { name: 'Full draft (bounded)' }).click();
+      await page.waitForFunction(() => MS.qa.cases().length > 350 && !MS.$('.qa-draft-progress'));
+      const firstCase = await page.locator('.qa-row .qa-id').first().innerText();
+      assert.equal(await page.locator('.qa-row').count(), 60);
+      await page.getByRole('button', { name: 'Next', exact: true }).click();
+      assert.notEqual(await page.locator('.qa-row .qa-id').first().innerText(), firstCase);
+      await page.getByPlaceholder('Find a test…').fill('Measure 179');
+      assert.equal(await page.locator('.qa-row').count(), 1);
+      const afterDraft = await page.evaluate(async () => {
+        const n = MS.qa.cases().length;
+        MS.history.undo();
+        const afterUndo = MS.qa.cases().map(c => c.title);
+        MS.history.redo();
+        const afterRedo = MS.qa.cases().length;
+        const same = await MS.qa.draftAsync({ depth: 'full' });
+        return { n, afterUndo, afterRedo, same };
+      });
+      assert.deepEqual(afterDraft.afterUndo, ['Keep my existing test']);
+      assert.equal(afterDraft.afterRedo, afterDraft.n);
+      assert.equal(afterDraft.same, 0);
+      note('large drafts yield to cancellation, preserve the plan, and paginate, search and undo after completion');
+
       assert.deepEqual(errors.filter(x => !/deliberate async failure/.test(x)), []);
       await ctx.close();
     }

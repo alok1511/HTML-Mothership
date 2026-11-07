@@ -1120,3 +1120,14 @@ body[data-ms-ui-mode="none"] #appbar .cmdk-btn .lbl { display: inline; }
   .btn:active, .rbtn:active, .recent-card:hover { transform: none; }
   .dlg-wrap, .dlg, .popmenu { animation: none; transition: none; }
 }
+
+.qa-draft-progress {
+  position: fixed; z-index: 2001; inset-inline: 12px; bottom: 42px; margin-inline: auto;
+  width: max-content; max-width: calc(100vw - 24px); display: flex; align-items: center; gap: 14px;
+  padding: 10px 12px; border: 1px solid var(--accent-line); border-radius: 12px;
+  background: var(--panel); color: var(--text); box-shadow: var(--shadow-lg);
+}
+.dlg > .qa-draft-progress { position: static; margin: 0 auto 10px; }
+.qa-draft-progress [role="status"] { font-weight: 650; }
+.qa-pager { display: flex; gap: 9px; justify-content: flex-end; align-items: center; margin-top: 8px; }
+.qa-pager[hidden] { display: none; }

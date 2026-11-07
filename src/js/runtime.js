@@ -809,14 +809,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     for (var i = 0; i < cs.length; i++) if (cs[i].el === node || cs[i].el.contains(node) || node.contains(cs[i].el)) return cs[i];
     return null;
   };
-  rt.chartInfo = function (key) {
-    var c = rt.chart(key); if (!c) return null;
+  rt.chartInfo = function (key, chart) {
+    var c = chart || rt.chart(key); if (!c) return null;
     var inf = c.a.info(c.inst); inf.key = key; inf.lib = c.lib; return inf;
   };
   // The numbers a chart was drawn with (before any binding), as labels + series.
   function num(v) { var n = Number(v && typeof v === 'object' ? (v.y != null ? v.y : v.value != null ? (Array.isArray(v.value) ? v.value[v.value.length - 1] : v.value) : v.x) : v); return isNaN(n) ? null : n; }
-  rt.chartData = function (key, now) {
-    var c = rt.chart(key); if (!c) return null;
+  rt.chartData = function (key, now, chart) {
+    var c = chart || rt.chart(key); if (!c) return null;
     var i = c.inst, labels = [], series = [];
     if (c.a.data) { var dd = c.a.data(i, now); labels = dd.labels; series = dd.series; }
     else if (c.lib === 'chartjs') {
