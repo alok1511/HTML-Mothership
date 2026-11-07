@@ -45,7 +45,7 @@ HTML-Mothership/
 
 1. **Download** the repo (green *Code* button › *Download ZIP*) and unzip it anywhere, e.g. `Documents\HTML-Mothership`.
 2. **Double-click `mothership.html`.** It opens in Chrome or Edge. Firefox works too, except "Save as" falls back to a normal download.
-3. Click **Try the sales sample**, or **Open dashboard** to load your own `.html`.
+3. Click **Browse report layouts** for five guided reports, **Try the sales sample**, or **Open dashboard** to load your own `.html`.
 4. Edit it. Then click **Export** (Ctrl+E) to save the result to your laptop.
 
 > **Tip.** If your dashboard loads its own `.js`, `.css`, images or `data.json` from next to it, use **Open folder…** instead. Mothership bundles all of them into the single exported file, including data the page `fetch()`es.
@@ -363,7 +363,11 @@ Options in *Edit theme*: apply to page · **force** brand fonts/colours on every
 
 ## 6. Plugins and recipes
 
-### Recipes (`.json`, safe, no code)
+### Recipe workshop
+
+Open **Plugins › Recipe workshop** to review and tweak six in-house recipes. **Capture dashboard setup** drafts a portable recipe from the open dashboard's reusable settings. Download the JSON, package it as a skill ZIP, or generate a button plugin. The [user guide](docs/USER-GUIDE.md#report-layouts-recipes-and-reusable-setup) explains how to use it with the sample report layouts and your own data.
+
+### Recipes (`.json`, predefined actions)
 A recipe is a list of edits you want on every dashboard. It is declarative, so it can't run arbitrary code. Run one with **Plugins › Run recipe** or drop the file. Example: [`recipes/standard-help-tabs.json`](recipes/standard-help-tabs.json).
 
 ```json

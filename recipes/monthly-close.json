@@ -1,0 +1,22 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Monthly close and variance review",
+  "description": "Set up a repeatable tie-out, driver bridge, and approval record.",
+  "steps": [
+    {
+      "do": "ensureTab",
+      "title": "Reconciliation",
+      "markdown": "# Reconciliation\n\nRecord the source extract and cut-off. Compare dashboard totals to the source by measure and period. Log any unmatched rows and who will resolve them."
+    },
+    {
+      "do": "ensureTab",
+      "title": "Variance bridge",
+      "markdown": "# Variance bridge\n\nStart from the prior comparable period. Separate volume, rate, mix and one-off effects. Tie the bridge to the total movement."
+    },
+    {
+      "do": "ensureTab",
+      "title": "Sign-off",
+      "markdown": "# Sign-off\n\nRecord the reviewer, review date, outstanding items and release decision. Record filter settings used for each sign-off check."
+    }
+  ]
+}

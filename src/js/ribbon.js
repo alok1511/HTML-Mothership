@@ -7,6 +7,7 @@
   function sel(fn) { return need(function () { if (!MS.sel) return MS.toast('Select something in the dashboard first.', 'warn'); return fn(MS.sel); }); }
 
   MS.cmd = {
+    reportGallery: function () { return MS.recipeStudio.gallery(); },
     open: function () { MS.pickFiles('.html,.htm,.json,.js,.plugin,.md,.skill,.skills,.zip').then(function (f) { if (f[0]) MS.openFileObj(f[0]); }); },
     openFolder: function () { MS.pickFiles('', { folder: true }).then(function (fs) { if (fs.length) MS.openFolder(fs); }); },
     export: need(function () { MS.versions.exportFile(false); }),
@@ -50,6 +51,7 @@
         { icon: '📂', label: 'Open', title: 'Open a dashboard (.html), a Mothership export, a brand skill, a recipe (.json) or a plugin (Ctrl+O)', run: MS.cmd.open },
         { icon: '🗂', label: 'Open folder', title: 'Open a dashboard together with its scripts, styles, images and data files. Everything is bundled into one file.', run: MS.cmd.openFolder },
         { icon: '📋', label: 'Import report', title: 'See supported charts and unresolved assets', run: need(MS.workflow.importDialog) },
+        { icon: '📊', label: 'Report layouts', title: 'Open the detailed sample report gallery', run: MS.cmd.reportGallery },
         { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } },
         { icon: '✕', label: 'Close', title: 'Close this dashboard and go back to the start screen. Asks first if there are changes you have not exported.', run: MS.cmd.close }] },
       { name: 'Save', items: [
@@ -273,9 +275,12 @@
         { icon: '🔌', label: 'Connect AI', title: 'Let an AI assistant drive the dashboard like Playwright (click, hover, type, check, screenshot) through the Mothership MCP server', run: function () { MS.help.guide('mcp'); } }] }
     ] },
     { tab: 'Plugins', groups: function () {
-      var gs = [{ name: 'Manage', items: [
+      var gs = [{ name: 'Recipes', items: [
+        { icon: '📚', label: 'Recipe workshop', title: 'Edit in-house recipes and export a recipe, skill or plugin', run: function () { return MS.recipeStudio.open(); } },
+        { icon: '📋', label: 'Capture recipe', title: 'Capture reusable settings from the open dashboard', run: needRt(function () { return MS.recipeStudio.captureDialog().then(function (r) { if (r) return MS.recipeStudio.open(r); }); }) }
+      ] }, { name: 'Manage', items: [
         { icon: '🧩', label: 'Load plugin', title: 'Install a plugin (.js or .plugin)', run: function () { MS.pickFiles('.js,.plugin,.zip,.json').then(function (f) { if (f[0]) MS.plugins.loadFile(f[0]); }); } },
-        { icon: '📜', label: 'Run recipe', title: 'Run a recipe (.json) of edits: tabs, theme, tooltips, filters…', run: needRt(function () { MS.pickFiles('.json').then(function (f) { if (f[0]) MS.readFile(f[0]).then(function (t) { MS.plugins.runRecipe(JSON.parse(t), f[0].name); }); }); }) },
+        { icon: '📜', label: 'Run recipe', title: 'Run a recipe (.json) of edits: tabs, theme, tooltips, filters…', run: needRt(function () { MS.pickFiles('.json').then(function (f) { if (f[0]) return MS.readFile(f[0]).then(function (t) { return MS.plugins.runRecipe(JSON.parse(t), f[0].name); }).catch(function (e) { MS.toast(e.message, 'error'); }); }); }) },
         { icon: '☰', label: 'Installed', run: MS.plugins.manage }] }];
       MS.plugins.registered.forEach(function (p) {
         if (p.buttons && p.buttons.length) gs.push({ name: p.name, items: p.buttons.map(function (b) { return { icon: b.icon || '⚡', label: b.label, title: b.title || p.description, run: function () { try { b.run(window.Mothership.api()); } catch (e) { MS.toast(p.name + ': ' + e.message, 'error'); } } }; }) });

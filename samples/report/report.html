@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <style data-report-style></style>
+</head>
+<body data-report="{{id}}" style="--report-accent:{{color}};--report-wash:{{wash}}">
+  <header class="report-hero">
+    <div class="report-width hero-layout">
+      <div><p class="report-kicker">{{audience}}</p><h1>{{title}}</h1><p class="report-question">{{question}}</p></div>
+      <div class="report-stamp"><strong id="report-data-label">Illustrative data</strong><span id="report-data-period">April to September 2026</span><span>Interactive report layout</span></div>
+    </div>
+  </header>
+  <div class="report-toolbar">
+    <div class="report-width">
+      <div id="report-filters" class="report-filters" role="group" aria-label="Report filters">
+        <label><span id="period-label">Period</span><select id="filter-period" data-report-filter="period"></select></label>
+        <label id="region-filter"><span>State</span><select id="filter-region" data-report-filter="region"></select></label>
+        <label><span id="segment-label">Segment</span><select id="filter-segment" data-report-filter="segment"></select></label>
+        <label><span id="group-label">Group</span><select id="filter-group" data-report-filter="group"></select></label>
+        <button type="button" id="reset-filters">Reset filters</button>
+        <p id="report-scope" aria-live="polite"></p>
+      </div>
+      <nav class="report-tabs" aria-label="Report sections" role="tablist">
+        <button type="button" id="tab-overview" role="tab" aria-selected="true" aria-controls="overview">Overview</button>
+        <button type="button" id="tab-insights" role="tab" aria-selected="false" aria-controls="insights" tabindex="-1">Key insights</button>
+        <button type="button" id="tab-drivers" role="tab" aria-selected="false" aria-controls="drivers" tabindex="-1">Drivers &amp; scenarios</button>
+        {{map-tab}}
+        <button type="button" id="tab-explorer" role="tab" aria-selected="false" aria-controls="explorer" tabindex="-1">Data explorer</button>
+        <button type="button" id="tab-methodology" role="tab" aria-selected="false" aria-controls="methodology" tabindex="-1">Methodology</button>
+        <button type="button" id="tab-faq" role="tab" aria-selected="false" aria-controls="faq" tabindex="-1">FAQ</button>
+      </nav>
+    </div>
+  </div>
+  <main class="report-width report-main">
+    <section id="overview" role="tabpanel" aria-labelledby="tab-overview">
+      <div class="report-heading"><h2>Overview</h2><p id="overview-basis"></p></div>
+      <div class="report-kpis">
+        <div class="report-stat kpi"><span id="base-label" class="label"></span><strong id="base-value" class="value"></strong></div>
+        <div class="report-stat kpi"><span id="outcome-label" class="label"></span><strong id="outcome-value" class="value"></strong></div>
+        <div class="report-stat kpi"><span id="rate-label" class="label"></span><strong id="rate-value" class="value"></strong></div>
+        <div class="report-stat kpi"><span id="unit-label" class="label"></span><strong id="unit-value" class="value"></strong></div>
+      </div>
+      <div class="report-charts two">
+        <figure class="report-chart">
+          <h3 id="trend-title">Rate by period</h3><div class="chart-shell"><canvas id="trend-chart" role="img" aria-labelledby="trend-title" aria-describedby="trend-inference"></canvas></div>
+          <figcaption><strong>Key inference</strong><span id="trend-inference"></span></figcaption>
+        </figure>
+        <figure class="report-chart">
+          <h3 id="ranking-title">Exposure ranking</h3><div class="chart-shell"><canvas id="ranking-chart" role="img" aria-labelledby="ranking-title" aria-describedby="ranking-inference"></canvas></div>
+          <figcaption><strong>Key inference</strong><span id="ranking-inference"></span></figcaption>
+        </figure>
+      </div>
+    </section>
+    <section id="insights" role="tabpanel" aria-labelledby="tab-insights" hidden>
+      <div class="report-heading"><h2>Key insights</h2><p>Read the result, its drivers, and the decision it could inform.</p></div>
+      <div class="report-insights">
+        <article><span class="order-label">First order</span><h3>Where the exposure sits</h3><p id="insight-first"></p><p class="implication"><strong>So what</strong> <span id="so-first"></span></p></article>
+        <article><span class="order-label">Second order</span><h3>Where performance diverges</h3><p id="insight-second"></p><p class="implication"><strong>So what</strong> <span id="so-second"></span></p></article>
+        <article><span class="order-label">Third order</span><h3>What could change under an intervention</h3><p id="insight-third"></p><p class="implication"><strong>So what</strong> <span id="so-third"></span></p></article>
+      </div>
+    </section>
+    <section id="drivers" role="tabpanel" aria-labelledby="tab-drivers" hidden>
+      <div class="report-heading"><h2>Drivers &amp; scenarios</h2><p>Compare concentration with efficiency, then size an explicit what-if.</p></div>
+      <div class="report-charts two">
+        <figure class="report-chart">
+          <h3 id="scatter-title">Exposure versus rate</h3><div class="chart-shell"><canvas id="scatter-chart" role="img" aria-labelledby="scatter-title" aria-describedby="scatter-inference"></canvas></div>
+          <figcaption><strong>Key inference</strong><span id="scatter-inference"></span></figcaption>
+        </figure>
+        <figure class="report-chart">
+          <h3 id="matrix-title">Rate matrix</h3><div id="report-matrix" class="matrix-wrap"></div>
+          <figcaption><strong>Key inference</strong><span id="matrix-inference"></span></figcaption>
+        </figure>
+      </div>
+      <figure class="report-chart scenario-figure">
+        <div class="scenario-head"><div><h3 id="scenario-title">Scenario bridge</h3><p id="scenario-assumption"></p></div>
+          <label class="scenario-control"><span>Rate change <output id="shock-value" for="shock"></output></span><input id="shock" type="range" min="0" max="15" step="0.5"></label></div>
+        <div class="chart-shell scenario-shell"><canvas id="scenario-chart" role="img" aria-labelledby="scenario-title" aria-describedby="scenario-inference"></canvas></div>
+        <figcaption><strong>Key inference</strong><span id="scenario-inference"></span></figcaption>
+      </figure>
+    </section>
+    {{map-panel}}
+    <section id="explorer" role="tabpanel" aria-labelledby="tab-explorer" hidden>
+      <div class="report-heading"><div><h2>Data explorer</h2><p id="explorer-summary"></p></div><div class="explorer-actions"><label class="boundary-picker">Load report CSV <input id="load-report-data" type="file" accept=".csv,text/csv"></label>
+        <button type="button" id="restore-report-data">Restore sample data</button><button type="button" id="download-csv">Download filtered CSV</button></div></div>
+      <p id="report-data-status" class="map-status" aria-live="polite"></p>
+      <div class="explorer-scroll"><table id="explorer-table"><thead id="explorer-head"></thead><tbody id="explorer-rows"></tbody></table></div>
+      <div class="explorer-pager"><button type="button" id="previous-rows">Previous</button><span id="page-info" aria-live="polite"></span><button type="button" id="next-rows">Next</button></div>
+    </section>
+    <section id="methodology" role="tabpanel" aria-labelledby="tab-methodology" hidden>
+      <div class="report-heading"><h2>Methodology</h2><p>How to reproduce and interpret the numbers.</p></div>
+      <div class="report-reading">
+        <article><h3>Source and grain</h3><p id="method-source"></p><p id="method-origin">All business figures are synthetic, generated for this layout. Use the Data explorer to reconcile totals to the contributing records.</p></article>
+        <article><h3>Measures and denominators</h3><p id="method-measures"></p><p id="method-basis"></p></article>
+        <article><h3>Comparisons and scenarios</h3><p id="method-scenario"></p><p>A rate difference is reported in percentage points. The scatter and matrix are descriptive. They can highlight an association or concentration without identifying its cause.</p></article>
+        <article id="method-geo"><h3>Map boundaries and joins</h3><p>Shapes are matched to reporting states by name or ISO state code in the selected attribute. Unmatched states stay uncoloured. Rates are recomputed from the selected rows for each geography.</p><p>Bundled shapes cover the six sample states and were simplified from <a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-1-states-provinces/" target="_blank" rel="noopener">Natural Earth Admin 1</a>. Use your approved boundary layer for publication.</p></article>
+      </div>
+    </section>
+    <section id="faq" role="tabpanel" aria-labelledby="tab-faq" hidden>
+      <div class="report-heading"><h2>FAQ</h2><p>Use these answers when you hand over the report.</p></div>
+      <div class="report-reading report-faq">
+        <details open><summary>What changes when I filter the report?</summary><p>Every chart, key inference and “So what” statement uses the filtered rows. Some reports use the latest selected snapshot or tenure for the headline. The active basis is shown above the KPIs.</p></details>
+        <details><summary id="domain-question"></summary><p id="domain-answer"></p></details>
+        <details><summary>What does the scenario assume?</summary><p id="faq-scenario"></p></details>
+        <details id="faq-geo"><summary>How do I load a boundary file?</summary><p>Open the Map tab and choose a WGS84 GeoJSON file or a ZIP with one polygon shapefile and its matching .dbf and .prj. Pick the attribute containing the state names. Check the match count before reading the map.</p></details>
+        <details><summary>Can I audit the figures offline?</summary><p>Yes. Open Data explorer, sort or page through the records, and download a CSV of the entire filtered slice. See Methodology before summing snapshots or cohort observations.</p></details>
+      </div>
+    </section>
+  </main>
+  <footer class="report-width report-footer">Mothership report layouts <span id="report-footer-data">Fictional demonstration figures</span></footer>
+  <script data-inline="vendor/charts/chart.umd.min.js"></script>
+  {{map-scripts}}
+  <script id="report-dataset" type="application/json"></script>
+  <script data-inline="samples/report/models.js"></script>
+  <script data-inline="samples/report/csv.js"></script>
+  <script data-inline="samples/report/report.js"></script>
+</body>
+</html>

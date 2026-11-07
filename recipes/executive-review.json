@@ -1,0 +1,30 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Executive review pack",
+  "description": "Create a decision brief, evidence-led insight notes, and reader guidance.",
+  "steps": [
+    {
+      "do": "wrapCharts"
+    },
+    {
+      "do": "ensureTab",
+      "title": "Executive brief",
+      "markdown": "# Executive brief\n\n## Decision required\nWhat must the reader decide, by when, and who owns the next action?\n\n## Headline\nRecord the metric, the comparison period and the unit."
+    },
+    {
+      "do": "ensureTab",
+      "title": "Key insights",
+      "markdown": "# Key insights\n\n## Observed result\nState the change and the population.\n\n## Driver to check\nCompare volume, mix and rate before assigning cause.\n\n## So what\nName the decision, owner and trigger."
+    },
+    {
+      "do": "ensureTab",
+      "title": "Methodology",
+      "markdown": "# Methodology\n\nList the source, reporting period, grain, exclusions and denominators."
+    },
+    {
+      "do": "ensureTab",
+      "title": "FAQ",
+      "markdown": "# FAQ\n\n## Which filters apply?\nList the filters that change the headline, charts and tables.\n\n## Who owns the report?\nAdd the owner and refresh schedule."
+    }
+  ]
+}

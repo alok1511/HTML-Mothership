@@ -140,6 +140,32 @@ Choose **File › New** and a starter with Overview, How to use, FAQs and Method
 
 Keep one story per tab. Use a table for exact values, a bar for comparison and a line for trends. A template speeds up placement; verify its labels, data and examples before sending. For recurring report design, save a chart card or section as a template and use a brand or firm template for shared colours and fonts.
 
+<!-- guide:recipes -->
+## Report layouts, recipes and reusable setup
+
+### Start from a report layout
+
+Choose **Browse report layouts** on the welcome screen or **File › Report layouts**. Five layouts open with synthetic data. Choose Sales & Margin, Supply Chain & Service, Receivables & Cash, Customer Retention, or Portfolio & Risk.
+
+1. Use the filters above the report. **Overview** gives the headline and trends. **Key insights** separates the observed result, a driver to investigate, and a conditional scenario. Every insight has a **So what** that follows the active slice.
+2. Open **Drivers & scenarios** for the exposure-versus-rate scatter, rate matrix, and scenario bridge. The slider changes one group's rate and holds other exposure fixed. Read the **Key inference** below each chart. Associations and what-if estimates need separate validation before you act on them.
+3. Open **Data explorer** to sort or page through the filtered rows. Choose **Download filtered CSV** with filters reset to get a starting file. Keep the header and unit conventions, replace the sample rows, then use **Load report CSV**. For monthly snapshots use `YYYY-MM`, or list periods chronologically. For retention, label tenure as `Week 4`, `Week 8` and so on. Use plain numbers, with monetary columns in INR lakh where the header says so.
+4. Read **Methodology** for the grain, aggregation, and denominator. Receivables and portfolio headlines use the latest selected snapshot. Retention uses the latest selected tenure. The Explorer shows all filtered observations, so do not sum repeated snapshots or cohort denominators. Use **Restore sample data** to go back to the demo.
+5. Use **Interact** to operate the controls and **Edit** to change text or add commentary. Export the dashboard to keep its loaded CSV and boundary layer in a standalone HTML file.
+
+### Use a shapefile or GeoJSON on a map
+
+Sales, supply chain, and receivables have state-level data and a **Map** tab. Choose a polygon or multipolygon GeoJSON, or a ZIP with one shapefile layer and matching `.shp`, `.dbf`, and `.prj` files. Use geographic WGS84 longitude and latitude. Reproject a projected file to EPSG:4326 before importing it. For a large file, simplify the boundaries first.
+
+Pick a **Join field** with the same area names as the CSV or the corresponding ISO state codes for the sample states. Check the match count and any unmatched names. The colour scale recalculates for the filtered slice. Compare the labelled rates when comparing different filters. Click a matched state to filter the whole report, or click it again to clear the selection. The included layer is a simplified subset of six states from Natural Earth. Retention and portfolio use other groupings because their sample data has no meaningful geography.
+
+### Apply, capture or convert a recipe
+
+- Open **Plugins › Recipe workshop**. Choose an in-house starter. The executive, monthly close, risk, geography and help recipes add reusable report sections. The Commercial INR kit formats amount charts. Review its chart selector before applying it to a report containing rates.
+- Open **Preview recipe steps** to edit a tab title or note, tooltip, or filter. Edit the JSON for other changes. **Apply recipe** runs against the open dashboard. Read any skipped steps, then check the result. **Download recipe** saves your edited JSON for the next dashboard. The new scaffold recipes reuse existing tabs with matching titles.
+- Use **Capture dashboard setup** to create a recipe from the open dashboard. Choose the sections to carry across. The capture can include tab titles, theme and Mothership chart settings. Dataset names and bindings, authored commentary, and help text are opt-in. Rows, scripts, embedded assets, test results and review comments stay out. Review captured titles and labels before sharing. Capturing a setup does not clone custom report logic.
+- **Export skill ZIP** packages a `SKILL.md` and the recipe JSON for an assistant that can use Mothership. It can apply the recipe through `run_recipe` when connected. **Export plugin JS** creates a local plugin with an **Apply recipe** button. Install it through **Plugins › Load plugin** only after reviewing it. The recipe runs when you press its button.
+
 <!-- guide:review -->
 ## Review, comments and sign-off
 

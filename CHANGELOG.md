@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add five detailed report layouts with shared filters, key inferences, decision callouts, advanced comparisons, scenario bridges and an editable local CSV workflow.
+- Add interactive maps to the three geographic layouts. Support WGS84 polygon GeoJSON and shapefile ZIPs, with name and ISO state code joins for the sample states.
+- Add the Recipe workshop with six in-house starters, editable steps, dashboard setup capture and exports as JSON, a skill ZIP or a button plugin.
+
 - Give same-named charts, tabs and controls distinct draft targets. Block ambiguous legacy targets and explain skipped checks in Coverage, with a link to the affected item.
 - Run a bounded set of critical smoke checks, save completed results together without redrawing the dashboard, and run heavy jobs in a separate local browser with a hard timeout.
 - Save and load reusable test packs. Compare sections and datasets to a baseline, then draft or run checks for the changed sections.

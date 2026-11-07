@@ -1,0 +1,17 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Geographic data readiness",
+  "description": "Add a boundary join checklist and a map interpretation page.",
+  "steps": [
+    {
+      "do": "ensureTab",
+      "title": "Geographic data QA",
+      "markdown": "# Geographic data QA\n\nChoose a stable area code. Reconcile matched and unmatched records and confirm that duplicate keys do not double-count the data. Record the coordinate system and boundary source."
+    },
+    {
+      "do": "ensureTab",
+      "title": "Map interpretation",
+      "markdown": "# Map interpretation\n\nDescribe the mapped metric and denominator. Distinguish zero from missing data. Check whether the legend changes with filters before comparing colours across views."
+    }
+  ]
+}
