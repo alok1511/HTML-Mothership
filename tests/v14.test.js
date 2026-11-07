@@ -142,6 +142,26 @@ async function shapeZip() {
     assert(reportRecipe.recipe.steps.some(s => s.title === 'FAQ' && s.html?.includes('What changes when I filter the report?')));
     console.log('  ✓ Report capture includes opted-in help text and reuses the report’s existing tabs');
 
+    const starter = require('../recipes/executive-review.json');
+    const withBrief = await page.evaluate(async recipe => {
+      const result = await MS.api.run('run_recipe', { recipe });
+      return { result, html: await MS.exportHtml() };
+    }, starter);
+    assert.deepEqual(withBrief.result.issues, []);
+    await page.evaluate(() => MS.history.undo());
+    assert.equal(await frame.getByRole('tab', { name: 'Executive brief' }).count(), 0);
+    assert.equal(await frame.locator('#trend-title.ms-title').count(), 0);
+    await page.evaluate(() => MS.history.redo());
+    assert.equal(await frame.locator('#trend-title.ms-title').count(), 1);
+    await page.evaluate(html => MS.openHtml(html, 'with-executive-brief.html', { force: true }), withBrief.html);
+    await frame.getByRole('tab', { name: 'Executive brief' }).click();
+    await frame.getByRole('heading', { name: 'Decision required' }).waitFor();
+    await frame.getByRole('tab', { name: 'Overview' }).click();
+    await frame.locator('#trend-chart').waitFor({ state: 'visible' });
+    const heading = frame.locator('#trend-title');
+    assert.match(await heading.textContent(), /Gross margin by/);
+    console.log('  ✓ Applying an in-house recipe keeps the report’s charts and new tab working after export');
+
     const setup = await page.evaluate(async () => {
       await MS.samples.open('sales', { force: true });
       const chart = MS.rt().charts()[0];

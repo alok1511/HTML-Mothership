@@ -329,8 +329,13 @@
     var b = B.create({ title: title, inline: inline !== false, content: !c });
     var size = unit.getBoundingClientRect();
     MS.history.group('Add commentary', function () {
-      // the card's own heading becomes the block title (no duplicate titles)
-      if (heading) MS.history.move('Absorb heading', heading, function () { heading.remove(); });
+      // Keep named headings intact so page scripts and accessibility references still resolve.
+      if (heading && heading.id) {
+        var slot = b.querySelector('.ms-title'), head = slot.parentNode;
+        slot.remove();
+        MS.history.attrs('Style chart heading', heading, ['class'], function (x) { x.classList.add('ms-title'); });
+        MS.history.move('Keep chart heading', heading, function () { head.insertBefore(heading, head.firstChild); });
+      } else if (heading) MS.history.move('Absorb heading', heading, function () { heading.remove(); });
       MS.history.move('Insert block', b, function () { unit.parentNode.insertBefore(b, unit); });
       MS.history.move('Move into block', unit, function () { b.querySelector('.ms-visual').appendChild(unit); });
     });
