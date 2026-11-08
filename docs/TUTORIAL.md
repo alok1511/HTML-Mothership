@@ -123,4 +123,19 @@ Save, reopen and verify the exact file you would share.
 3. Save the validation record. For a viewer release, set a version and as-of date under Publish and check that separate file.
    **Check:** The record identifies a working revision and what was checked. The published copy has the intended data, comments and release details.
 
+## 12. Build and apply a recipe (7 min)
+
+Turn a repeatable report edit into a recipe you can use next month.
+
+1. Open Plugins › Recipe workshop and choose Executive review pack. Hover or focus the question-mark help beside Make it yours.
+   **Check:** The list describes the edits in plain language and the pop-up explains how to change their order.
+2. Edit the Executive brief step and change its Tab title to Board brief. Save the step. Choose Check targets.
+   **Check:** Board brief is listed as a new tab. No dashboard edits have been applied yet.
+3. Choose Apply recipe, close the workshop, and open Board brief.
+   **Check:** The brief has a decision question and a headline prompt. Applying the same recipe again keeps the matching tab.
+4. Open the workshop again. Use Capture dashboard setup to create a recipe from the edited dashboard. Check the steps, then use Download recipe to save it.
+   **Check:** The downloaded JSON can be loaded into another workshop. You can also choose Export skill ZIP or Export plugin JS.
+5. Optionally choose Draft with AI. Pick Terra or Sonnet, describe one repeatable edit and preview the prompt. If you use a work assistant, paste the returned recipe back for review.
+   **Check:** The prompt names your chosen model. Check targets lets you review an imported draft before applying it.
+
 The monthly refresh lesson’s CSV downloads are available inside the tutorial. For offline practice without the editor tutorial, use [October](practice/sales-practice-2026-10.csv) and [November](practice/sales-practice-2026-11.csv).

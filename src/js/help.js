@@ -28,7 +28,7 @@
 
   /* ---------------------------------------------------------- quick tour */
   var TOUR = [
-    { sel: '#ribbon-tabs', title: 'The ribbon', text: 'Works like PowerPoint. <b>Insert</b> adds tabs, sections, KPI cards, charts and footers. <b>Design</b> loads your brand. <b>Charts</b> sets pop-ups and drill-down. <b>Review</b> collects comments. <b>Help</b> has the tutorial.' },
+    { sel: '#ribbon-tabs', title: 'The ribbon', text: 'Use <b>Insert</b> to add tabs, sections, KPI cards and charts. <b>Design</b> loads your brand. <b>Review</b> collects comments. <b>Testing</b> checks interactions. <b>Plugins</b> has the Recipe workshop for repeatable edits. <b>Help</b> has tutorials, the glossary and fixes.' },
     { sel: '#appbar .seg.mode', title: 'Edit or Interact', text: '<b>Edit</b>: click anything to select it, double-click text to type. <b>Interact</b>: use the dashboard like your audience will (filters, pop-ups, drill-down).' },
     { sel: '#cmt-bar', title: 'Comments → AI prompt', text: 'Press <b>💬 Comment</b> (next to Edit), then click anything or drag a box. <b>🗨 Comments</b> lists them all, like PowerPoint: go to one, reply, resolve. <b>✨ Prompt</b> turns them into instructions for an AI assistant.' },
     { sel: '#left', fallback: '[data-panel=left]', title: 'Outline', text: 'Every tab, chart, dataset and comment. Click a chart to jump to it. Drag tabs to reorder them. On a smaller screen, open it with <b>Outline</b> at the bottom.' },
@@ -75,6 +75,7 @@
     prompt: function () { return practice().prompt; },
     'practice-data': function () { var r = rt(); return r && Object.keys(r.state.datasets).some(function (n) { var d = r.state.datasets[n]; return d.rows && d.rows.length === 3 && /sales-practice-2026-10/i.test(d.file || n); }); },
     plan: function () { return MS.qa.cases().length > 0; },
+    'recipe-brief': function () { return rt() && rt().tabs().some(function (t) { return t.title === 'Board brief'; }); },
     ran: function () { return MS.qa.cases().some(function (c) { return !!(c.stepResults && c.stepResults.length); }); },
     stale: function () { return !!MS.qa.summary().byStatus.Stale; },
     source: function () { var b = MS.qa.deep.baseline(); return b && b.from === 'file' && MS.qa.deep.rows(b).length === 1; },

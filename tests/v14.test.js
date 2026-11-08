@@ -42,7 +42,7 @@ async function shapeZip() {
     const frame = page.frameLocator('#child');
     await button('Browse report layouts').click();
     const gallery = page.getByRole('dialog', { name: 'Sample report layouts' });
-    assert.equal(await gallery.locator('.gallery-row').count(), 5);
+    assert.equal(await gallery.getByRole('region', { name: 'Report layouts' }).locator('.gallery-row').count(), 5);
     await gallery.getByRole('button', { name: 'Open ' + layouts[0].title, exact: true }).click();
     await page.waitForFunction(() => MS.mode === 'interact');
     const read = () => frame.locator('body').evaluate(body => {
@@ -88,7 +88,7 @@ async function shapeZip() {
       const [csv] = await Promise.all([page.waitForEvent('download'), frame.getByRole('button', { name: 'Download filtered CSV' }).click()]);
       assert.equal(fs.readFileSync(await csv.path(), 'utf8').trim().split(/\r?\n/).length, expected.count + 1);
     }
-    console.log('  ✓ All five offline layouts reconcile their filters, inferences, decisions, scenarios and CSV');
+    console.log('  ✓ All offline layouts reconcile their filters, inferences, decisions, scenarios and CSV');
 
     await page.evaluate(async () => { await MS.samples.open('sales-margin', { force: true }); MS.setMode('interact'); });
     await frame.getByRole('tab', { name: 'Data explorer' }).click();
@@ -178,12 +178,11 @@ async function shapeZip() {
     const workshop = page.getByRole('dialog', { name: 'Recipe workshop' });
     assert.equal(await workshop.locator('.recipe-choice').count(), 6);
     await workshop.getByRole('button', { name: 'Executive review pack' }).click();
-    await workshop.getByText('Preview recipe steps').click();
     await workshop.getByRole('button', { name: 'Edit step 2', exact: true }).click();
     const edit = page.getByRole('dialog', { name: 'Edit recipe step' });
     await edit.getByText('Tab title', { exact: true }).locator('..').locator('input').fill('Board brief');
     await edit.getByRole('button', { name: 'Save step' }).click();
-    assert.match(await workshop.getByRole('textbox', { name: 'Recipe JSON' }).inputValue(), /Board brief/);
+    assert.match(await workshop.locator('.recipe-steps').innerText(), /Board brief/);
     await workshop.getByRole('button', { name: 'Apply recipe' }).click();
     await workshop.getByText(/steps completed/).waitFor();
     const countTabs = () => page.evaluate(() => MS.rt().tabs().filter(t => t.title === 'Board brief').length);

@@ -45,7 +45,7 @@ HTML-Mothership/
 
 1. **Download** the repo (green *Code* button › *Download ZIP*) and unzip it anywhere, e.g. `Documents\HTML-Mothership`.
 2. **Double-click `mothership.html`.** It opens in Chrome or Edge. Firefox works too, except "Save as" falls back to a normal download.
-3. Click **Browse report layouts** for five guided reports, **Try the sales sample**, or **Open dashboard** to load your own `.html`.
+3. Click **Browse report layouts** for five reusable layouts, a finished showcase and two practice labs, **Try the sales sample**, or **Open dashboard** to load your own `.html`.
 4. Edit it. Then click **Export** (Ctrl+E) to save the result to your laptop.
 
 > **Tip.** If your dashboard loads its own `.js`, `.css`, images or `data.json` from next to it, use **Open folder…** instead. Mothership bundles all of them into the single exported file, including data the page `fetch()`es.
@@ -365,7 +365,11 @@ Options in *Edit theme*: apply to page · **force** brand fonts/colours on every
 
 ### Recipe workshop
 
-Open **Plugins › Recipe workshop** to review and tweak six in-house recipes. **Capture dashboard setup** drafts a portable recipe from the open dashboard's reusable settings. Download the JSON, package it as a skill ZIP, or generate a button plugin. The [user guide](docs/USER-GUIDE.md#report-layouts-recipes-and-reusable-setup) explains how to use it with the sample report layouts and your own data.
+Open **Plugins › Recipe workshop**. Pick a starter, edit and reorder the steps using the visible controls, then choose **Check targets**. Use **Apply recipe** on a dashboard copy and **Undo** if you need to revert. Hover, focus or tap the **?** buttons for quick explanations. Use **New recipe** to start empty or **Capture dashboard setup** to start from the open dashboard. Save the editable JSON, a skill ZIP for an assistant, or a local button plugin.
+
+**Draft with AI** prepares a prompt for **GPT-5.6 Terra** or **Claude Sonnet 5** in your work assistant. Use **Paste recipe** to review its JSON. The optional local MCP connection provides `recipe_context` and `preview_recipe` for target inspection. The browser prepares the prompt locally and model selection happens in your work assistant. See [step-by-step recipe and model instructions](docs/USER-GUIDE.md#draft-recipes-with-terra-or-sonnet).
+
+**Try it on a sample.** Open **Browse report layouts** for the finished Monsoon Readiness Review, five reusable layouts, and two practice labs. Release Rehearsal lets you introduce a wrong KPI and practise testing it. Monthly Close includes two CSVs for trying a refresh. See the [sample walkthrough](docs/USER-GUIDE.md#practise-with-a-finished-dashboard-and-two-labs), [glossary](docs/USER-GUIDE.md#glossary), and [problem-solving guide](docs/USER-GUIDE.md#troubleshoot-by-symptom).
 
 ### Recipes (`.json`, predefined actions)
 A recipe is a list of edits you want on every dashboard. It is declarative, so it can't run arbitrary code. Run one with **Plugins › Run recipe** or drop the file. Example: [`recipes/standard-help-tabs.json`](recipes/standard-help-tabs.json).
@@ -560,9 +564,9 @@ with MothershipClient() as ms:                      # starts the Python server
 
 `python tools/mcp/python_client.py samples/sales-dashboard.html` runs a short demo. If your office allows `pip install mcp`, the official MCP SDK works as well (see `with_official_sdk()` in that file).
 
-**Claude Code:** the repo includes `.mcp.json`, so opening Claude Code in this folder offers the `mothership` server. Or run `claude mcp add mothership -- python tools/mcp/mothership_mcp.py` (or `-- node tools/mcp/mothership-mcp.js`).
+**Codex and Claude Code:** see the [model selection and local MCP setup](docs/USER-GUIDE.md#give-codex-or-claude-code-access-to-mothership-tools). The repo includes `.mcp.json`, so opening Claude Code in this folder offers the `mothership` server. Or run `claude mcp add --transport stdio mothership -- python tools/mcp/mothership_mcp.py` (or `-- node tools/mcp/mothership-mcp.js`).
 
-**Tools.** About 75, generated from `MS.api` (see [`docs/EXTENDING.md`](docs/EXTENDING.md#msapi-and-the-mcp-server)), so anything new added to `MS.api` appears automatically. The main ones:
+**Tools.** The list is generated from `MS.api` (see [`docs/EXTENDING.md`](docs/EXTENDING.md#msapi-and-the-mcp-server)), so anything new added to `MS.api` appears automatically. The main ones:
 
 | Group | Tools |
 |---|---|
@@ -577,7 +581,8 @@ with MothershipClient() as ms:                      # starts the Python server
 | Checks | `chart_summaries`, `number_check`, `compare_versions`, `compare_file` |
 | Draw and share | `chart_shapes` (growth arrow with CAGR, difference, arrows, boxes, callouts), `chart_picture`, `annotate` |
 | Testing (like Playwright) | `ui_snapshot`, `ui_tab`, `ui_click`, `ui_hover`, `ui_select`, `ui_type`, `ui_press`, `ui_scroll`, `ui_wait`, `ui_read`, `ui_expect`, `ui_errors`, `ui_width`, `ui_screenshot`, `ui_mouse` (real mouse), `test_plan`, `test_run`, `test_record`, `test_document`, `save_test_document` |
-| Anything else | `undo`, `redo`, `run_recipe`, `call` (any Mothership function by name) |
+| Recipes | `recipe_context`, `preview_recipe`, `capture_recipe`, `run_recipe` |
+| Anything else | `undo`, `redo`, `call` (any Mothership function by name) |
 
 **Testing with an AI.** Ask it: *"Open sales.html, draft a test plan, run it, check the 'check by eye' steps with screenshots, record every result and save the test document."* It calls `test_plan {action: "draft"}`, `test_run`, then works through the remaining cases with `ui_snapshot`, `ui_hover {target: "chart=Sales by region", point: "West"}`, `ui_expect {target: "kpi=Margin", text: "16.1%"}`, `ui_screenshot {target: "chart=Monthly sales trend"}` and `test_record {id, status, actual}`, and finishes with `save_test_document`. Targets: a ref from `ui_snapshot`, `text=…`, `button=…`, `tab=…`, `chart=…` (with `point` for one bar), `kpi=…`, `filter=…`, or a CSS selector.
 

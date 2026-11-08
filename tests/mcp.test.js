@@ -152,6 +152,13 @@ const call = async (name, args) => {
   const cv0 = await call('test_coverage', {});
   const fd = await call('test_plan', { action: 'draft', depth: 'full' });
   check('test_baseline locks the numbers; test_plan full draft raises test_coverage', bl.json && bl.json.charts >= 3 && bl.json.added > 0 && cv0.json && fd.json && fd.json.added > 0 && fd.json.coverage.percent > cv0.json.percent, bl.error || cv0.error || fd.error || [bl.json, cv0.json && cv0.json.percent, fd.json && fd.json.coverage]);
+  const recipe = { name: 'Assistant draft', steps: [{ do: 'ensureTab', title: 'Assistant reader guide' }] };
+  const preview = await call('preview_recipe', { recipe });
+  const recipeContext = await call('recipe_context');
+  check('recipe drafting tools preview targets without applying edits',
+    preview.json && preview.json.steps[0].status === 'ready' && recipeContext.json &&
+    recipeContext.json.charts.length === 4 && !recipeContext.json.tabs.includes('Assistant reader guide') &&
+    recipeContext.json.datasets.length === 0, [preview.error || preview.json, recipeContext.error || recipeContext.json]);
   const cl = await call('close_dashboard', {});
   const cl2 = await call('close_dashboard', { force: true });
   check('close_dashboard keeps unexported work unless forced', cl.json && cl.json.closed === false && cl.json.unsavedChanges && cl2.json && cl2.json.closed === true, cl.error || cl2.error || [cl.json, cl2.json]);

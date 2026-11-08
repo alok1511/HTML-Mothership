@@ -276,7 +276,8 @@
     ] },
     { tab: 'Plugins', groups: function () {
       var gs = [{ name: 'Recipes', items: [
-        { icon: '📚', label: 'Recipe workshop', title: 'Edit in-house recipes and export a recipe, skill or plugin', run: function () { return MS.recipeStudio.open(); } },
+        { icon: '📚', label: 'Recipe workshop', title: 'Build repeatable dashboard edits, check the targets, and save a recipe, skill or plugin', run: function () { return MS.recipeStudio.open(); } },
+        { icon: '✨', label: 'Draft recipe with AI', title: 'Prepare a drafting prompt for GPT-5.6 Terra or Claude Sonnet 5 in your work assistant', run: function () { return MS.recipeStudio.assistant(); } },
         { icon: '📋', label: 'Capture recipe', title: 'Capture reusable settings from the open dashboard', run: needRt(function () { return MS.recipeStudio.captureDialog().then(function (r) { if (r) return MS.recipeStudio.open(r); }); }) }
       ] }, { name: 'Manage', items: [
         { icon: '🧩', label: 'Load plugin', title: 'Install a plugin (.js or .plugin)', run: function () { MS.pickFiles('.js,.plugin,.zip,.json').then(function (f) { if (f[0]) MS.plugins.loadFile(f[0]); }); } },
@@ -292,10 +293,13 @@
         { icon: '☑', label: 'Start here', title: 'Follow the dashboard workflow from import to export', run: MS.cmd.workflow },
         { icon: '🧭', label: 'Quick tour', title: 'A 2-minute tour of the screen', run: function () { MS.help.tour(); } },
         { icon: '🎓', label: 'Tutorial', title: 'Hands-on lessons with a sample dashboard. Each step shows you where to click.', run: function () { MS.help.tutorial(); } },
-        { icon: '📖', label: 'User guide', title: 'How to do everything, searchable', run: function () { MS.help.guide(); } }] },
+        { icon: '📖', label: 'User guide', title: 'Search the full Mothership guide', run: function () { MS.help.guide(); } },
+        { icon: '📊', label: 'Showcase and labs', title: 'See a finished report and practise on two test dashboards', run: MS.cmd.reportGallery }] },
       { name: 'Reference', items: [
         { icon: '⌨', label: 'Shortcuts', run: function () { MS.help.guide('shortcuts'); } },
-        { icon: '❓', label: 'Problems?', title: 'Fixes for common problems', run: function () { MS.help.guide('troubleshooting'); } },
+        { icon: '📖', label: 'Glossary', title: 'Look up recipes, bindings, coverage and other terms', run: function () { MS.help.guide('glossary'); } },
+        { icon: '✨', label: 'Recipes and AI', title: 'Draft a recipe in Terra or Sonnet with or without MCP', run: function () { MS.help.guide('mcp'); } },
+        { icon: '❓', label: 'Problems and fixes', title: 'Find a fix by symptom, including recipe, model, CSV and map issues', run: function () { MS.help.guide('troubleshooting'); } },
         { icon: 'ℹ', label: 'About', run: function () { MS.help.about(); } }] }
     ] }
   ];

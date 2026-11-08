@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <style data-lab-style></style>
+  <script data-inline="vendor/charts/chart.umd.min.js"></script>
+</head>
+<body data-lab="{{kind}}" style="--lab-accent:{{color}};--lab-wash:{{wash}}">
+  <header class="lab-head">
+    <div class="lab-width"><p>{{audience}}</p><h1>{{title}}</h1><p class="lab-intro">{{question}}</p></div>
+  </header>
+  <div class="lab-nav">
+    <nav class="lab-width" role="tablist" aria-label="Lab sections">
+      <button type="button" id="lab-tab-summary" role="tab" aria-selected="true" aria-controls="lab-summary">Summary</button>
+      <button type="button" id="lab-tab-detail" role="tab" aria-selected="false" aria-controls="lab-detail" tabindex="-1">Detail</button>
+      <button type="button" id="lab-tab-source" role="tab" aria-selected="false" aria-controls="lab-source" tabindex="-1">Source data</button>
+      <button type="button" id="lab-tab-practice" role="tab" aria-selected="false" aria-controls="lab-practice" tabindex="-1">Practice tasks</button>
+    </nav>
+  </div>
+  <main class="lab-width">
+    <section id="lab-summary" role="tabpanel" aria-labelledby="lab-tab-summary">
+      <h2>Performance summary</h2>
+      <div class="lab-controls" aria-label="Lab filters" role="group">
+        <label>Region <select id="lab-region"><option value="">All regions</option><option>North</option><option>West</option><option>South</option></select></label>
+        <label id="defect-control"><input type="checkbox" id="lab-defect"> Introduce an incorrect KPI</label>
+        <button type="button" id="lab-reset">Reset filters</button>
+      </div>
+      <div class="lab-kpis">
+        <div class="kpi"><span class="label" id="lab-total-label">Reported total</span><strong class="value" id="lab-total"></strong></div>
+        <div class="kpi"><span class="label">Source total</span><strong class="value" id="lab-source-total"></strong></div>
+        <div class="kpi"><span class="label">Source rows</span><strong class="value" id="lab-count"></strong></div>
+      </div>
+      <p id="lab-state" role="status"></p>
+      <figure class="lab-figure">
+        <h3 id="lab-summary-title">Regional performance</h3>
+        <div class="lab-chart"><canvas id="lab-summary-chart" role="img" aria-labelledby="lab-summary-title" aria-describedby="lab-summary-inference"></canvas></div>
+        <figcaption><strong>Key inference</strong> <span id="lab-summary-inference"></span></figcaption>
+      </figure>
+    </section>
+    <section id="lab-detail" role="tabpanel" aria-labelledby="lab-tab-detail" hidden>
+      <h2>Performance detail</h2>
+      <p id="lab-detail-scope"></p>
+      <figure class="lab-figure">
+        <h3 id="lab-detail-title">Regional performance</h3>
+        <div class="lab-chart"><canvas id="lab-detail-chart" role="img" aria-labelledby="lab-detail-title" aria-describedby="lab-detail-inference"></canvas></div>
+        <figcaption><strong>Key inference</strong> <span id="lab-detail-inference"></span></figcaption>
+      </figure>
+    </section>
+    <section id="lab-source" role="tabpanel" aria-labelledby="lab-tab-source" hidden>
+      <h2>Source data</h2>
+      <p>These figures are synthetic. The Summary total should match the filtered source rows.</p>
+      <div class="lab-downloads" id="lab-downloads" aria-label="Practice files"></div>
+      <div class="lab-table-wrap">
+        <table>
+          <caption>Source ledger for the selected region</caption>
+          <thead><tr><th scope="col">Region</th><th scope="col">Segment</th><th scope="col">Period</th><th scope="col"><button type="button" id="lab-sort">Amount</button></th></tr></thead>
+          <tbody id="lab-rows"></tbody>
+        </table>
+      </div>
+    </section>
+    <section id="lab-practice" role="tabpanel" aria-labelledby="lab-tab-practice" hidden>
+      <h2>Practice tasks</h2>
+      <p>Open this lab inside Mothership to use the editor’s ribbon. Keep this practice copy separate from your working file.</p>
+      {{tasks}}
+    </section>
+  </main>
+  <footer class="lab-width">Mothership practice dashboard · Illustrative data</footer>
+  <script data-inline="samples/lab/lab.js"></script>
+</body>
+</html>

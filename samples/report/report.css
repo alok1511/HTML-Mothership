@@ -99,6 +99,44 @@ button:disabled { opacity: .55; cursor: default; }
   .report-stat { border-bottom: 1px solid var(--report-line); }
   .report-stat:nth-child(odd) { border-left: 0; }
   #report-scope { width: 100%; margin-left: 0; }
+  .report-tabs { flex-wrap: wrap; gap: 3px; }
+  .report-tabs button { padding-inline: 8px; }
 }
 .explorer-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
 .explorer-actions .boundary-picker { display: grid; }
+
+/* Nadi leadership showcase. The large service target anchors the decision brief. */
+body[data-report="monsoon-readiness"] { background: #f3f5ed; --report-line: #cbd8ce; --report-ink: #1b382e; --report-muted: #465c52; }
+[data-report="monsoon-readiness"] .report-hero {
+  background: repeating-linear-gradient(153deg, transparent 0 54px, #e7f48a20 55px, transparent 56px 92px), #153e34;
+  border-top: 6px solid #c9df78;
+}
+[data-report="monsoon-readiness"] .report-hero h1 {
+  font-family: Georgia, "Times New Roman", serif; font-weight: 500; letter-spacing: -.055em;
+  font-size: clamp(37px, 5.5vw, 80px);
+}
+[data-report="monsoon-readiness"] .hero-layout { padding-block: clamp(27px, 5vw, 68px) clamp(22px, 4vw, 47px); }
+[data-report="monsoon-readiness"] .report-kicker { color: #d4e69a; }
+[data-report="monsoon-readiness"] .report-stamp { border-color: #6b8d75; color: #e4efdc; }
+[data-report="monsoon-readiness"] .report-toolbar { background: #fffef9; }
+[data-report="monsoon-readiness"] .report-heading h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; }
+[data-report="monsoon-readiness"] .report-kpis { border-radius: 3px; }
+[data-report="monsoon-readiness"] .report-stat strong { font-size: clamp(23px, 3.1vw, 41px); }
+[data-report="monsoon-readiness"] #overview > .report-charts { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+[data-report="monsoon-readiness"] .report-chart { border-radius: 3px; }
+.decision-brief { display: grid; grid-template-columns: minmax(155px, 1fr) minmax(0, 3fr); margin-bottom: 18px; background: #fffef9; border: 1px solid #bacdc0; }
+.decision-score { display: flex; flex-direction: column; justify-content: center; padding: 18px 20px; background: #204d3d; color: #edf4df; }
+.decision-score p { margin: 0; font-weight: 650; }
+.decision-score strong { color: #e2ee9f; font: 500 clamp(40px, 6vw, 72px)/1.07 Georgia, serif; letter-spacing: -.07em; }
+.decision-copy { padding: 16px 20px; }
+.decision-copy h3 { margin: 0 0 4px; color: #365246; font-size: 15px; }
+#brief-status { margin: 0 0 4px; color: #193f32; font-weight: 700; font-size: clamp(17px, 2vw, 25px); }
+#brief-priority { margin: 0 0 10px; max-width: 75ch; color: #3e574b; }
+.decision-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.decision-links button:first-child { background: #226756; color: white; border-color: #226756; }
+.decision-links button:first-child:hover { background: #1c5043; }
+@media(max-width: 620px) {
+  .decision-brief { grid-template-columns: 1fr; }
+  .decision-score { padding: 10px 14px; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; flex-wrap: wrap; }
+  [data-report="monsoon-readiness"] #overview > .report-charts { grid-template-columns: 1fr; }
+}

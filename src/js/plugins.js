@@ -105,6 +105,94 @@
     var names = new Set(rt.fields(dataset).map(function (f) { return f.name; }));
     return fields.filter(Boolean).every(function (f) { return names.has(f); });
   }
+  function chartsMatching(cs, m) {
+    if (!m || m === '*') return cs;
+    if (m.titleExact) {
+      var matches = cs.filter(function (c) {
+        return low(MS.charts.nameOf(c.key, c, cs)) === low(m.titleExact) &&
+          (!m.library || c.lib === m.library) && (!m.tab || low(MS.qa.tabOf(c.el)) === low(m.tab));
+      });
+      if (matches.length !== 1) throw new Error('“' + m.titleExact + '” ' + (matches.length ? 'is ambiguous' : 'was not found') + '. Use an exact title and tab that identify one chart.');
+      return matches;
+    }
+    return cs.filter(function (c, i) {
+      if (m.key && c.key === m.key) return true;
+      if (m.index != null && i === m.index) return true;
+      return m.title && low(MS.charts.nameOf(c.key, c, cs)).includes(low(m.title));
+    });
+  }
+  function recipeTabs(rt) {
+    var group = rt.layoutEnabled() ? null : MS.pageTabs.group(true);
+    return rt.layoutEnabled() ? rt.tabs() : group ? group.tabs : [];
+  }
+  P.context = function (fields) {
+    var rt = MS.rt();
+    if (!rt) throw new Error('Open a dashboard with scripts enabled to read its recipe targets.');
+    var charts = rt.charts();
+    return {
+      tabs: recipeTabs(rt).slice(0, 120).map(function (t) { return t.title; }),
+      charts: charts.slice(0, 120).map(function (c) {
+        return { titleExact: MS.charts.nameOf(c.key, c, charts), library: c.lib, tab: MS.qa.tabOf(c.el) || undefined };
+      }),
+      datasets: fields ? Object.keys(rt.state.datasets).slice(0, 30).map(function (name) {
+        return { name: name, fields: rt.fields(name).slice(0, 80).map(function (f) { return f.name; }) };
+      }) : []
+    };
+  };
+  P.previewRecipe = function (recipe) {
+    P.checkRecipe(recipe);
+    var rt = MS.rt();
+    var titles = rt ? recipeTabs(rt).map(function (t) { return t.title; }) : [];
+    var charts = rt ? rt.charts() : [];
+    var state = rt ? { native: rt.layoutEnabled(), pageTabs: MS.pageTabs.has() } : {};
+    var available = new Set(rt ? Object.keys(rt.state.datasets) : []);
+    var staged = new Set();
+    function find(title) { return titles.findIndex(function (name) { return low(name) === low(title); }); }
+    function check(s) {
+      var i, m;
+      switch (s.do) {
+        case 'layout':
+          if (s.preservePageTabs && !state.native && state.pageTabs) return ['review', 'The report uses its own tab layout. This step will be skipped.'];
+          state.native = true; return ['ready', 'Set the tab bar and filter pane layout.'];
+        case 'addTab': case 'ensureTab':
+          if (s.do === 'ensureTab' && find(s.title) >= 0) return ['keep', 'Keep the existing “' + s.title + '” tab.'];
+          if (!state.pageTabs) state.native = true;
+          titles.push(s.title); return ['ready', 'Create the “' + s.title + '” tab.'];
+        case 'renameTab': case 'deleteTab': case 'hideTab':
+          i = find(s.from || s.title);
+          if (i < 0) return ['review', 'The target tab was not found.'];
+          if (!state.native) return ['review', 'This step requires a Mothership tab. The report uses its own tabs.'];
+          if (s.do === 'renameTab') titles[i] = s.to;
+          if (s.do === 'deleteTab') {
+            if (titles.length < 2) return ['review', 'The dashboard needs at least one tab.'];
+            titles.splice(i, 1);
+          }
+          return ['ready', 'Tab found.'];
+        case 'dataset':
+          available.add(s.name); staged.add(s.name); return ['ready', 'Define dataset “' + s.name + '”.'];
+        case 'filter':
+          if (!available.has(s.dataset)) return ['review', 'Dataset “' + s.dataset + '” was not found.'];
+          if (staged.has(s.dataset)) return ['review', 'This dataset is defined earlier in the recipe. Verify the field after applying.'];
+          return hasFields(rt, s.dataset, [s.field]) ? ['ready', 'Dataset and filter field found.'] : ['review', 'Field “' + s.field + '” was not found.'];
+        case 'chart': case 'tooltip': case 'moveChart': case 'copyChart':
+          if (s.toTab && (find(s.toTab) < 0 || !state.native)) return ['review', 'Choose an existing Mothership destination tab.'];
+          m = chartsMatching(charts, s.do === 'tooltip' ? s.charts : s.match);
+          if (!m.length) return ['review', 'No charts match this step.'];
+          if (s.binding && (staged.has(s.binding.dataset) || !hasFields(rt, s.binding.dataset,
+            (s.binding.levels || []).concat([s.binding.measure, s.binding.series])))) return ['review', 'Check the target dataset and chart binding fields.'];
+          return ['ready', m.length + ' matching chart' + (m.length === 1 ? '' : 's') + '.'];
+        case 'wrapCharts': return ['ready', charts.length + ' charts found. Existing commentary blocks are reused.'];
+        case 'css': case 'replaceText': return ['review', 'Check the appearance or text after applying to a copy.'];
+        default: return ['ready', 'Review the result after applying to a copy.'];
+      }
+    }
+    return { dashboardOpen: !!rt, steps: recipe.steps.map(function (s, i) {
+      if (!rt) return { step: i + 1, status: 'unchecked', message: 'Open a dashboard to check the target.' };
+      var result;
+      try { result = check(s); } catch (e) { result = ['review', e.message]; }
+      return { step: i + 1, status: result[0], message: result[1] };
+    }) };
+  };
   P.runRecipe = async function (recipe, name) {
     var rt = MS.rt(), child = MS.child;
     var label = recipe && recipe.name || name || 'Untitled recipe';
@@ -120,25 +208,8 @@
     }
     if (MS.child !== child || MS.rt() !== rt) return rejected('The dashboard changed. Apply the recipe again.');
     var issues = [], applied = 0;
-    function chartsMatching(m) {
-      var cs = rt.charts();
-      if (!m || m === '*') return cs;
-      if (m.titleExact) {
-        var matches = cs.filter(function (c) {
-          return low(MS.charts.nameOf(c.key, c, cs)) === low(m.titleExact) &&
-            (!m.library || c.lib === m.library) && (!m.tab || low(MS.qa.tabOf(c.el)) === low(m.tab));
-        });
-        if (matches.length !== 1) throw new Error('“' + m.titleExact + '” ' + (matches.length ? 'is ambiguous' : 'was not found') + '. Use an exact title and tab that identify one chart.');
-        return matches;
-      }
-      return cs.filter(function (c, i) {
-        if (m.key && c.key === m.key) return true;
-        if (m.index != null && i === m.index) return true;
-        return m.title && low(MS.charts.nameOf(c.key, c, cs)).includes(low(m.title));
-      });
-    }
     function tabByTitle(title) {
-      var tabs = rt.layoutEnabled() ? rt.tabs() : MS.pageTabs.list();
+      var tabs = recipeTabs(rt);
       var found = tabs.filter(function (t) { return low(t.title) === low(title); });
       if (found.length > 1) throw new Error('More than one tab is called “' + title + '”.');
       return found[0];
@@ -207,7 +278,7 @@
         }
         case 'wrapCharts': MS.blocks.wrapAll(); return;
         case 'tooltip': case 'chart': {
-          var charts = chartsMatching(s.do === 'tooltip' ? s.charts || '*' : s.match);
+          var charts = chartsMatching(rt.charts(), s.do === 'tooltip' ? s.charts || '*' : s.match);
           if (!charts.length) throw new Error('No chart matched this step.');
           var binding = s.binding;
           if (binding && !hasFields(rt, binding.dataset, (binding.levels || []).concat([binding.measure, binding.series]))) {
@@ -224,7 +295,7 @@
           return;
         }
         case 'moveChart': case 'copyChart': {
-          var t = nativeTab(s.toTab), charts = chartsMatching(s.match);
+          var t = nativeTab(s.toTab), charts = chartsMatching(rt.charts(), s.match);
           if (!charts.length) throw new Error('No chart matched this step.');
           charts.forEach(function (c) { MS.blocks.sendToTab(MS.blocks.of(c.el) || c.el, t.id, s.do === 'copyChart'); });
           return;

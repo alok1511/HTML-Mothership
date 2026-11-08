@@ -60,6 +60,8 @@ Three extension points, from safest to most powerful:
 
 `capture_recipe` creates a recipe from the current dashboard's reusable settings. Pass `helpText: true` to include reader help text, `commentary: true` to include authored chart notes, or `bindings: true` to include dataset and field references. `run_recipe` returns the count of completed steps and any issues to review.
 
+For model-assisted drafting, `recipe_context` returns tab and chart identifiers. Set `fields: true` to include dataset and field names. `preview_recipe` checks recipe structure and reports `ready`, `keep`, `review` or `unchecked` per step without applying it. Try any step that depends on an earlier transformation on a disposable copy. See [the setup for Terra and Sonnet](USER-GUIDE.md#draft-recipes-with-terra-or-sonnet).
+
 ## Plugin API
 
 ```js

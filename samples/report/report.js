@@ -84,6 +84,10 @@
       requestAnimationFrame(() => charts.forEach(chart => { if (!chart.canvas.closest('[hidden]')) chart.resize(); }));
     }
     nav.addEventListener('click', e => { const btn = e.target.closest('[role=tab]'); if (btn) show(btn); });
+    document.querySelectorAll('[data-report-jump]').forEach(link => link.addEventListener('click', () => {
+      const button = $(link.dataset.reportJump);
+      if (button) { button.click(); button.focus(); }
+    }));
     nav.addEventListener('keydown', e => {
       const all = buttons(), i = all.indexOf(e.target);
       if (i < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
@@ -156,6 +160,13 @@
     text('outcome-value', fmt(overall.n ? overall.outcome : null, money.outcome));
     text('unit-value', fmt(overall.n ? overall.units : null, money.units));
     text('rate-value', rate(overall.rate));
+    if ($('brief-status')) {
+      const difference = overall.rate === null ? null : overall.rate - m.target;
+      text('brief-status', difference === null ? 'Choose a slice with records.' :
+        rate(overall.rate) + ' closed on time, ' + (difference === 0 ? 'meeting' : pp(difference) + (difference < 0 ? ' below' : ' above')) + ' the ' + m.target + '% service target.');
+      text('brief-priority', worst ? 'Investigate ' + worst.name + ' first at ' + rate(worst.rate) + ' on-time recovery. Compare team and asset mix before moving capacity.' :
+        'Select a populated slice to compare locations.');
+    }
     const share = lead ? rate(lead.base / overall.base * 100) : '—';
     text('insight-first', lead ? lead.name + ' represents ' + share + ' of ' + m.base.toLowerCase() + ' (' + fmt(lead.base, money.base) + ') and records ' + fmt(lead.outcome, money.outcome) + ' in ' + m.outcome.toLowerCase() + '.' : noData);
     text('so-first', lead ? 'Start the review with ' + lead.name + '. It accounts for ' + share + ' of the selected exposure, so a change there carries the most weight.' : 'Broaden the slice before prioritising a segment.');
@@ -177,10 +188,14 @@
     const trend = grouped(sameBasis(filtered, true), 'period');
     const first = trend[0], last = trend.at(-1);
     const delta = first && last ? last.rate - first.rate : 0;
+    const worst = trend.reduce((low, row) => !low || (m.goodHigh ? row.rate < low.rate : row.rate > low.rate) ? row : low, null);
     text('trend-inference', !last ? 'No periods to compare.' : trend.length === 1 ? last.name + ' records ' + rate(last.rate) + '. Select more periods for a trend.' :
-      m.rate + ' moves from ' + rate(first.rate) + ' in ' + first.name + ' to ' + rate(last.rate) + ' in ' + last.name + ' (' + (delta < 0 ? '−' : '+') + pp(delta) + ').');
-    paint('trend-chart', 'line', trend.map(x => x.name), [{ label: m.rate, data: trend.map(x => x.rate), borderColor: color, backgroundColor: pale, fill: true, tension: .15, pointRadius: 3.5 }],
-      { y: { ticks: { callback: x => x + '%' } }, plugins: { tooltip: { callbacks: { label: c => rate(c.raw) } } } });
+      m.rate + ' moves from ' + rate(first.rate) + ' in ' + first.name + ' to ' + rate(last.rate) + ' in ' + last.name + ' (' + (delta < 0 ? '−' : '+') + pp(delta) + '). ' +
+      'The weakest month is ' + worst.name + ' at ' + rate(worst.rate) + '.');
+    const series = [{ label: m.rate, data: trend.map(x => x.rate), borderColor: color, backgroundColor: pale, fill: true, tension: .15, pointRadius: 3.5 }];
+    if (m.target) series.push({ label: 'Service target', data: trend.map(() => m.target), borderColor: '#75814e', borderDash: [5, 4], borderWidth: 2, pointRadius: 0, fill: false });
+    paint('trend-chart', 'line', trend.map(x => x.name), series,
+      { y: { ticks: { callback: x => x + '%' } }, plugins: { legend: { display: !!m.target, labels: { usePointStyle: true } }, tooltip: { callbacks: { label: c => c.dataset.label + ' ' + rate(c.raw) } } } });
     text('ranking-inference', v.lead ? v.lead.name + ' leads by ' + m.base.toLowerCase() + ' at ' + fmt(v.lead.base, money.base) + '. Its rate is ' + rate(v.lead.rate) + '.' : 'No groups in this slice.');
     paint('ranking-chart', 'bar', v.rank.map(x => x.name), [{ label: m.base, data: v.rank.map(x => x.base), backgroundColor: color, borderRadius: 4 }],
       { indexAxis: 'y', x: { ticks: { callback: x => fmt(Number(x), money.base) } }, plugins: { tooltip: { callbacks: { label: c => fmt(c.raw, money.base) } } } });

@@ -1,4 +1,4 @@
-/* Five fictional reporting models. Monetary inputs use INR lakh unless noted. */
+/* Fictional reporting models. Monetary inputs use INR lakh unless noted. */
 (function () {
   'use strict';
   const regions = ['Gujarat', 'Karnataka', 'Maharashtra', 'Rajasthan', 'Tamil Nadu', 'Telangana'];
@@ -57,6 +57,22 @@
         const starts = 310 + p * 36 + s * 90;
         const active = Math.round(starts * (0.75 - g * 0.116 - s * 0.057 + p % 3 * 0.024));
         return [starts, active, Math.round(active * (1.2 + g * 0.26 + s * 0.07))];
+      }
+    },
+    'monsoon-readiness': {
+      geography: true, segment: 'Response team', segments: ['District crews', 'Mobile crews', 'Partner crews'],
+      group: 'Asset type', groups: ['Drainage', 'Backup power', 'Access routes'], driver: 'region',
+      base: 'Incidents closed', outcome: 'Closed within target', rate: 'On-time recovery',
+      unit: 'Crew hours', goodHigh: true, bounded: true, shock: 4, target: 90,
+      scenario: 'Raise on-time recovery in the largest state operation',
+      interpretation: 'Read closure volume, timeliness and crew hours together. A growing queue can be invisible if you only track closed incidents.',
+      action: 'Check travel time, incident severity and crew coverage before reallocating capacity. Keep an eye on open incidents in the source system.',
+      method: 'Each row groups resolved incidents by month, state, response team and asset type. On-time recovery divides closures within their assigned deadline by all closures. Crew hours are logged hours for those closures. The illustrative service target is 90%.',
+      faq: ['Can this report tell me how many incidents are still open?', 'The dataset contains resolved incidents only. Pair it with a queue ageing report before deciding where to deploy crews.'],
+      row(p, s, g, r) {
+        const closed = 38 + 7 * p + 9 * s + 6 * g + 5 * r;
+        const withinTarget = .88 + (r % 3) * .026 - .016 * s + .014 * g - (p === 2 || p === 3 ? .045 : 0);
+        return [closed, Math.round(closed * withinTarget), Math.round(closed * (2.7 + .32 * r + .23 * g))];
       }
     },
     'portfolio-risk': {

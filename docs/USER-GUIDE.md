@@ -155,16 +155,97 @@ Choose **Browse report layouts** on the welcome screen or **File › Report layo
 
 ### Use a shapefile or GeoJSON on a map
 
-Sales, supply chain, and receivables have state-level data and a **Map** tab. Choose a polygon or multipolygon GeoJSON, or a ZIP with one shapefile layer and matching `.shp`, `.dbf`, and `.prj` files. Use geographic WGS84 longitude and latitude. Reproject a projected file to EPSG:4326 before importing it. For a large file, simplify the boundaries first.
+Sales, supply chain, receivables, and the Monsoon Readiness showcase have state-level data and a **Map** tab. Choose a polygon or multipolygon GeoJSON, or a ZIP with one shapefile layer and matching `.shp`, `.dbf`, and `.prj` files. Use geographic WGS84 longitude and latitude. Reproject a projected file to EPSG:4326 before importing it. For a large file, simplify the boundaries first.
 
 Pick a **Join field** with the same area names as the CSV or the corresponding ISO state codes for the sample states. Check the match count and any unmatched names. The colour scale recalculates for the filtered slice. Compare the labelled rates when comparing different filters. Click a matched state to filter the whole report, or click it again to clear the selection. The included layer is a simplified subset of six states from Natural Earth. Retention and portfolio use other groupings because their sample data has no meaningful geography.
 
-### Apply, capture or convert a recipe
+### Make your first recipe
 
-- Open **Plugins › Recipe workshop**. Choose an in-house starter. The executive, monthly close, risk, geography and help recipes add reusable report sections. The Commercial INR kit formats amount charts. Review its chart selector before applying it to a report containing rates.
-- Open **Preview recipe steps** to edit a tab title or note, tooltip, or filter. Edit the JSON for other changes. **Apply recipe** runs against the open dashboard. Read any skipped steps, then check the result. **Download recipe** saves your edited JSON for the next dashboard. The new scaffold recipes reuse existing tabs with matching titles.
-- Use **Capture dashboard setup** to create a recipe from the open dashboard. Choose the sections to carry across. The capture can include tab titles, theme and Mothership chart settings. Dataset names and bindings, authored commentary, and help text are opt-in. Rows, scripts, embedded assets, test results and review comments stay out. Review captured titles and labels before sharing. Capturing a setup does not clone custom report logic.
-- **Export skill ZIP** packages a `SKILL.md` and the recipe JSON for an assistant that can use Mothership. It can apply the recipe through `run_recipe` when connected. **Export plugin JS** creates a local plugin with an **Apply recipe** button. Install it through **Plugins › Load plugin** only after reviewing it. The recipe runs when you press its button.
+A recipe is an ordered list of edits you can run again. For example, you can add a decision brief, add commentary slots, and standardise hover text whenever you receive a monthly report. Recipes can be edited and shared as JSON files.
+
+1. Open a sample report or a copy of your own dashboard. Choose **Plugins › Recipe workshop**.
+2. Pick **Executive review pack**. Read the plain-language steps. Hover over or focus the **?** beside each section for a short explanation. On a touch screen, tap **?**.
+3. Edit the **Executive brief** step. Rename the tab to **Board brief** and add a decision question. Use the arrows to reorder steps, **×** to remove one, or **Add step** to add another tab, commentary, hover text, filter or text replacement.
+4. Choose **Check targets**. It leaves the dashboard untouched. **Ready** means the target was found or the step can be prepared. **Keep** means a matching tab already exists. **Review** means you need to check the selector, field or outcome. This check uses the current structure and can only estimate the effect of steps that depend on earlier changes. Try those on a copy.
+5. Choose **Apply recipe** and inspect the result. For the example, open **Board brief** and read the question. Use **Undo** to reverse the application in one step. Applying an **Add tab if it’s missing** step again keeps a matching tab and its content.
+6. Choose **Download recipe** to keep an editable copy, or use **Load recipe JSON** to bring one back. **Advanced · edit recipe JSON** exposes options such as exact chart selectors, colours and bindings.
+
+The library includes executive, monthly close, risk, geography and reader help templates. The **Commercial INR chart kit** is for monetary charts. Limit its chart selector on a dashboard that also shows counts or rates.
+
+### Start with a dashboard you already have
+
+Choose **Capture dashboard setup**. Pick the pieces to reuse. Tab titles, theme and Mothership chart settings are selected by default. Dataset names and bindings, authored commentary, and plain text from reader help tabs are optional. Captured titles and labels can contain sensitive information. Review them before sharing. Data rows, embedded assets, test results, review comments and custom dashboard scripts stay with the source.
+
+| Keep it as | What it gives you | Where to use it |
+|---|---|---|
+| **Recipe JSON** | An editable list of repeatable changes | Recipe workshop in Mothership |
+| **Skill ZIP** | The recipe and instructions for an assistant | Unzip and install the folder in the work assistant's supported skill directory, or hand it to an assistant that can read the files |
+| **Plugin JS** | A button that applies this recipe | Review the file, then choose Plugins › Load plugin and press its Apply recipe button |
+
+### Practise with a finished dashboard and two labs
+
+**Browse report layouts** includes the **Monsoon Readiness Review** showcase and two separate **Practice labs**. Open any sample and use its filters in **Interact**. Switch to **Edit** to try the ribbon. The labs have **Practice tasks** and downloadable source files. Open a fresh copy whenever you want to reset your practice work.
+
+| Try this | Sample and a result you can verify |
+|---|---|
+| Navigation, map joins, decision wording, and shared filters | **Monsoon Readiness Review**. Select a state and see the decision desk, KPIs, map and chart inferences follow it. Move the scenario slider and trace the estimate to the largest state in the slice. |
+| Number checks, duplicate names, sorting and faster test drafting | **Release Rehearsal Lab**. Its clean total is 750. Enable the defect and the reported KPI becomes 1,000. Import the source expectation, catch the mismatch, turn the defect off and rerun. |
+| CSV import, chart binding, drill-down, baseline and refresh | **Monthly Close Lab**. Bind a chart to October, save a baseline, and refresh with November. The bound chart should aggregate ₹915 lakh. The embedded source ledger remains an October example. |
+| Chart compatibility and formatting | **File › Samples** has the Chart.js sales, ECharts operations and Plotly risk fixtures. In the editor, check the chart list and **File › Import report** before editing or exporting. |
+| Review, branding, recovery and delivery | Use either lab in **Edit**. Try **Design**, **Review**, **File › Versions**, **Testing**, and **Publish**. Reopen the HTML export, test it offline, and try presenter notes, PDF and PowerPoint where your office setup permits. |
+| Recipe and work assistant round-trip | Use a lab. Check and apply a starter, undo it, capture the setup, then draft a variation with either work model. Paste the returned JSON and check it before applying. |
+
+<!-- guide:mcp -->
+## Draft recipes with Terra or Sonnet
+
+**Plugins › Recipe workshop › Draft with AI** supports **GPT-5.6 Terra** and **Claude Sonnet 5**. Select the model in your approved work assistant. In Mothership, describe the edit and review the draft prompt. Tab, chart, dataset and field names are opt-in. The prompt generator does not add rows, scripts or the dashboard file. It runs in your browser and only sends text to your clipboard or a downloaded file when you choose.
+
+### Use a work chat
+
+1. Copy or download the prompt. Paste it into the work chat with the requested model selected there.
+2. Ask it for a recipe draft. In the workshop choose **Paste recipe** and paste the JSON. A single fenced JSON block is accepted.
+3. Use **Check targets**, review the recipe and apply it to a disposable copy. For an export, test that the resulting dashboard still opens and responds offline.
+
+### Give Codex or Claude Code access to Mothership tools
+
+The Mothership **MCP server** connects a coding assistant to a separate local Mothership browser. It does not attach to the browser tab where you are editing. You need a local checkout, Chrome or Edge, and Node or Python. Work policies can restrict local processes, remote debugging or MCP servers. Use the work chat steps above if your policy requires them.
+
+- **GPT-5.6 Terra in Codex.** Use `gpt-5.6-terra` when exposed by your Codex login or work API project. Verify the model in the session. Run `codex mcp add mothership -- node "/absolute/path/HTML-Mothership/tools/mcp/mothership-mcp.js"` after replacing the path. Check `codex mcp list`, then open a fresh session. [OpenAI model](https://developers.openai.com/api/docs/models/gpt-5.6-terra) · [Codex MCP](https://developers.openai.com/codex/mcp)
+- **Claude Sonnet 5 in Claude Code.** Use `/model claude-sonnet-5` for the Anthropic model ID when available, or select the provider deployment your organisation gave you. Use the repo's `.mcp.json` from the checkout, or run `claude mcp add --transport stdio mothership -- node "/absolute/path/HTML-Mothership/tools/mcp/mothership-mcp.js"`. Check `/mcp` in Claude Code. [Anthropic model](https://platform.claude.com/docs/en/models/sonnet-5/overview) · [Claude Code MCP](https://code.claude.com/docs/en/mcp)
+
+To run Python instead, replace `node` with your Python command and use `tools/mcp/mothership_mcp.py`. The assistant can use `open_file` on a disposable HTML copy, `recipe_context` for tab/chart names and optional field names, and `preview_recipe` to check the draft without applying it. Use `run_recipe` only when you want the connected assistant to apply the recipe to that copy. A model's availability and access permissions depend on the work environment.
+
+**Claude Desktop and other MCP clients:** use the client’s local server configuration. In Claude Desktop, open **Settings › Developer › Edit Config** and add a `mothership` entry under `mcpServers`. Set the command to `node` or your Python executable, and pass the full path to the matching script as its first argument. Restart the client and check for Mothership tools. Use Claude Code or your approved work chat if your Desktop account does not offer the exact Sonnet 5 model.
+
+<!-- guide:glossary -->
+## Glossary
+
+| Term | Meaning in Mothership |
+|---|---|
+| **Dashboard** | An HTML page containing data displays, text and optional controls. |
+| **Layout / showcase / lab** | A reusable report pattern / a finished example / a safe exercise with known outcomes. |
+| **Recipe / step** | A saved, ordered list of edits / one edit in that list. |
+| **Starter** | A prewritten recipe you can change. |
+| **Target / exact match** | The chart, tab or field a step uses. A full chart name and its tab identify charts with repeated titles. |
+| **Check targets** | A read-only check of the recipe's destinations in the open dashboard. |
+| **Capture** | Turn reusable dashboard settings into recipe steps. |
+| **Skill** | A folder with instructions and reference files an assistant can use for a recurring task. |
+| **Plugin** | Code installed in Mothership. A generated recipe plugin adds a button that runs that recipe. |
+| **Model / harness** | The AI that reasons or drafts / the app and tools it works through, such as Codex or Claude Code. |
+| **MCP** | Model Context Protocol. Mothership's local server lets a compatible assistant call editor tools. |
+| **Dataset / field / binding** | A set of records / a column in those records / the connection from a chart or filter to a dataset. |
+| **Grain** | What one row represents, such as one month, state, team and asset type. |
+| **Snapshot / tenure** | Values as of a point in time / elapsed time in a group, such as weeks since signup. |
+| **KPI / denominator** | A key performance indicator / the base used to compute a rate. |
+| **Key inference / So what** | What the chart shows / why the finding matters or what to investigate. |
+| **Scenario bridge** | A chart from the observed value to an estimated value under a stated assumption. |
+| **Drill-down** | Move from an aggregate to the next level of detail, such as region to state. |
+| **Shapefile / GeoJSON / join field** | Boundary file format / JSON boundary format / the name or code that links a shape to report data. |
+| **Baseline / changed sections** | A saved comparison point / what differs from it now. |
+| **Smoke run / coverage** | A short set of critical checks / the recognised parts planned, tested or passed. |
+| **Test pack / isolated run** | Reusable test definitions / a test job run in a separate local browser process. |
+| **Working export / published copy** | Editable HTML for continued work / a release file with publishing metadata and selected sharing settings. |
+| **Safe mode** | Opens a dashboard with its scripts disabled while you inspect it. |
 
 <!-- guide:review -->
 ## Review, comments and sign-off
@@ -270,6 +351,14 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 | Tests show Stale | An edit happened after the last run | Run the relevant tests again against the new revision |
 | Lost a change | Wrong working file or browser profile | Look in File › Versions, Recover, or Downloads; reopen the last exported HTML |
 | PDF chart is hard to read | Large tab fitted to one page | Shorten the tab or use the storyline to put one chart on each slide |
+| Recipe says a target needs review | Ambiguous chart, different tab title or missing dataset field | Open Check targets. Match the exact title, qualify it with the tab, or update the dataset and field. Check again before applying. |
+| Applying a recipe left a tab unchanged | It already matched an Add a tab if it’s missing step | Open the tab and edit its content directly. Use Add a new tab every time only when you want another tab. |
+| The assistant returned something you cannot paste | Extra prose or an unsupported action | Ask for one Mothership JSON object, or one JSON code block. Fix the step listed by Paste recipe. Use Advanced for an exact selector. |
+| Terra or Sonnet is missing from the picker | Work account, provider or model policy | Confirm the exact model with your work login and provider. Choose the model there. Mothership's Draft with AI menu chooses the prompt format. |
+| The assistant sees a different dashboard | Local MCP opens its own browser | Use open_file on a disposable copy in the assistant session. Confirm the tab names with recipe_context. |
+| The work client blocks local MCP | Local execution, managed MCP or browser policy | Use Draft with AI, copy the prompt to approved chat, then paste the JSON back. |
+| Map shows zero matched shapes | Wrong join field, state spelling or code | Choose the shared name or ISO code field. Check unmatched values. Convert projected files to WGS84 and keep one polygon layer in the ZIP. |
+| Report CSV was rejected | Missing required header, invalid numeric value, or size cap | Reset filters and download the example CSV. Match headers and units. The loader supports up to 20,000 rows and 6 MB. |
 | Copy or export is blocked | Browser permission or local-file restrictions | Try Save as or a download, or use an approved Chrome/Edge browser |
 
 **When asking for help:** include the editor version (Help › About), browser and operating system, exact command, what you expected and what happened. Include a small non-confidential sample or a screenshot of the error and the Import report. Do not share client data in a public issue.
@@ -292,3 +381,10 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 **Can a browser version snapshot replace backup?** No. It lives in one browser profile. Export dated HTML files to a folder you can recover later.
 
 **Can I work with a teammate?** Exchange a working copy, use versioned filenames and the comment tracker, and agree who edits the master file. There is no live co-editing or automatic merging of separate copies.
+
+
+**Will Check targets run my recipe?** It checks the structure and existing targets without applying steps. Check the actual results on a disposable dashboard copy before reusing a recipe widely.
+
+**Do I need work-model access for a recipe?** You can make, edit, check and run recipes offline. Your work assistant is optional and can draft the JSON or inspect a disposable copy through MCP.
+
+**Which sample should I open first?** Open Monsoon Readiness Review to see a finished report. Open Release Rehearsal Lab to practise QA, or Monthly Close Lab to practise a refresh and handover.
