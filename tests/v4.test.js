@@ -96,9 +96,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       out.html = MS.exportHtml();
       out.check = await MS.api.run('number_check', {});
       // break a KPI: it should now be flagged
-      const v = MS.$$('.kpi', MS.child.doc).find(k => /Profit/.test(k.textContent));
-      const val = v && Array.from(v.querySelectorAll('*')).find(e => /₹/.test(e.textContent) && !e.children.length);
-      if (val) val.textContent = '₹18.4 Cr';
+      MS.child.doc.querySelector('#kpi-profit').textContent = '184,000,000';
       out.broken = await MS.api.run('number_check', { add_comments: true });
       out.comments = MS.review.list().length;
       return out;

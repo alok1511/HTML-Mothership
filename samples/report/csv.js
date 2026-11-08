@@ -28,6 +28,7 @@
     pushRow();
     return output;
   }
+  // Accept headers from older exported reports without changing any values.
   function token(s) { return String(s).trim().toLowerCase().replace(/\s*\(inr lakh\)$/, '').replace(/\s+/g, ' '); }
   function parse(csv, columns, labels, bounded) {
     const lines = records(csv), header = (lines.shift() || []).map(token);

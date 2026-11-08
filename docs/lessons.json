@@ -76,7 +76,7 @@
         ]
       },
       {
-        "do": "In the Tooltip settings choose a rupee or crore format for the sample rupee values. Apply and hover in Interact.",
+        "do": "In the Tooltip settings choose Label: value for a plain-number display. Apply and hover in Interact.",
         "see": "The tooltip names the region and shows a sensible amount. Compare one bar with the original.",
         "ribbon": [
           "Charts"
@@ -128,13 +128,13 @@
     "goal": "Apply a readable, repeatable design and use the right units.",
     "steps": [
       {
-        "do": "Choose Design › Region & currency. Set India, INR and lakh/crore.",
-        "see": "The preview shows ₹ and Indian units. The original source values are unchanged.",
+        "do": "Choose Design › Region & currency. Set United States, USD and thousand/million/billion.",
+        "see": "The preview shows US separators and K/M/B abbreviations. Currency formatting is optional.",
         "ribbon": [
           "Design",
           "Region & currency"
         ],
-        "check": "india"
+        "check": "us-format"
       },
       {
         "do": "Choose Design › Edit theme. Set a primary colour and a body font. Apply.",

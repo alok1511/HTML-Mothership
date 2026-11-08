@@ -62,7 +62,7 @@ HTML-Mothership/
 | Edit text directly | Double-click any text (or select + Enter) | Bold/italic/underline/colour on the selected words while typing |
 | Font changes | **Home › Font**, or the Inspector (right panel) | Upload brand font files under **Design › Fonts** (embedded, works offline) |
 | Colour scheme from a skill file | **Design › Load brand** | Reads `SKILL.md`, `.skill`/`.zip`, or theme `.json`. Shows which of the dashboard's colours become which brand colour, then recolours page and charts. |
-| What on-hover pop-ups show | Double-click a chart › **Tooltip** | Template such as `{label}: {value:cr}`, Indian formats (`inr`, `cr`, `lakh`) |
+| What on-hover pop-ups show | Double-click a chart › **Tooltip** | Template such as `{label}: {value}` for plain values |
 | How double-click works and drill-down levels | Chart › **Data & drill-down** | Pick dataset, levels (e.g. Region › State › City), measure. Double-click can drill, show records, or cross-filter. |
 | Title, subtitle and inference before every graph | **Layout › Commentary** (all charts) or per chart | Brand check flags charts missing an inference |
 | Design a filter pane | **Layout / Data › Filter pane** | Left side or top bar, cascading drop-downs, resizable |
@@ -99,7 +99,7 @@ HTML-Mothership/
 |---|---|---|
 | **Fit and zoom** | Status bar (bottom right), **View › Zoom**, Ctrl + mouse wheel | The dashboard is drawn at a real desktop width (1280 px or more) and scaled down to fit the panel, so it never squashes. Zoom in to 200% to work on detail. |
 | **Style anything** | Select any element, then the Inspector or **Home** | Fonts, size, colour, bold/italic/underline, line height, spacing, case, background, border, corners, shadow. |
-| **Chart look** | Double-click a chart › **Look**, or **Charts › Look** | Font, size and colour of axes and legend, legend position, number format on the axis (₹, crore, lakh, %), and the pop-up's colours and font. Presets included. |
+| **Chart look** | Double-click a chart › **Look**, or **Charts › Look** | Font, size and colour of axes and legend, legend position, number format on the axis (plain, compact, or percent), and the pop-up's colours and font. Presets included. |
 | **Hover pop-ups on anything** | Inspector › **Hover pop-up** | Add a pop-up to a KPI, a heading, an image. One style for all pop-ups (and optionally chart pop-ups too). |
 | **Plain chart names** | Left panel › Outline | Charts are listed by their title (e.g. "Sales by region"), never by library names. Click one to jump to it. |
 | **Data found automatically** | Chart › **Data & drill-down** | Mothership matches the chart's categories to the tables inside the page and offers "Use this data", with a sensible next drill level. Or use the numbers drawn in the chart. |
@@ -134,7 +134,7 @@ HTML-Mothership/
 |---|---|---|
 | **Highcharts support** | Automatic | Highcharts dashboards get everything Chart.js, ECharts and Plotly get: plain names, look, pop-ups, one category order, category colours, data and drill-down, images, summaries. |
 | **D3 / SVG charts** | Automatic | Charts drawn by D3 (or similar) are found and named. You can set pop-ups, colours and fonts, get summaries, run the number check, save an image and comment on them. They can't be redrawn from other data. |
-| **Chart summaries** | **Charts › Summaries** | One or two plain sentences per chart from the numbers on screen: "West is highest at ₹4.2 Cr (38%); East is lowest at ₹1.2 Cr." Trends say what rose or fell and by how much. Add them as captions, for screen readers, or copy them all for an email. Captions follow filters and stay in the export. |
+| **Chart summaries** | **Charts › Summaries** | One or two plain sentences per chart from the numbers on screen: "West is highest at 4.2M (38%); East is lowest at 1.2M." Trends say what rose or fell and by how much. Add them as captions, for screen readers, or copy them all for an email. Captions follow filters and stay in the export. |
 | **Number check** | **Review › Number check** | Do KPI cards match the totals of their charts? Do charts of the same measure add up alike? Rounding is allowed for; differences become review comments in one click. |
 | **Excel comment tracker** | **Review › Excel tracker** / **Update from tracker** | Every comment as a spreadsheet (status, priority, tab, section, chart, where, comment, done-when, owner, due, notes) with a summary sheet. Edit it in the meeting and load it back. |
 | **Compare versions** | **File › Compare** | What changed between two saved versions, now, or a file: tabs, text (old crossed out, new in green), chart settings, data, KPI cards, filters, colours, comments. Side-by-side view too. |
@@ -144,7 +144,7 @@ HTML-Mothership/
 
 | Feature | Where | What it does |
 |---|---|---|
-| **Region & currency** | **Design › Region & currency** | Numbers are written in **US dollars, US style** by default ($1,234,567, $1.23M). Pick any of 52 countries and any currency; choose K/M/B or lakh/crore. Applies to pop-ups and axes set to Currency or Short, KPI cards, chart summaries, the number check and AI prompts. Saved in the dashboard. A ₹, € or £ dashboard gets a hint, not a silent change. |
+| **Region & currency** | **Design › Region & currency** | Samples use plain numbers. Choose a display style when needed. Currency formats use USD by default. The setting is saved with the dashboard and leaves source figures intact. |
 | **Ready to publish?** | **File › Ready to publish?** | One checklist: script errors, charts with no numbers, untitled charts, KPI totals that don't match, open must-fix comments, files that need the internet, size, title. |
 | **Publish** | **File › Publish** | A view-only copy for sharing: version number (1.0, 1.1…), release note, "published by", "data as of", and a small corner badge with the release log. Comments are left out. |
 | **Lock editing** | In Publish | Optional password: Mothership asks for it before editing the published copy. Only a salted key (PBKDF2) is stored. **A deterrent, not a vault** (see Limitations). |
@@ -271,7 +271,7 @@ The [changelog](CHANGELOG.md) lists all fixes and compatibility notes.
 - **Picture for PowerPoint:** right-click › **Copy as picture**, then paste in PowerPoint.
 - **Resize:** drag the bottom-right corner, or set *Width (columns)* and *Height* in the Inspector.
 - **Tooltip:** double-click the chart, then the **Tooltip** tab. Placeholders: `{label} {series} {value} {pct} {total} {index}`. When the chart is bound to data, any numeric field also works, e.g. `{profit}` and `{count}`.
-  Formats: `{value:inr}` → ₹1,23,45,678 · `{value:cr}` → ₹1.23 Cr · `{value:lakh}` → ₹12.35 L · `{value:k}` · `{value:m}` · `{value:pct}` · `{value:0.0}` · `{value:usd}`.
+  Formats: `{value}` → 1,234 · `{value:short}` → 1.2M · `{value:pct}` · `{value:0.0}` · `{value:usd}` → $1,234 when explicitly needed.
 - **Drill-down:** first add data (**Data › Find data** picks up tables in the page's scripts, or **Load data** for JSON/CSV/Excel). Then open the chart's **Data & drill-down**:
   - *Show by* = the first level (e.g. `region`), *Drill to* = next levels (`state`, `city`).
   - *Value* + *Aggregate* (sum, average, count, min, max), optional *Split into series*, sort, top N.
@@ -462,7 +462,7 @@ Stated plainly so nothing surprises you:
 - **Versions and plugins live in one browser profile.** If IT clears browser data, they go. Exports don't.
 - **PowerPoint import** keeps text, tables, pictures and notes, not exact slide layout or native PowerPoint charts. Use PDF import "as images" when you need it pixel-identical.
 - **The publish lock is a deterrent, not security.** An HTML file is text: anyone can open it in Notepad, change it, or copy what is on screen. The lock stops edits in Mothership and the seal reveals changes, but only when the file is opened in Mothership. For real control use SharePoint/OneDrive/Teams view-only permissions, sensitivity labels, or send a PDF.
-- **Region & currency changes Mothership's numbers only**: pop-ups and axes set to Currency/Short, KPI cards and summaries. Numbers the dashboard's own script writes (and formats picked by name, like ₹ crore) are not converted, and no exchange rates are applied.
+- **Region & currency changes Mothership's numbers only**: pop-ups and axes set to Currency/Short, KPI cards and summaries. The dashboard's original values and explicitly formatted numbers stay as supplied.
 - **PDF and PowerPoint show each tab as a picture of the page.** A very tall tab is shrunk to fit one page or slide; for one chart per slide, build a story and export "PowerPoint from the story". PowerPoint titles are editable, the charts are not native PowerPoint charts.
 - **The firm lock and "Remove names" are about consistency and care, not secrecy.** The lock stops changes in Mothership (anyone can still edit the file in Notepad). "Remove names" changes text, data and scripts, but not words inside pictures or a logo: check the result it reports.
 - **Very large datasets** (more than about 50k rows) embedded via *Load data* make exports large and drill-downs slower. Link to the page's own data where possible (*Find data*).
@@ -557,7 +557,7 @@ with MothershipClient() as ms:                      # starts the Python server
     o = ms.call("open_file", path=r"C:\Dashboards\sales.html")
     print([c["name"] for c in o["charts"]])
     ms.call("category_order", order=["North", "South", "East", "West"])
-    ms.call("add_comment", chart=o["charts"][0]["name"], text="Show ₹ crore on the axis", priority="must")
+    ms.call("add_comment", chart=o["charts"][0]["name"], text="Show compact numbers on the axis", priority="must")
     print(ms.call("comments_prompt", assistant="mcp", scope="must")["prompt"])
     print(ms.call("export_html")["saved"])
 ```

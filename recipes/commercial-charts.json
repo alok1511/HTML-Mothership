@@ -1,7 +1,7 @@
 {
   "$type": "mothership/recipe",
-  "name": "Commercial INR chart kit",
-  "description": "Apply a coordinated chart palette and INR tooltips. Use on dashboards whose charts show monetary amounts, or edit the chart selector first.",
+  "name": "Commercial chart kit",
+  "description": "Apply a coordinated chart palette, plain-number tooltips, and a notes tab for your metric definitions.",
   "steps": [
     {
       "do": "theme",
@@ -27,12 +27,12 @@
     {
       "do": "tooltip",
       "charts": "*",
-      "template": "{label}\n{value:inr}"
+      "template": "{label}\n{value}"
     },
     {
       "do": "ensureTab",
       "title": "Commercial notes",
-      "markdown": "# Commercial notes\n\nRecord which charts display INR, the source unit and the reporting period. Confirm how discounts, returns and tax affect reported amounts."
+      "markdown": "# Commercial notes\n\nRecord the measures, their source units and the reporting period. Confirm how discounts, returns and tax affect reported amounts."
     }
   ]
 }

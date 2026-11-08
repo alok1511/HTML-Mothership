@@ -43,7 +43,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       return out;
     });
     check('region: US dollars by default', loc.def.currency === 'USD' && loc.def.locale === 'en-US' && loc.us[0] === '$1,234,567' && loc.us[1] === '$1.23M' && loc.us[2] === '1,234,567.5' && loc.us[3] === '$3.25', loc);
-    check('region: a ₹ dashboard gets a nudge, not a silent change', /₹/.test(loc.nudge) && /Region/.test(loc.nudge), loc.nudge);
+    check('region: the plain-number sample needs no currency nudge', !/This dashboard shows/.test(loc.nudge), loc.nudge);
     check('region: India uses ₹ with lakh and crore', loc.india.units === 'indian' && loc.inr[0] === '₹12,34,567' && loc.inr[1] === '₹12.35 L', loc.inr);
     check('region: Germany uses € and its own separators', loc.de.currency === 'EUR' && /€/.test(loc.eur[0]) && /1\.234\.567/.test(loc.eur[0]), loc.eur);
     check('region: any currency with any country', loc.gbp[0] === '£1,234,567', loc.gbp);
@@ -62,7 +62,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       return out;
     });
     check('number check: reads 1,234.50 and 1.234,5 whatever the region', pr.us.join() === '1234.5,1234.5,1234567,162000000,1200000' && pr.de.join() === '1234.5,1234.5,1234', pr);
-    check('summaries: a chart that names its currency keeps it', /€/.test(pr.euroTitle) && !/\$/.test(pr.euroTitle) && /₹[\d.]+ Cr/.test(pr.rupeeTitle) && /\$/.test(pr.plain), pr);
+    check('summaries: a chart that names its currency keeps it', /€/.test(pr.euroTitle) && !/\$/.test(pr.euroTitle) && /₹[\d.]+ Cr/.test(pr.rupeeTitle) && !/[$₹€£¥]/.test(pr.plain), pr);
 
     const dlg = await page.evaluate(() => {
       MS.locale.dialog();

@@ -121,7 +121,7 @@ footer { padding: 12px 0; color: #4c5967; border-top: 1px solid #d4dbe4; }
       <h2>Practice tasks</h2>
       <p>Open this lab inside Mothership to use the editor’s ribbon. Keep this practice copy separate from your working file.</p>
       <ol class="lab-tasks">
-  <li><strong>Download two periods.</strong> Open Source data. October and November have matching Region, Segment, Period and Amount headers. October totals ₹750 lakh. November totals ₹915 lakh.</li>
+  <li><strong>Download two periods.</strong> Open Source data. October and November have matching Region, Segment, Period and Amount headers. October totals 750. November totals 915.</li>
   <li><strong>Link a chart to October.</strong> In Mothership open Data › Load data, select the October CSV, and double-click a chart. Under Data &amp; drill-down, select the imported dataset, Region and Amount. Try Segment as the next drill level.</li>
   <li><strong>Refresh the binding.</strong> Save a baseline under Testing › Changed sections. Use Data › Refresh to preview November and apply it. The bound chart follows November. The source ledger and summary KPI in this practice file still show the embedded October figures.</li>
   <li><strong>Build a reusable close.</strong> Apply the Monthly close and variance review recipe. Add a variance note, source reference, and speaker note. Capture the setup and export it as a recipe, skill, or button plugin.</li>
@@ -148,7 +148,7 @@ footer { padding: 12px 0; color: #4c5967; border-top: 1px solid #d4dbe4; }
   const october = rows(months.october, [110, 140, 120, 155, 100, 125]);
   const november = rows(months.november, [140, 160, 155, 190, 120, 150]);
   window.labData = october;
-  const amount = n => (close ? '₹' : '') + n.toLocaleString('en-IN') + (close ? ' lakh' : '');
+  const amount = n => n.toLocaleString('en-US');
   const set = (id, value) => { $(id).textContent = value; };
   let sort = 0;
   const chartOptions = { responsive: true, maintainAspectRatio: false, animation: false,

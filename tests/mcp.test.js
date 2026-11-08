@@ -128,7 +128,7 @@ const call = async (name, args) => {
   check('ui_hover on a bar shows its pop-up', hv.json && hv.json.tooltip && /West/.test(hv.json.tooltip[0].text), hv.error || hv.json);
   const mh = await call('ui_mouse', { target: 'chart=Sales by region', point: 'South', action: 'hover' });
   check('ui_mouse: real mouse hover shows the pop-up', mh.json && mh.json.tooltip && /South/.test(mh.json.tooltip[0].text), mh.error || mh.json);
-  const ue = await call('ui_expect', { target: 'kpi=Total sales', text: '100.53' });
+  const ue = await call('ui_expect', { target: 'kpi=Total sales', text: '1,005,307,144' });
   check('ui_expect checks a KPI card', ue.json && ue.json.pass === true, ue.error || ue.json);
   const us = await call('ui_screenshot', { target: 'chart=Monthly sales trend' });
   check('ui_screenshot of one chart', us.images.length === 1 && us.images[0].data.length > 3000, us.error);

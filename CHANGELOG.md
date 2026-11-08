@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use plain numbers across sample dashboards, starter recipes, and tutorials. Use USD in examples that explicitly demonstrate currency formatting.
+
 - Guide recipe creation with plain-language steps, hover and keyboard help, add, reorder and remove controls, and a read-only target check.
 - Draft recipes with GPT-5.6 Terra or Claude Sonnet 5 in an approved work assistant. Paste drafts for review and check targets through the local MCP server when connected.
 - Add a finished Monsoon Readiness showcase, a Release Rehearsal lab with a deliberate KPI defect, and a Monthly Close lab with two practice files. Update the searchable help, glossary, troubleshooting and lessons.

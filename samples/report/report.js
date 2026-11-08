@@ -5,12 +5,11 @@
   const $ = id => document.getElementById(id);
   const text = (id, value) => { $(id).textContent = value; };
   const el = (tag, value) => { const e = document.createElement(tag); if (value !== undefined) e.textContent = value; return e; };
-  const number = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
-  const fmt = (value, money) => Number.isFinite(value) ? (money ? '₹' : '') + number.format(value) + (money ? ' lakh' : '') : '—';
+  const number = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+  const fmt = value => Number.isFinite(value) ? number.format(value) : '—';
   const rate = value => Number.isFinite(value) ? number.format(value) + '%' : '—';
   const pp = value => number.format(Math.abs(value)) + ' pp';
   const label = { period: m.period, region: 'State', segment: m.segment, group: m.group, base: m.base, outcome: m.outcome, units: m.unit };
-  const money = { base: m.money, outcome: m.outcomeMoney, units: m.unitMoney };
   const dims = { period: m.periods, region: m.regions, segment: m.segments, group: m.groups };
   const demoRows = m.rows;
   const filters = ['period', ...(m.geography ? ['region'] : []), 'segment', 'group'];
@@ -156,9 +155,9 @@
   function updateStory(v) {
     const { overall, lead, worst, benchmark, requested, counterfactual, applied, change } = v;
     const noData = 'No matching records. Change the filters to compare results.';
-    text('base-value', fmt(overall.n ? overall.base : null, money.base));
-    text('outcome-value', fmt(overall.n ? overall.outcome : null, money.outcome));
-    text('unit-value', fmt(overall.n ? overall.units : null, money.units));
+    text('base-value', fmt(overall.n ? overall.base : null));
+    text('outcome-value', fmt(overall.n ? overall.outcome : null));
+    text('unit-value', fmt(overall.n ? overall.units : null));
     text('rate-value', rate(overall.rate));
     if ($('brief-status')) {
       const difference = overall.rate === null ? null : overall.rate - m.target;
@@ -168,21 +167,21 @@
         'Select a populated slice to compare locations.');
     }
     const share = lead ? rate(lead.base / overall.base * 100) : '—';
-    text('insight-first', lead ? lead.name + ' represents ' + share + ' of ' + m.base.toLowerCase() + ' (' + fmt(lead.base, money.base) + ') and records ' + fmt(lead.outcome, money.outcome) + ' in ' + m.outcome.toLowerCase() + '.' : noData);
+    text('insight-first', lead ? lead.name + ' represents ' + share + ' of ' + m.base.toLowerCase() + ' (' + fmt(lead.base) + ') and records ' + fmt(lead.outcome) + ' in ' + m.outcome.toLowerCase() + '.' : noData);
     text('so-first', lead ? 'Start the review with ' + lead.name + '. It accounts for ' + share + ' of the selected exposure, so a change there carries the most weight.' : 'Broaden the slice before prioritising a segment.');
     text('insight-second', worst ? worst.name + ' records ' + rate(worst.rate) + ' versus ' + rate(benchmark) + ' across the slice, a gap of ' + pp(worst.rate - benchmark) + '.' : noData);
     text('so-second', worst ? 'Investigate ' + worst.name + ' at ' + rate(worst.rate) + '. ' + m.action : 'Select a slice with comparable groups before drawing a conclusion.');
     const after = overall.outcome + change;
-    text('insight-third', lead ? 'Moving ' + lead.name + ' from ' + rate(lead.rate) + ' to ' + rate(counterfactual) + ' changes ' + m.outcome.toLowerCase() + ' by ' + fmt(change, money.outcome) + ', to ' + fmt(after, money.outcome) + '.' : noData);
-    text('so-third', lead ? 'Use ' + fmt(Math.abs(change), money.outcome) + ' as the size of this what-if. Recheck the assumption for ' + lead.name + ' before treating it as an operational target.' : 'Choose a populated slice to size the scenario.');
+    text('insight-third', lead ? 'Moving ' + lead.name + ' from ' + rate(lead.rate) + ' to ' + rate(counterfactual) + ' changes ' + m.outcome.toLowerCase() + ' by ' + fmt(change) + ', to ' + fmt(after) + '.' : noData);
+    text('so-third', lead ? 'Use ' + fmt(Math.abs(change)) + ' as the size of this what-if. Recheck the assumption for ' + lead.name + ' before treating it as an operational target.' : 'Choose a populated slice to size the scenario.');
     text('shock-value', (requested < 0 ? '−' : '+') + pp(requested));
     text('scenario-assumption', m.scenario + '. Exposure and every other group stay fixed.');
-    text('scenario-inference', lead ? lead.name + ' shifts the total by ' + fmt(change, money.outcome) + ' after a ' + pp(applied) + ' rate change. Scenario total is ' + fmt(after, money.outcome) + '.' : noData);
+    text('scenario-inference', lead ? lead.name + ' shifts the total by ' + fmt(change) + ' after a ' + pp(applied) + ' rate change. Scenario total is ' + fmt(after) + '.' : noData);
     const bridge = lead ? [[0, overall.outcome], [overall.outcome, after], [0, after]] : [];
     paint('scenario-chart', 'bar', ['Observed', 'Scenario change', 'Scenario total'],
       [{ label: m.outcome, data: bridge, backgroundColor: [color, change < 0 ? '#a45b42' : '#5e8e76', '#294a6a'] }],
-      { y: { ticks: { callback: x => fmt(Number(x), money.outcome) } },
-        plugins: { tooltip: { callbacks: { label: c => c.dataIndex === 1 ? 'Change ' + fmt(c.raw[1] - c.raw[0], money.outcome) : fmt(c.raw[1], money.outcome) } } } });
+      { y: { ticks: { callback: x => fmt(Number(x)) } },
+        plugins: { tooltip: { callbacks: { label: c => c.dataIndex === 1 ? 'Change ' + fmt(c.raw[1] - c.raw[0]) : fmt(c.raw[1]) } } } });
   }
   function drawCharts(v) {
     const trend = grouped(sameBasis(filtered, true), 'period');
@@ -196,19 +195,19 @@
     if (m.target) series.push({ label: 'Service target', data: trend.map(() => m.target), borderColor: '#75814e', borderDash: [5, 4], borderWidth: 2, pointRadius: 0, fill: false });
     paint('trend-chart', 'line', trend.map(x => x.name), series,
       { y: { ticks: { callback: x => x + '%' } }, plugins: { legend: { display: !!m.target, labels: { usePointStyle: true } }, tooltip: { callbacks: { label: c => c.dataset.label + ' ' + rate(c.raw) } } } });
-    text('ranking-inference', v.lead ? v.lead.name + ' leads by ' + m.base.toLowerCase() + ' at ' + fmt(v.lead.base, money.base) + '. Its rate is ' + rate(v.lead.rate) + '.' : 'No groups in this slice.');
+    text('ranking-inference', v.lead ? v.lead.name + ' leads by ' + m.base.toLowerCase() + ' at ' + fmt(v.lead.base) + '. Its rate is ' + rate(v.lead.rate) + '.' : 'No groups in this slice.');
     paint('ranking-chart', 'bar', v.rank.map(x => x.name), [{ label: m.base, data: v.rank.map(x => x.base), backgroundColor: color, borderRadius: 4 }],
-      { indexAxis: 'y', x: { ticks: { callback: x => fmt(Number(x), money.base) } }, plugins: { tooltip: { callbacks: { label: c => fmt(c.raw, money.base) } } } });
+      { indexAxis: 'y', x: { ticks: { callback: x => fmt(Number(x)) } }, plugins: { tooltip: { callbacks: { label: c => fmt(c.raw) } } } });
     const other = m.driver === 'segment' ? 'period' : 'segment';
     const pairs = crossed(analysed, m.driver, other);
     const points = [...pairs].flatMap(([a, groups]) => [...groups].map(([b, total]) => ({
       x: total.base, y: finish(total).rate, name: a + ' / ' + b
     }))).sort((a, b) => b.x - a.x).slice(0, 60);
     const largest = points[0];
-    text('scatter-inference', largest ? largest.name + ' has the most exposure among the plotted pairs (up to 60 by exposure). Its exposure is ' + fmt(largest.x, money.base) + ', at a rate of ' + rate(largest.y) + '.' : 'No group pairs in this slice.');
+    text('scatter-inference', largest ? largest.name + ' has the most exposure among the plotted pairs (up to 60 by exposure). Its exposure is ' + fmt(largest.x) + ', at a rate of ' + rate(largest.y) + '.' : 'No group pairs in this slice.');
     paint('scatter-chart', 'scatter', [], [{ label: 'Group pair', data: points, backgroundColor: color + 'b5', pointRadius: 6 }],
-      { x: { title: { display: true, text: m.base + (m.money ? ' (INR lakh)' : '') } }, y: { title: { display: true, text: m.rate + ' (%)' }, ticks: { callback: x => x + '%' } },
-        plugins: { tooltip: { callbacks: { label: c => c.raw.name + ' · ' + fmt(c.raw.x, money.base) + ' · ' + rate(c.raw.y) } } } });
+      { x: { title: { display: true, text: m.base } }, y: { title: { display: true, text: m.rate + ' (%)' }, ticks: { callback: x => x + '%' } },
+        plugins: { tooltip: { callbacks: { label: c => c.raw.name + ' · ' + fmt(c.raw.x) + ' · ' + rate(c.raw.y) } } } });
     matrix(m.matrix ? filtered : analysed);
   }
   function sortedRows() {
@@ -232,7 +231,7 @@
     });
     $('explorer-head').replaceChildren(head);
     $('explorer-rows').replaceChildren(...page.map(r => {
-      const tr = el('tr'); columns.forEach(k => tr.appendChild(el('td', filters.includes(k) ? r[k] : fmt(r[k], money[k])))); return tr;
+      const tr = el('tr'); columns.forEach(k => tr.appendChild(el('td', filters.includes(k) ? r[k] : fmt(r[k])))); return tr;
     }));
     text('page-info', rows.length ? (start + 1) + '–' + (start + page.length) + ' of ' + rows.length : 'No records');
     text('explorer-summary', rows.length + ' filtered records. CSV contains the entire slice in the current sort order.');
@@ -245,7 +244,7 @@
       const text = typeof value === 'string' && /^[=+@-]/.test(value) ? "'" + value : String(value);
       return '"' + text.replace(/"/g, '""') + '"';
     };
-    const lines = [columns.map(k => quote(label[k] + (money[k] ? ' (INR lakh)' : ''))).join(','),
+    const lines = [columns.map(k => quote(label[k])).join(','),
       ...sortedRows().map(row => columns.map(k => quote(row[k])).join(','))];
     const url = URL.createObjectURL(new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
     const a = el('a'); a.href = url; a.download = document.body.dataset.report + '-filtered.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 500);

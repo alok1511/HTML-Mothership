@@ -32,7 +32,7 @@ Make one chart answer a question without your narration.
 
 1. In Edit, double-click Sales by region. In Commentary & size add the period and a one-line takeaway. Apply.
    **Check:** The chart has a title, units or period, and a takeaway you can verify.
-2. In the Tooltip settings choose a rupee or crore format for the sample rupee values. Apply and hover in Interact.
+2. In the Tooltip settings choose Label: value for a plain-number display. Apply and hover in Interact.
    **Check:** The tooltip names the region and shows a sensible amount. Compare one bar with the original.
 3. Check the legend, colours and chart size. Try Fit, then draw at a phone width from View.
    **Check:** You can still read the title and know what the chart measures. Note anything that needs a wider layout.
@@ -52,8 +52,8 @@ Learn the difference between a displayed total and the rows behind it.
 
 Apply a readable, repeatable design and use the right units.
 
-1. Choose Design › Region & currency. Set India, INR and lakh/crore.
-   **Check:** The preview shows ₹ and Indian units. The original source values are unchanged.
+1. Choose Design › Region & currency. Set United States, USD and thousand/million/billion.
+   **Check:** The preview shows US separators and K/M/B abbreviations. Currency formatting is optional.
 2. Choose Design › Edit theme. Set a primary colour and a body font. Apply.
    **Check:** The theme is applied. Read the smallest text and check status colours are still meaningful.
 3. Run the brand and accessibility checks. Fix one clear issue, such as a missing title or an unreadable colour.

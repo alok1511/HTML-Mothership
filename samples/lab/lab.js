@@ -14,7 +14,7 @@
   const october = rows(months.october, [110, 140, 120, 155, 100, 125]);
   const november = rows(months.november, [140, 160, 155, 190, 120, 150]);
   window.labData = october;
-  const amount = n => (close ? '₹' : '') + n.toLocaleString('en-IN') + (close ? ' lakh' : '');
+  const amount = n => n.toLocaleString('en-US');
   const set = (id, value) => { $(id).textContent = value; };
   let sort = 0;
   const chartOptions = { responsive: true, maintainAspectRatio: false, animation: false,

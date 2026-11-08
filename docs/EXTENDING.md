@@ -154,7 +154,7 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 
 **Summaries.** `rt.summarize(key, name)` (runtime, so captions work in exports) writes the sentences from `rt.chartData(key, true)`. `charts[key].summary = { show: 'caption' | 'aria', name }` turns on the caption (`p.ms-summary`, rebuilt on every refresh) and the `aria-label`. Editor side: `MS.summaries.list()`, `.set(keys, show)`, `.text()`.
 
-**Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('₹16.2 Cr')` → `{v: 162000000, tol: 500000}`.
+**Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('16.2M')` → `{v: 16200000, tol: 50000}`.
 
 **Region and currency** (`src/js/publish.js`): `MS.locale.get()`, `.set({country, currency, locale, units})` (one undo step, emits `locale`), `.describe()`, `.rule()` (the line AI prompts use), `.sample(o)`. In templates use `{value:cur}`, `{value:curshort}` or `{value:short}` to follow it.
 

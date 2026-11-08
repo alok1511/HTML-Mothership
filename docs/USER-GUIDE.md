@@ -86,14 +86,14 @@ Double-click a chart in **Edit**. Use **Commentary & size** for the title, subti
 A useful commentary block answers three questions:
 
 - **What?** “Net sales by region”.
-- **In what units and period?** “₹ crore, October 2026, excluding returns”.
+- **In what units and period?** “Values in millions, October 2026, excluding returns”.
 - **Why should I care?** “West accounts for 42% of the month's sales; check whether this is a one-off order.”
 
-Use **Design › Region & currency** before applying global formatting. New dashboards default to US English and US dollars. Choose India, INR and lakh/crore where appropriate. This changes display conventions. It does **not** convert amounts between currencies or change figures the original dashboard formats itself. Check axes, tooltips and totals together.
+Use plain numbers for general reporting. For an explicitly monetary chart, choose USD in **Design › Region & currency** and select a currency format. These settings affect display. The source values stay the same. Check axes, tooltips and totals together.
 
 Use **Charts › Category order** or **Category colours** when the same labels appear in multiple charts. Set “North” once to keep its colour consistent, but review charts that use colour to show status. Apply **Format painter** only to charts that should share the same look and formats.
 
-**Worked example:** choose a tooltip like **{label}: {value:cr}** when the underlying number is in rupees. A raw value of ₹12,500,000 is ₹1.25 crore. If the raw data already stores **1.25** as crore, do not apply a second conversion; use the raw number and label the unit. Verify one value against the source.
+**Worked example:** use **{label}: {value:short}** to show a raw value of 12,500,000 as 12.5M. If the source already stores 12.5 in millions, use the raw value and label the unit. Verify one value against the source.
 
 <!-- guide:drill -->
 ## Data, filters and drill-down
@@ -123,7 +123,7 @@ Use a repeatable loop: **save working copy → preview data → apply → check 
 5. Apply the refresh. Check an affected chart and KPI, try filters, and compare one total to Finance's source. Rerun tests; results from the previous dashboard revision are stale.
 6. Use **Home › Undo** immediately if the replacement was wrong, or **File › Versions** to restore the recovery copy. Export under a new month/version when ready.
 
-**Example:** October has 1,250 rows and ₹2.4 crore net sales; November's file has 1,119 rows and ₹1.9 crore. Neither change is automatically wrong. Check the period, excluded regions and returns, then compare the ₹1.9 crore with the independent report.
+**Example:** October has 1,250 rows and 2.4M net sales; November's file has 1,119 rows and 1.9M. Neither change is automatically wrong. Check the period, excluded regions and returns, then compare the 1.9M with the independent report.
 
 <!-- guide:build -->
 ## Build a dashboard from scratch
@@ -149,7 +149,7 @@ Choose **Browse report layouts** on the welcome screen or **File › Report layo
 
 1. Use the filters above the report. **Overview** gives the headline and trends. **Key insights** separates the observed result, a driver to investigate, and a conditional scenario. Every insight has a **So what** that follows the active slice.
 2. Open **Drivers & scenarios** for the exposure-versus-rate scatter, rate matrix, and scenario bridge. The slider changes one group's rate and holds other exposure fixed. Read the **Key inference** below each chart. Associations and what-if estimates need separate validation before you act on them.
-3. Open **Data explorer** to sort or page through the filtered rows. Choose **Download filtered CSV** with filters reset to get a starting file. Keep the header and unit conventions, replace the sample rows, then use **Load report CSV**. For monthly snapshots use `YYYY-MM`, or list periods chronologically. For retention, label tenure as `Week 4`, `Week 8` and so on. Use plain numbers, with monetary columns in INR lakh where the header says so.
+3. Open **Data explorer** to sort or page through the filtered rows. Choose **Download filtered CSV** with filters reset to get a starting file. Keep the header and unit conventions, replace the sample rows, then use **Load report CSV**. For monthly snapshots use `YYYY-MM`, or list periods chronologically. For retention, label tenure as `Week 4`, `Week 8` and so on. Enter plain numbers in the units you want to report and use the same units across comparable rows.
 4. Read **Methodology** for the grain, aggregation, and denominator. Receivables and portfolio headlines use the latest selected snapshot. Retention uses the latest selected tenure. The Explorer shows all filtered observations, so do not sum repeated snapshots or cohort denominators. Use **Restore sample data** to go back to the demo.
 5. Use **Interact** to operate the controls and **Edit** to change text or add commentary. Export the dashboard to keep its loaded CSV and boundary layer in a standalone HTML file.
 
@@ -170,7 +170,7 @@ A recipe is an ordered list of edits you can run again. For example, you can add
 5. Choose **Apply recipe** and inspect the result. For the example, open **Board brief** and read the question. Use **Undo** to reverse the application in one step. Applying an **Add tab if it’s missing** step again keeps a matching tab and its content.
 6. Choose **Download recipe** to keep an editable copy, or use **Load recipe JSON** to bring one back. **Advanced · edit recipe JSON** exposes options such as exact chart selectors, colours and bindings.
 
-The library includes executive, monthly close, risk, geography and reader help templates. The **Commercial INR chart kit** is for monetary charts. Limit its chart selector on a dashboard that also shows counts or rates.
+The library includes executive, monthly close, risk, geography and reader help templates. The **Commercial chart kit** adds a palette, plain-number tooltips, and a tab for definitions and source units.
 
 ### Start with a dashboard you already have
 
@@ -190,7 +190,7 @@ Choose **Capture dashboard setup**. Pick the pieces to reuse. Tab titles, theme 
 |---|---|
 | Navigation, map joins, decision wording, and shared filters | **Monsoon Readiness Review**. Select a state and see the decision desk, KPIs, map and chart inferences follow it. Move the scenario slider and trace the estimate to the largest state in the slice. |
 | Number checks, duplicate names, sorting and faster test drafting | **Release Rehearsal Lab**. Its clean total is 750. Enable the defect and the reported KPI becomes 1,000. Import the source expectation, catch the mismatch, turn the defect off and rerun. |
-| CSV import, chart binding, drill-down, baseline and refresh | **Monthly Close Lab**. Bind a chart to October, save a baseline, and refresh with November. The bound chart should aggregate ₹915 lakh. The embedded source ledger remains an October example. |
+| CSV import, chart binding, drill-down, baseline and refresh | **Monthly Close Lab**. Bind a chart to October, save a baseline, and refresh with November. The bound chart should aggregate 915. The embedded source ledger remains an October example. |
 | Chart compatibility and formatting | **File › Samples** has the Chart.js sales, ECharts operations and Plotly risk fixtures. In the editor, check the chart list and **File › Import report** before editing or exporting. |
 | Review, branding, recovery and delivery | Use either lab in **Edit**. Try **Design**, **Review**, **File › Versions**, **Testing**, and **Publish**. Reopen the HTML export, test it offline, and try presenter notes, PDF and PowerPoint where your office setup permits. |
 | Recipe and work assistant round-trip | Use a lab. Check and apply a starter, undo it, capture the setup, then draft a variation with either work model. Paste the returned JSON and check it before applying. |
@@ -254,7 +254,7 @@ Choose **Comment** and click an element, or drag a box around the area. Describe
 
 **Weak comment:** “Fix this chart.”
 
-**Useful comment:** “On Overview › Sales by region, the West bar shows ₹1.2 Cr after selecting November. Finance's November total is ₹1.4 Cr. Check the date filter and the exclusion of credit notes. Done when West shows ₹1.4 Cr and the tooltip says November.”
+**Useful comment:** “On Overview › Sales by region, the West bar shows 1.2M after selecting November. Finance's November total is 1.4M. Check the date filter and the exclusion of credit notes. Done when West shows 1.4M and the tooltip says November.”
 
 If the fault happens after interacting, reproduce it in **Interact**, then use **Review › What I did** to capture what led to it. Save the **Excel tracker** for a meeting; reimport the edited tracker to update tracked comments. Use **File › Compare** to review a saved version against the current dashboard before resolving the feedback.
 
@@ -345,7 +345,7 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 | No charts, but text is visible | Safe mode or missing chart script | For a trusted file, check View › Safe mode and File › Import report; reopen its folder if assets are missing |
 | Works in the editor, blank after export | Missing resources or script-generated content | Try the exported file offline and read the browser/load error; confirm the source assets are bundled |
 | Filter appears but chart does not change | The chart's binding | In Data & drill-down, check that the chart uses the filtered dataset and field |
-| A number jumps by 100,000 or 10,000,000 | Units already scaled | Confirm raw units and choose an unscaled format if the dataset already stores lakh/crore |
+| A number is much smaller or larger than expected | Units already scaled | Confirm the source unit and choose an unscaled format when the source already stores values in thousands or millions |
 | Dataset refresh is blocked | Required column renamed or measure has text | Restore the exact header and fix the values in the new file, then preview again |
 | A test didn't execute | Wrong tab, unavailable target, manual step or cap | Read the result and target. Open the correct tab, update the target and rerun or check manually |
 | Tests show Stale | An edit happened after the last run | Run the relevant tests again against the new revision |

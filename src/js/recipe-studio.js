@@ -263,6 +263,7 @@
       '- Apply a palette: {"do":"theme","theme":{"name":"Report colours","palette":["#18695c","#264465"]}}',
       '- Add a dataset binding, edit layout or target a chart only when the exact inputs are known. Inspect docs/EXTENDING.md if available.', '',
       'Prefer ensureTab and exact selectors. Avoid destructive steps, embedded rows, external assets, credentials, CSS, and executable code.',
+      'Use plain numbers. When the user explicitly requests a currency format, use USD.',
       'If Mothership MCP is connected and a target copy is open in its separate browser, use recipe_context to confirm targets and preview_recipe to check the proposed JSON. Report any unresolved targets. If MCP is unavailable, use the inventory below or ask for missing names.',
       'After drafting, the user will paste the recipe into Mothership, check the targets, and apply it to a copy.', '',
       'User goal:', draftGoal,

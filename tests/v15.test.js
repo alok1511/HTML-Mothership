@@ -160,8 +160,8 @@ const file = pathToFileURL(path.resolve(__dirname, '../dist/mothership-standalon
       return [before, sum()];
     }, contents);
     assert.deepEqual(totals, [750, 915]);
-    assert.equal(await frame.locator('#lab-source-total').textContent(), '₹750 lakh');
-    console.log('  ✓ Monthly close practice files refresh the bound chart from ₹750 lakh to ₹915 lakh');
+    assert.equal(await frame.locator('#lab-source-total').textContent(), '750');
+    console.log('  ✓ Monthly close practice files refresh the bound chart from 750 to 915');
 
     await page.evaluate(() => { MS.help.guide('glossary'); });
     await dlg('📖 Mothership user guide').getByRole('heading', { name: 'Glossary' }).waitFor();
