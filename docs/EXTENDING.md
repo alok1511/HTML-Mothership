@@ -54,6 +54,11 @@ Three extension points, from safest to most powerful:
 | `filter` | `dataset`, `field`, `label` |
 | `replaceText` | `find`, `replace` |
 | `css` | `css` |
+| `api` | `tool`, `args`: runs an `MS.api` tool (below), e.g. `{ "do": "api", "tool": "chart_shapes", "args": { … } }`. With `each` (a chart `match`) it runs once per matching chart, passing the chart as `args.chart`. |
+
+A recipe is one undo step. `MS.plugins.runRecipe(recipe)` and the `run_recipe` tool return a Promise of `{ ok, steps, problems }` that settles when the last step has finished; a step that fails is listed in `problems` and the rest still run. The `api` step refuses tools that open, close or replace the dashboard, publish it, or run arbitrary functions (`MS.plugins.RECIPE_BLOCKED`), so a recipe stays safe to open.
+
+`insert_chart` takes `sort: "source"` to keep the order of the rows (time, or the steps of a bridge); `""` sorts the labels A to Z. `recipes/` has a house-style recipe and worked examples (bridge, ranked bars with a highlight, growth with a CAGR arrow, loss run, survey).
 
 `match` is `"*"`, `{ "title": "part of title" }`, `{ "index": 0 }` or `{ "key": "m1a" }`.
 
@@ -222,5 +227,7 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 **Live test runs** (`MS.qa.live`): `start(ids)` (closes the Testing window, shows the runner, runs at `pace` = `fast | normal | slow`), `close()`, `show(el, point, verb)`, `mark(el, label, kind)`, `ring(byStatus, size, centre)`, `trend()`, `promptDialog()`, `evid` (failure pictures by case id). In `MS.qa`: `run(ids)` emits `qa-run` and `qa-step`, `stop()`, `running`, `runs()` (history in `state.tests.runs`), `failed()`, `failPrompt({mcp, goal: 'fix' | 'retest', person})`. API/MCP: `test_document {format: 'failures', goal, mcp, person}`; MCP `save_test_document {format: 'failures', goal}`.
 
 **Full coverage** (`MS.qa.deep`): `generate(o)`, `parts()`, `coverage()` (`{parts, covered, percent, untested, partly, rows}`), `coverageMd()`, `coverageDialog()`, `baseline()`, `capture()`, `lock()`, `clearBaseline()`, `rows()`, `importRows(rows)`, `importFile(file)`, `xlsx()`, `draftMenu()`, `numbersMenu()`. Add your own step kind with `MS.qa.STEPS.my_step = function (step, pass, fail) { … }` (return `pass(note)` / `fail(why)` or a promise), `MS.qa.STEP_WORDS.my_step = function (step, target) { return 'words'; }` and an entry in `MS.qa.ACTIONS`. API/MCP: `test_plan {action: 'draft', depth: 'full'}`, `test_coverage`, `test_baseline {action: 'get' | 'lock' | 'import' | 'rows' | 'clear', rows}`.
+
+**Inference ladder** (`src/js/inference.js`, `MS.infer`). `facts(key)` → `{chart, kind: ranking | trend | mix over time | composition, first, second, third, look, checks}`: what the chart shows, what is driving it (concentration, pace, the period or part that carries the change, mix shift) and what follows if it holds (sensitivity, run-rate, time to overtake), all worked out from `rt.chartData(key, true)`. `look` names related charts and drill levels; `checks` are the questions to settle before stating a cause. `all()`, `text()`, `use(key, sentence)` (sets the inference line), `dialog()`. Runtime: `rt.sumFmt(style, hint)` is the number format summaries use. API/MCP: `chart_inferences`.
 
 **Adding tools from a module.** Modules loaded before `api.js` call `MS.api.add(name, {d, p, f})` too: the call is queued and added when `api.js` loads.

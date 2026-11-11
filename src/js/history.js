@@ -80,6 +80,21 @@
       MS.history.push({ label: label, validationNeutral: ops.every(function (o) { return o.validationNeutral; }),
         undo: function () { ops.slice().reverse().forEach(function (o) { o.undo(); }); },
         redo: function () { ops.forEach(function (o) { o.redo(); }); } }, true);
+    },
+    // The same for work that finishes later: fn returns a promise, and everything recorded until it settles becomes one undo step.
+    groupAsync: function (label, fn) {
+      var first = undo[undo.length - 1], n = undo.length;
+      var close = function () {
+        var start = first ? undo.lastIndexOf(first) + 1 : (undo.length >= n ? 0 : -1);
+        if (first && start === 0) return;
+        if (start < 0) return;
+        var ops = undo.splice(start);
+        if (!ops.length) return;
+        MS.history.push({ label: label, validationNeutral: ops.every(function (o) { return o.validationNeutral; }),
+          undo: function () { ops.slice().reverse().forEach(function (o) { o.undo(); }); },
+          redo: function () { ops.forEach(function (o) { o.redo(); }); } }, true);
+      };
+      return Promise.resolve().then(fn).then(function (x) { close(); return x; }, function (e) { close(); throw e; });
     }
   };
   // Called after any DOM change so the runtime can resize/re-apply and panels refresh.

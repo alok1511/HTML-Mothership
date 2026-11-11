@@ -913,6 +913,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     };
   }
   function pctOf(v, t) { return t ? Math.round(v / t * 100) + '%' : ''; }
+  rt.sumFmt = sumFmt;
   rt.summarize = function (key, name) {
     var c = rt.chart(key); if (!c) return '';
     var d = rt.chartData(key, true), info = c.a.info(c.inst) || {};

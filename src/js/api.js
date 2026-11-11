@@ -129,7 +129,7 @@
       var out = MS.move.to(el, where); return { ref: out && out.nodeType === 1 ? refOf(out) : null };
     } };
   A.replace_text = { d: 'Find and replace text everywhere in the dashboard.', p: { find: ['string', 'Text to find', true], replace: ['string', 'Replacement', true] },
-    f: function (a) { return MS.plugins.runRecipe({ steps: [{ do: 'replaceText', find: a.find, replace: a.replace }] }, 'api'); } };
+    f: function (a) { return MS.plugins.runRecipe({ name: 'Replace text', steps: [{ do: 'replaceText', find: a.find, replace: a.replace }] }, 'api'); } };
 
   /* ---------------------------------------------------------- building */
   A.insert_part = { d: 'Insert a page part after the element `after` (or at the end of the current tab): banner (page header), section, heading, para, cols2, cols3, callout, divider, spacer, footer.', p: { part: ['string', 'banner | section | heading | para | cols2 | cols3 | callout | divider | spacer | footer', true], after: ['string', 'Element ref to insert after'], title: ['string', 'Main text (heading/title)'], text: ['string', 'Secondary text (subtitle/paragraph)'] },
@@ -208,7 +208,7 @@
         return { changes: r.changes, sections: r.sections };
       });
     } };
-  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], sort: ['string', 'desc | asc | "" (by label)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
+  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], sort: ['string', 'desc | asc | source (the order of the rows, e.g. time or the steps of a bridge) | "" (by label, A to Z)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
     f: function (a) {
       if (a.into) MS.edit.select(elOf(a.into)); else MS.edit.select(null);
       return MS.compose.ensureChartLib().then(function () {
@@ -479,7 +479,7 @@
     f: function (a) { return MS.deliver.pptx({ from: a.from }).then(function (r) { var b = '', u = r.bytes; for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { slides: r.slides, name: MS.exportName(a.from === 'story' ? '-story' : '').replace(/\.html$/, '.pptx'), b64: btoa(b) }; }); } };
 
   /* ---------------------------------------------------------- automation */
-  A.run_recipe = { d: 'Run a Mothership recipe (a list of steps: layout, theme, addTab, renameTab, deleteTab, hideTab, wrapCharts, tooltip, chart, moveChart, copyChart, dataset, filter, replaceText, css). See docs/EXTENDING.md.', p: { recipe: ['object', '{steps:[{do:..., ...}]}', true] },
+  A.run_recipe = { d: 'Run a Mothership recipe (a list of steps: layout, theme, addTab, renameTab, deleteTab, hideTab, wrapCharts, tooltip, chart, moveChart, copyChart, dataset, filter, replaceText, css, and api: {do: "api", tool, args} runs most other tools). The whole recipe is one undo step. Returns {ok, steps, problems} once every step has finished. See docs/EXTENDING.md.', p: { recipe: ['object', '{steps:[{do:..., ...}]}', true] },
     f: function (a) { return Promise.resolve(MS.plugins.runRecipe(a.recipe, 'api')).then(function (x) { return x || done(); }); } };
   A.call = { d: 'Call any Mothership function by path with positional arguments, e.g. path "tabs.add", args ["FAQ","content","<h1>FAQ</h1>"]. Gives access to every feature, including ones without their own tool.', p: { path: ['string', 'e.g. "blocks.wrapAll", "order.set", "rt.refresh"', true], args: ['array', 'Arguments'] },
     f: function (a) {

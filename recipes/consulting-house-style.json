@@ -1,0 +1,34 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Consulting house style",
+  "description": "Gives every chart a commentary header, quiet grey axis text, the legend on the right and a source line. Then rewrite each title as a sentence with a number.",
+  "steps": [
+    {
+      "do": "wrapCharts"
+    },
+    {
+      "do": "api",
+      "tool": "chart_look_all",
+      "args": {
+        "look": {
+          "font": "Arial",
+          "size": 11,
+          "color": "#4B5563",
+          "legend": "right"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_source",
+      "args": {
+        "all": true,
+        "text": "Add the source system here"
+      }
+    },
+    {
+      "do": "css",
+      "css": ".ms-block .ms-title{font-weight:700;color:#051C2C}.ms-block .ms-sub{color:#4B5563}"
+    }
+  ]
+}

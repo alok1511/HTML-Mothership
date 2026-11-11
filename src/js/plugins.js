@@ -81,9 +81,13 @@
 
   /* ---------------------------------------------------------- recipes */
   // {"$type":"mothership/recipe","name":"...","steps":[{"do":"addTab",...}, ...]}
+  // Tools a recipe's "api" step may not call: they open, close or replace the dashboard, step outside it, or run arbitrary functions.
+  P.RECIPE_BLOCKED = /^(call|run_recipe|open_html|open_folder_files|new_dashboard|close_dashboard|export_saved|undo|redo|publish|scrub_names|firm_template)$/;
+  // Runs the steps in order as one undo step. Resolves to {ok, steps, problems} when every step has finished.
   P.runRecipe = function (j, name) {
-    var rt = MS.rt(); if (!rt) return MS.toast('Open a dashboard first, then run the recipe.', 'warn');
-    var steps = j.steps || [];
+    var rt = MS.rt();
+    if (!rt) { MS.toast('Open a dashboard first, then run the recipe.', 'warn'); return Promise.resolve({ ok: false, steps: 0, problems: ['No dashboard is open'] }); }
+    var steps = (j && j.steps) || [];
     var log = [];
     var chain = Promise.resolve();
     function chartsMatching(m) {
@@ -99,6 +103,7 @@
     function tabByTitle(t) { return rt.tabs().filter(function (x) { return x.title.toLowerCase() === String(t).toLowerCase(); })[0]; }
     steps.forEach(function (s, i) {
       chain = chain.then(function () {
+        rt = MS.rt();
         switch (s.do) {
           case 'layout':
             MS.tabs.ensureLayout();
@@ -129,18 +134,33 @@
           case 'dataset': if (s.rows) MS.data.addDataset(s.name, s.rows, true); else MS.history.state('Recipe dataset', function (st) { st.datasets[s.name] = { expr: s.expr, source: 'page' }; }); break;
           case 'filter': MS.history.state('Recipe filter', function (st) { st.filters.push({ dataset: s.dataset, field: s.field, label: s.label || s.field }); }); break;
           case 'replaceText': {
-            var w = MS.child.win, walker = MS.child.doc.createTreeWalker(MS.child.doc.body, w.NodeFilter.SHOW_TEXT), n;
-            while ((n = walker.nextNode())) if (n.nodeValue.indexOf(s.find) >= 0 && !/SCRIPT|STYLE/.test(n.parentNode.tagName)) n.nodeValue = n.nodeValue.split(s.find).join(s.replace);
+            if (!s.find) { log.push('Step ' + (i + 1) + ': nothing to find'); break; }
+            var w = MS.child.win, walker = MS.child.doc.createTreeWalker(MS.child.doc.body, w.NodeFilter.SHOW_TEXT), n, hits = [];
+            while ((n = walker.nextNode())) if (n.nodeValue.indexOf(s.find) >= 0 && !/SCRIPT|STYLE/.test(n.parentNode.tagName)) hits.push({ node: n, before: n.nodeValue, after: n.nodeValue.split(s.find).join(s.replace == null ? '' : s.replace) });
+            if (hits.length) MS.history.push({ label: 'Replace text',
+              undo: function () { hits.forEach(function (x) { x.node.nodeValue = x.before; }); MS.afterDomChange(); },
+              redo: function () { hits.forEach(function (x) { x.node.nodeValue = x.after; }); MS.afterDomChange(); } });
             break;
+          }
+          case 'api': {
+            // Any MS.api tool, e.g. { "do": "api", "tool": "chart_shapes", "args": {...} }. With "each" (a chart match) it runs once per chart, as args.chart.
+            var tool = String(s.tool || '');
+            if (!tool || P.RECIPE_BLOCKED.test(tool) || !MS.api || !MS.api[tool]) throw new Error(!tool ? 'no tool named' : P.RECIPE_BLOCKED.test(tool) ? 'the tool "' + tool + '" cannot be used in a recipe' : 'unknown tool "' + tool + '"');
+            if (s.each === undefined) return MS.api.run(tool, s.args || {});
+            return chartsMatching(s.each).reduce(function (p, c) {
+              return p.then(function () { return MS.api.run(tool, Object.assign({}, s.args, { chart: c.key })); });
+            }, Promise.resolve());
           }
           case 'css': MS.history.state('Recipe CSS', function (st) { st.theme = st.theme || MS.brand.normalize({ name: 'Custom' }); st.theme.css = (st.theme.css || '') + '\n' + s.css; }); break;
           default: log.push('Step ' + (i + 1) + ': unknown action "' + s.do + '"');
         }
       }).catch(function (e) { log.push('Step ' + (i + 1) + ' failed: ' + e.message); });
     });
-    chain.then(function () {
+    var title = (j && j.name) || name || 'recipe';
+    return MS.history.groupAsync('Recipe: ' + title, function () { return chain; }).then(function () {
       MS.afterDomChange();
-      MS.toast('Recipe "' + (j.name || name) + '" ran ' + steps.length + ' step(s)' + (log.length ? ', with ' + log.length + ' problem(s): ' + log.join('; ') : '.'), log.length ? 'warn' : 'ok', 8000);
+      MS.toast('Recipe "' + title + '" ran ' + steps.length + ' step(s)' + (log.length ? ', with ' + log.length + ' problem(s): ' + log.join('; ') : '.'), log.length ? 'warn' : 'ok', 8000);
+      return { ok: !log.length, steps: steps.length, problems: log };
     });
   };
 })(window.MS);

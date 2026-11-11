@@ -1,0 +1,96 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Example: loss run, paid and outstanding",
+  "description": "Adds an illustrative view of incurred claims by policy year, split into paid and outstanding. Put the valuation date in the subtitle.",
+  "steps": [
+    {
+      "do": "dataset",
+      "name": "Example loss run",
+      "rows": [
+        {
+          "policy year": "2021-22",
+          "part": "Paid",
+          "amount": 512
+        },
+        {
+          "policy year": "2021-22",
+          "part": "Outstanding",
+          "amount": 36
+        },
+        {
+          "policy year": "2022-23",
+          "part": "Paid",
+          "amount": 468
+        },
+        {
+          "policy year": "2022-23",
+          "part": "Outstanding",
+          "amount": 103
+        },
+        {
+          "policy year": "2023-24",
+          "part": "Paid",
+          "amount": 352
+        },
+        {
+          "policy year": "2023-24",
+          "part": "Outstanding",
+          "amount": 188
+        },
+        {
+          "policy year": "2024-25",
+          "part": "Paid",
+          "amount": 141
+        },
+        {
+          "policy year": "2024-25",
+          "part": "Outstanding",
+          "amount": 280
+        }
+      ]
+    },
+    {
+      "do": "api",
+      "tool": "insert_chart",
+      "args": {
+        "dataset": "Example loss run",
+        "by": "policy year",
+        "measure": "amount",
+        "series": "part",
+        "type": "stacked",
+        "sort": "source",
+        "title": "tmp-example-loss-run"
+      }
+    },
+    {
+      "do": "api",
+      "tool": "category_colors",
+      "args": {
+        "colors": {
+          "Paid": "#051C2C",
+          "Outstanding": "#2251FF"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_settings",
+      "args": {
+        "chart": "tmp-example-loss-run",
+        "title": "Two-thirds of 2024-25 incurred is still reserve, so the year can move a lot",
+        "subtitle": "Incurred claims by policy year, as at the valuation date (illustrative)",
+        "look": {
+          "legend": "right"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_source",
+      "args": {
+        "chart": "Two-thirds of 2024-25",
+        "text": "Illustrative data"
+      }
+    }
+  ]
+}

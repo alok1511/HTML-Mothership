@@ -152,7 +152,8 @@
         { icon: '🖼', label: 'Copy picture', title: 'Copy the selected chart (with its title, notes and shapes) as a picture to paste into PowerPoint, Word, Outlook or Teams (Ctrl+Shift+C)', run: sel(function (el) { MS.picture.copy(el); }) },
         { icon: '⬇', label: 'Save picture', title: 'Save the selected chart as a PNG', run: sel(function (el) { MS.picture.save(el); }) },
         { icon: '⬇', label: 'Chart data', title: 'Save the numbers in the selected chart as CSV (opens in Excel)', run: needRt(function () { MS.chartOut.data(); }) },
-        { icon: '📰', label: 'Summaries', title: 'A plain-English summary of every chart: for emails, captions and screen readers', run: needRt(function () { MS.summaries.dialog(); }) }] },
+        { icon: '📰', label: 'Summaries', title: 'A plain-English summary of every chart: for emails, captions and screen readers', run: needRt(function () { MS.summaries.dialog(); }) },
+        { icon: '💡', label: 'Inferences', title: 'The inference ladder for every chart: what it shows, what is driving it, and what follows if that holds', run: needRt(function () { MS.infer.dialog(); }) }] },
       { name: 'All charts', items: [
         { icon: '💬', label: 'Tooltips', title: 'Set one tooltip format for every chart', run: needRt(MS.charts.tooltipAll) },
         { icon: '🎨', label: 'Look', title: 'One font, legend and pop-up style for every chart', run: needRt(function () {

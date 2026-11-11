@@ -1,0 +1,101 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Example: ranked bars with one highlight",
+  "description": "Adds an illustrative ranking with one bar in the highlight colour and a callout. Note: category colours apply to those names on every chart in the dashboard.",
+  "steps": [
+    {
+      "do": "dataset",
+      "name": "Example claim settlement",
+      "rows": [
+        {
+          "state": "Maharashtra",
+          "days": 9.1
+        },
+        {
+          "state": "Karnataka",
+          "days": 7.4
+        },
+        {
+          "state": "Gujarat",
+          "days": 6.8
+        },
+        {
+          "state": "Tamil Nadu",
+          "days": 6.1
+        },
+        {
+          "state": "Delhi",
+          "days": 5.9
+        },
+        {
+          "state": "Telangana",
+          "days": 5.2
+        },
+        {
+          "state": "West Bengal",
+          "days": 4.8
+        }
+      ]
+    },
+    {
+      "do": "api",
+      "tool": "insert_chart",
+      "args": {
+        "dataset": "Example claim settlement",
+        "by": "state",
+        "measure": "days",
+        "type": "hbar",
+        "sort": "desc",
+        "title": "tmp-example-ranked"
+      }
+    },
+    {
+      "do": "api",
+      "tool": "category_colors",
+      "args": {
+        "colors": {
+          "Maharashtra": "#2251FF",
+          "Karnataka": "#B8BEC6",
+          "Gujarat": "#B8BEC6",
+          "Tamil Nadu": "#B8BEC6",
+          "Delhi": "#B8BEC6",
+          "Telangana": "#B8BEC6",
+          "West Bengal": "#B8BEC6"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_settings",
+      "args": {
+        "chart": "tmp-example-ranked",
+        "title": "Maharashtra takes 9 days to settle a claim, nearly twice West Bengal",
+        "subtitle": "Average claim settlement time, days (illustrative)",
+        "look": {
+          "legend": "none"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "annotate",
+      "args": {
+        "action": "add",
+        "chart": "Maharashtra takes 9 days",
+        "label": "Maharashtra",
+        "kind": "callout",
+        "text": "Add the reason here",
+        "dx": -260,
+        "dy": 60
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_source",
+      "args": {
+        "chart": "Maharashtra takes 9 days",
+        "text": "Illustrative data"
+      }
+    }
+  ]
+}

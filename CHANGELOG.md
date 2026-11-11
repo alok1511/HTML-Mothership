@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Recipes: a recipe is now one undo step, `run_recipe` answers only when every step has finished and returns `{ ok, steps, problems }`, and a new `api` step runs most Mothership tools (shapes, colours, legends, sources, sizes) from a recipe file. Find and replace can be undone.
+- Charts › Inferences: an inference ladder for every chart (what it shows, what is driving it, what follows if it holds), with the checks to make before stating a cause. Tool: `chart_inferences`.
+- New recipe files: a consulting house style and worked examples (bridge, ranked bars with a highlight, growth with a CAGR arrow, loss run, survey). `insert_chart` documents `sort: "source"`.
 - Give same-named charts, tabs and controls distinct draft targets. Block ambiguous legacy targets and explain skipped checks in Coverage, with a link to the affected item.
 - Run a bounded set of critical smoke checks, save completed results together without redrawing the dashboard, and run heavy jobs in a separate local browser with a hard timeout.
 - Save and load reusable test packs. Compare sections and datasets to a baseline, then draft or run checks for the changed sections.

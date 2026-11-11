@@ -1,0 +1,82 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Example: growth with a CAGR arrow",
+  "description": "Adds illustrative yearly columns with an arrow that works out the compound annual growth rate.",
+  "steps": [
+    {
+      "do": "dataset",
+      "name": "Example premium",
+      "rows": [
+        {
+          "year": "FY21",
+          "premium": 1820
+        },
+        {
+          "year": "FY22",
+          "premium": 2050
+        },
+        {
+          "year": "FY23",
+          "premium": 2390
+        },
+        {
+          "year": "FY24",
+          "premium": 2710
+        },
+        {
+          "year": "FY25",
+          "premium": 3080
+        }
+      ]
+    },
+    {
+      "do": "api",
+      "tool": "insert_chart",
+      "args": {
+        "dataset": "Example premium",
+        "by": "year",
+        "measure": "premium",
+        "type": "bar",
+        "sort": "source",
+        "title": "tmp-example-growth"
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_settings",
+      "args": {
+        "chart": "tmp-example-growth",
+        "title": "Premium has grown 14% a year since FY21",
+        "subtitle": "Gross written premium (illustrative)",
+        "look": {
+          "legend": "none"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_shapes",
+      "args": {
+        "action": "add",
+        "chart": "Premium has grown 14%",
+        "kind": "cagr",
+        "a": {
+          "label": "FY21",
+          "series": 0
+        },
+        "b": {
+          "label": "FY25",
+          "series": 0
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_source",
+      "args": {
+        "chart": "Premium has grown 14%",
+        "text": "Illustrative data"
+      }
+    }
+  ]
+}
