@@ -34,3 +34,6 @@ The licence files are copied unchanged from each project's repository at the ver
 
 **Adding a library:** put the pinned file in `vendor/`, add a row to both tables, and copy its licence file (and any `NOTICE` file) into `licenses/`.
 
+## Sample boundary data
+
+`samples/report/india-states.geojson` contains simplified polygons for six sample states derived from Natural Earth Admin 1 States and Provinces v5.1.1. Natural Earth makes its vector data public domain. The sample subset and simplification are for report demonstrations. [Source](https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-1-states-provinces/) · [Terms of use](https://www.naturalearthdata.com/about/terms-of-use/).

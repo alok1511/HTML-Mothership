@@ -1,7 +1,7 @@
 /* Undo / redo. Every edit goes through MS.history.push({label, undo, redo}). */
 (function (MS) {
   'use strict';
-  var undo = [], redo = [], LIMIT = 200;
+  var undo = [], redo = [], LIMIT = 200, open = null; // open: operations of a group that is still running
   function validationState() { var rt = MS.rt && MS.rt(); return rt ? rt.state : MS.doc && MS.doc.state; }
   function revision() { var s = validationState(); return s && s.validationRevision; }
   function changed(op, label, before) {
@@ -15,11 +15,16 @@
     }
     MS.emit('changed', label);
   }
+  function grouped(label, ops) {
+    return { label: label, validationNeutral: ops.every(function (o) { return o.validationNeutral; }),
+      undo: function () { ops.slice().reverse().forEach(function (o) { o.undo(); }); },
+      redo: function () { ops.forEach(function (o) { o.redo(); }); } };
+  }
   MS.history = {
     push: function (op, alreadyDone) {
       var before = revision();
       if (!alreadyDone) op.redo();
-      undo.push(op); if (undo.length > LIMIT) undo.shift();
+      if (open) open.push(op); else { undo.push(op); if (undo.length > LIMIT) undo.shift(); }
       redo = [];
       changed(op, op.label, before);
     },
@@ -36,7 +41,7 @@
       undo.push(op); changed(op, 'Redo ' + op.label, before); MS.status('Redid: ' + op.label);
     },
     mark: function (label) { changed({}, label, revision()); },
-    clear: function () { undo = []; redo = []; MS.emit('history'); },
+    clear: function () { undo = []; redo = []; if (open) open.length = 0; MS.emit('history'); },
     canUndo: function () { return undo.length > 0; },
     canRedo: function () { return redo.length > 0; },
     labels: function () { return undo.map(function (o) { return o.label; }); },
@@ -73,26 +78,20 @@
     },
     // Group several operations (recorded inside fn) into one undo step.
     group: function (label, fn) {
-      var start = undo.length;
+      var st = open || undo, start = st.length;
       fn();
-      var ops = undo.splice(start);
+      var ops = st.splice(start);
       if (!ops.length) return;
-      MS.history.push({ label: label, validationNeutral: ops.every(function (o) { return o.validationNeutral; }),
-        undo: function () { ops.slice().reverse().forEach(function (o) { o.undo(); }); },
-        redo: function () { ops.forEach(function (o) { o.redo(); }); } }, true);
+      MS.history.push(grouped(label, ops), true);
     },
     // The same for work that finishes later: fn returns a promise, and everything recorded until it settles becomes one undo step.
+    // The operations are held apart from the undo list while the group runs, so a long recipe cannot push its own start past the limit.
     groupAsync: function (label, fn) {
-      var first = undo[undo.length - 1], n = undo.length;
+      if (open) return Promise.resolve().then(fn);
+      var ops = open = [];
       var close = function () {
-        var start = first ? undo.lastIndexOf(first) + 1 : (undo.length >= n ? 0 : -1);
-        if (first && start === 0) return;
-        if (start < 0) return;
-        var ops = undo.splice(start);
-        if (!ops.length) return;
-        MS.history.push({ label: label, validationNeutral: ops.every(function (o) { return o.validationNeutral; }),
-          undo: function () { ops.slice().reverse().forEach(function (o) { o.undo(); }); },
-          redo: function () { ops.forEach(function (o) { o.redo(); }); } }, true);
+        if (open === ops) open = null;
+        if (ops.length) MS.history.push(grouped(label, ops), true);
       };
       return Promise.resolve().then(fn).then(function (x) { close(); return x; }, function (e) { close(); throw e; });
     }

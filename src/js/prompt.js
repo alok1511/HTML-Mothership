@@ -205,7 +205,7 @@
       : 'I will attach `' + file + '` (or paste it below).';
     L.push(role + ' ' + how + ' I reviewed the dashboard in Mothership and left the comment' + (single ? '' : 's') + ' below. Each one says exactly where it is: tab › section › card or chart › item.', '');
     if (goal === 'polish') L.push('Besides the comments, make the whole dashboard look executive-ready: one font family, consistent title sizes, aligned cards, generous but even spacing, at most 6 colours, and a one-line “so what” under each chart title. Keep every number and label truthful.', '');
-    if (goal === 'review') L.push('Before changing anything, check each number the comments touch: totals add up, percentages match their base, units (₹, lakh, crore) are labelled and consistent, and chart values match the data in the file. List what you found, then make the changes.', '');
+    if (goal === 'review') L.push('Before changing anything, check each number the comments touch: totals add up, percentages match their base, units are labelled and consistent, and chart values match the data in the file. List what you found, then make the changes.', '');
 
     /* summary table */
     if (!single) {

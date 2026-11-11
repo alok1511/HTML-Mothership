@@ -17,6 +17,39 @@
     if (/line|area/.test(type)) return true;
     return labels.length >= 3 && labels.filter(function (l) { return PERIOD.test(String(l).trim()); }).length >= labels.length * 0.6;
   }
+  /* The order of the periods in time. A chart can be sorted by value or newest first, so the order on
+     screen is not proof. Returns the label positions oldest first; null when the labels are periods but
+     their order in time cannot be settled (so no trend is read); 'shown' when they cannot be read at all. */
+  var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  function year(t) { var m = /(?:^|[^\d])(\d{4}|\d{2})(?![\d])/.exec(t); if (!m) return null; var y = +m[1]; return y < 100 ? 2000 + y : y; }
+  function periodKey(label) {
+    var t = String(label).trim().toLowerCase(), m, y;
+    if ((m = /^(\d{4})\s*[-\/ ]?\s*q([1-4])\b/.exec(t))) return { v: +m[1] + (m[2] - 1) / 4 };
+    if ((m = /^(\d{4})\s*[-\/ ]?\s*h([12])\b/.exec(t))) return { v: +m[1] + (m[2] - 1) / 2 };
+    if ((m = /^(\d{4})(?:[-\/](\d{1,4}))?(?:[-\/](\d{1,2}))?$/.exec(t))) return { v: +m[1] + (m[2] && +m[2] >= 1 && +m[2] <= 12 ? (m[2] - 1) / 12 + (m[3] ? m[3] / 400 : 0) : 0) };
+    if ((m = /^(\d{1,2})[-\/](\d{2,4})$/.exec(t)) && +m[1] >= 1 && +m[1] <= 12) return { v: (+m[2] < 100 ? 2000 + +m[2] : +m[2]) + (m[1] - 1) / 12 };
+    if ((m = /^(?:fy|cy|py|uy|ay)\s?'?(\d{2,4})/.exec(t))) return { v: +m[1] < 100 ? 2000 + +m[1] : +m[1] };
+    if ((m = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b(.*)$/.exec(t))) { y = year(m[2]); var mi = MONTHS.indexOf(m[1]); return y == null ? { c: mi, of: 12 } : { v: y + mi / 12 }; }
+    if ((m = /^q([1-4])\b(.*)$/.exec(t))) { y = year(m[2]); return y == null ? { c: m[1] - 1, of: 4 } : { v: y + (m[1] - 1) / 4 }; }
+    if ((m = /^h([12])\b(.*)$/.exec(t))) { y = year(m[2]); return y == null ? { c: m[1] - 1, of: 2 } : { v: y + (m[1] - 1) / 2 }; }
+    if ((m = /^w(?:ee)?k?\s?(\d+)$/.exec(t))) return { v: +m[1], w: 1 };
+    return null;
+  }
+  function chrono(labels) {
+    var k = labels.map(periodKey), idx = labels.map(function (l, i) { return i; });
+    if (k.some(function (x) { return !x; })) return 'shown';
+    if (k.every(function (x) { return x.v != null; })) {
+      if (k.some(function (x) { return x.w; }) && !k.every(function (x) { return x.w; })) return null;
+      return idx.sort(function (a, b) { return k[a].v - k[b].v || a - b; });
+    }
+    // Months or quarters with no year: a run such as Apr to Mar is in order; anything else cannot be placed.
+    if (!k.every(function (x) { return x.c != null && x.of === k[0].of; })) return null;
+    var run = function (a) { var wraps = 0, i; for (i = 1; i < a.length; i++) { if (a[i] === a[i - 1]) return false; if (a[i] < a[i - 1]) wraps++; } return wraps === 0 || (wraps === 1 && a[a.length - 1] < a[0]); };
+    var c = k.map(function (x) { return x.c; });
+    if (run(c)) return idx;
+    if (run(c.slice().reverse())) return idx.reverse();
+    return null;
+  }
   // Other charts that show the same categories, or are drawn from the same data: where to look for the reason.
   function related(key, labels) {
     var r = rt(), mine = (r.state.charts[key] || {}).binding, low = labels.map(function (l) { return String(l).toLowerCase(); });
@@ -149,6 +182,14 @@
     var cs = r.state.charts[key] || {}, type = String(info.type || '');
     var f = r.sumFmt ? r.sumFmt(cs.style, [name, info.title, S.map(function (s) { return s.name; }).join(' ')].join(' ')) : function (v) { return String(Math.round(v * 100) / 100); };
     var time = ordered(type, d.labels) && !/pie|doughnut|funnel/.test(type);
+    if (time) {
+      var ord = chrono(d.labels), byValue = /^(desc|asc)$/.test(String((cs.binding || {}).sort || ''));
+      if (ord === null || (ord === 'shown' && byValue)) time = false;
+      else if (ord !== 'shown') {
+        d = { labels: ord.map(function (j) { return d.labels[j]; }), series: d.series };
+        S = S.map(function (s) { return { name: s.name, values: ord.map(function (j) { return s.values[j]; }) }; });
+      } else out.checks.push('The periods are read in the order the chart shows them. Check that it runs oldest to newest.');
+    }
     if (S.length === 1 || /pie|doughnut|funnel/.test(type)) {
       var pts = d.labels.map(function (l, j) { return { l: String(l), v: S[0].values[j] }; }).filter(function (p) { return p.v != null && !isNaN(p.v); });
       if (pts.length < 2) return out;

@@ -64,7 +64,7 @@
     f.inputs.country.addEventListener('change', function () { var c = COUNTRIES.filter(function (x) { return x[0] === f.inputs.country.value; })[0]; if (c) { f.inputs.currency.value = c[3]; f.inputs.units.value = c[3] === 'INR' ? 'indian' : 'intl'; } draw(); });
     f.inputs.currency.addEventListener('change', draw); f.inputs.units.addEventListener('change', draw);
     draw();
-    MS.dialog({ title: 'Region and currency', body: h('div', {}, [f, prev, h('p', { 'class': 'hint', html: 'Used wherever Mothership writes numbers: pop-ups and axes set to <b>Currency</b> or <b>Short</b>, KPI cards, chart summaries and the number check. Numbers the dashboard\'s own script writes are not changed. Formats you chose by name (₹ crore, $) stay as they are.' })]),
+    MS.dialog({ title: 'Region and currency', body: h('div', {}, [f, prev, h('p', { 'class': 'hint', html: 'Used wherever Mothership writes numbers: pop-ups and axes set to <b>Currency</b> or <b>Short</b>, KPI cards, chart summaries and the number check. Numbers the dashboard\'s own script writes are not changed. An explicit format such as USD keeps its own currency.' })]),
       buttons: [{ label: 'Cancel', value: null }, { label: 'Apply', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
       if (!v) return;
       var c = COUNTRIES.filter(function (x) { return x[0] === v.country; })[0];
@@ -73,8 +73,10 @@
   };
   // one line for AI prompts: which number style to use
   Lc.rule = function () {
-    var o = Lc.get(), r = rt(), ex = r ? r.fmtNum(12345678, 'cur') + ' or ' + r.fmtNum(12345678, 'curshort') : '';
-    return 'Use ' + Lc.describe(o) + ' number formats unless a comment says otherwise' + (ex ? ' (e.g. ' + ex + ')' : '') + (o.units === 'indian' ? ', DD-MM-YYYY dates and the April–March financial year.' : ', with dates written the ' + (o.country === 'US' ? 'US way (MM/DD/YYYY)' : 'local way') + '.') + ' Keep amounts the dashboard already labels in another currency as they are.';
+    var r = rt();
+    if (!r || !r.state.locale) return 'Use plain numbers with US English separators and K/M/B abbreviations. Write dates as MM/DD/YYYY. Use USD when currency is explicitly requested and keep any currency already identified in the source.';
+    var o = Lc.get(), ex = r.fmtNum(12345678, 'cur') + ' or ' + r.fmtNum(12345678, 'curshort');
+    return 'Use ' + Lc.describe(o) + ' number formats unless a comment says otherwise (e.g. ' + ex + ')' + (o.units === 'indian' ? ', DD-MM-YYYY dates and the April–March financial year.' : ', with dates written the ' + (o.country === 'US' ? 'US way (MM/DD/YYYY)' : 'local way') + '.') + ' Keep amounts the dashboard already labels in another currency as they are.';
   };
   // A dashboard that clearly shows another currency (but has no setting yet) gets a nudge, not a silent change.
   MS.on('child-loaded', function () {

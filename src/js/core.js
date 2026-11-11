@@ -123,7 +123,12 @@ window.MS = window.MS || {};
       function shake() { dlg.classList.remove('shake'); void dlg.offsetWidth; dlg.classList.add('shake'); }
       function key(e) {
         if (wrap !== MS.$$('.dlg-wrap').pop()) return;
-        if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(null); return; }
+        if (e.key === 'Escape') {
+          e.stopPropagation(); e.preventDefault();
+          var tip = HTMLElement.prototype.hidePopover && MS.$('[role=tooltip][popover]:popover-open', dlg);
+          if (tip) tip.hidePopover(); else close(null);
+          return;
+        }
         if (e.key === 'Enter' && !/textarea|select|button/i.test(e.target.tagName) && o.enterSubmits !== false && primary) { e.preventDefault(); primary.click(); return; }
         if (e.key === 'Tab') {
           var f = MS.$$('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"]),a[href]', dlg).filter(function (x) { return x.offsetParent !== null; });

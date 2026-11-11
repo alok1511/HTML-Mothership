@@ -24,7 +24,7 @@
 <body>
 <header>
   <h1>Sales Performance — FY 2024-25</h1>
-  <p>All-India sales, by region, state and city. Figures in ₹.</p>
+  <p>All-India sales, by region, state and city. Illustrative figures.</p>
 </header>
 <section class="kpis">
   <div class="kpi"><div class="label">Total sales</div><div class="value" id="kpi-sales">–</div></div>
@@ -62,13 +62,13 @@ Object.keys(geo).forEach(region => Object.keys(geo[region]).forEach(state => geo
   })));
 })));
 
-const inr = v => '₹' + (v / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' Cr';
+const number = new Intl.NumberFormat('en-US');
 const sum = (rows, f) => rows.reduce((a, r) => a + r[f], 0);
 const by = (rows, key, f) => { const m = {}; rows.forEach(r => m[r[key]] = (m[r[key]] || 0) + r[f]); return m; };
 
-document.getElementById('kpi-sales').textContent = inr(sum(salesData, 'sales'));
-document.getElementById('kpi-profit').textContent = inr(sum(salesData, 'profit'));
-document.getElementById('kpi-units').textContent = sum(salesData, 'units').toLocaleString('en-IN');
+document.getElementById('kpi-sales').textContent = number.format(sum(salesData, 'sales'));
+document.getElementById('kpi-profit').textContent = number.format(sum(salesData, 'profit'));
+document.getElementById('kpi-units').textContent = sum(salesData, 'units').toLocaleString('en-US');
 document.getElementById('kpi-margin').textContent = (sum(salesData, 'profit') / sum(salesData, 'sales') * 100).toFixed(1) + '%';
 
 const reg = by(salesData, 'region', 'sales');

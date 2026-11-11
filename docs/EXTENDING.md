@@ -45,10 +45,11 @@ Three extension points, from safest to most powerful:
 | `layout` | `ribbon: {position, height, brand}`, `pane: {position, visible, title, width}` |
 | `theme` | `theme: {…theme JSON…}` |
 | `addTab` | `title`, and `markdown` or `html` (content tab), or `kind: "grid"` |
+| `ensureTab` | Same fields as `addTab`. A tab with the same title keeps its current content. |
 | `renameTab` / `deleteTab` / `hideTab` | `from`+`to` / `title` / `title` |
 | `wrapCharts` | adds commentary headers to every chart |
 | `tooltip` | `charts: "*" \| match`, `template` |
-| `chart` | `match`, any of `tooltip`, `binding`, `drill`, `commentary: {title, sub, inf}` |
+| `chart` | `match`, any of `tooltip`, `style`, `binding`, `drill`, `commentary: {title, sub, inf}` |
 | `moveChart` / `copyChart` | `match`, `toTab` (title) |
 | `dataset` | `name` + `expr` (a global in the page, e.g. `"salesData"`) or `rows` |
 | `filter` | `dataset`, `field`, `label` |
@@ -56,11 +57,15 @@ Three extension points, from safest to most powerful:
 | `css` | `css` |
 | `api` | `tool`, `args`: runs an `MS.api` tool (below), e.g. `{ "do": "api", "tool": "chart_shapes", "args": { … } }`. With `each` (a chart `match`) it runs once per matching chart, passing the chart as `args.chart`. |
 
-A recipe is one undo step. `MS.plugins.runRecipe(recipe)` and the `run_recipe` tool return a Promise of `{ ok, steps, problems }` that settles when the last step has finished; a step that fails is listed in `problems` and the rest still run. The `api` step refuses tools that open, close or replace the dashboard, publish it, or run arbitrary functions (`MS.plugins.RECIPE_BLOCKED`), so a recipe stays safe to open.
+The `api` step refuses tools that open, close, replace or publish the dashboard, or run arbitrary functions (`MS.plugins.RECIPE_BLOCKED`), so a recipe stays safe to open. `runRecipe` waits for each `api` step before the next one, and the whole recipe is still one undo step; a failed step is listed in `issues` and the rest still run.
 
-`insert_chart` takes `sort: "source"` to keep the order of the rows (time, or the steps of a bridge); `""` sorts the labels A to Z. `recipes/` has a house-style recipe and worked examples (bridge, ranked bars with a highlight, growth with a CAGR arrow, loss run, survey).
+`insert_chart` takes `sort: "source"` to keep the order of the rows (time, or the steps of a bridge); `""` sorts the labels A to Z. `recipes/consulting/` has a house-style recipe and worked examples (bridge, ranked bars with a highlight, growth with a CAGR arrow, loss run, survey). They are kept out of the Recipe workshop's starter list, which is built from the files directly in `recipes/`.
 
-`match` is `"*"`, `{ "title": "part of title" }`, `{ "index": 0 }` or `{ "key": "m1a" }`.
+`match` accepts `"*"`, `{ "title": "part of title" }`, `{ "index": 0 }`, or `{ "key": "m1a" }`. For a portable recipe, use `{ "titleExact": "Sales by state", "library": "chartjs", "tab": "Overview" }` to identify one chart. Library and tab are optional qualifiers.
+
+`capture_recipe` creates a recipe from the current dashboard's reusable settings. Pass `helpText: true` to include reader help text, `commentary: true` to include authored chart notes, or `bindings: true` to include dataset and field references. `run_recipe` returns the count of completed steps and any issues to review.
+
+For model-assisted drafting, `recipe_context` returns tab and chart identifiers. Set `fields: true` to include dataset and field names. `preview_recipe` checks recipe structure and reports `ready`, `keep`, `review` or `unchecked` per step without applying it. Try any step that depends on an earlier transformation on a disposable copy. See [the setup for Terra and Sonnet](USER-GUIDE.md#draft-recipes-with-terra-or-sonnet).
 
 ## Plugin API
 
@@ -154,7 +159,7 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 
 **Summaries.** `rt.summarize(key, name)` (runtime, so captions work in exports) writes the sentences from `rt.chartData(key, true)`. `charts[key].summary = { show: 'caption' | 'aria', name }` turns on the caption (`p.ms-summary`, rebuilt on every refresh) and the `aria-label`. Editor side: `MS.summaries.list()`, `.set(keys, show)`, `.text()`.
 
-**Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('₹16.2 Cr')` → `{v: 162000000, tol: 500000}`.
+**Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('16.2M')` → `{v: 16200000, tol: 50000}`.
 
 **Region and currency** (`src/js/publish.js`): `MS.locale.get()`, `.set({country, currency, locale, units})` (one undo step, emits `locale`), `.describe()`, `.rule()` (the line AI prompts use), `.sample(o)`. In templates use `{value:cur}`, `{value:curshort}` or `{value:short}` to follow it.
 

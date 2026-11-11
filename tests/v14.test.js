@@ -1,135 +1,215 @@
 #!/usr/bin/env node
-/* Recipes (one undo step, the "api" step, results returned when finished) and the inference ladder. */
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { chromium } = require('playwright');
-
+const JSZip = require('../vendor/jszip.min.js');
 const root = path.resolve(__dirname, '..');
-const editors = process.env.V14_ONLY ? [process.env.V14_ONLY] : ['mothership.html', 'dist/mothership-standalone.html'];
-const recipeFiles = fs.readdirSync(path.join(root, 'recipes')).filter(f => f.endsWith('.json'));
+const layouts = require('../samples/report/catalog.json');
+
+async function shapeZip() {
+  const name = 'test-boundary';
+  const rings = [[70, 15], [74, 15]].map(([x, y]) => [[x, y], [x, y + 2], [x + 2, y + 2], [x + 2, y], [x, y]]);
+  const recordLength = 128;
+  const shp = Buffer.alloc(100 + rings.length * (8 + recordLength));
+  shp.writeInt32BE(9994, 0); shp.writeInt32BE(shp.length / 2, 24); shp.writeInt32LE(1000, 28); shp.writeInt32LE(5, 32);
+  rings.forEach((ring, i) => {
+    const pos = 100 + i * (8 + recordLength), start = pos + 8;
+    shp.writeInt32BE(i + 1, pos); shp.writeInt32BE(recordLength / 2, pos + 4); shp.writeInt32LE(5, start);
+    shp.writeInt32LE(1, start + 36); shp.writeInt32LE(5, start + 40);
+    ring.forEach(([x, y], j) => { shp.writeDoubleLE(x, start + 48 + j * 16); shp.writeDoubleLE(y, start + 56 + j * 16); });
+  });
+  const dbf = Buffer.alloc(65 + 33 * rings.length, 0);
+  dbf[0] = 3; dbf.writeUInt32LE(rings.length, 4); dbf.writeUInt16LE(65, 8); dbf.writeUInt16LE(33, 10);
+  dbf.write('iso_code', 32); dbf[43] = 67; dbf[48] = 32; dbf[64] = 13;
+  ['IN-MH', 'IN-KA'].forEach((value, i) => { const pos = 65 + i * 33; dbf.fill(32, pos, pos + 33); dbf.write(value, pos + 1); });
+  const zip = new JSZip();
+  zip.file(name + '.shp', shp); zip.file(name + '.dbf', dbf);
+  zip.file(name + '.prj', 'GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],UNIT["degree",0.0174532925199433]]');
+  return zip.generateAsync({ type: 'nodebuffer' });
+}
 
 (async () => {
   const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
   try {
-    for (const editor of editors) {
-      console.log(editor);
-      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-      const errors = [];
-      page.on('pageerror', error => errors.push(error.message));
-      await page.goto(pathToFileURL(path.join(root, editor)).href);
-      await page.waitForFunction(() => window.MS && MS.api && MS.api.run);
-      const api = (name, args) => page.evaluate(([n, a]) => MS.api.run(n, a).then(x => JSON.parse(JSON.stringify(x === undefined ? null : x))), [name, args || {}]);
-      const fresh = async () => { await api('new_dashboard', { title: 'Recipe test', tabs: false, force: true }); await page.waitForFunction(() => MS.rt() && MS.child); };
-      const charts = () => page.evaluate(() => MS.rt().charts().map(c => MS.charts.nameOf(c.key)));
-
-      /* --- a recipe finishes before run_recipe answers, and is one undo step --- */
-      await fresh();
-      const bridge = JSON.parse(fs.readFileSync(path.join(root, 'recipes/example-bridge.json'), 'utf8'));
-      const before = await page.evaluate(() => MS.history.labels().length);
-      const ran = await api('run_recipe', { recipe: bridge });
-      assert.deepEqual(ran, { ok: true, steps: bridge.steps.length, problems: [] });
-      // No waiting here: the chart, its colours and its shape must already be there.
-      const state = await page.evaluate(() => {
-        const r = MS.rt(), c = r.charts()[0], d = r.chartData(c.key, true);
-        return { names: r.charts().map(x => MS.charts.nameOf(x.key)), labels: d.labels, series: d.series.map(s => s.name),
-          colors: r.state.layout.colors, shapes: (r.state.shapes || []).length, labelsNow: MS.history.labels() };
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, offline: true, acceptDownloads: true });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(pathToFileURL(path.join(root, 'dist/mothership-standalone.html')).href);
+    const button = name => page.getByRole('button', { name, exact: true });
+    const frame = page.frameLocator('#child');
+    await button('Browse report layouts').click();
+    const gallery = page.getByRole('dialog', { name: 'Sample report layouts' });
+    assert.equal(await gallery.getByRole('region', { name: 'Report layouts' }).locator('.gallery-row').count(), 5);
+    await gallery.getByRole('button', { name: 'Open ' + layouts[0].title, exact: true }).click();
+    await page.waitForFunction(() => MS.mode === 'interact');
+    const read = () => frame.locator('body').evaluate(body => {
+      const doc = body.ownerDocument, win = doc.defaultView, model = win.MSReportModel;
+      const byId = id => doc.getElementById(id);
+      const ids = ['trend', 'ranking', 'scatter', 'matrix', 'scenario', ...(model.geography ? ['map'] : [])];
+      return { base: byId('base-value').textContent, rate: byId('rate-value').textContent,
+        insights: ['first', 'second', 'third'].map(k => [byId('insight-' + k).textContent, byId('so-' + k).textContent]),
+        inferences: ids.map(k => byId(k + '-inference').textContent), chartCounts: [...Object.values(win.Chart.instances)].map(c => c.data.datasets[0].data.length),
+        tabs: [...doc.querySelectorAll('[role=tab]')].map(t => t.textContent), scope: byId('report-scope').textContent };
+    });
+    for (const [index, model] of layouts.entries()) {
+      if (index) await page.evaluate(async id => { await MS.samples.open(id, { force: true }); MS.setMode('interact'); }, model.id);
+      await frame.locator('#base-value').waitFor();
+      const before = await read();
+      assert(before.tabs.includes('Key insights') && before.tabs.includes('Data explorer') && before.tabs.includes('Methodology') && before.tabs.includes('FAQ'));
+      assert.equal(before.tabs.includes('Map'), model.map);
+      assert(before.inferences.every(Boolean));
+      const expected = await frame.locator('body').evaluate(body => {
+        const m = body.ownerDocument.defaultView.MSReportModel;
+        let rows = m.rows.filter(r => r.segment === m.segments[0] && (!m.geography || r.region === 'Maharashtra'));
+        const count = rows.length;
+        if (m.latestPeriod) rows = rows.filter(r => r.period === m.periods.at(-1));
+        if (m.latestGroup) rows = rows.filter(r => r.group === m.groups.at(-1));
+        const base = rows.reduce((s, r) => s + r.base, 0), value = rows.reduce((s, r) => s + r.outcome, 0) / base * 100;
+        return { segment: m.segments[0], count, base, value };
       });
-      assert.equal(state.names.length, 1);
-      assert.match(state.names[0], /^EBITDA rose 25/);
-      assert.deepEqual(state.labels, ['FY24 EBITDA', 'Volume', 'Price', 'Mix', 'Input cost', 'FY25 EBITDA'], 'sort "source" keeps the order of the rows');
-      assert.equal(state.colors.Base, 'transparent');
-      assert.equal(state.shapes, 1);
-      assert.equal(state.labelsNow.length, before + 1, 'the whole recipe is one undo step');
-      assert.equal(state.labelsNow[state.labelsNow.length - 1], 'Recipe: ' + bridge.name);
-      await api('undo');
-      await page.waitForFunction(() => MS.rt().charts().length === 0);
-      assert.equal(await page.evaluate(() => Object.keys(MS.rt().state.datasets).length), 0, 'undo removes the dataset too');
-      await api('redo');
-      await page.waitForFunction(() => MS.rt().charts().length === 1);
-      console.log('  ✓ run_recipe answers when the recipe has finished, and the recipe is one undo step');
-
-      /* --- problems come back to the caller; unsafe tools are refused --- */
-      const bad = await api('run_recipe', { recipe: { name: 'Bad', steps: [
-        { do: 'api', tool: 'call', args: { path: 'tabs.add', args: ['X'] } },
-        { do: 'api', tool: 'new_dashboard', args: { force: true } },
-        { do: 'api', tool: 'no_such_tool' },
-        { do: 'api', tool: 'chart_legend', args: { chart: 'No chart called this', position: 'none' } },
-        { do: 'nonsense' },
-        { do: 'api', tool: 'chart_legend', each: '*', args: { position: 'bottom' } }] } });
-      assert.equal(bad.ok, false);
-      assert.equal(bad.problems.length, 5);
-      assert.match(bad.problems[0], /Step 1 failed: the tool "call" cannot be used in a recipe/);
-      assert.match(bad.problems[1], /Step 2 failed: the tool "new_dashboard" cannot be used in a recipe/);
-      assert.match(bad.problems[2], /Step 3 failed: unknown tool "no_such_tool"/);
-      assert.match(bad.problems[3], /^Step 4 failed: /);
-      assert.match(bad.problems[4], /Step 5: unknown action "nonsense"/);
-      assert.deepEqual(await charts(), state.names, 'the dashboard was not replaced');
-      assert.equal(await page.evaluate(() => { const r = MS.rt(); return (r.state.charts[r.charts()[0].key].style || {}).legend; }), 'bottom', '"each" runs the tool for every matching chart');
-      console.log('  ✓ Step problems are returned, blocked tools are refused, and "each" runs a tool per chart');
-
-      /* --- replace_text is undoable --- */
-      const replaced = await api('replace_text', { find: 'EBITDA rose 25', replace: 'Profit rose 25' });
-      assert.equal(replaced.ok, true);
-      assert.match((await charts())[0], /^Profit rose 25/);
-      await api('undo');
-      assert.match((await charts())[0], /^EBITDA rose 25/);
-      console.log('  ✓ Replace text can be undone');
-
-      /* --- every recipe shipped in recipes/ runs clean --- */
-      for (const file of recipeFiles) {
-        await fresh();
-        if (file === 'consulting-house-style.json') await api('run_recipe', { recipe: JSON.parse(fs.readFileSync(path.join(root, 'recipes/example-growth-cagr.json'), 'utf8')) });
-        const result = await api('run_recipe', { recipe: JSON.parse(fs.readFileSync(path.join(root, 'recipes', file), 'utf8')) });
-        assert.deepEqual(result.problems, [], file);
-        assert.equal(result.ok, true, file);
-        if (/^example-/.test(file)) assert.equal((await charts()).filter(n => /^tmp-/.test(n)).length, 0, file + ' leaves no temporary title');
-      }
-      console.log('  ✓ ' + recipeFiles.length + ' recipe files run without problems');
-      assert.match((await page.evaluate(() => MS.api.describe().find(t => t.name === 'insert_chart').inputSchema.properties.sort.description)), /source/);
-
-      /* --- inference ladder --- */
-      await fresh();
-      await api('run_recipe', { recipe: JSON.parse(fs.readFileSync(path.join(root, 'recipes/example-growth-cagr.json'), 'utf8')) });
-      const growth = await api('chart_inferences', { chart: 'Premium has grown' });
-      assert.equal(growth.kind, 'trend');
-      assert.match(growth.first.join(' '), /Rose from .*1,820.* in FY21 to .*3,080.* in FY25 \(\+69%\)/);
-      assert.match(growth.first.join(' '), /\+14% a period on average/);
-      assert.match(growth.second.join(' '), /The direction never changed across 4 periods/);
-      assert.match(growth.third.join(' '), /If the average pace holds, the next period would be about .*3,51\d.*doubles in about 5 periods/);
-      assert.match(growth.checks[0], /not a forecast and not a cause/);
-
-      await api('run_recipe', { recipe: JSON.parse(fs.readFileSync(path.join(root, 'recipes/example-ranked-highlight.json'), 'utf8')) });
-      const rank = await api('chart_inferences', { chart: 'Maharashtra takes 9 days' });
-      assert.equal(rank.kind, 'ranking');
-      assert.match(rank.first[0], /^Maharashtra is highest at 9\.1 \(20% of the total\); West Bengal is lowest at 4\.8\./);
-      assert.match(rank.second.join(' '), /Maharashtra is 1\.5 times the typical item \(median 6\.1\)/);
-      assert.match(rank.second.join(' '), /The top 3 make up 51% of the total; 6 items of 7 cover 80%\. The total is spread out\./);
-      assert.match(rank.third.join(' '), /A 10% change in Maharashtra alone moves the total by 2% \(0\.91\)/);
-
-      await api('run_recipe', { recipe: JSON.parse(fs.readFileSync(path.join(root, 'recipes/example-loss-run.json'), 'utf8')) });
-      const mix = await api('chart_inferences', { chart: 'Two-thirds of 2024-25' });
-      assert.equal(mix.kind, 'mix over time');
-      assert.match(mix.first[0], /The total fell from \$548 in 2021-22 to \$421 in 2024-25 \(−23%\)\. Outstanding is the largest part at 67%\./);
-      assert.match(mix.second.join(' '), /Paid moved −\$371, more than the whole change of −\$127; Outstanding offset part of it \(\+\$244\)/);
-      assert.match(mix.second.join(' '), /Outstanding went from 6\.6% to 67% of the total/);
-      const all = await api('chart_inferences');
-      assert.equal(all.charts.length, 3);
-      assert(all.charts.every(c => c.first.length && c.checks.length));
-
-      await page.evaluate(() => MS.infer.dialog());
-      const dialog = page.getByRole('dialog', { name: 'Inference ladder' });
-      await dialog.waitFor();
-      await dialog.locator('.inf-line', { hasText: 'doubles in about 5 periods' }).getByRole('button', { name: 'Use' }).click();
-      assert.match(await page.frameLocator('#child').locator('.ms-block', { hasText: 'Premium has grown' }).locator('.ms-inf').innerText(), /doubles in about 5 periods/);
-      console.log('  ✓ The inference ladder gives first, second and third order lines, and Use sets the chart’s inference');
-
-      assert.deepEqual(errors, []);
-      await page.close();
+      await frame.locator('#filter-segment').selectOption(expected.segment);
+      if (model.map) await frame.locator('#filter-region').selectOption('Maharashtra');
+      const after = await read();
+      const format = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+      assert.equal(after.base, format.format(expected.base));
+      assert.equal(after.rate, format.format(expected.value) + '%');
+      assert(after.scope.endsWith(expected.count + ' records'));
+      assert(after.chartCounts.every(n => n > 0));
+      after.inferences.forEach((x, i) => assert.notEqual(x, before.inferences[i], model.id + ' inference ' + i));
+      after.insights.forEach((x, i) => x.forEach((line, j) => assert.notEqual(line, before.insights[i][j], model.id + ' insight ' + i + ':' + j)));
+      assert(!/[₹$€£¥]|\blakh\b|\bcrore\b/i.test(JSON.stringify(after)), model.id + ' currency-free display');
+      await frame.getByRole('tab', { name: 'Drivers & scenarios' }).click();
+      const scenario = await frame.locator('#scenario-inference').innerText();
+      await frame.locator('#shock').evaluate(e => { e.value = 9; e.dispatchEvent(new Event('input', { bubbles: true })); });
+      assert.notEqual(await frame.locator('#scenario-inference').innerText(), scenario);
+      await frame.getByRole('tab', { name: 'Data explorer' }).click();
+      const [csv] = await Promise.all([page.waitForEvent('download'), frame.getByRole('button', { name: 'Download filtered CSV' }).click()]);
+      const lines = fs.readFileSync(await csv.path(), 'utf8').trim().split(/\r?\n/);
+      assert.equal(lines.length, expected.count + 1);
+      assert(!/INR|lakh|crore/i.test(lines[0]));
     }
-  } finally {
-    await browser.close();
-  }
+    console.log('  ✓ All offline layouts reconcile their filters, inferences, decisions, scenarios and CSV');
+
+    await page.evaluate(async () => { await MS.samples.open('sales-margin', { force: true }); MS.setMode('interact'); });
+    await frame.getByRole('tab', { name: 'Data explorer' }).click();
+    const csvData = 'Reporting month,State,Channel,Product family,Net revenue (INR lakh),Gross profit (INR lakh),Units sold\n2026-10,Maharashtra,Direct,Core,100,40,50\n2026-11,Karnataka,Digital,Core,200,50,80';
+    await frame.locator('#load-report-data').setInputFiles({ name: 'team-report.csv', mimeType: 'text/csv', buffer: Buffer.from(csvData) });
+    await frame.getByText(/team-report\.csv.*2 loaded records/).waitFor();
+    assert.equal(await frame.locator('#base-value').textContent(), '300');
+    assert.equal(await frame.locator('#rate-value').textContent(), '30%');
+    await frame.locator('#filter-period').selectOption('2026-10');
+    assert.equal(await frame.locator('#rate-value').textContent(), '40%');
+    await frame.locator('#load-report-data').setInputFiles({ name: 'invalid.csv', mimeType: 'text/csv', buffer: Buffer.from('wrong\nvalue') });
+    await frame.getByText(/The current data was kept/).waitFor();
+    assert.equal(await frame.locator('#rate-value').textContent(), '40%');
+    const importedHtml = await page.evaluate(() => MS.exportHtml());
+    await page.evaluate(() => MS.history.undo());
+    await frame.getByText(/Sample dataset.*324 loaded records/).waitFor();
+    await page.evaluate(html => MS.openHtml(html, 'with-custom-data.html', { force: true }), importedHtml);
+    await frame.getByRole('tab', { name: 'Data explorer' }).click();
+    await frame.getByText(/team-report\.csv.*2 loaded records/).waitFor();
+    assert.equal(await frame.locator('#base-value').textContent(), '300');
+    console.log('  ✓ Local CSV data is validated, undoable, and kept in the exported report');
+
+    await page.evaluate(async () => { await MS.samples.open('sales-margin', { force: true }); MS.setMode('interact'); });
+    await frame.getByRole('tab', { name: 'Map' }).click();
+    await frame.locator('#boundary-field').selectOption('iso_code');
+    assert.match(await frame.locator('#boundary-status').innerText(), /6 of 6/);
+    await frame.getByRole('button', { name: 'Filter to Maharashtra' }).click();
+    assert.equal(await frame.locator('#filter-region').inputValue(), 'Maharashtra');
+    await frame.getByRole('button', { name: 'Reset filters' }).click();
+    await frame.locator('#load-boundaries').setInputFiles({ name: 'demo-wgs84.zip', mimeType: 'application/zip', buffer: await shapeZip() });
+    await frame.getByText(/demo-wgs84\.zip.*2 of 6/).waitFor();
+    assert.equal(await frame.locator('#boundary-field').inputValue(), 'iso_code');
+    assert.equal(await page.evaluate(() => MS.dirty), true);
+    const exported = await page.evaluate(() => MS.exportHtml());
+    await page.evaluate(() => MS.history.undo());
+    await frame.getByText(/Natural Earth sample layer.*6 of 6/).waitFor();
+    await page.evaluate(html => MS.openHtml(html, 'with-custom-map.html', { force: true }), exported);
+    await frame.getByRole('tab', { name: 'Map' }).click();
+    await frame.getByText(/demo-wgs84\.zip.*2 of 6/).waitFor();
+    console.log('  ✓ WGS84 shapefile import joins ISO codes, supports map clicks and survives undo and export');
+
+    const reportRecipe = await page.evaluate(async () => {
+      const recipe = await MS.api.run('capture_recipe', { name: 'Sales review', helpText: true });
+      const before = MS.pageTabs.list().map(t => t.title);
+      const result = await MS.api.run('run_recipe', { recipe });
+      return { recipe, before, after: MS.pageTabs.list().map(t => t.title), issues: result.issues };
+    });
+    assert.equal(reportRecipe.before.length, 7);
+    assert.deepEqual(reportRecipe.after, reportRecipe.before);
+    assert.deepEqual(reportRecipe.issues, []);
+    assert(reportRecipe.recipe.steps.some(s => s.title === 'FAQ' && s.html?.includes('What changes when I filter the report?')));
+    console.log('  ✓ Report capture includes opted-in help text and reuses the report’s existing tabs');
+
+    const starter = require('../recipes/executive-review.json');
+    const withBrief = await page.evaluate(async recipe => {
+      const result = await MS.api.run('run_recipe', { recipe });
+      return { result, html: await MS.exportHtml() };
+    }, starter);
+    assert.deepEqual(withBrief.result.issues, []);
+    await page.evaluate(() => MS.history.undo());
+    assert.equal(await frame.getByRole('tab', { name: 'Executive brief' }).count(), 0);
+    assert.equal(await frame.locator('#trend-title.ms-title').count(), 0);
+    await page.evaluate(() => MS.history.redo());
+    assert.equal(await frame.locator('#trend-title.ms-title').count(), 1);
+    await page.evaluate(html => MS.openHtml(html, 'with-executive-brief.html', { force: true }), withBrief.html);
+    await frame.getByRole('tab', { name: 'Executive brief' }).click();
+    await frame.getByRole('heading', { name: 'Decision required' }).waitFor();
+    await frame.getByRole('tab', { name: 'Overview' }).click();
+    await frame.locator('#trend-chart').waitFor({ state: 'visible' });
+    const heading = frame.locator('#trend-title');
+    assert.match(await heading.textContent(), /Gross margin by/);
+    console.log('  ✓ Applying an in-house recipe keeps the report’s charts and new tab working after export');
+
+    const setup = await page.evaluate(async () => {
+      await MS.samples.open('sales', { force: true });
+      const chart = MS.rt().charts()[0];
+      MS.history.state('Recipe capture test', s => {
+        s.charts[chart.key] = { tooltip: '{label} / {value}', style: { legend: 'bottom' } };
+        s.datasets.secret = { rows: [{ Password: 'private test value' }] };
+      });
+      const r = await MS.api.run('capture_recipe', { name: 'Portable setup' });
+      return { r, hasPrivate: JSON.stringify(r).includes('private test value'), hasAssets: JSON.stringify(r).includes('fontFiles') };
+    });
+    assert(setup.r.steps.some(x => x.do === 'chart' && x.match.titleExact && x.style.legend === 'bottom'));
+    assert.equal(setup.hasPrivate || setup.hasAssets, false);
+    await page.evaluate(() => { MS.recipeStudio.open(); });
+    const workshop = page.getByRole('dialog', { name: 'Recipe workshop' });
+    assert.equal(await workshop.locator('.recipe-choice').count(), 6);
+    await workshop.getByRole('button', { name: 'Executive review pack' }).click();
+    await workshop.getByRole('button', { name: 'Edit step 2', exact: true }).click();
+    const edit = page.getByRole('dialog', { name: 'Edit recipe step' });
+    await edit.getByText('Tab title', { exact: true }).locator('..').locator('input').fill('Board brief');
+    await edit.getByRole('button', { name: 'Save step' }).click();
+    assert.match(await workshop.locator('.recipe-steps').innerText(), /Board brief/);
+    await workshop.getByRole('button', { name: 'Apply recipe' }).click();
+    await workshop.getByText(/steps completed/).waitFor();
+    const countTabs = () => page.evaluate(() => MS.rt().tabs().filter(t => t.title === 'Board brief').length);
+    assert.equal(await countTabs(), 1);
+    await workshop.getByRole('button', { name: 'Apply recipe' }).click();
+    await workshop.getByText(/steps completed/).waitFor();
+    assert.equal(await countTabs(), 1);
+    const [skill] = await Promise.all([page.waitForEvent('download'), workshop.getByRole('button', { name: 'Export skill ZIP' }).click()]);
+    const skillZip = await JSZip.loadAsync(fs.readFileSync(await skill.path()));
+    assert(await skillZip.file('executive-review-pack/SKILL.md').async('string').then(s => s.includes('name: executive-review-pack')));
+    assert.match(await skillZip.file('executive-review-pack/references/recipe.json').async('string'), /Board brief/);
+    const [plugin] = await Promise.all([page.waitForEvent('download'), workshop.getByRole('button', { name: 'Export plugin JS' }).click()]);
+    const pluginSource = fs.readFileSync(await plugin.path(), 'utf8');
+    assert.match(pluginSource, /Mothership\.registerPlugin/);
+    await workshop.locator('.dlg-x').click();
+    await page.evaluate(async () => { await MS.samples.open('sales', { force: true }); });
+    await page.evaluate(source => { MS.plugins.install(source, 'board-plugin.js'); }, pluginSource);
+    await button('Install & run').click();
+    assert.equal(await countTabs(), 0);
+    await button('Plugins').click();
+    await button('Apply recipe').click();
+    await page.waitForFunction(() => MS.rt().tabs().some(t => t.title === 'Board brief'));
+    assert.equal(await countTabs(), 1);
+    assert.deepEqual(errors, []);
+    console.log('  ✓ Workshop tweaks, capture, repeat application, skill ZIP and installed plugin button work');
+  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

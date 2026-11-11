@@ -80,87 +80,272 @@
   };
 
   /* ---------------------------------------------------------- recipes */
-  // {"$type":"mothership/recipe","name":"...","steps":[{"do":"addTab",...}, ...]}
+  var actions = new Set(['layout', 'theme', 'addTab', 'ensureTab', 'renameTab', 'deleteTab', 'hideTab', 'wrapCharts',
+    'tooltip', 'chart', 'moveChart', 'copyChart', 'dataset', 'filter', 'replaceText', 'css', 'api']);
   // Tools a recipe's "api" step may not call: they open, close or replace the dashboard, step outside it, or run arbitrary functions.
-  P.RECIPE_BLOCKED = /^(call|run_recipe|open_html|open_folder_files|new_dashboard|close_dashboard|export_saved|undo|redo|publish|scrub_names|firm_template)$/;
-  // Runs the steps in order as one undo step. Resolves to {ok, steps, problems} when every step has finished.
-  P.runRecipe = function (j, name) {
+  P.RECIPE_BLOCKED = /^(call|run_recipe|preview_recipe|open_html|open_folder_files|new_dashboard|close_dashboard|export_saved|undo|redo|publish|scrub_names|firm_template)$/;
+  function apiProblem(s) {
+    var tool = String(s.tool || '');
+    return P.RECIPE_BLOCKED.test(tool) ? 'The tool “' + tool + '” cannot be used in a recipe.' : !MS.api || typeof MS.api[tool] !== 'function' || !MS.api.describe().some(function (t) { return t.name === tool; }) ? 'There is no tool called “' + tool + '”.' : '';
+  }
+  var required = { addTab: ['title'], ensureTab: ['title'], renameTab: ['from', 'to'], deleteTab: ['title'], hideTab: ['title'],
+    tooltip: ['template'], moveChart: ['toTab'], copyChart: ['toTab'], dataset: ['name'], filter: ['dataset', 'field'], replaceText: ['find'], css: ['css'], api: ['tool'] };
+  P.checkRecipe = function (recipe) {
+    if (!recipe || (recipe.$type && recipe.$type !== 'mothership/recipe') || !Array.isArray(recipe.steps) || !recipe.steps.length || recipe.steps.length > 500) {
+      throw new Error('A recipe needs 1 to 500 steps and type mothership/recipe.');
+    }
+    recipe.steps.forEach(function (s, i) {
+      if (!s || !actions.has(s.do)) throw new Error('Step ' + (i + 1) + ' uses an unknown recipe action.');
+      (required[s.do] || []).forEach(function (field) {
+        if (typeof s[field] !== 'string' || (!['template', 'css'].includes(field) && !s[field].trim())) throw new Error('Step ' + (i + 1) + ' needs ' + field + '.');
+      });
+      ['ribbon', 'pane', 'theme', 'style', 'binding', 'drill', 'commentary', 'args'].forEach(function (key) {
+        if (s[key] != null && (typeof s[key] !== 'object' || Array.isArray(s[key]))) throw new Error('Step ' + (i + 1) + ' needs an object for ' + key + '.');
+      });
+    });
+    return recipe;
+  };
+  function low(v) { return String(v || '').trim().toLowerCase(); }
+  function hasFields(rt, dataset, fields) {
+    if (!Object.hasOwn(rt.state.datasets, dataset)) return false;
+    var names = new Set(rt.fields(dataset).map(function (f) { return f.name; }));
+    return fields.filter(Boolean).every(function (f) { return names.has(f); });
+  }
+  function chartsMatching(cs, m) {
+    if (!m || m === '*') return cs;
+    if (m.titleExact) {
+      var matches = cs.filter(function (c) {
+        return low(MS.charts.nameOf(c.key, c, cs)) === low(m.titleExact) &&
+          (!m.library || c.lib === m.library) && (!m.tab || low(MS.qa.tabOf(c.el)) === low(m.tab));
+      });
+      if (matches.length !== 1) throw new Error('“' + m.titleExact + '” ' + (matches.length ? 'is ambiguous' : 'was not found') + '. Use an exact title and tab that identify one chart.');
+      return matches;
+    }
+    return cs.filter(function (c, i) {
+      if (m.key && c.key === m.key) return true;
+      if (m.index != null && i === m.index) return true;
+      return m.title && low(MS.charts.nameOf(c.key, c, cs)).includes(low(m.title));
+    });
+  }
+  function recipeTabs(rt) {
+    var group = rt.layoutEnabled() ? null : MS.pageTabs.group(true);
+    return rt.layoutEnabled() ? rt.tabs() : group ? group.tabs : [];
+  }
+  P.context = function (fields) {
     var rt = MS.rt();
-    if (!rt) { MS.toast('Open a dashboard first, then run the recipe.', 'warn'); return Promise.resolve({ ok: false, steps: 0, problems: ['No dashboard is open'] }); }
-    var steps = (j && j.steps) || [];
-    var log = [];
-    var chain = Promise.resolve();
-    function chartsMatching(m) {
-      var cs = rt.charts();
-      if (!m || m === '*') return cs;
-      return cs.filter(function (c, i) {
-        if (m.key && c.key === m.key) return true;
-        if (m.index != null && i === m.index) return true;
-        var info = rt.chartInfo(c.key) || {}, b = c.el.closest('.ms-block'), t = (b && b.querySelector('.ms-title').textContent) || info.title || '';
-        return m.title && t.toLowerCase().indexOf(String(m.title).toLowerCase()) >= 0;
+    if (!rt) throw new Error('Open a dashboard with scripts enabled to read its recipe targets.');
+    var charts = rt.charts();
+    return {
+      tabs: recipeTabs(rt).slice(0, 120).map(function (t) { return t.title; }),
+      charts: charts.slice(0, 120).map(function (c) {
+        return { titleExact: MS.charts.nameOf(c.key, c, charts), library: c.lib, tab: MS.qa.tabOf(c.el) || undefined };
+      }),
+      datasets: fields ? Object.keys(rt.state.datasets).slice(0, 30).map(function (name) {
+        return { name: name, fields: rt.fields(name).slice(0, 80).map(function (f) { return f.name; }) };
+      }) : []
+    };
+  };
+  P.previewRecipe = function (recipe) {
+    P.checkRecipe(recipe);
+    var rt = MS.rt();
+    var titles = rt ? recipeTabs(rt).map(function (t) { return t.title; }) : [];
+    var charts = rt ? rt.charts() : [];
+    var state = rt ? { native: rt.layoutEnabled(), pageTabs: MS.pageTabs.has() } : {};
+    var available = new Set(rt ? Object.keys(rt.state.datasets) : []);
+    var staged = new Set();
+    function find(title) { return titles.findIndex(function (name) { return low(name) === low(title); }); }
+    function check(s) {
+      var i, m;
+      switch (s.do) {
+        case 'layout':
+          if (s.preservePageTabs && !state.native && state.pageTabs) return ['review', 'The report uses its own tab layout. This step will be skipped.'];
+          state.native = true; return ['ready', 'Set the tab bar and filter pane layout.'];
+        case 'addTab': case 'ensureTab':
+          if (s.do === 'ensureTab' && find(s.title) >= 0) return ['keep', 'Keep the existing “' + s.title + '” tab.'];
+          if (!state.pageTabs) state.native = true;
+          titles.push(s.title); return ['ready', 'Create the “' + s.title + '” tab.'];
+        case 'renameTab': case 'deleteTab': case 'hideTab':
+          i = find(s.from || s.title);
+          if (i < 0) return ['review', 'The target tab was not found.'];
+          if (!state.native) return ['review', 'This step requires a Mothership tab. The report uses its own tabs.'];
+          if (s.do === 'renameTab') titles[i] = s.to;
+          if (s.do === 'deleteTab') {
+            if (titles.length < 2) return ['review', 'The dashboard needs at least one tab.'];
+            titles.splice(i, 1);
+          }
+          return ['ready', 'Tab found.'];
+        case 'dataset':
+          available.add(s.name); staged.add(s.name); return ['ready', 'Define dataset “' + s.name + '”.'];
+        case 'filter':
+          if (!available.has(s.dataset)) return ['review', 'Dataset “' + s.dataset + '” was not found.'];
+          if (staged.has(s.dataset)) return ['review', 'This dataset is defined earlier in the recipe. Verify the field after applying.'];
+          return hasFields(rt, s.dataset, [s.field]) ? ['ready', 'Dataset and filter field found.'] : ['review', 'Field “' + s.field + '” was not found.'];
+        case 'chart': case 'tooltip': case 'moveChart': case 'copyChart':
+          if (s.toTab && (find(s.toTab) < 0 || !state.native)) return ['review', 'Choose an existing Mothership destination tab.'];
+          m = chartsMatching(charts, s.do === 'tooltip' ? s.charts : s.match);
+          if (!m.length) return ['review', 'No charts match this step.'];
+          if (s.binding && (staged.has(s.binding.dataset) || !hasFields(rt, s.binding.dataset,
+            (s.binding.levels || []).concat([s.binding.measure, s.binding.series])))) return ['review', 'Check the target dataset and chart binding fields.'];
+          return ['ready', m.length + ' matching chart' + (m.length === 1 ? '' : 's') + '.'];
+        case 'wrapCharts': return ['ready', charts.length + ' charts found. Existing commentary blocks are reused.'];
+        case 'api':
+          if (apiProblem(s)) return ['review', apiProblem(s)];
+          if (s.each !== undefined && !chartsMatching(charts, s.each).length) return ['review', 'No charts match this step.'];
+          return ['review', 'Runs the “' + s.tool + '” tool' + (s.each !== undefined ? ' on each matching chart' : '') + '. Check the result after applying to a copy.'];
+        case 'css': case 'replaceText': return ['review', 'Check the appearance or text after applying to a copy.'];
+        default: return ['ready', 'Review the result after applying to a copy.'];
+      }
+    }
+    return { dashboardOpen: !!rt, steps: recipe.steps.map(function (s, i) {
+      if (!rt) return { step: i + 1, status: 'unchecked', message: 'Open a dashboard to check the target.' };
+      var result;
+      try { result = check(s); } catch (e) { result = ['review', e.message]; }
+      return { step: i + 1, status: result[0], message: result[1] };
+    }) };
+  };
+  P.runRecipe = async function (recipe, name) {
+    var rt = MS.rt(), child = MS.child;
+    var label = recipe && recipe.name || name || 'Untitled recipe';
+    function rejected(message) {
+      MS.toast(message, 'warn', 8000);
+      return { name: label, applied: 0, issues: [message], rejected: true };
+    }
+    if (!rt) return rejected('Open a dashboard with scripts enabled, then apply the recipe.');
+    try { P.checkRecipe(recipe); } catch (e) { return rejected(e.message); }
+    var steps = recipe.steps, markdown;
+    if (steps.some(function (s) { return s.markdown; })) {
+      try { markdown = await MS.lib('marked'); } catch (e) { return rejected('Could not open the Markdown reader: ' + e.message); }
+    }
+    if (MS.child !== child || MS.rt() !== rt) return rejected('The dashboard changed. Apply the recipe again.');
+    var issues = [], applied = 0;
+    function tabByTitle(title) {
+      var tabs = recipeTabs(rt);
+      var found = tabs.filter(function (t) { return low(t.title) === low(title); });
+      if (found.length > 1) throw new Error('More than one tab is called “' + title + '”.');
+      return found[0];
+    }
+    function nativeTab(title) {
+      var t = tabByTitle(title);
+      if (!t) throw new Error('No tab called “' + title + '”.');
+      if (!rt.layoutEnabled()) throw new Error('This action requires a Mothership tab. Use the layout tools for existing page tabs.');
+      return t;
+    }
+    function replaceText(s) {
+      var w = child.win, walker = child.doc.createTreeWalker(child.doc.body, w.NodeFilter.SHOW_TEXT), n, changes = [];
+      while ((n = walker.nextNode())) {
+        if (!n.parentElement.closest('script,style,[data-ms-editor]') && n.nodeValue.includes(s.find)) {
+          changes.push({ node: n, before: n.nodeValue, after: n.nodeValue.split(s.find).join(s.replace == null ? '' : String(s.replace)) });
+        }
+      }
+      if (changes.length) MS.history.push({ label: 'Recipe text',
+        undo: function () { changes.forEach(function (c) { c.node.nodeValue = c.before; }); },
+        redo: function () { changes.forEach(function (c) { c.node.nodeValue = c.after; }); } });
+    }
+    function setCommentary(c, commentary) {
+      var block = MS.blocks.of(c.el) || MS.blocks.wrap(c.el, true);
+      ['title', 'sub', 'inf'].forEach(function (k) {
+        var target = block && block.querySelector('.ms-' + k);
+        if (!target || commentary[k] == null || target.textContent === String(commentary[k])) return;
+        var previous = target.innerHTML, next = String(commentary[k]);
+        MS.history.push({ label: 'Recipe commentary',
+          undo: function () { target.innerHTML = previous; }, redo: function () { target.textContent = next; } });
       });
     }
-    function tabByTitle(t) { return rt.tabs().filter(function (x) { return x.title.toLowerCase() === String(t).toLowerCase(); })[0]; }
-    steps.forEach(function (s, i) {
-      chain = chain.then(function () {
-        rt = MS.rt();
-        switch (s.do) {
-          case 'layout':
-            MS.tabs.ensureLayout();
-            MS.history.state('Recipe layout', function (st) { if (s.ribbon) Object.assign(st.layout.ribbon, s.ribbon); if (s.pane) Object.assign(st.layout.pane, s.pane); });
-            break;
-          case 'theme': MS.brand.apply(MS.brand.normalize(s.theme || s, name)); break;
-          case 'addTab':
-            if (s.markdown) return MS.lib('marked').then(function (m) { MS.tabs.add(s.title || 'Tab', 'content', MS.sanitize(m.parse(s.markdown))); });
-            MS.tabs.add(s.title || 'Tab', s.kind || (s.html ? 'content' : 'grid'), s.html ? MS.sanitize(s.html) : '');
-            break;
-          case 'renameTab': { var t = tabByTitle(s.from); if (t) MS.history.attrs('Rename', t.el, ['data-ms-title'], function (x) { x.setAttribute('data-ms-title', s.to); }); else log.push('No tab "' + s.from + '"'); break; }
-          case 'deleteTab': { var d = tabByTitle(s.title); if (d) MS.history.move('Delete tab', d.el, function () { d.el.remove(); }); break; }
-          case 'hideTab': { var hd = tabByTitle(s.title); if (hd) MS.history.attrs('Hide', hd.el, ['data-ms-hidden'], function (x) { x.setAttribute('data-ms-hidden', ''); }); break; }
-          case 'wrapCharts': MS.blocks.wrapAll(); break;
-          case 'tooltip': MS.history.state('Recipe tooltip', function (st) { chartsMatching(s.charts || '*').forEach(function (c) { st.charts[c.key] = st.charts[c.key] || {}; st.charts[c.key].tooltip = s.template; }); }); break;
-          case 'chart':
-            MS.history.state('Recipe chart', function (st) { chartsMatching(s.match).forEach(function (c) { var x = st.charts[c.key] = st.charts[c.key] || {}; ['tooltip', 'binding', 'drill'].forEach(function (k) { if (s[k] !== undefined) x[k] = s[k]; }); }); });
-            if (s.commentary) chartsMatching(s.match).forEach(function (c) {
-              var b = MS.blocks.wrap(c.el, true);
-              ['title', 'sub', 'inf'].forEach(function (k) { if (s.commentary[k] != null) b.querySelector('.ms-' + k).textContent = s.commentary[k]; });
-            });
-            break;
-          case 'moveChart': case 'copyChart': {
-            var tb = tabByTitle(s.toTab); if (!tb) { log.push('No tab "' + s.toTab + '"'); break; }
-            chartsMatching(s.match).forEach(function (c) { MS.blocks.sendToTab(c.el.closest('.ms-block') || c.el, tb.id, s.do === 'copyChart'); });
-            break;
+    function apply(s) {
+      switch (s.do) {
+        case 'layout':
+          if (s.preservePageTabs && !rt.layoutEnabled() && MS.pageTabs.has()) throw new Error('The target uses its own tabs. Its layout was preserved.');
+          MS.tabs.ensureLayout();
+          MS.history.state('Recipe layout', function (st) { if (s.ribbon) Object.assign(st.layout.ribbon, s.ribbon); if (s.pane) Object.assign(st.layout.pane, s.pane); });
+          return;
+        case 'theme': MS.brand.apply(MS.brand.normalize(s.theme || s, name)); return;
+        case 'addTab': case 'ensureTab': {
+          if (s.do === 'ensureTab' && tabByTitle(s.title)) return;
+          var html = s.markdown ? markdown.parse(s.markdown) : s.html || '';
+          var kind = html ? 'content' : s.kind || 'grid';
+          if (MS.tabs.add(s.title, kind, MS.sanitize(html)) == null) throw new Error('Could not add “' + s.title + '”.');
+          if (s.hidden && rt.layoutEnabled() && rt.tabs().length > 1) {
+            var added = nativeTab(s.title);
+            if (!added.hidden) MS.tabs.toggleHidden(added.id);
           }
-          case 'dataset': if (s.rows) MS.data.addDataset(s.name, s.rows, true); else MS.history.state('Recipe dataset', function (st) { st.datasets[s.name] = { expr: s.expr, source: 'page' }; }); break;
-          case 'filter': MS.history.state('Recipe filter', function (st) { st.filters.push({ dataset: s.dataset, field: s.field, label: s.label || s.field }); }); break;
-          case 'replaceText': {
-            if (!s.find) { log.push('Step ' + (i + 1) + ': nothing to find'); break; }
-            var w = MS.child.win, walker = MS.child.doc.createTreeWalker(MS.child.doc.body, w.NodeFilter.SHOW_TEXT), n, hits = [];
-            while ((n = walker.nextNode())) if (n.nodeValue.indexOf(s.find) >= 0 && !/SCRIPT|STYLE/.test(n.parentNode.tagName)) hits.push({ node: n, before: n.nodeValue, after: n.nodeValue.split(s.find).join(s.replace == null ? '' : s.replace) });
-            if (hits.length) MS.history.push({ label: 'Replace text',
-              undo: function () { hits.forEach(function (x) { x.node.nodeValue = x.before; }); MS.afterDomChange(); },
-              redo: function () { hits.forEach(function (x) { x.node.nodeValue = x.after; }); MS.afterDomChange(); } });
-            break;
-          }
-          case 'api': {
-            // Any MS.api tool, e.g. { "do": "api", "tool": "chart_shapes", "args": {...} }. With "each" (a chart match) it runs once per chart, as args.chart.
-            var tool = String(s.tool || '');
-            if (!tool || P.RECIPE_BLOCKED.test(tool) || !MS.api || !MS.api[tool]) throw new Error(!tool ? 'no tool named' : P.RECIPE_BLOCKED.test(tool) ? 'the tool "' + tool + '" cannot be used in a recipe' : 'unknown tool "' + tool + '"');
-            if (s.each === undefined) return MS.api.run(tool, s.args || {});
-            return chartsMatching(s.each).reduce(function (p, c) {
-              return p.then(function () { return MS.api.run(tool, Object.assign({}, s.args, { chart: c.key })); });
-            }, Promise.resolve());
-          }
-          case 'css': MS.history.state('Recipe CSS', function (st) { st.theme = st.theme || MS.brand.normalize({ name: 'Custom' }); st.theme.css = (st.theme.css || '') + '\n' + s.css; }); break;
-          default: log.push('Step ' + (i + 1) + ': unknown action "' + s.do + '"');
+          return;
         }
-      }).catch(function (e) { log.push('Step ' + (i + 1) + ' failed: ' + e.message); });
+        case 'renameTab': {
+          var t = nativeTab(s.from);
+          MS.history.attrs('Rename tab', t.el, ['data-ms-title'], function (x) { x.setAttribute('data-ms-title', s.to); });
+          return;
+        }
+        case 'deleteTab': {
+          var t = nativeTab(s.title);
+          if (rt.tabs().length < 2) throw new Error('The dashboard needs at least one tab.');
+          MS.history.move('Delete tab', t.el, function () { t.el.remove(); });
+          return;
+        }
+        case 'hideTab': {
+          var t = nativeTab(s.title);
+          if (!t.hidden && rt.tabs().filter(function (x) { return !x.hidden; }).length > 1) MS.tabs.toggleHidden(t.id);
+          return;
+        }
+        case 'wrapCharts': MS.blocks.wrapAll(); return;
+        case 'tooltip': case 'chart': {
+          var charts = chartsMatching(rt.charts(), s.do === 'tooltip' ? s.charts || '*' : s.match);
+          if (!charts.length) throw new Error('No chart matched this step.');
+          var binding = s.binding;
+          if (binding && !hasFields(rt, binding.dataset, (binding.levels || []).concat([binding.measure, binding.series]))) {
+            throw new Error('The target dashboard does not have the required binding dataset and fields.');
+          }
+          var props = s.do === 'tooltip' ? { tooltip: s.template } : Object.fromEntries(['tooltip', 'style', 'binding', 'drill'].filter(function (k) { return s[k] !== undefined; }).map(function (k) { return [k, s[k]]; }));
+          if (Object.keys(props).length) MS.history.state('Recipe chart', function (st) {
+            charts.forEach(function (c) {
+              var chart = st.charts[c.key] = st.charts[c.key] || {};
+              Object.keys(props).forEach(function (key) { chart[key] = props[key] == null ? props[key] : JSON.parse(JSON.stringify(props[key])); });
+            });
+          });
+          if (s.commentary) charts.forEach(function (c) { setCommentary(c, s.commentary); });
+          return;
+        }
+        case 'moveChart': case 'copyChart': {
+          var t = nativeTab(s.toTab), charts = chartsMatching(rt.charts(), s.match);
+          if (!charts.length) throw new Error('No chart matched this step.');
+          charts.forEach(function (c) { MS.blocks.sendToTab(MS.blocks.of(c.el) || c.el, t.id, s.do === 'copyChart'); });
+          return;
+        }
+        case 'dataset':
+          if (s.rows) MS.data.addDataset(s.name, s.rows, true);
+          else MS.history.state('Recipe dataset', function (st) { st.datasets[s.name] = { expr: s.expr, source: 'page' }; });
+          return;
+        case 'filter':
+          if (!hasFields(rt, s.dataset, [s.field])) throw new Error('Dataset “' + s.dataset + '” does not contain “' + s.field + '”.');
+          MS.history.state('Recipe filter', function (st) {
+            var f = st.filters.find(function (f) { return f.dataset === s.dataset && f.field === s.field; });
+            if (f) f.label = s.label || s.field;
+            else st.filters.push({ dataset: s.dataset, field: s.field, label: s.label || s.field });
+          });
+          return;
+        case 'replaceText': replaceText(s); return;
+        case 'api': {
+          // Any MS.api tool, e.g. { "do": "api", "tool": "chart_shapes", "args": {...} }. With "each" (a chart match) it runs once per chart, as args.chart.
+          var problem = apiProblem(s);
+          if (problem) throw new Error(problem);
+          if (s.each === undefined) return MS.api.run(s.tool, s.args || {});
+          var each = chartsMatching(rt.charts(), s.each);
+          if (!each.length) throw new Error('No chart matched this step.');
+          return each.reduce(function (p, c) { return p.then(function () { return MS.api.run(s.tool, Object.assign({}, s.args, { chart: c.key })); }); }, Promise.resolve());
+        }
+        case 'css':
+          MS.history.state('Recipe CSS', function (st) { st.theme = st.theme || MS.brand.normalize({ name: 'Custom' }); st.theme.css = (st.theme.css || '') + '\n' + s.css; });
+      }
+    }
+    // Steps run in order; an "api" step may finish later, so the group stays open until the last one has.
+    await MS.history.groupAsync('Apply recipe ' + label, async function () {
+      for (var i = 0; i < steps.length; i++) {
+        if (MS.child !== child || MS.rt() !== rt) { issues.push('Step ' + (i + 1) + ' · The dashboard changed. The remaining steps were not applied.'); break; }
+        try { await apply(steps[i]); applied++; } catch (e) { issues.push('Step ' + (i + 1) + ' · ' + e.message); }
+      }
     });
-    var title = (j && j.name) || name || 'recipe';
-    return MS.history.groupAsync('Recipe: ' + title, function () { return chain; }).then(function () {
-      MS.afterDomChange();
-      MS.toast('Recipe "' + title + '" ran ' + steps.length + ' step(s)' + (log.length ? ', with ' + log.length + ' problem(s): ' + log.join('; ') : '.'), log.length ? 'warn' : 'ok', 8000);
-      return { ok: !log.length, steps: steps.length, problems: log };
-    });
+    MS.afterDomChange();
+    MS.toast('Recipe “' + label + '” · ' + applied + ' of ' + steps.length + ' steps completed.' +
+      (issues.length ? ' ' + issues.slice(0, 2).join(' ') + (issues.length > 2 ? ' More details in the workshop.' : '') : ''), issues.length ? 'warn' : 'ok', 8000);
+    return { name: label, applied: applied, issues: issues, rejected: false };
   };
 })(window.MS);
