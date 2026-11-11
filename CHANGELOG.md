@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Recipes: a new `api` step runs most Mothership tools (shapes, colours, legends, sources, sizes) from a recipe file, with `each` to repeat a tool for every matching chart. `run_recipe` waits for those steps and still applies the recipe as one undo step.
+- Charts › Inferences: an inference ladder for every chart (what it shows, what is driving it, what follows if it holds), with the checks to make before stating a cause. Tool: `chart_inferences`.
+- The inference ladder reads periods oldest first however the chart is sorted, and does not read a trend when the order in time cannot be settled. A recipe with more than 200 changes is still one undo step.
+- New recipe files in `recipes/consulting/`: a consulting house style and worked examples (bridge, ranked bars with a highlight, growth with a CAGR arrow, loss run, survey). `insert_chart` documents `sort: "source"`.
+
 - Use plain numbers across sample dashboards, starter recipes, and tutorials. Use USD in examples that explicitly demonstrate currency formatting.
 
 - Guide recipe creation with plain-language steps, hover and keyboard help, add, reorder and remove controls, and a read-only target check.

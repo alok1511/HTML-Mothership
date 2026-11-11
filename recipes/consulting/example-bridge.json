@@ -1,0 +1,126 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Example: bridge (waterfall)",
+  "description": "Adds an illustrative EBITDA bridge to the current tab. Copy it and replace the rows: an invisible \"Base\" part lifts each step. Rule: for an increase, Base = total before; for a decrease, Base = total after.",
+  "steps": [
+    {
+      "do": "dataset",
+      "name": "Example bridge",
+      "rows": [
+        {
+          "step": "FY24 EBITDA",
+          "part": "Total",
+          "v": 420
+        },
+        {
+          "step": "Volume",
+          "part": "Base",
+          "v": 420
+        },
+        {
+          "step": "Volume",
+          "part": "Increase",
+          "v": 60
+        },
+        {
+          "step": "Price",
+          "part": "Base",
+          "v": 480
+        },
+        {
+          "step": "Price",
+          "part": "Increase",
+          "v": 35
+        },
+        {
+          "step": "Mix",
+          "part": "Base",
+          "v": 490
+        },
+        {
+          "step": "Mix",
+          "part": "Decrease",
+          "v": 25
+        },
+        {
+          "step": "Input cost",
+          "part": "Base",
+          "v": 445
+        },
+        {
+          "step": "Input cost",
+          "part": "Decrease",
+          "v": 45
+        },
+        {
+          "step": "FY25 EBITDA",
+          "part": "Total",
+          "v": 445
+        }
+      ]
+    },
+    {
+      "do": "api",
+      "tool": "insert_chart",
+      "args": {
+        "dataset": "Example bridge",
+        "by": "step",
+        "measure": "v",
+        "series": "part",
+        "type": "stacked",
+        "sort": "source",
+        "title": "tmp-example-bridge"
+      }
+    },
+    {
+      "do": "api",
+      "tool": "category_colors",
+      "args": {
+        "colors": {
+          "Base": "transparent",
+          "Increase": "#2E7D32",
+          "Decrease": "#C62828",
+          "Total": "#051C2C"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_settings",
+      "args": {
+        "chart": "tmp-example-bridge",
+        "title": "EBITDA rose 25 as volume and price gains outran input-cost inflation",
+        "subtitle": "FY24 to FY25 (illustrative)",
+        "look": {
+          "legend": "none"
+        },
+        "tooltip": "{label}\n{series}: {value:int}"
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_shapes",
+      "args": {
+        "action": "add",
+        "chart": "EBITDA rose 25",
+        "kind": "delta",
+        "a": {
+          "label": "FY24 EBITDA",
+          "series": 0
+        },
+        "b": {
+          "label": "FY25 EBITDA",
+          "series": 0
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_source",
+      "args": {
+        "chart": "EBITDA rose 25",
+        "text": "Illustrative data"
+      }
+    }
+  ]
+}

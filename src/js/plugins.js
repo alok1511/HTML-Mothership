@@ -81,9 +81,15 @@
 
   /* ---------------------------------------------------------- recipes */
   var actions = new Set(['layout', 'theme', 'addTab', 'ensureTab', 'renameTab', 'deleteTab', 'hideTab', 'wrapCharts',
-    'tooltip', 'chart', 'moveChart', 'copyChart', 'dataset', 'filter', 'replaceText', 'css']);
+    'tooltip', 'chart', 'moveChart', 'copyChart', 'dataset', 'filter', 'replaceText', 'css', 'api']);
+  // Tools a recipe's "api" step may not call: they open, close or replace the dashboard, step outside it, or run arbitrary functions.
+  P.RECIPE_BLOCKED = /^(call|run_recipe|preview_recipe|open_html|open_folder_files|new_dashboard|close_dashboard|export_saved|undo|redo|publish|scrub_names|firm_template)$/;
+  function apiProblem(s) {
+    var tool = String(s.tool || '');
+    return P.RECIPE_BLOCKED.test(tool) ? 'The tool “' + tool + '” cannot be used in a recipe.' : !MS.api || typeof MS.api[tool] !== 'function' || !MS.api.describe().some(function (t) { return t.name === tool; }) ? 'There is no tool called “' + tool + '”.' : '';
+  }
   var required = { addTab: ['title'], ensureTab: ['title'], renameTab: ['from', 'to'], deleteTab: ['title'], hideTab: ['title'],
-    tooltip: ['template'], moveChart: ['toTab'], copyChart: ['toTab'], dataset: ['name'], filter: ['dataset', 'field'], replaceText: ['find'], css: ['css'] };
+    tooltip: ['template'], moveChart: ['toTab'], copyChart: ['toTab'], dataset: ['name'], filter: ['dataset', 'field'], replaceText: ['find'], css: ['css'], api: ['tool'] };
   P.checkRecipe = function (recipe) {
     if (!recipe || (recipe.$type && recipe.$type !== 'mothership/recipe') || !Array.isArray(recipe.steps) || !recipe.steps.length || recipe.steps.length > 500) {
       throw new Error('A recipe needs 1 to 500 steps and type mothership/recipe.');
@@ -93,7 +99,7 @@
       (required[s.do] || []).forEach(function (field) {
         if (typeof s[field] !== 'string' || (!['template', 'css'].includes(field) && !s[field].trim())) throw new Error('Step ' + (i + 1) + ' needs ' + field + '.');
       });
-      ['ribbon', 'pane', 'theme', 'style', 'binding', 'drill', 'commentary'].forEach(function (key) {
+      ['ribbon', 'pane', 'theme', 'style', 'binding', 'drill', 'commentary', 'args'].forEach(function (key) {
         if (s[key] != null && (typeof s[key] !== 'object' || Array.isArray(s[key]))) throw new Error('Step ' + (i + 1) + ' needs an object for ' + key + '.');
       });
     });
@@ -182,6 +188,10 @@
             (s.binding.levels || []).concat([s.binding.measure, s.binding.series])))) return ['review', 'Check the target dataset and chart binding fields.'];
           return ['ready', m.length + ' matching chart' + (m.length === 1 ? '' : 's') + '.'];
         case 'wrapCharts': return ['ready', charts.length + ' charts found. Existing commentary blocks are reused.'];
+        case 'api':
+          if (apiProblem(s)) return ['review', apiProblem(s)];
+          if (s.each !== undefined && !chartsMatching(charts, s.each).length) return ['review', 'No charts match this step.'];
+          return ['review', 'Runs the “' + s.tool + '” tool' + (s.each !== undefined ? ' on each matching chart' : '') + '. Check the result after applying to a copy.'];
         case 'css': case 'replaceText': return ['review', 'Check the appearance or text after applying to a copy.'];
         default: return ['ready', 'Review the result after applying to a copy.'];
       }
@@ -313,14 +323,25 @@
           });
           return;
         case 'replaceText': replaceText(s); return;
+        case 'api': {
+          // Any MS.api tool, e.g. { "do": "api", "tool": "chart_shapes", "args": {...} }. With "each" (a chart match) it runs once per chart, as args.chart.
+          var problem = apiProblem(s);
+          if (problem) throw new Error(problem);
+          if (s.each === undefined) return MS.api.run(s.tool, s.args || {});
+          var each = chartsMatching(rt.charts(), s.each);
+          if (!each.length) throw new Error('No chart matched this step.');
+          return each.reduce(function (p, c) { return p.then(function () { return MS.api.run(s.tool, Object.assign({}, s.args, { chart: c.key })); }); }, Promise.resolve());
+        }
         case 'css':
           MS.history.state('Recipe CSS', function (st) { st.theme = st.theme || MS.brand.normalize({ name: 'Custom' }); st.theme.css = (st.theme.css || '') + '\n' + s.css; });
       }
     }
-    MS.history.group('Apply recipe ' + label, function () {
-      steps.forEach(function (s, i) {
-        try { apply(s); applied++; } catch (e) { issues.push('Step ' + (i + 1) + ' · ' + e.message); }
-      });
+    // Steps run in order; an "api" step may finish later, so the group stays open until the last one has.
+    await MS.history.groupAsync('Apply recipe ' + label, async function () {
+      for (var i = 0; i < steps.length; i++) {
+        if (MS.child !== child || MS.rt() !== rt) { issues.push('Step ' + (i + 1) + ' · The dashboard changed. The remaining steps were not applied.'); break; }
+        try { await apply(steps[i]); applied++; } catch (e) { issues.push('Step ' + (i + 1) + ' · ' + e.message); }
+      }
     });
     MS.afterDomChange();
     MS.toast('Recipe “' + label + '” · ' + applied + ' of ' + steps.length + ' steps completed.' +

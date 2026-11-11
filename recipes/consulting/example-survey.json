@@ -1,0 +1,78 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Example: survey, lowest-scoring statement",
+  "description": "Adds an illustrative survey ranking with the weakest statement in red. Always show the number of responses.",
+  "steps": [
+    {
+      "do": "dataset",
+      "name": "Example survey",
+      "rows": [
+        {
+          "statement": "Claims are settled fairly",
+          "agree": 71
+        },
+        {
+          "statement": "Policy wording is clear",
+          "agree": 64
+        },
+        {
+          "statement": "Renewal is easy",
+          "agree": 58
+        },
+        {
+          "statement": "I can reach someone quickly",
+          "agree": 49
+        },
+        {
+          "statement": "Claim updates are timely",
+          "agree": 34
+        }
+      ]
+    },
+    {
+      "do": "api",
+      "tool": "insert_chart",
+      "args": {
+        "dataset": "Example survey",
+        "by": "statement",
+        "measure": "agree",
+        "type": "hbar",
+        "sort": "desc",
+        "title": "tmp-example-survey"
+      }
+    },
+    {
+      "do": "api",
+      "tool": "category_colors",
+      "args": {
+        "colors": {
+          "Claims are settled fairly": "#B8BEC6",
+          "Policy wording is clear": "#B8BEC6",
+          "Renewal is easy": "#B8BEC6",
+          "I can reach someone quickly": "#B8BEC6",
+          "Claim updates are timely": "#C62828"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_settings",
+      "args": {
+        "chart": "tmp-example-survey",
+        "title": "Only 1 in 3 policyholders say claim updates are timely",
+        "subtitle": "% agree or strongly agree, n = 412 (illustrative)",
+        "look": {
+          "legend": "none"
+        }
+      }
+    },
+    {
+      "do": "api",
+      "tool": "chart_source",
+      "args": {
+        "chart": "Only 1 in 3",
+        "text": "Illustrative data"
+      }
+    }
+  ]
+}

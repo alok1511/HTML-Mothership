@@ -517,6 +517,11 @@ body.painting #stage::before { content: "Click charts to paint · Esc to stop"; 
 .sum-head { display: flex; align-items: center; gap: 8px; }
 .sum-head small { font-size: 11.5px; }
 .sum-text { margin: 6px 0 0; line-height: 1.5; color: var(--text-2); }
+.inf-level { margin-top: 10px; }
+.inf-level-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.inf-level-head small { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.inf-line { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; line-height: 1.5; color: var(--text-2); border-top: 1px solid var(--line); }
+.inf-notes { margin-top: 10px; font-size: 12.5px; line-height: 1.5; }
 .nc-sum { margin: 0 0 4px; font-size: 14px; }
 .nc-wrap { max-height: 56vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
 .nc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }

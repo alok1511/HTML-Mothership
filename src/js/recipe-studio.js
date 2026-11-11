@@ -176,7 +176,8 @@
     deleteTab: 'Remove a tab', hideTab: 'Hide a tab', layout: 'Set the dashboard layout',
     wrapCharts: 'Add chart commentary boxes', tooltip: 'Change chart hover text', chart: 'Set chart styling or commentary',
     filter: 'Add or update a data filter', theme: 'Apply a colour and font theme', moveChart: 'Move a chart',
-    copyChart: 'Copy a chart', dataset: 'Define a dataset', css: 'Apply custom styling', replaceText: 'Replace text'
+    copyChart: 'Copy a chart', dataset: 'Define a dataset', css: 'Apply custom styling', replaceText: 'Replace text',
+    api: 'Run another Mothership tool'
   };
   var editable = ['ensureTab', 'addTab', 'tooltip', 'filter', 'wrapCharts', 'replaceText'];
   var defaults = {

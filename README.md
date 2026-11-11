@@ -374,6 +374,8 @@ Open **Plugins › Recipe workshop**. Pick a starter, edit and reorder the steps
 ### Recipes (`.json`, predefined actions)
 A recipe is a list of edits you want on every dashboard. It is declarative, so it can't run arbitrary code. Run one with **Plugins › Run recipe** or drop the file. Example: [`recipes/standard-help-tabs.json`](recipes/standard-help-tabs.json).
 
+A recipe is undone with one Ctrl+Z. Its `api` step runs most Mothership tools, so a recipe can also draw a growth arrow, colour a highlight bar or add a source line: see [`recipes/consulting/consulting-house-style.json`](recipes/consulting/consulting-house-style.json) and the `recipes/consulting/example-*.json` files (bridge, ranked bars, growth, loss run, survey). **Charts › Inferences** then gives each chart an inference ladder: what it shows, what is driving it, and what follows if that holds.
+
 ```json
 { "$type": "mothership/recipe", "name": "My standard", "steps": [
   { "do": "layout", "ribbon": { "position": "top", "brand": "Acme · Claims" } },
