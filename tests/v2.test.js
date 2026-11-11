@@ -142,7 +142,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     const pins = await page.evaluate(() => { MS.child.win.scrollTo(0, 0); MS.review.renderPins(); return MS.child.doc.querySelectorAll('.ms-cmt-pin').length; });
     check('review: comments stored', rv.n === 3, rv.n);
     check('review: pins drawn', pins >= 1, pins);
-    check('review: prompt has every comment and the rules', ['#### 1.', '#### 2.', '#### 3.', 'Make the title shorter', 'Drill should go to city', 'data-ms-', 'US Dollar'].every(s => rv.prompt.indexOf(s) >= 0), rv.prompt.slice(0, 400));
+    check('review: prompt has every comment and the rules', ['#### 1.', '#### 2.', '#### 3.', 'Make the title shorter', 'Drill should go to city', 'data-ms-', 'Use plain numbers', 'Use USD when currency is explicitly requested'].every(s => rv.prompt.indexOf(s) >= 0), rv.prompt.slice(0, 400));
     check('review: export can leave comments out', rv.exported.indexOf('Make the title shorter') < 0 && rv.kept.indexOf('Make the title shorter') >= 0, '');
     check('review: no pins in the export', rv.kept.indexOf('ms-cmt-pin') < 0, '');
 

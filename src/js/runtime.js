@@ -898,10 +898,10 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   function sumFmt(st, hint) {
     var f = st && st.axisFormat;
     if (f) return function (v) { return fmtNum(v, f); };
-    var money = /[₹$€£¥]|rs\.?\b|inr|usd|eur|gbp|revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin\b|loss(?!\s*ratio)|value\b/i.test(hint);
     var pct = /%|percent|ratio|rate|share|margin %/i.test(hint);
     // a chart that names its currency keeps it, whatever the region setting
     var m = /₹|\brs\.?\s|\binr\b|crore|lakh|€|\beur\b|£|\bgbp\b|¥|\bjpy\b|\$|\busd\b/i.exec(hint || ''), code = null;
+    var money = !!m || !!rt.state.locale && /\b(?:revenue|sales|cost|premium|profit|amount|spend|income|price|budget|turnover|gwp|expense|paid|sum insured|margin|loss(?!\s*ratio)|value)\b/i.test(hint);
     if (m) { var t = m[0].toLowerCase(); code = /₹|rs|inr|crore|lakh/.test(t) ? 'INR' : /€|eur/.test(t) ? 'EUR' : /£|gbp/.test(t) ? 'GBP' : /¥|jpy/.test(t) ? 'JPY' : 'USD'; if (code === locale().currency) code = null; }
     return function (v) {
       if (v == null) return '–';

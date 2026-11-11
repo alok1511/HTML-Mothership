@@ -9,7 +9,7 @@
   <header class="report-hero">
     <div class="report-width hero-layout">
       <div><p class="report-kicker">{{audience}}</p><h1>{{title}}</h1><p class="report-question">{{question}}</p></div>
-      <div class="report-stamp"><strong id="report-data-label">Illustrative data</strong><span id="report-data-period">April to September 2026</span><span>Interactive report layout</span></div>
+      <div class="report-stamp"><strong id="report-data-label">Illustrative data</strong><span id="report-data-period">April to September 2026</span><span>{{edition}}</span></div>
     </div>
   </header>
   <div class="report-toolbar">
@@ -42,6 +42,7 @@
         <div class="report-stat kpi"><span id="rate-label" class="label"></span><strong id="rate-value" class="value"></strong></div>
         <div class="report-stat kpi"><span id="unit-label" class="label"></span><strong id="unit-value" class="value"></strong></div>
       </div>
+      {{decision-brief}}
       <div class="report-charts two">
         <figure class="report-chart">
           <h3 id="trend-title">Rate by period</h3><div class="chart-shell"><canvas id="trend-chart" role="img" aria-labelledby="trend-title" aria-describedby="trend-inference"></canvas></div>

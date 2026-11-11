@@ -1,4 +1,4 @@
-/* Five fictional reporting models. Monetary inputs use INR lakh unless noted. */
+/* Fictional reporting models. */
 (function () {
   'use strict';
   const regions = ['Gujarat', 'Karnataka', 'Maharashtra', 'Rajasthan', 'Tamil Nadu', 'Telangana'];
@@ -7,7 +7,7 @@
     'sales-margin': {
       geography: true, segment: 'Channel', segments: ['Direct', 'Distributor', 'Digital'], group: 'Product family',
       groups: ['Core', 'Premium', 'Services'], driver: 'region', base: 'Net revenue', outcome: 'Gross profit', rate: 'Gross margin',
-      unit: 'Units sold', money: true, outcomeMoney: true, goodHigh: true, bounded: true, shock: 2,
+      unit: 'Units sold', goodHigh: true, bounded: true, shock: 2,
       scenario: 'Improve gross margin in the largest market', interpretation: 'Separate sales scale from conversion into gross profit. Review discount and fulfilment costs before changing price.',
       action: 'Review price realisation and cost-to-serve in the weakest market before reallocating sales effort.',
       method: 'Net revenue is post-discount revenue. Gross profit is net revenue less direct cost. Gross margin is total gross profit divided by total net revenue. Returns, taxes and indirect overhead are outside this example.',
@@ -21,10 +21,10 @@
     'supply-service': {
       geography: true, segment: 'Carrier', segments: ['Carrier A', 'Carrier B', 'Carrier C'], group: 'Service tier',
       groups: ['Economy', 'Express', 'Scheduled'], driver: 'region', base: 'Shipments', outcome: 'Late shipments', rate: 'Late shipment rate',
-      unit: 'Freight cost', unitMoney: true, goodHigh: false, bounded: true, shock: 2,
+      unit: 'Freight cost', goodHigh: false, bounded: true, shock: 2,
       scenario: 'Reduce late delivery in the largest market', interpretation: 'A high-volume lane may carry more late shipments even when its delay rate is low. Check the rate and the count together.',
       action: 'Compare dispatch cut-off, carrier handoff and service tier in the highest-risk market before changing the carrier mix.',
-      method: 'A shipment is late when delivery falls after its promised date. Late rate is total late shipments divided by total shipments. Freight cost is INR lakh. Each record represents shipments to a destination state.',
+      method: 'A shipment is late when delivery falls after its promised date. Late rate is total late shipments divided by total shipments. Each record represents shipments to a destination state.',
       faq: ['Is a higher late count always worse performance?', 'A higher late count can follow higher volume. Use late rate for service quality and counts to size the operational impact.'],
       row(p, s, g, r) {
         const shipments = 120 + p * 15 + s * 48 + g * 20 + r * 24;
@@ -35,7 +35,7 @@
     'receivables-cash': {
       geography: true, segment: 'Customer industry', segments: ['Retail', 'Manufacturing', 'Services'], group: 'Age band',
       groups: ['0–30 days', '31–60 days', '61+ days'], driver: 'region', base: 'Open receivables', outcome: 'Overdue balance', rate: 'Overdue share',
-      unit: 'Open invoices', money: true, outcomeMoney: true, goodHigh: false, bounded: true, latestPeriod: true, shock: 5,
+      unit: 'Open invoices', goodHigh: false, bounded: true, latestPeriod: true, shock: 5,
       scenario: 'Reduce overdue share in the largest billing market', interpretation: 'Use the latest selected snapshot to identify concentrated credit exposure. Age bands describe exposure and contractual due dates determine overdue status.',
       action: 'Separate disputes from genuine payment delays in the highest-overdue segment and prioritise accounts by value.',
       method: 'Each period is an end-of-month snapshot. Headline metrics use the latest selected period, so the same invoice is never summed across months in the headline. Age bands track days since invoice issue. Overdue means past the contractual due date.',
@@ -59,9 +59,25 @@
         return [starts, active, Math.round(active * (1.2 + g * 0.26 + s * 0.07))];
       }
     },
+    'monsoon-readiness': {
+      geography: true, segment: 'Response team', segments: ['District crews', 'Mobile crews', 'Partner crews'],
+      group: 'Asset type', groups: ['Drainage', 'Backup power', 'Access routes'], driver: 'region',
+      base: 'Incidents closed', outcome: 'Closed within target', rate: 'On-time recovery',
+      unit: 'Crew hours', goodHigh: true, bounded: true, shock: 4, target: 90,
+      scenario: 'Raise on-time recovery in the largest state operation',
+      interpretation: 'Read closure volume, timeliness and crew hours together. A growing queue can be invisible if you only track closed incidents.',
+      action: 'Check travel time, incident severity and crew coverage before reallocating capacity. Keep an eye on open incidents in the source system.',
+      method: 'Each row groups resolved incidents by month, state, response team and asset type. On-time recovery divides closures within their assigned deadline by all closures. Crew hours are logged hours for those closures. The illustrative service target is 90%.',
+      faq: ['Can this report tell me how many incidents are still open?', 'The dataset contains resolved incidents only. Pair it with a queue ageing report before deciding where to deploy crews.'],
+      row(p, s, g, r) {
+        const closed = 38 + 7 * p + 9 * s + 6 * g + 5 * r;
+        const withinTarget = .88 + (r % 3) * .026 - .016 * s + .014 * g - (p === 2 || p === 3 ? .045 : 0);
+        return [closed, Math.round(closed * withinTarget), Math.round(closed * (2.7 + .32 * r + .23 * g))];
+      }
+    },
     'portfolio-risk': {
       segment: 'Mandate', segments: ['Core', 'Income', 'Growth'], group: 'Sector', groups: ['Financials', 'Industrials', 'Consumer', 'Technology'],
-      driver: 'group', base: 'Starting capital', outcome: 'Gross P&L', rate: 'Gross return', unit: 'Position count', money: true, outcomeMoney: true,
+      driver: 'group', base: 'Starting capital', outcome: 'Gross P&L', rate: 'Gross return', unit: 'Position count',
       goodHigh: true, bounded: false, latestPeriod: true, shock: 5, adverse: true,
       scenario: 'Apply an adverse return shock to the largest sector', interpretation: 'A large exposure and a strong contribution can coexist with concentrated downside.',
       action: 'Review exposure and loss under stress before deciding whether to rebalance. Check liquidity and correlated exposures separately.',

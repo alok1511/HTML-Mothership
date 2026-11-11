@@ -60,6 +60,8 @@ Three extension points, from safest to most powerful:
 
 `capture_recipe` creates a recipe from the current dashboard's reusable settings. Pass `helpText: true` to include reader help text, `commentary: true` to include authored chart notes, or `bindings: true` to include dataset and field references. `run_recipe` returns the count of completed steps and any issues to review.
 
+For model-assisted drafting, `recipe_context` returns tab and chart identifiers. Set `fields: true` to include dataset and field names. `preview_recipe` checks recipe structure and reports `ready`, `keep`, `review` or `unchecked` per step without applying it. Try any step that depends on an earlier transformation on a disposable copy. See [the setup for Terra and Sonnet](USER-GUIDE.md#draft-recipes-with-terra-or-sonnet).
+
 ## Plugin API
 
 ```js
@@ -152,7 +154,7 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 
 **Summaries.** `rt.summarize(key, name)` (runtime, so captions work in exports) writes the sentences from `rt.chartData(key, true)`. `charts[key].summary = { show: 'caption' | 'aria', name }` turns on the caption (`p.ms-summary`, rebuilt on every refresh) and the `aria-label`. Editor side: `MS.summaries.list()`, `.set(keys, show)`, `.text()`.
 
-**Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('₹16.2 Cr')` → `{v: 162000000, tol: 500000}`.
+**Number check** (`src/js/insights.js`): `MS.numcheck.run()` → `[{status: 'ok'|'diff'|'skip', what, shown, against, expected, note}]`. `MS.numcheck.parse('16.2M')` → `{v: 16200000, tol: 50000}`.
 
 **Region and currency** (`src/js/publish.js`): `MS.locale.get()`, `.set({country, currency, locale, units})` (one undo step, emits `locale`), `.describe()`, `.rule()` (the line AI prompts use), `.sample(o)`. In templates use `{value:cur}`, `{value:curshort}` or `{value:short}` to follow it.
 

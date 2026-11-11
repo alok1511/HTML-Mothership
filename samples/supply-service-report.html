@@ -105,9 +105,47 @@ button:disabled { opacity: .55; cursor: default; }
   .report-stat { border-bottom: 1px solid var(--report-line); }
   .report-stat:nth-child(odd) { border-left: 0; }
   #report-scope { width: 100%; margin-left: 0; }
+  .report-tabs { flex-wrap: wrap; gap: 3px; }
+  .report-tabs button { padding-inline: 8px; }
 }
 .explorer-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
 .explorer-actions .boundary-picker { display: grid; }
+
+/* Nadi leadership showcase. The large service target anchors the decision brief. */
+body[data-report="monsoon-readiness"] { background: #f3f5ed; --report-line: #cbd8ce; --report-ink: #1b382e; --report-muted: #465c52; }
+[data-report="monsoon-readiness"] .report-hero {
+  background: repeating-linear-gradient(153deg, transparent 0 54px, #e7f48a20 55px, transparent 56px 92px), #153e34;
+  border-top: 6px solid #c9df78;
+}
+[data-report="monsoon-readiness"] .report-hero h1 {
+  font-family: Georgia, "Times New Roman", serif; font-weight: 500; letter-spacing: -.055em;
+  font-size: clamp(37px, 5.5vw, 80px);
+}
+[data-report="monsoon-readiness"] .hero-layout { padding-block: clamp(27px, 5vw, 68px) clamp(22px, 4vw, 47px); }
+[data-report="monsoon-readiness"] .report-kicker { color: #d4e69a; }
+[data-report="monsoon-readiness"] .report-stamp { border-color: #6b8d75; color: #e4efdc; }
+[data-report="monsoon-readiness"] .report-toolbar { background: #fffef9; }
+[data-report="monsoon-readiness"] .report-heading h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; }
+[data-report="monsoon-readiness"] .report-kpis { border-radius: 3px; }
+[data-report="monsoon-readiness"] .report-stat strong { font-size: clamp(23px, 3.1vw, 41px); }
+[data-report="monsoon-readiness"] #overview > .report-charts { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+[data-report="monsoon-readiness"] .report-chart { border-radius: 3px; }
+.decision-brief { display: grid; grid-template-columns: minmax(155px, 1fr) minmax(0, 3fr); margin-bottom: 18px; background: #fffef9; border: 1px solid #bacdc0; }
+.decision-score { display: flex; flex-direction: column; justify-content: center; padding: 18px 20px; background: #204d3d; color: #edf4df; }
+.decision-score p { margin: 0; font-weight: 650; }
+.decision-score strong { color: #e2ee9f; font: 500 clamp(40px, 6vw, 72px)/1.07 Georgia, serif; letter-spacing: -.07em; }
+.decision-copy { padding: 16px 20px; }
+.decision-copy h3 { margin: 0 0 4px; color: #365246; font-size: 15px; }
+#brief-status { margin: 0 0 4px; color: #193f32; font-weight: 700; font-size: clamp(17px, 2vw, 25px); }
+#brief-priority { margin: 0 0 10px; max-width: 75ch; color: #3e574b; }
+.decision-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.decision-links button:first-child { background: #226756; color: white; border-color: #226756; }
+.decision-links button:first-child:hover { background: #1c5043; }
+@media(max-width: 620px) {
+  .decision-brief { grid-template-columns: 1fr; }
+  .decision-score { padding: 10px 14px; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; flex-wrap: wrap; }
+  [data-report="monsoon-readiness"] #overview > .report-charts { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body data-report="supply-service" style="--report-accent:#255880;--report-wash:#e4eff9">
@@ -398,7 +436,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
   <script id="report-dataset" type="application/json"></script>
   <script>/* models.js (inlined) */
-/* Five fictional reporting models. Monetary inputs use INR lakh unless noted. */
+/* Fictional reporting models. */
 (function () {
   'use strict';
   const regions = ['Gujarat', 'Karnataka', 'Maharashtra', 'Rajasthan', 'Tamil Nadu', 'Telangana'];
@@ -407,7 +445,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     'sales-margin': {
       geography: true, segment: 'Channel', segments: ['Direct', 'Distributor', 'Digital'], group: 'Product family',
       groups: ['Core', 'Premium', 'Services'], driver: 'region', base: 'Net revenue', outcome: 'Gross profit', rate: 'Gross margin',
-      unit: 'Units sold', money: true, outcomeMoney: true, goodHigh: true, bounded: true, shock: 2,
+      unit: 'Units sold', goodHigh: true, bounded: true, shock: 2,
       scenario: 'Improve gross margin in the largest market', interpretation: 'Separate sales scale from conversion into gross profit. Review discount and fulfilment costs before changing price.',
       action: 'Review price realisation and cost-to-serve in the weakest market before reallocating sales effort.',
       method: 'Net revenue is post-discount revenue. Gross profit is net revenue less direct cost. Gross margin is total gross profit divided by total net revenue. Returns, taxes and indirect overhead are outside this example.',
@@ -421,10 +459,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     'supply-service': {
       geography: true, segment: 'Carrier', segments: ['Carrier A', 'Carrier B', 'Carrier C'], group: 'Service tier',
       groups: ['Economy', 'Express', 'Scheduled'], driver: 'region', base: 'Shipments', outcome: 'Late shipments', rate: 'Late shipment rate',
-      unit: 'Freight cost', unitMoney: true, goodHigh: false, bounded: true, shock: 2,
+      unit: 'Freight cost', goodHigh: false, bounded: true, shock: 2,
       scenario: 'Reduce late delivery in the largest market', interpretation: 'A high-volume lane may carry more late shipments even when its delay rate is low. Check the rate and the count together.',
       action: 'Compare dispatch cut-off, carrier handoff and service tier in the highest-risk market before changing the carrier mix.',
-      method: 'A shipment is late when delivery falls after its promised date. Late rate is total late shipments divided by total shipments. Freight cost is INR lakh. Each record represents shipments to a destination state.',
+      method: 'A shipment is late when delivery falls after its promised date. Late rate is total late shipments divided by total shipments. Each record represents shipments to a destination state.',
       faq: ['Is a higher late count always worse performance?', 'A higher late count can follow higher volume. Use late rate for service quality and counts to size the operational impact.'],
       row(p, s, g, r) {
         const shipments = 120 + p * 15 + s * 48 + g * 20 + r * 24;
@@ -435,7 +473,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     'receivables-cash': {
       geography: true, segment: 'Customer industry', segments: ['Retail', 'Manufacturing', 'Services'], group: 'Age band',
       groups: ['0–30 days', '31–60 days', '61+ days'], driver: 'region', base: 'Open receivables', outcome: 'Overdue balance', rate: 'Overdue share',
-      unit: 'Open invoices', money: true, outcomeMoney: true, goodHigh: false, bounded: true, latestPeriod: true, shock: 5,
+      unit: 'Open invoices', goodHigh: false, bounded: true, latestPeriod: true, shock: 5,
       scenario: 'Reduce overdue share in the largest billing market', interpretation: 'Use the latest selected snapshot to identify concentrated credit exposure. Age bands describe exposure and contractual due dates determine overdue status.',
       action: 'Separate disputes from genuine payment delays in the highest-overdue segment and prioritise accounts by value.',
       method: 'Each period is an end-of-month snapshot. Headline metrics use the latest selected period, so the same invoice is never summed across months in the headline. Age bands track days since invoice issue. Overdue means past the contractual due date.',
@@ -459,9 +497,25 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         return [starts, active, Math.round(active * (1.2 + g * 0.26 + s * 0.07))];
       }
     },
+    'monsoon-readiness': {
+      geography: true, segment: 'Response team', segments: ['District crews', 'Mobile crews', 'Partner crews'],
+      group: 'Asset type', groups: ['Drainage', 'Backup power', 'Access routes'], driver: 'region',
+      base: 'Incidents closed', outcome: 'Closed within target', rate: 'On-time recovery',
+      unit: 'Crew hours', goodHigh: true, bounded: true, shock: 4, target: 90,
+      scenario: 'Raise on-time recovery in the largest state operation',
+      interpretation: 'Read closure volume, timeliness and crew hours together. A growing queue can be invisible if you only track closed incidents.',
+      action: 'Check travel time, incident severity and crew coverage before reallocating capacity. Keep an eye on open incidents in the source system.',
+      method: 'Each row groups resolved incidents by month, state, response team and asset type. On-time recovery divides closures within their assigned deadline by all closures. Crew hours are logged hours for those closures. The illustrative service target is 90%.',
+      faq: ['Can this report tell me how many incidents are still open?', 'The dataset contains resolved incidents only. Pair it with a queue ageing report before deciding where to deploy crews.'],
+      row(p, s, g, r) {
+        const closed = 38 + 7 * p + 9 * s + 6 * g + 5 * r;
+        const withinTarget = .88 + (r % 3) * .026 - .016 * s + .014 * g - (p === 2 || p === 3 ? .045 : 0);
+        return [closed, Math.round(closed * withinTarget), Math.round(closed * (2.7 + .32 * r + .23 * g))];
+      }
+    },
     'portfolio-risk': {
       segment: 'Mandate', segments: ['Core', 'Income', 'Growth'], group: 'Sector', groups: ['Financials', 'Industrials', 'Consumer', 'Technology'],
-      driver: 'group', base: 'Starting capital', outcome: 'Gross P&L', rate: 'Gross return', unit: 'Position count', money: true, outcomeMoney: true,
+      driver: 'group', base: 'Starting capital', outcome: 'Gross P&L', rate: 'Gross return', unit: 'Position count',
       goodHigh: true, bounded: false, latestPeriod: true, shock: 5, adverse: true,
       scenario: 'Apply an adverse return shock to the largest sector', interpretation: 'A large exposure and a strong contribution can coexist with concentrated downside.',
       action: 'Review exposure and loss under stress before deciding whether to rebalance. Check liquidity and correlated exposures separately.',
@@ -522,6 +576,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     pushRow();
     return output;
   }
+  // Accept headers from older exported reports without changing any values.
   function token(s) { return String(s).trim().toLowerCase().replace(/\s*\(inr lakh\)$/, '').replace(/\s+/g, ' '); }
   function parse(csv, columns, labels, bounded) {
     const lines = records(csv), header = (lines.shift() || []).map(token);
@@ -570,12 +625,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   const $ = id => document.getElementById(id);
   const text = (id, value) => { $(id).textContent = value; };
   const el = (tag, value) => { const e = document.createElement(tag); if (value !== undefined) e.textContent = value; return e; };
-  const number = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
-  const fmt = (value, money) => Number.isFinite(value) ? (money ? '₹' : '') + number.format(value) + (money ? ' lakh' : '') : '—';
+  const number = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+  const fmt = value => Number.isFinite(value) ? number.format(value) : '—';
   const rate = value => Number.isFinite(value) ? number.format(value) + '%' : '—';
   const pp = value => number.format(Math.abs(value)) + ' pp';
   const label = { period: m.period, region: 'State', segment: m.segment, group: m.group, base: m.base, outcome: m.outcome, units: m.unit };
-  const money = { base: m.money, outcome: m.outcomeMoney, units: m.unitMoney };
   const dims = { period: m.periods, region: m.regions, segment: m.segments, group: m.groups };
   const demoRows = m.rows;
   const filters = ['period', ...(m.geography ? ['region'] : []), 'segment', 'group'];
@@ -649,6 +703,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       requestAnimationFrame(() => charts.forEach(chart => { if (!chart.canvas.closest('[hidden]')) chart.resize(); }));
     }
     nav.addEventListener('click', e => { const btn = e.target.closest('[role=tab]'); if (btn) show(btn); });
+    document.querySelectorAll('[data-report-jump]').forEach(link => link.addEventListener('click', () => {
+      const button = $(link.dataset.reportJump);
+      if (button) { button.click(); button.focus(); }
+    }));
     nav.addEventListener('keydown', e => {
       const all = buttons(), i = all.indexOf(e.target);
       if (i < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
@@ -717,48 +775,59 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function updateStory(v) {
     const { overall, lead, worst, benchmark, requested, counterfactual, applied, change } = v;
     const noData = 'No matching records. Change the filters to compare results.';
-    text('base-value', fmt(overall.n ? overall.base : null, money.base));
-    text('outcome-value', fmt(overall.n ? overall.outcome : null, money.outcome));
-    text('unit-value', fmt(overall.n ? overall.units : null, money.units));
+    text('base-value', fmt(overall.n ? overall.base : null));
+    text('outcome-value', fmt(overall.n ? overall.outcome : null));
+    text('unit-value', fmt(overall.n ? overall.units : null));
     text('rate-value', rate(overall.rate));
+    if ($('brief-status')) {
+      const difference = overall.rate === null ? null : overall.rate - m.target;
+      text('brief-status', difference === null ? 'Choose a slice with records.' :
+        rate(overall.rate) + ' closed on time, ' + (difference === 0 ? 'meeting' : pp(difference) + (difference < 0 ? ' below' : ' above')) + ' the ' + m.target + '% service target.');
+      text('brief-priority', worst ? 'Investigate ' + worst.name + ' first at ' + rate(worst.rate) + ' on-time recovery. Compare team and asset mix before moving capacity.' :
+        'Select a populated slice to compare locations.');
+    }
     const share = lead ? rate(lead.base / overall.base * 100) : '—';
-    text('insight-first', lead ? lead.name + ' represents ' + share + ' of ' + m.base.toLowerCase() + ' (' + fmt(lead.base, money.base) + ') and records ' + fmt(lead.outcome, money.outcome) + ' in ' + m.outcome.toLowerCase() + '.' : noData);
+    text('insight-first', lead ? lead.name + ' represents ' + share + ' of ' + m.base.toLowerCase() + ' (' + fmt(lead.base) + ') and records ' + fmt(lead.outcome) + ' in ' + m.outcome.toLowerCase() + '.' : noData);
     text('so-first', lead ? 'Start the review with ' + lead.name + '. It accounts for ' + share + ' of the selected exposure, so a change there carries the most weight.' : 'Broaden the slice before prioritising a segment.');
     text('insight-second', worst ? worst.name + ' records ' + rate(worst.rate) + ' versus ' + rate(benchmark) + ' across the slice, a gap of ' + pp(worst.rate - benchmark) + '.' : noData);
     text('so-second', worst ? 'Investigate ' + worst.name + ' at ' + rate(worst.rate) + '. ' + m.action : 'Select a slice with comparable groups before drawing a conclusion.');
     const after = overall.outcome + change;
-    text('insight-third', lead ? 'Moving ' + lead.name + ' from ' + rate(lead.rate) + ' to ' + rate(counterfactual) + ' changes ' + m.outcome.toLowerCase() + ' by ' + fmt(change, money.outcome) + ', to ' + fmt(after, money.outcome) + '.' : noData);
-    text('so-third', lead ? 'Use ' + fmt(Math.abs(change), money.outcome) + ' as the size of this what-if. Recheck the assumption for ' + lead.name + ' before treating it as an operational target.' : 'Choose a populated slice to size the scenario.');
+    text('insight-third', lead ? 'Moving ' + lead.name + ' from ' + rate(lead.rate) + ' to ' + rate(counterfactual) + ' changes ' + m.outcome.toLowerCase() + ' by ' + fmt(change) + ', to ' + fmt(after) + '.' : noData);
+    text('so-third', lead ? 'Use ' + fmt(Math.abs(change)) + ' as the size of this what-if. Recheck the assumption for ' + lead.name + ' before treating it as an operational target.' : 'Choose a populated slice to size the scenario.');
     text('shock-value', (requested < 0 ? '−' : '+') + pp(requested));
     text('scenario-assumption', m.scenario + '. Exposure and every other group stay fixed.');
-    text('scenario-inference', lead ? lead.name + ' shifts the total by ' + fmt(change, money.outcome) + ' after a ' + pp(applied) + ' rate change. Scenario total is ' + fmt(after, money.outcome) + '.' : noData);
+    text('scenario-inference', lead ? lead.name + ' shifts the total by ' + fmt(change) + ' after a ' + pp(applied) + ' rate change. Scenario total is ' + fmt(after) + '.' : noData);
     const bridge = lead ? [[0, overall.outcome], [overall.outcome, after], [0, after]] : [];
     paint('scenario-chart', 'bar', ['Observed', 'Scenario change', 'Scenario total'],
       [{ label: m.outcome, data: bridge, backgroundColor: [color, change < 0 ? '#a45b42' : '#5e8e76', '#294a6a'] }],
-      { y: { ticks: { callback: x => fmt(Number(x), money.outcome) } },
-        plugins: { tooltip: { callbacks: { label: c => c.dataIndex === 1 ? 'Change ' + fmt(c.raw[1] - c.raw[0], money.outcome) : fmt(c.raw[1], money.outcome) } } } });
+      { y: { ticks: { callback: x => fmt(Number(x)) } },
+        plugins: { tooltip: { callbacks: { label: c => c.dataIndex === 1 ? 'Change ' + fmt(c.raw[1] - c.raw[0]) : fmt(c.raw[1]) } } } });
   }
   function drawCharts(v) {
     const trend = grouped(sameBasis(filtered, true), 'period');
     const first = trend[0], last = trend.at(-1);
     const delta = first && last ? last.rate - first.rate : 0;
+    const worst = trend.reduce((low, row) => !low || (m.goodHigh ? row.rate < low.rate : row.rate > low.rate) ? row : low, null);
     text('trend-inference', !last ? 'No periods to compare.' : trend.length === 1 ? last.name + ' records ' + rate(last.rate) + '. Select more periods for a trend.' :
-      m.rate + ' moves from ' + rate(first.rate) + ' in ' + first.name + ' to ' + rate(last.rate) + ' in ' + last.name + ' (' + (delta < 0 ? '−' : '+') + pp(delta) + ').');
-    paint('trend-chart', 'line', trend.map(x => x.name), [{ label: m.rate, data: trend.map(x => x.rate), borderColor: color, backgroundColor: pale, fill: true, tension: .15, pointRadius: 3.5 }],
-      { y: { ticks: { callback: x => x + '%' } }, plugins: { tooltip: { callbacks: { label: c => rate(c.raw) } } } });
-    text('ranking-inference', v.lead ? v.lead.name + ' leads by ' + m.base.toLowerCase() + ' at ' + fmt(v.lead.base, money.base) + '. Its rate is ' + rate(v.lead.rate) + '.' : 'No groups in this slice.');
+      m.rate + ' moves from ' + rate(first.rate) + ' in ' + first.name + ' to ' + rate(last.rate) + ' in ' + last.name + ' (' + (delta < 0 ? '−' : '+') + pp(delta) + '). ' +
+      'The weakest month is ' + worst.name + ' at ' + rate(worst.rate) + '.');
+    const series = [{ label: m.rate, data: trend.map(x => x.rate), borderColor: color, backgroundColor: pale, fill: true, tension: .15, pointRadius: 3.5 }];
+    if (m.target) series.push({ label: 'Service target', data: trend.map(() => m.target), borderColor: '#75814e', borderDash: [5, 4], borderWidth: 2, pointRadius: 0, fill: false });
+    paint('trend-chart', 'line', trend.map(x => x.name), series,
+      { y: { ticks: { callback: x => x + '%' } }, plugins: { legend: { display: !!m.target, labels: { usePointStyle: true } }, tooltip: { callbacks: { label: c => c.dataset.label + ' ' + rate(c.raw) } } } });
+    text('ranking-inference', v.lead ? v.lead.name + ' leads by ' + m.base.toLowerCase() + ' at ' + fmt(v.lead.base) + '. Its rate is ' + rate(v.lead.rate) + '.' : 'No groups in this slice.');
     paint('ranking-chart', 'bar', v.rank.map(x => x.name), [{ label: m.base, data: v.rank.map(x => x.base), backgroundColor: color, borderRadius: 4 }],
-      { indexAxis: 'y', x: { ticks: { callback: x => fmt(Number(x), money.base) } }, plugins: { tooltip: { callbacks: { label: c => fmt(c.raw, money.base) } } } });
+      { indexAxis: 'y', x: { ticks: { callback: x => fmt(Number(x)) } }, plugins: { tooltip: { callbacks: { label: c => fmt(c.raw) } } } });
     const other = m.driver === 'segment' ? 'period' : 'segment';
     const pairs = crossed(analysed, m.driver, other);
     const points = [...pairs].flatMap(([a, groups]) => [...groups].map(([b, total]) => ({
       x: total.base, y: finish(total).rate, name: a + ' / ' + b
     }))).sort((a, b) => b.x - a.x).slice(0, 60);
     const largest = points[0];
-    text('scatter-inference', largest ? largest.name + ' has the most exposure among the plotted pairs (up to 60 by exposure). Its exposure is ' + fmt(largest.x, money.base) + ', at a rate of ' + rate(largest.y) + '.' : 'No group pairs in this slice.');
+    text('scatter-inference', largest ? largest.name + ' has the most exposure among the plotted pairs (up to 60 by exposure). Its exposure is ' + fmt(largest.x) + ', at a rate of ' + rate(largest.y) + '.' : 'No group pairs in this slice.');
     paint('scatter-chart', 'scatter', [], [{ label: 'Group pair', data: points, backgroundColor: color + 'b5', pointRadius: 6 }],
-      { x: { title: { display: true, text: m.base + (m.money ? ' (INR lakh)' : '') } }, y: { title: { display: true, text: m.rate + ' (%)' }, ticks: { callback: x => x + '%' } },
-        plugins: { tooltip: { callbacks: { label: c => c.raw.name + ' · ' + fmt(c.raw.x, money.base) + ' · ' + rate(c.raw.y) } } } });
+      { x: { title: { display: true, text: m.base } }, y: { title: { display: true, text: m.rate + ' (%)' }, ticks: { callback: x => x + '%' } },
+        plugins: { tooltip: { callbacks: { label: c => c.raw.name + ' · ' + fmt(c.raw.x) + ' · ' + rate(c.raw.y) } } } });
     matrix(m.matrix ? filtered : analysed);
   }
   function sortedRows() {
@@ -782,7 +851,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     });
     $('explorer-head').replaceChildren(head);
     $('explorer-rows').replaceChildren(...page.map(r => {
-      const tr = el('tr'); columns.forEach(k => tr.appendChild(el('td', filters.includes(k) ? r[k] : fmt(r[k], money[k])))); return tr;
+      const tr = el('tr'); columns.forEach(k => tr.appendChild(el('td', filters.includes(k) ? r[k] : fmt(r[k])))); return tr;
     }));
     text('page-info', rows.length ? (start + 1) + '–' + (start + page.length) + ' of ' + rows.length : 'No records');
     text('explorer-summary', rows.length + ' filtered records. CSV contains the entire slice in the current sort order.');
@@ -795,7 +864,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const text = typeof value === 'string' && /^[=+@-]/.test(value) ? "'" + value : String(value);
       return '"' + text.replace(/"/g, '""') + '"';
     };
-    const lines = [columns.map(k => quote(label[k] + (money[k] ? ' (INR lakh)' : ''))).join(','),
+    const lines = [columns.map(k => quote(label[k])).join(','),
       ...sortedRows().map(row => columns.map(k => quote(row[k])).join(','))];
     const url = URL.createObjectURL(new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
     const a = el('a'); a.href = url; a.download = document.body.dataset.report + '-filtered.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 500);

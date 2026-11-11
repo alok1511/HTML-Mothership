@@ -42,7 +42,7 @@ async function shapeZip() {
     const frame = page.frameLocator('#child');
     await button('Browse report layouts').click();
     const gallery = page.getByRole('dialog', { name: 'Sample report layouts' });
-    assert.equal(await gallery.locator('.gallery-row').count(), 5);
+    assert.equal(await gallery.getByRole('region', { name: 'Report layouts' }).locator('.gallery-row').count(), 5);
     await gallery.getByRole('button', { name: 'Open ' + layouts[0].title, exact: true }).click();
     await page.waitForFunction(() => MS.mode === 'interact');
     const read = () => frame.locator('body').evaluate(body => {
@@ -68,34 +68,37 @@ async function shapeZip() {
         if (m.latestPeriod) rows = rows.filter(r => r.period === m.periods.at(-1));
         if (m.latestGroup) rows = rows.filter(r => r.group === m.groups.at(-1));
         const base = rows.reduce((s, r) => s + r.base, 0), value = rows.reduce((s, r) => s + r.outcome, 0) / base * 100;
-        return { segment: m.segments[0], count, base, value, money: !!m.money };
+        return { segment: m.segments[0], count, base, value };
       });
       await frame.locator('#filter-segment').selectOption(expected.segment);
       if (model.map) await frame.locator('#filter-region').selectOption('Maharashtra');
       const after = await read();
-      const format = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
-      assert.equal(after.base, expected.money ? '₹' + format.format(expected.base) + ' lakh' : format.format(expected.base));
+      const format = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+      assert.equal(after.base, format.format(expected.base));
       assert.equal(after.rate, format.format(expected.value) + '%');
       assert(after.scope.endsWith(expected.count + ' records'));
       assert(after.chartCounts.every(n => n > 0));
       after.inferences.forEach((x, i) => assert.notEqual(x, before.inferences[i], model.id + ' inference ' + i));
       after.insights.forEach((x, i) => x.forEach((line, j) => assert.notEqual(line, before.insights[i][j], model.id + ' insight ' + i + ':' + j)));
+      assert(!/[₹$€£¥]|\blakh\b|\bcrore\b/i.test(JSON.stringify(after)), model.id + ' currency-free display');
       await frame.getByRole('tab', { name: 'Drivers & scenarios' }).click();
       const scenario = await frame.locator('#scenario-inference').innerText();
       await frame.locator('#shock').evaluate(e => { e.value = 9; e.dispatchEvent(new Event('input', { bubbles: true })); });
       assert.notEqual(await frame.locator('#scenario-inference').innerText(), scenario);
       await frame.getByRole('tab', { name: 'Data explorer' }).click();
       const [csv] = await Promise.all([page.waitForEvent('download'), frame.getByRole('button', { name: 'Download filtered CSV' }).click()]);
-      assert.equal(fs.readFileSync(await csv.path(), 'utf8').trim().split(/\r?\n/).length, expected.count + 1);
+      const lines = fs.readFileSync(await csv.path(), 'utf8').trim().split(/\r?\n/);
+      assert.equal(lines.length, expected.count + 1);
+      assert(!/INR|lakh|crore/i.test(lines[0]));
     }
-    console.log('  ✓ All five offline layouts reconcile their filters, inferences, decisions, scenarios and CSV');
+    console.log('  ✓ All offline layouts reconcile their filters, inferences, decisions, scenarios and CSV');
 
     await page.evaluate(async () => { await MS.samples.open('sales-margin', { force: true }); MS.setMode('interact'); });
     await frame.getByRole('tab', { name: 'Data explorer' }).click();
-    const csvData = 'period,region,segment,group,base,outcome,units\n2026-10,Maharashtra,Direct,Core,100,40,50\n2026-11,Karnataka,Digital,Core,200,50,80';
+    const csvData = 'Reporting month,State,Channel,Product family,Net revenue (INR lakh),Gross profit (INR lakh),Units sold\n2026-10,Maharashtra,Direct,Core,100,40,50\n2026-11,Karnataka,Digital,Core,200,50,80';
     await frame.locator('#load-report-data').setInputFiles({ name: 'team-report.csv', mimeType: 'text/csv', buffer: Buffer.from(csvData) });
     await frame.getByText(/team-report\.csv.*2 loaded records/).waitFor();
-    assert.equal(await frame.locator('#base-value').textContent(), '₹300 lakh');
+    assert.equal(await frame.locator('#base-value').textContent(), '300');
     assert.equal(await frame.locator('#rate-value').textContent(), '30%');
     await frame.locator('#filter-period').selectOption('2026-10');
     assert.equal(await frame.locator('#rate-value').textContent(), '40%');
@@ -108,7 +111,7 @@ async function shapeZip() {
     await page.evaluate(html => MS.openHtml(html, 'with-custom-data.html', { force: true }), importedHtml);
     await frame.getByRole('tab', { name: 'Data explorer' }).click();
     await frame.getByText(/team-report\.csv.*2 loaded records/).waitFor();
-    assert.equal(await frame.locator('#base-value').textContent(), '₹300 lakh');
+    assert.equal(await frame.locator('#base-value').textContent(), '300');
     console.log('  ✓ Local CSV data is validated, undoable, and kept in the exported report');
 
     await page.evaluate(async () => { await MS.samples.open('sales-margin', { force: true }); MS.setMode('interact'); });
@@ -178,12 +181,11 @@ async function shapeZip() {
     const workshop = page.getByRole('dialog', { name: 'Recipe workshop' });
     assert.equal(await workshop.locator('.recipe-choice').count(), 6);
     await workshop.getByRole('button', { name: 'Executive review pack' }).click();
-    await workshop.getByText('Preview recipe steps').click();
     await workshop.getByRole('button', { name: 'Edit step 2', exact: true }).click();
     const edit = page.getByRole('dialog', { name: 'Edit recipe step' });
     await edit.getByText('Tab title', { exact: true }).locator('..').locator('input').fill('Board brief');
     await edit.getByRole('button', { name: 'Save step' }).click();
-    assert.match(await workshop.getByRole('textbox', { name: 'Recipe JSON' }).inputValue(), /Board brief/);
+    assert.match(await workshop.locator('.recipe-steps').innerText(), /Board brief/);
     await workshop.getByRole('button', { name: 'Apply recipe' }).click();
     await workshop.getByText(/steps completed/).waitFor();
     const countTabs = () => page.evaluate(() => MS.rt().tabs().filter(t => t.title === 'Board brief').length);

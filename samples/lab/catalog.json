@@ -1,0 +1,4 @@
+[
+  {"id":"release-rehearsal","kind":"release","title":"Release Rehearsal Lab","audience":"Practice · Testing and review","question":"Catch a wrong KPI and practise targeting charts with the same name on different tabs.","visual":"Intentional defects, filters, table sorting, source reconciliation, test packs, and reruns","color":"#8b4e33","wash":"#fbede4"},
+  {"id":"monthly-close-lab","kind":"close","title":"Monthly Close Lab","audience":"Practice · Refresh and handover","question":"Build a repeatable close from source files through chart binding, review and release.","visual":"Two downloadable CSVs, a data dictionary, data binding, baseline comparisons, and export","color":"#354b7b","wash":"#e9eef8"}
+]

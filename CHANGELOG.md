@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Use plain numbers across sample dashboards, starter recipes, and tutorials. Use USD in examples that explicitly demonstrate currency formatting.
+
+- Guide recipe creation with plain-language steps, hover and keyboard help, add, reorder and remove controls, and a read-only target check.
+- Draft recipes with GPT-5.6 Terra or Claude Sonnet 5 in an approved work assistant. Paste drafts for review and check targets through the local MCP server when connected.
+- Add a finished Monsoon Readiness showcase, a Release Rehearsal lab with a deliberate KPI defect, and a Monthly Close lab with two practice files. Update the searchable help, glossary, troubleshooting and lessons.
+
 - Add five detailed report layouts with shared filters, key inferences, decision callouts, advanced comparisons, scenario bridges and an editable local CSV workflow.
 - Add interactive maps to the three geographic layouts. Support WGS84 polygon GeoJSON and shapefile ZIPs, with name and ISO state code joins for the sample states.
 - Add the Recipe workshop with six in-house starters, editable steps, dashboard setup capture and exports as JSON, a skill ZIP or a button plugin.
