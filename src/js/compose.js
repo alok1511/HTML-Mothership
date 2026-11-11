@@ -101,7 +101,7 @@
 
   /* ---------------------------------------------------------- KPI cards */
   var AGGS = [{ value: 'sum', label: 'Sum' }, { value: 'avg', label: 'Average' }, { value: 'count', label: 'Count rows' }, { value: 'distinct', label: 'Count distinct' }, { value: 'min', label: 'Minimum' }, { value: 'max', label: 'Maximum' }];
-  var FORMATS = [{ value: '', label: 'Number (region style)' }, { value: 'cur', label: 'Currency (region, e.g. $1,234)' }, { value: 'curshort', label: 'Currency short ($1.2M)' }, { value: 'short', label: 'Short (1.2M)' }, { value: 'inr', label: '₹ (₹1,23,457)' }, { value: 'cr', label: '₹ crore' }, { value: 'lakh', label: '₹ lakh' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
+  var FORMATS = [{ value: '', label: 'Number (region style)' }, { value: 'cur', label: 'Currency (region, e.g. $1,234)' }, { value: 'curshort', label: 'Currency short ($1.2M)' }, { value: 'short', label: 'Short (1.2M)' }, { value: 'int', label: 'Whole number' }, { value: 'k', label: 'Thousands (K)' }, { value: 'm', label: 'Millions (M)' }, { value: 'pct', label: 'Percent (value already ×100)' }, { value: 'pct100', label: 'Percent (0–1 value)' }, { value: 'usd', label: 'US$' }];
   function kpiCard(id, label, value, note) {
     var c = make('<div class="ms-kpi"><div class="ms-kpi-label"></div><div class="ms-kpi-value"></div><div class="ms-kpi-note"></div></div>');
     if (id) c.setAttribute('data-ms-kpi', id);
@@ -127,7 +127,7 @@
           var fld = nums[i % (nums.length || 1)], id = rt.uid('k');
           specs[id] = fld ? { dataset: v.ds, measure: fld.name, agg: 'sum', format: '' } : { dataset: v.ds, agg: 'count', format: 'int' };
           row.appendChild(kpiCard(id, fld ? 'Total ' + fld.name : 'Records', '…', v.ds));
-        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), MS.rt() ? MS.rt().fmtNum(0, 'cur') : '$0', 'vs last month'));
+        } else row.appendChild(kpiCard(null, 'KPI ' + (i + 1), '0', 'vs last month'));
       }
       MS.history.group('Insert KPI cards', function () {
         if (v.ds) MS.history.state('KPI settings', function (s) { Object.keys(specs).forEach(function (k) { s.kpis[k] = specs[k]; }); });
@@ -146,7 +146,7 @@
       { key: 'dataset', label: 'Dataset', type: 'select', options: names, value: k.dataset },
       { key: 'measure', label: 'Column', type: 'select', options: fieldsOf(k.dataset), value: k.measure || '' },
       { key: 'agg', label: 'Calculate', type: 'select', options: AGGS, value: k.agg || 'sum' },
-      { key: 'format', label: 'Show as', type: 'select', options: FORMATS, value: k.format || '' },
+      { key: 'format', label: 'Show as', type: 'select', options: FORMATS.some(function (f) { return f.value === (k.format || ''); }) ? FORMATS : FORMATS.concat([{ value: k.format, label: 'Saved format (' + k.format + ')' }]), value: k.format || '' },
       { key: 'note', label: 'Small note under the number', value: card.querySelector('.ms-kpi-note').textContent }
     ]);
     var st = k.status || {};

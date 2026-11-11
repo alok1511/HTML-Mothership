@@ -1,0 +1,22 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Risk and scenario review",
+  "description": "Add concentration, stress assumptions and escalation prompts.",
+  "steps": [
+    {
+      "do": "ensureTab",
+      "title": "Risk register",
+      "markdown": "# Risk register\n\nFor each risk, record the exposure, limit, current position, trigger and accountable owner."
+    },
+    {
+      "do": "ensureTab",
+      "title": "Scenario assumptions",
+      "markdown": "# Scenario assumptions\n\nSpecify the shock, affected population, starting level and what stays fixed. Show the base case beside each scenario. Label scenario outputs as conditional estimates."
+    },
+    {
+      "do": "ensureTab",
+      "title": "Escalation",
+      "markdown": "# Escalation\n\nList the signals that invalidate the current view. Set a response, escalation owner and review date for each trigger."
+    }
+  ]
+}

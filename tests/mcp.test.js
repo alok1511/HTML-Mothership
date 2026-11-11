@@ -128,7 +128,7 @@ const call = async (name, args) => {
   check('ui_hover on a bar shows its pop-up', hv.json && hv.json.tooltip && /West/.test(hv.json.tooltip[0].text), hv.error || hv.json);
   const mh = await call('ui_mouse', { target: 'chart=Sales by region', point: 'South', action: 'hover' });
   check('ui_mouse: real mouse hover shows the pop-up', mh.json && mh.json.tooltip && /South/.test(mh.json.tooltip[0].text), mh.error || mh.json);
-  const ue = await call('ui_expect', { target: 'kpi=Total sales', text: '100.53' });
+  const ue = await call('ui_expect', { target: 'kpi=Total sales', text: '1,005,307,144' });
   check('ui_expect checks a KPI card', ue.json && ue.json.pass === true, ue.error || ue.json);
   const us = await call('ui_screenshot', { target: 'chart=Monthly sales trend' });
   check('ui_screenshot of one chart', us.images.length === 1 && us.images[0].data.length > 3000, us.error);
@@ -152,6 +152,13 @@ const call = async (name, args) => {
   const cv0 = await call('test_coverage', {});
   const fd = await call('test_plan', { action: 'draft', depth: 'full' });
   check('test_baseline locks the numbers; test_plan full draft raises test_coverage', bl.json && bl.json.charts >= 3 && bl.json.added > 0 && cv0.json && fd.json && fd.json.added > 0 && fd.json.coverage.percent > cv0.json.percent, bl.error || cv0.error || fd.error || [bl.json, cv0.json && cv0.json.percent, fd.json && fd.json.coverage]);
+  const recipe = { name: 'Assistant draft', steps: [{ do: 'ensureTab', title: 'Assistant reader guide' }] };
+  const preview = await call('preview_recipe', { recipe });
+  const recipeContext = await call('recipe_context');
+  check('recipe drafting tools preview targets without applying edits',
+    preview.json && preview.json.steps[0].status === 'ready' && recipeContext.json &&
+    recipeContext.json.charts.length === 4 && !recipeContext.json.tabs.includes('Assistant reader guide') &&
+    recipeContext.json.datasets.length === 0, [preview.error || preview.json, recipeContext.error || recipeContext.json]);
   const cl = await call('close_dashboard', {});
   const cl2 = await call('close_dashboard', { force: true });
   check('close_dashboard keeps unexported work unless forced', cl.json && cl.json.closed === false && cl.json.unsavedChanges && cl2.json && cl2.json.closed === true, cl.error || cl2.error || [cl.json, cl2.json]);

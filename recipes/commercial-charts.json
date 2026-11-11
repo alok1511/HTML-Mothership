@@ -1,0 +1,38 @@
+{
+  "$type": "mothership/recipe",
+  "name": "Commercial chart kit",
+  "description": "Apply a coordinated chart palette, plain-number tooltips, and a notes tab for your metric definitions.",
+  "steps": [
+    {
+      "do": "theme",
+      "theme": {
+        "name": "Commercial teal",
+        "colors": {
+          "primary": "#11665b",
+          "secondary": "#31567b",
+          "accent": "#986321"
+        },
+        "palette": [
+          "#11665b",
+          "#31567b",
+          "#986321",
+          "#705381"
+        ],
+        "applyToPage": false
+      }
+    },
+    {
+      "do": "wrapCharts"
+    },
+    {
+      "do": "tooltip",
+      "charts": "*",
+      "template": "{label}\n{value}"
+    },
+    {
+      "do": "ensureTab",
+      "title": "Commercial notes",
+      "markdown": "# Commercial notes\n\nRecord the measures, their source units and the reporting period. Confirm how discounts, returns and tax affect reported amounts."
+    }
+  ]
+}

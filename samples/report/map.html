@@ -1,0 +1,14 @@
+    <section id="geography" role="tabpanel" aria-labelledby="tab-geography" hidden>
+      <div class="report-heading"><h2>Geographic view</h2><p>Choose a state on the map or use the State filter to update the whole report.</p></div>
+      <figure class="report-chart report-map">
+        <div class="map-tools">
+          <h3 id="map-title">Rate by state</h3>
+          <label class="boundary-picker">Load map boundaries <input id="load-boundaries" type="file" accept=".geojson,.json,.zip"></label>
+          <label><span>Join field</span><select id="boundary-field"></select></label>
+          <button type="button" id="reset-boundaries">Restore sample map</button>
+        </div>
+        <p class="map-status" id="boundary-status" aria-live="polite"></p>
+        <div class="map-layout"><div id="report-map"></div><ul id="map-legend" class="map-legend" aria-label="State values"></ul></div>
+        <figcaption><strong>Key inference</strong><span id="map-inference"></span></figcaption>
+      </figure>
+    </section>

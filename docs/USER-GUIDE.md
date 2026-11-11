@@ -86,14 +86,14 @@ Double-click a chart in **Edit**. Use **Commentary & size** for the title, subti
 A useful commentary block answers three questions:
 
 - **What?** “Net sales by region”.
-- **In what units and period?** “₹ crore, October 2026, excluding returns”.
+- **In what units and period?** “Values in millions, October 2026, excluding returns”.
 - **Why should I care?** “West accounts for 42% of the month's sales; check whether this is a one-off order.”
 
-Use **Design › Region & currency** before applying global formatting. New dashboards default to US English and US dollars. Choose India, INR and lakh/crore where appropriate. This changes display conventions. It does **not** convert amounts between currencies or change figures the original dashboard formats itself. Check axes, tooltips and totals together.
+Use plain numbers for general reporting. For an explicitly monetary chart, choose USD in **Design › Region & currency** and select a currency format. These settings affect display. The source values stay the same. Check axes, tooltips and totals together.
 
 Use **Charts › Category order** or **Category colours** when the same labels appear in multiple charts. Set “North” once to keep its colour consistent, but review charts that use colour to show status. Apply **Format painter** only to charts that should share the same look and formats.
 
-**Worked example:** choose a tooltip like **{label}: {value:cr}** when the underlying number is in rupees. A raw value of ₹12,500,000 is ₹1.25 crore. If the raw data already stores **1.25** as crore, do not apply a second conversion; use the raw number and label the unit. Verify one value against the source.
+**Worked example:** use **{label}: {value:short}** to show a raw value of 12,500,000 as 12.5M. If the source already stores 12.5 in millions, use the raw value and label the unit. Verify one value against the source.
 
 <!-- guide:drill -->
 ## Data, filters and drill-down
@@ -123,7 +123,7 @@ Use a repeatable loop: **save working copy → preview data → apply → check 
 5. Apply the refresh. Check an affected chart and KPI, try filters, and compare one total to Finance's source. Rerun tests; results from the previous dashboard revision are stale.
 6. Use **Home › Undo** immediately if the replacement was wrong, or **File › Versions** to restore the recovery copy. Export under a new month/version when ready.
 
-**Example:** October has 1,250 rows and ₹2.4 crore net sales; November's file has 1,119 rows and ₹1.9 crore. Neither change is automatically wrong. Check the period, excluded regions and returns, then compare the ₹1.9 crore with the independent report.
+**Example:** October has 1,250 rows and 2.4M net sales; November's file has 1,119 rows and 1.9M. Neither change is automatically wrong. Check the period, excluded regions and returns, then compare the 1.9M with the independent report.
 
 <!-- guide:build -->
 ## Build a dashboard from scratch
@@ -140,6 +140,113 @@ Choose **File › New** and a starter with Overview, How to use, FAQs and Method
 
 Keep one story per tab. Use a table for exact values, a bar for comparison and a line for trends. A template speeds up placement; verify its labels, data and examples before sending. For recurring report design, save a chart card or section as a template and use a brand or firm template for shared colours and fonts.
 
+<!-- guide:recipes -->
+## Report layouts, recipes and reusable setup
+
+### Start from a report layout
+
+Choose **Browse report layouts** on the welcome screen or **File › Report layouts**. Five layouts open with synthetic data. Choose Sales & Margin, Supply Chain & Service, Receivables & Cash, Customer Retention, or Portfolio & Risk.
+
+1. Use the filters above the report. **Overview** gives the headline and trends. **Key insights** separates the observed result, a driver to investigate, and a conditional scenario. Every insight has a **So what** that follows the active slice.
+2. Open **Drivers & scenarios** for the exposure-versus-rate scatter, rate matrix, and scenario bridge. The slider changes one group's rate and holds other exposure fixed. Read the **Key inference** below each chart. Associations and what-if estimates need separate validation before you act on them.
+3. Open **Data explorer** to sort or page through the filtered rows. Choose **Download filtered CSV** with filters reset to get a starting file. Keep the header and unit conventions, replace the sample rows, then use **Load report CSV**. For monthly snapshots use `YYYY-MM`, or list periods chronologically. For retention, label tenure as `Week 4`, `Week 8` and so on. Enter plain numbers in the units you want to report and use the same units across comparable rows.
+4. Read **Methodology** for the grain, aggregation, and denominator. Receivables and portfolio headlines use the latest selected snapshot. Retention uses the latest selected tenure. The Explorer shows all filtered observations, so do not sum repeated snapshots or cohort denominators. Use **Restore sample data** to go back to the demo.
+5. Use **Interact** to operate the controls and **Edit** to change text or add commentary. Export the dashboard to keep its loaded CSV and boundary layer in a standalone HTML file.
+
+### Use a shapefile or GeoJSON on a map
+
+Sales, supply chain, receivables, and the Monsoon Readiness showcase have state-level data and a **Map** tab. Choose a polygon or multipolygon GeoJSON, or a ZIP with one shapefile layer and matching `.shp`, `.dbf`, and `.prj` files. Use geographic WGS84 longitude and latitude. Reproject a projected file to EPSG:4326 before importing it. For a large file, simplify the boundaries first.
+
+Pick a **Join field** with the same area names as the CSV or the corresponding ISO state codes for the sample states. Check the match count and any unmatched names. The colour scale recalculates for the filtered slice. Compare the labelled rates when comparing different filters. Click a matched state to filter the whole report, or click it again to clear the selection. The included layer is a simplified subset of six states from Natural Earth. Retention and portfolio use other groupings because their sample data has no meaningful geography.
+
+### Make your first recipe
+
+A recipe is an ordered list of edits you can run again. For example, you can add a decision brief, add commentary slots, and standardise hover text whenever you receive a monthly report. Recipes can be edited and shared as JSON files.
+
+1. Open a sample report or a copy of your own dashboard. Choose **Plugins › Recipe workshop**.
+2. Pick **Executive review pack**. Read the plain-language steps. Hover over or focus the **?** beside each section for a short explanation. On a touch screen, tap **?**.
+3. Edit the **Executive brief** step. Rename the tab to **Board brief** and add a decision question. Use the arrows to reorder steps, **×** to remove one, or **Add step** to add another tab, commentary, hover text, filter or text replacement.
+4. Choose **Check targets**. It leaves the dashboard untouched. **Ready** means the target was found or the step can be prepared. **Keep** means a matching tab already exists. **Review** means you need to check the selector, field or outcome. This check uses the current structure and can only estimate the effect of steps that depend on earlier changes. Try those on a copy.
+5. Choose **Apply recipe** and inspect the result. For the example, open **Board brief** and read the question. Use **Undo** to reverse the application in one step. Applying an **Add tab if it’s missing** step again keeps a matching tab and its content.
+6. Choose **Download recipe** to keep an editable copy, or use **Load recipe JSON** to bring one back. **Advanced · edit recipe JSON** exposes options such as exact chart selectors, colours and bindings.
+
+The library includes executive, monthly close, risk, geography and reader help templates. The **Commercial chart kit** adds a palette, plain-number tooltips, and a tab for definitions and source units.
+
+### Start with a dashboard you already have
+
+Choose **Capture dashboard setup**. Pick the pieces to reuse. Tab titles, theme and Mothership chart settings are selected by default. Dataset names and bindings, authored commentary, and plain text from reader help tabs are optional. Captured titles and labels can contain sensitive information. Review them before sharing. Data rows, embedded assets, test results, review comments and custom dashboard scripts stay with the source.
+
+| Keep it as | What it gives you | Where to use it |
+|---|---|---|
+| **Recipe JSON** | An editable list of repeatable changes | Recipe workshop in Mothership |
+| **Skill ZIP** | The recipe and instructions for an assistant | Unzip and install the folder in the work assistant's supported skill directory, or hand it to an assistant that can read the files |
+| **Plugin JS** | A button that applies this recipe | Review the file, then choose Plugins › Load plugin and press its Apply recipe button |
+
+### Practise with a finished dashboard and two labs
+
+**Browse report layouts** includes the **Monsoon Readiness Review** showcase and two separate **Practice labs**. Open any sample and use its filters in **Interact**. Switch to **Edit** to try the ribbon. The labs have **Practice tasks** and downloadable source files. Open a fresh copy whenever you want to reset your practice work.
+
+| Try this | Sample and a result you can verify |
+|---|---|
+| Navigation, map joins, decision wording, and shared filters | **Monsoon Readiness Review**. Select a state and see the decision desk, KPIs, map and chart inferences follow it. Move the scenario slider and trace the estimate to the largest state in the slice. |
+| Number checks, duplicate names, sorting and faster test drafting | **Release Rehearsal Lab**. Its clean total is 750. Enable the defect and the reported KPI becomes 1,000. Import the source expectation, catch the mismatch, turn the defect off and rerun. |
+| CSV import, chart binding, drill-down, baseline and refresh | **Monthly Close Lab**. Bind a chart to October, save a baseline, and refresh with November. The bound chart should aggregate 915. The embedded source ledger remains an October example. |
+| Chart compatibility and formatting | **File › Samples** has the Chart.js sales, ECharts operations and Plotly risk fixtures. In the editor, check the chart list and **File › Import report** before editing or exporting. |
+| Review, branding, recovery and delivery | Use either lab in **Edit**. Try **Design**, **Review**, **File › Versions**, **Testing**, and **Publish**. Reopen the HTML export, test it offline, and try presenter notes, PDF and PowerPoint where your office setup permits. |
+| Recipe and work assistant round-trip | Use a lab. Check and apply a starter, undo it, capture the setup, then draft a variation with either work model. Paste the returned JSON and check it before applying. |
+
+<!-- guide:mcp -->
+## Draft recipes with Terra or Sonnet
+
+**Plugins › Recipe workshop › Draft with AI** supports **GPT-5.6 Terra** and **Claude Sonnet 5**. Select the model in your approved work assistant. In Mothership, describe the edit and review the draft prompt. Tab, chart, dataset and field names are opt-in. The prompt generator does not add rows, scripts or the dashboard file. It runs in your browser and only sends text to your clipboard or a downloaded file when you choose.
+
+### Use a work chat
+
+1. Copy or download the prompt. Paste it into the work chat with the requested model selected there.
+2. Ask it for a recipe draft. In the workshop choose **Paste recipe** and paste the JSON. A single fenced JSON block is accepted.
+3. Use **Check targets**, review the recipe and apply it to a disposable copy. For an export, test that the resulting dashboard still opens and responds offline.
+
+### Give Codex or Claude Code access to Mothership tools
+
+The Mothership **MCP server** connects a coding assistant to a separate local Mothership browser. It does not attach to the browser tab where you are editing. You need a local checkout, Chrome or Edge, and Node or Python. Work policies can restrict local processes, remote debugging or MCP servers. Use the work chat steps above if your policy requires them.
+
+- **GPT-5.6 Terra in Codex.** Use `gpt-5.6-terra` when exposed by your Codex login or work API project. Verify the model in the session. Run `codex mcp add mothership -- node "/absolute/path/HTML-Mothership/tools/mcp/mothership-mcp.js"` after replacing the path. Check `codex mcp list`, then open a fresh session. [OpenAI model](https://developers.openai.com/api/docs/models/gpt-5.6-terra) · [Codex MCP](https://developers.openai.com/codex/mcp)
+- **Claude Sonnet 5 in Claude Code.** Use `/model claude-sonnet-5` for the Anthropic model ID when available, or select the provider deployment your organisation gave you. Use the repo's `.mcp.json` from the checkout, or run `claude mcp add --transport stdio mothership -- node "/absolute/path/HTML-Mothership/tools/mcp/mothership-mcp.js"`. Check `/mcp` in Claude Code. [Anthropic model](https://platform.claude.com/docs/en/models/sonnet-5/overview) · [Claude Code MCP](https://code.claude.com/docs/en/mcp)
+
+To run Python instead, replace `node` with your Python command and use `tools/mcp/mothership_mcp.py`. The assistant can use `open_file` on a disposable HTML copy, `recipe_context` for tab/chart names and optional field names, and `preview_recipe` to check the draft without applying it. Use `run_recipe` only when you want the connected assistant to apply the recipe to that copy. A model's availability and access permissions depend on the work environment.
+
+**Claude Desktop and other MCP clients:** use the client’s local server configuration. In Claude Desktop, open **Settings › Developer › Edit Config** and add a `mothership` entry under `mcpServers`. Set the command to `node` or your Python executable, and pass the full path to the matching script as its first argument. Restart the client and check for Mothership tools. Use Claude Code or your approved work chat if your Desktop account does not offer the exact Sonnet 5 model.
+
+<!-- guide:glossary -->
+## Glossary
+
+| Term | Meaning in Mothership |
+|---|---|
+| **Dashboard** | An HTML page containing data displays, text and optional controls. |
+| **Layout / showcase / lab** | A reusable report pattern / a finished example / a safe exercise with known outcomes. |
+| **Recipe / step** | A saved, ordered list of edits / one edit in that list. |
+| **Starter** | A prewritten recipe you can change. |
+| **Target / exact match** | The chart, tab or field a step uses. A full chart name and its tab identify charts with repeated titles. |
+| **Check targets** | A read-only check of the recipe's destinations in the open dashboard. |
+| **Capture** | Turn reusable dashboard settings into recipe steps. |
+| **Skill** | A folder with instructions and reference files an assistant can use for a recurring task. |
+| **Plugin** | Code installed in Mothership. A generated recipe plugin adds a button that runs that recipe. |
+| **Model / harness** | The AI that reasons or drafts / the app and tools it works through, such as Codex or Claude Code. |
+| **MCP** | Model Context Protocol. Mothership's local server lets a compatible assistant call editor tools. |
+| **Dataset / field / binding** | A set of records / a column in those records / the connection from a chart or filter to a dataset. |
+| **Grain** | What one row represents, such as one month, state, team and asset type. |
+| **Snapshot / tenure** | Values as of a point in time / elapsed time in a group, such as weeks since signup. |
+| **KPI / denominator** | A key performance indicator / the base used to compute a rate. |
+| **Key inference / So what** | What the chart shows / why the finding matters or what to investigate. |
+| **Scenario bridge** | A chart from the observed value to an estimated value under a stated assumption. |
+| **Drill-down** | Move from an aggregate to the next level of detail, such as region to state. |
+| **Shapefile / GeoJSON / join field** | Boundary file format / JSON boundary format / the name or code that links a shape to report data. |
+| **Baseline / changed sections** | A saved comparison point / what differs from it now. |
+| **Smoke run / coverage** | A short set of critical checks / the recognised parts planned, tested or passed. |
+| **Test pack / isolated run** | Reusable test definitions / a test job run in a separate local browser process. |
+| **Working export / published copy** | Editable HTML for continued work / a release file with publishing metadata and selected sharing settings. |
+| **Safe mode** | Opens a dashboard with its scripts disabled while you inspect it. |
+
 <!-- guide:review -->
 ## Review, comments and sign-off
 
@@ -147,7 +254,7 @@ Choose **Comment** and click an element, or drag a box around the area. Describe
 
 **Weak comment:** “Fix this chart.”
 
-**Useful comment:** “On Overview › Sales by region, the West bar shows ₹1.2 Cr after selecting November. Finance's November total is ₹1.4 Cr. Check the date filter and the exclusion of credit notes. Done when West shows ₹1.4 Cr and the tooltip says November.”
+**Useful comment:** “On Overview › Sales by region, the West bar shows 1.2M after selecting November. Finance's November total is 1.4M. Check the date filter and the exclusion of credit notes. Done when West shows 1.4M and the tooltip says November.”
 
 If the fault happens after interacting, reproduce it in **Interact**, then use **Review › What I did** to capture what led to it. Save the **Excel tracker** for a meeting; reimport the edited tracker to update tracked comments. Use **File › Compare** to review a saved version against the current dashboard before resolving the feedback.
 
@@ -238,12 +345,20 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 | No charts, but text is visible | Safe mode or missing chart script | For a trusted file, check View › Safe mode and File › Import report; reopen its folder if assets are missing |
 | Works in the editor, blank after export | Missing resources or script-generated content | Try the exported file offline and read the browser/load error; confirm the source assets are bundled |
 | Filter appears but chart does not change | The chart's binding | In Data & drill-down, check that the chart uses the filtered dataset and field |
-| A number jumps by 100,000 or 10,000,000 | Units already scaled | Confirm raw units and choose an unscaled format if the dataset already stores lakh/crore |
+| A number is much smaller or larger than expected | Units already scaled | Confirm the source unit and choose an unscaled format when the source already stores values in thousands or millions |
 | Dataset refresh is blocked | Required column renamed or measure has text | Restore the exact header and fix the values in the new file, then preview again |
 | A test didn't execute | Wrong tab, unavailable target, manual step or cap | Read the result and target. Open the correct tab, update the target and rerun or check manually |
 | Tests show Stale | An edit happened after the last run | Run the relevant tests again against the new revision |
 | Lost a change | Wrong working file or browser profile | Look in File › Versions, Recover, or Downloads; reopen the last exported HTML |
 | PDF chart is hard to read | Large tab fitted to one page | Shorten the tab or use the storyline to put one chart on each slide |
+| Recipe says a target needs review | Ambiguous chart, different tab title or missing dataset field | Open Check targets. Match the exact title, qualify it with the tab, or update the dataset and field. Check again before applying. |
+| Applying a recipe left a tab unchanged | It already matched an Add a tab if it’s missing step | Open the tab and edit its content directly. Use Add a new tab every time only when you want another tab. |
+| The assistant returned something you cannot paste | Extra prose or an unsupported action | Ask for one Mothership JSON object, or one JSON code block. Fix the step listed by Paste recipe. Use Advanced for an exact selector. |
+| Terra or Sonnet is missing from the picker | Work account, provider or model policy | Confirm the exact model with your work login and provider. Choose the model there. Mothership's Draft with AI menu chooses the prompt format. |
+| The assistant sees a different dashboard | Local MCP opens its own browser | Use open_file on a disposable copy in the assistant session. Confirm the tab names with recipe_context. |
+| The work client blocks local MCP | Local execution, managed MCP or browser policy | Use Draft with AI, copy the prompt to approved chat, then paste the JSON back. |
+| Map shows zero matched shapes | Wrong join field, state spelling or code | Choose the shared name or ISO code field. Check unmatched values. Convert projected files to WGS84 and keep one polygon layer in the ZIP. |
+| Report CSV was rejected | Missing required header, invalid numeric value, or size cap | Reset filters and download the example CSV. Match headers and units. The loader supports up to 20,000 rows and 6 MB. |
 | Copy or export is blocked | Browser permission or local-file restrictions | Try Save as or a download, or use an approved Chrome/Edge browser |
 
 **When asking for help:** include the editor version (Help › About), browser and operating system, exact command, what you expected and what happened. Include a small non-confidential sample or a screenshot of the error and the Import report. Do not share client data in a public issue.
@@ -266,3 +381,10 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 **Can a browser version snapshot replace backup?** No. It lives in one browser profile. Export dated HTML files to a folder you can recover later.
 
 **Can I work with a teammate?** Exchange a working copy, use versioned filenames and the comment tracker, and agree who edits the master file. There is no live co-editing or automatic merging of separate copies.
+
+
+**Will Check targets run my recipe?** It checks the structure and existing targets without applying steps. Check the actual results on a disposable dashboard copy before reusing a recipe widely.
+
+**Do I need work-model access for a recipe?** You can make, edit, check and run recipes offline. Your work assistant is optional and can draft the JSON or inspect a disposable copy through MCP.
+
+**Which sample should I open first?** Open Monsoon Readiness Review to see a finished report. Open Release Rehearsal Lab to practise QA, or Monthly Close Lab to practise a refresh and handover.

@@ -150,7 +150,7 @@
     } };
   A.insert_button = { d: 'Insert a button link.', p: { label: ['string', 'Button text', true], url: ['string', 'Link'] },
     f: function (a) { var n = MS.compose.make('<p class="ms-para"><a class="ms-btn" target="_blank" rel="noopener"></a></p>'); n.firstChild.textContent = a.label; if (a.url) n.firstChild.setAttribute('href', a.url); MS.compose.place(n, 'Insert button'); return { ref: refOf(n) }; } };
-  A.insert_kpis = { d: 'Insert a row of KPI cards. With a dataset each card calculates (and follows filters); without, values are typed.', p: { cards: ['array', '[{label, dataset, measure, agg: sum|avg|count|distinct|min|max, format: inr|cr|lakh|int|k|m|pct|pct100|usd, note, value}]', true], after: ['string', 'Element ref to insert after'] },
+  A.insert_kpis = { d: 'Insert a row of KPI cards. With a dataset each card calculates (and follows filters); without, values are typed.', p: { cards: ['array', '[{label, dataset, measure, agg: sum|avg|count|distinct|min|max, format: num|short|int|k|m|pct|pct100|usd, note, value}]', true], after: ['string', 'Element ref to insert after'] },
     f: function (a) {
       var r = rt(), row = MS.compose.make('<div class="ms-kpis"></div>'), specs = {};
       a.cards.forEach(function (c) {
@@ -170,7 +170,7 @@
       MS.history.state('KPI status colours', function (s) { if (!s.kpis[id]) return; if (a.better) s.kpis[id].status = { better: a.better, good: a.good, bad: a.bad }; else delete s.kpis[id].status; });
       return settle(150).then(function () { return { ref: refOf(card), status: card.getAttribute('data-ms-status') || null, value: (card.querySelector('.ms-kpi-value') || {}).textContent }; });
     } };
-  A.chart_summaries = { d: 'Plain-language summaries of the charts ("West is highest at ₹4.2 Cr (38%)…"), written from the numbers on screen. Optionally add them as captions under the charts or for screen readers.', p: { chart: ['string', 'One chart (default: all)'], show: ['string', 'caption | aria (screen readers only) | off; leave out to just read them'] },
+  A.chart_summaries = { d: 'Plain-language summaries of the charts ("West is highest at 4.2M (38%)…"), written from the numbers on screen. Optionally add them as captions under the charts or for screen readers.', p: { chart: ['string', 'One chart (default: all)'], show: ['string', 'caption | aria (screen readers only) | off; leave out to just read them'] },
     f: function (a) {
       var keys = a.chart ? [chartKey(a.chart)] : rt().charts().map(function (c) { return c.key; });
       if (a.show) MS.summaries.set(keys, a.show);
@@ -178,7 +178,7 @@
     } };
   A.get_locale = { d: 'The region and currency Mothership uses to write numbers (US dollars unless changed), with examples.', p: {},
     f: function () { var o = MS.locale.get(); return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); } };
-  A.set_locale = { d: 'Set the country, currency and number style for pop-ups, axes, KPI cards and summaries that use the currency or short formats. Give a country (US, India, Germany…) and optionally a different currency.', p: { country: ['string', 'Country name or 2-letter code, e.g. US, IN, GB, DE'], currency: ['string', '3-letter currency code, e.g. USD, INR, EUR (default: the country\'s)'], locale: ['string', 'Number style, e.g. en-US, en-IN, de-DE (default: the country\'s)'], units: ['string', 'intl (K, M, B) | indian (lakh, crore)'] },
+  A.set_locale = { d: 'Set the country, currency and number style for pop-ups, axes, KPI cards and summaries that use the currency or short formats. Give a country and optionally an explicit currency.', p: { country: ['string', 'Country name or 2-letter code, e.g. US'], currency: ['string', '3-letter currency code, e.g. USD (default: the country\'s)'], locale: ['string', 'Number style, e.g. en-US (default: the country\'s)'], units: ['string', 'Compact number style, e.g. intl (K, M, B)'] },
     f: function (a) { var o = MS.locale.set(a); return settle(400).then(function () { return Object.assign({}, o, { describe: MS.locale.describe(o), example: MS.locale.sample(o) }); }); } };
   A.publish_check = { d: 'Ready to publish? Checks script errors, charts with no numbers, untitled charts, KPI totals, open comments, internet files, size and title. fail = fix first, warn = look at it.', p: {},
     f: function () { var items = MS.preflight.run(); return { ready: !items.some(function (x) { return x.status === 'fail'; }), items: items }; } };
@@ -283,8 +283,8 @@
   /* ---------------------------------------------------------- charts */
   A.chart_settings = { d: 'Change a chart: commentary (title/subtitle/inference), pop-up text template, look (fonts, legend, pop-up colours, axis number format), linked data and drill-down.', p: {
       chart: ['string', 'Chart name or key', true], title: ['string', 'Title above the chart'], subtitle: ['string', 'Subtitle'], inference: ['string', 'The "so what" line'],
-      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:cr}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :cur :curshort :short (follow set_locale) :inr :cr :lakh :k :m :pct :int'],
-      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: cur|curshort|short|inr|cr|lakh|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
+      tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:short}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :cur :curshort :short (follow set_locale) :usd :k :m :pct :int'],
+      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: cur|curshort|short|usd|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
       data: ['object', '{dataset, levels:[col,...], measure, agg, series, sort, top} (null = unlink)'], double_click: ['string', 'levels | details | crossfilter | none'], columns: ['array', 'Columns in the records view'] },
     f: function (a) {
       var r = rt(), key = chartKey(a.chart), c = r.chart(key);
@@ -479,7 +479,7 @@
     f: function (a) { return MS.deliver.pptx({ from: a.from }).then(function (r) { var b = '', u = r.bytes; for (var i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return { slides: r.slides, name: MS.exportName(a.from === 'story' ? '-story' : '').replace(/\.html$/, '.pptx'), b64: btoa(b) }; }); } };
 
   /* ---------------------------------------------------------- automation */
-  A.run_recipe = { d: 'Run a Mothership recipe (a list of steps: layout, theme, addTab, renameTab, deleteTab, hideTab, wrapCharts, tooltip, chart, moveChart, copyChart, dataset, filter, replaceText, css). See docs/EXTENDING.md.', p: { recipe: ['object', '{steps:[{do:..., ...}]}', true] },
+  A.run_recipe = { d: 'Apply a Mothership recipe and return completed steps and issues. Recipes can set themes, ensure tabs, style charts and add filters. See docs/EXTENDING.md.', p: { recipe: ['object', '{steps:[{do:..., ...}]}', true] },
     f: function (a) { return Promise.resolve(MS.plugins.runRecipe(a.recipe, 'api')).then(function (x) { return x || done(); }); } };
   A.call = { d: 'Call any Mothership function by path with positional arguments, e.g. path "tabs.add", args ["FAQ","content","<h1>FAQ</h1>"]. Gives access to every feature, including ones without their own tool.', p: { path: ['string', 'e.g. "blocks.wrapAll", "order.set", "rt.refresh"', true], args: ['array', 'Arguments'] },
     f: function (a) {

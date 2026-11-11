@@ -32,7 +32,7 @@ Make one chart answer a question without your narration.
 
 1. In Edit, double-click Sales by region. In Commentary & size add the period and a one-line takeaway. Apply.
    **Check:** The chart has a title, units or period, and a takeaway you can verify.
-2. In the Tooltip settings choose a rupee or crore format for the sample rupee values. Apply and hover in Interact.
+2. In the Tooltip settings choose Label: value for a plain-number display. Apply and hover in Interact.
    **Check:** The tooltip names the region and shows a sensible amount. Compare one bar with the original.
 3. Check the legend, colours and chart size. Try Fit, then draw at a phone width from View.
    **Check:** You can still read the title and know what the chart measures. Note anything that needs a wider layout.
@@ -52,8 +52,8 @@ Learn the difference between a displayed total and the rows behind it.
 
 Apply a readable, repeatable design and use the right units.
 
-1. Choose Design › Region & currency. Set India, INR and lakh/crore.
-   **Check:** The preview shows ₹ and Indian units. The original source values are unchanged.
+1. Choose Design › Region & currency. Set United States, USD and thousand/million/billion.
+   **Check:** The preview shows US separators and K/M/B abbreviations. Currency formatting is optional.
 2. Choose Design › Edit theme. Set a primary colour and a body font. Apply.
    **Check:** The theme is applied. Read the smallest text and check status colours are still meaningful.
 3. Run the brand and accessibility checks. Fix one clear issue, such as a missing title or an unreadable colour.
@@ -122,5 +122,20 @@ Save, reopen and verify the exact file you would share.
    **Check:** The file opens without the editor. It can also reopen in Mothership for editing.
 3. Save the validation record. For a viewer release, set a version and as-of date under Publish and check that separate file.
    **Check:** The record identifies a working revision and what was checked. The published copy has the intended data, comments and release details.
+
+## 12. Build and apply a recipe (7 min)
+
+Turn a repeatable report edit into a recipe you can use next month.
+
+1. Open Plugins › Recipe workshop and choose Executive review pack. Hover or focus the question-mark help beside Make it yours.
+   **Check:** The list describes the edits in plain language and the pop-up explains how to change their order.
+2. Edit the Executive brief step and change its Tab title to Board brief. Save the step. Choose Check targets.
+   **Check:** Board brief is listed as a new tab. No dashboard edits have been applied yet.
+3. Choose Apply recipe, close the workshop, and open Board brief.
+   **Check:** The brief has a decision question and a headline prompt. Applying the same recipe again keeps the matching tab.
+4. Open the workshop again. Use Capture dashboard setup to create a recipe from the edited dashboard. Check the steps, then use Download recipe to save it.
+   **Check:** The downloaded JSON can be loaded into another workshop. You can also choose Export skill ZIP or Export plugin JS.
+5. Optionally choose Draft with AI. Pick Terra or Sonnet, describe one repeatable edit and preview the prompt. If you use a work assistant, paste the returned recipe back for review.
+   **Check:** The prompt names your chosen model. Check targets lets you review an imported draft before applying it.
 
 The monthly refresh lesson’s CSV downloads are available inside the tutorial. For offline practice without the editor tutorial, use [October](practice/sales-practice-2026-10.csv) and [November](practice/sales-practice-2026-11.csv).
