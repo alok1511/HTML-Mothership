@@ -138,4 +138,19 @@ Turn a repeatable report edit into a recipe you can use next month.
 5. Optionally choose Draft with AI. Pick Terra or Sonnet, describe one repeatable edit and preview the prompt. If you use a work assistant, paste the returned recipe back for review.
    **Check:** The prompt names your chosen model. Check targets lets you review an imported draft before applying it.
 
+## 13. Make a consulting chart from a layout (6 min)
+
+Insert a ready-made consulting chart, write its action title and know how to undo it.
+
+1. Open Insert › Chart layouts. Type ranked in the search box and choose Ranked bars, one highlight.
+   **Check:** The window lists Items and Value, a Data choice and a suggested action title.
+2. Leave Data on Sample data. Read the suggested title, then change it to a sentence of your own that says the one thing to take away. Choose Insert.
+   **Check:** A horizontal bar chart with one blue bar, the others grey, values at the end of each bar, and your title above it.
+3. Press Ctrl+Z once, then Ctrl+Y.
+   **Check:** The whole chart and its sample data disappear in one step and come back in one step.
+4. Open Chart layouts again and choose Bridge (waterfall). Insert it with the sample data.
+   **Check:** The first and last bars are totals, increases float in green, decreases in red, and a bracket shows the change from start to end.
+5. Press Ctrl+S, name the version After layouts, then open File › Versions.
+   **Check:** The version is listed as v1 (or the next number) for this practice dashboard, with Restore, Compare, Download and Delete.
+
 The monthly refresh lesson’s CSV downloads are available inside the tutorial. For offline practice without the editor tutorial, use [October](practice/sales-practice-2026-10.csv) and [November](practice/sales-practice-2026-11.csv).

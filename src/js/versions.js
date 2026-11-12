@@ -48,22 +48,34 @@
     return Promise.resolve(download());
   };
 
+  /* Versions: each dashboard has its own numbered history (v1, v2, …) kept in this browser.
+     Named versions are the ones you save (Ctrl+S, File › Versions, save_version); automatic ones are the safety copies
+     Mothership keeps before risky steps (refreshing data, removing names, closing with unsaved work). Automatic copies
+     are trimmed first, so they can never push out a version you named. */
   var lastId = 0;
-  function snapshot(name, html) {
+  V.KEEP_NAMED = 100; V.KEEP_AUTO = 20;
+  function docName() { return MS.doc && MS.doc.name || 'dashboard.html'; }
+  function all() { return MS.store.all('versions').then(function (list) { return list.sort(function (a, b) { return b.key - a.key; }); }); }
+  function snapshot(name, html, kind) {
     if (!MS.child) return Promise.resolve(false);
     try {
       html = html || MS.exportHtml();
-      var now = Date.now(), id = lastId = Math.max(now, lastId + 1);
-      var rec = { id: id, name: name || ('Version ' + new Date(now).toLocaleString()), doc: MS.doc.name, created: now, html: html, size: html.length };
-      return MS.store.set('versions', id, rec).then(function () { return prune().catch(function () {}); }).then(function () { return rec; });
+      var now = Date.now(), id = lastId = Math.max(now, lastId + 1), doc = docName();
+      return all().catch(function () { return []; }).then(function (list) {
+        var top = 0; list.forEach(function (x) { if (x.value.doc === doc && x.value.number > top) top = x.value.number; });
+        if (!top) top = list.filter(function (x) { return x.value.doc === doc; }).length;
+        var rec = { id: id, number: top + 1, kind: kind || 'named', name: name || ('Version ' + new Date(now).toLocaleString()), doc: doc, created: now, html: html, size: html.length, editor: MS.VERSION };
+        return MS.store.set('versions', id, rec).then(function () { return prune().catch(function () {}); }).then(function () { return rec; });
+      });
     } catch (e) { return Promise.reject(e); }
   }
   V.checkpoint = function (name, html) {
-    return snapshot(name, html).catch(function (e) { MS.toast('Could not keep a browser recovery copy: ' + e.message + '. Export HTML for a backup.', 'warn', 8000); return false; });
+    return snapshot(name, html, 'auto').catch(function (e) { MS.toast('Could not keep a browser recovery copy: ' + e.message + '. Export HTML for a backup.', 'warn', 8000); return false; });
   };
-  V.save = function (name, silent) {
-    return snapshot(name).then(function (rec) {
-      if (rec && !silent) MS.toast('Saved version "' + rec.name + '". See File › Versions.', 'ok');
+  // Silent saves are the safety copies other features keep before a risky step.
+  V.save = function (name, silent, kind) {
+    return snapshot(name, null, kind || (silent ? 'auto' : 'named')).then(function (rec) {
+      if (rec && !silent) MS.toast('Saved v' + rec.number + ' “' + rec.name + '”. See File › Versions.', 'ok');
       return rec;
     }).catch(function (e) { MS.toast('Could not save version: ' + e.message + '. Use Export instead.', 'error'); return false; });
   };
@@ -72,27 +84,83 @@
     MS.prompt('Save a version', 'Version ' + new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), 'Name').then(function (n) { if (n) V.save(n); });
   };
   function prune() {
-    return MS.store.all('versions').then(function (list) {
-      list.sort(function (a, b) { return b.key - a.key; });
-      list.slice(60).forEach(function (x) { MS.store.del('versions', x.key); });
+    return all().then(function (list) {
+      var auto = list.filter(function (x) { return x.value.kind === 'auto'; }), named = list.filter(function (x) { return x.value.kind !== 'auto'; });
+      auto.slice(V.KEEP_AUTO).concat(named.slice(V.KEEP_NAMED)).forEach(function (x) { MS.store.del('versions', x.key); });
     });
   }
-  V.list = function () {
-    MS.store.all('versions').then(function (list) {
-      list.sort(function (a, b) { return b.key - a.key; });
-      var body = list.length ? MS.h('div', { 'class': 'list' }, list.map(function (x) {
-        var v = x.value;
-        return MS.h('div', { 'class': 'list-row' }, [
-          MS.h('div', { 'class': 'grow' }, [MS.h('strong', { text: v.name }), MS.h('br'), MS.h('small', { 'class': 'muted', text: v.doc + ' · ' + new Date(v.created).toLocaleString('en-IN') + ' · ' + MS.bytes(v.size) })]),
-          MS.h('button', { 'class': 'btn sm', onclick: function () { close(); MS.openHtml(v.html, v.doc, { dirty: true }).then(function (ok) { if (ok) MS.toast('Restored "' + v.name + '".', 'ok'); }); } }, ['Restore']),
-          MS.h('button', { 'class': 'btn sm', onclick: function () { MS.download(v.doc.replace(/\.html?$/i, '') + ' - ' + v.name.replace(/[\\/:*?"<>|]+/g, '-') + '.html', v.html); } }, ['Download']),
-          MS.h('button', { 'class': 'btn sm danger', onclick: function (e) { MS.store.del('versions', x.key); e.target.closest('.list-row').remove(); } }, ['Delete'])
-        ]);
-      })) : MS.h('p', { text: 'No versions yet. Press Ctrl+S to save one.' });
-      var close = function () { var w = MS.$('.dlg-wrap'); if (w) w.remove(); };
-      MS.dialog({ title: 'Versions (kept in this browser on this laptop)', wide: true, body: MS.h('div', {}, [body, MS.h('p', { 'class': 'muted', text: 'Versions live in this browser only. Export (Ctrl+E) to keep a file you can share or back up.' })]), buttons: [{ label: 'Close', primary: true, value: null }] });
+  // [{id, number, name, kind, doc, created, size, editor}], newest first. doc: one dashboard's name, or every dashboard.
+  V.records = function (doc) {
+    return all().then(function (list) {
+      return list.map(function (x) { var v = x.value; return { id: x.key, number: v.number || null, name: v.name, kind: v.kind || 'named', doc: v.doc, created: v.created, size: v.size, editor: v.editor || null }; })
+        .filter(function (v) { return !doc || v.doc === doc; });
     });
   };
+  V.get = function (id) { return MS.store.get('versions', +id); };
+  V.restore = function (id, opts) {
+    return V.get(id).then(function (v) {
+      if (!v) throw new Error('No version ' + id + '.');
+      return MS.openHtml(v.html, v.doc, Object.assign({ dirty: true }, opts || {})).then(function (ok) {
+        if (ok && !(opts && opts.nonInteractive)) MS.toast('Restored ' + (v.number ? 'v' + v.number + ' ' : '') + '“' + v.name + '”. Export to keep it as a file.', 'ok');
+        return ok ? v : null;
+      });
+    });
+  };
+  V.forget = function (id) { return MS.store.del('versions', +id); };
+  V.list = function () {
+    var mine = MS.doc ? docName() : null, scope = mine ? 'mine' : 'all', autos = false;
+    var close = function () { var w = MS.$('.dlg-wrap'); if (w) w.remove(); };
+    var holder = MS.h('div', { 'class': 'ver-list' });
+    var seg = MS.h('div', { 'class': 'seg' }, [
+      MS.h('button', { 'class': 'seg-btn', text: 'This dashboard', disabled: !mine, onclick: function () { scope = 'mine'; draw(); } }),
+      MS.h('button', { 'class': 'seg-btn', text: 'All dashboards', onclick: function () { scope = 'all'; draw(); } })]);
+    var autoBox = MS.h('input', { type: 'checkbox', onchange: function () { autos = autoBox.checked; draw(); } });
+    var autoText = MS.h('span', { text: ' Show automatic safety copies' });
+    function row(v) {
+      var when = new Date(v.created).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      var label = (v.number ? 'v' + v.number + ' ' : '') + '“' + v.name + '”';
+      return MS.h('div', { 'class': 'list-row' + (v.kind === 'auto' ? ' ver-auto' : ''), 'data-version': v.id }, [
+        MS.h('span', { 'class': 'ver-num', text: v.number ? 'v' + v.number : '–', title: v.kind === 'auto' ? 'Automatic safety copy' : 'Saved by you' }),
+        MS.h('div', { 'class': 'grow' }, [MS.h('strong', { text: v.name }), MS.h('br'), MS.h('small', { 'class': 'muted', text: (scope === 'all' ? v.doc + ' · ' : '') + when + ' · ' + MS.bytes(v.size) + (v.kind === 'auto' ? ' · automatic' : '') + (v.editor ? ' · Mothership ' + v.editor : '') })]),
+        MS.h('button', { 'class': 'btn sm', title: 'Open this version in place of what is on screen (unsaved work is kept as a safety copy first)', onclick: function () { close(); V.restore(v.id); } }, ['Restore']),
+        MS.h('button', { 'class': 'btn sm', title: 'What changed between this version and the dashboard on screen', disabled: !MS.child, onclick: function () { close(); MS.compare.dialog(v.id); } }, ['Compare']),
+        MS.h('button', { 'class': 'btn sm', title: 'Save this version as an HTML file', onclick: function () { V.get(v.id).then(function (x) { MS.download(x.doc.replace(/\.html?$/i, '') + (x.number ? ' v' + x.number : '') + ' - ' + x.name.replace(/[\\/:*?"<>|]+/g, '-') + '.html', x.html); }); } }, ['Download']),
+        MS.h('button', { 'class': 'btn sm danger', onclick: function (e) {
+          var r = e.target.closest('.list-row');
+          MS.confirm('Delete this version?', label + ' will be removed from this browser. This cannot be undone.', 'Delete', true).then(function (ok) { if (ok) V.forget(v.id).then(function () { r.parentNode.removeChild(r); }); });
+        } }, ['Delete'])
+      ]);
+    }
+    function draw() {
+      MS.$$('button', seg).forEach(function (b, i) { b.classList.toggle('on', (i === 0) === (scope === 'mine')); });
+      V.records(scope === 'mine' ? mine : null).then(function (list) {
+        var hidden = list.filter(function (v) { return v.kind === 'auto'; }).length;
+        var shown = autos ? list : list.filter(function (v) { return v.kind !== 'auto'; });
+        holder.innerHTML = '';
+        holder.appendChild(shown.length ? MS.h('div', { 'class': 'list' }, shown.map(row)) : MS.h('p', { text: list.length ? 'Only automatic safety copies so far. Tick the box below to see them.' : 'No versions yet. Press Ctrl+S to save one.' }));
+        autoText.textContent = ' Show automatic safety copies (' + hidden + ')';
+      });
+    }
+    var body = MS.h('div', {}, [seg, holder, MS.h('label', { 'class': 'field check' }, [autoBox, autoText]),
+      MS.h('p', { 'class': 'muted', text: 'Versions live in this browser on this laptop: v1, v2, … for each dashboard. Mothership also keeps automatic safety copies before risky steps; the oldest are removed first, so they never push out a version you named. Export (Ctrl+E) to keep a file you can share or back up.' })]);
+    MS.dialog({ title: 'Versions', wide: true, body: body, buttons: [{ label: 'Save a version now', value: 'save', disabled: !MS.child }, { label: 'Close', primary: true, value: null }] }).then(function (v) { if (v === 'save') V.savePrompt(); });
+    draw();
+  };
+
+  MS.api.add('versions', { d: 'The saved versions of dashboards in this browser (File › Versions): each dashboard has its own numbered history v1, v2, …. action: list (default; the open dashboard, or all: true) | restore (id or number; replaces what is on screen, needs force when it has unexported edits) | delete (id). Automatic safety copies are listed with kind "auto"; save one with save_version.',
+    p: { action: ['string', 'list | restore | delete'], id: ['number', 'Version id (from list)'], number: ['number', 'Version number of the open dashboard, e.g. 3 for v3'], all: ['boolean', 'list: every dashboard, not just the open one'], force: ['boolean', 'restore: replace unexported edits on screen'] },
+    f: function (a) {
+      var act = a.action || 'list', doc = MS.doc ? docName() : null;
+      var find = function () {
+        if (a.id != null) return Promise.resolve(+a.id);
+        if (a.number == null) throw new Error('Say which version: id, or number (for the open dashboard).');
+        return V.records(doc).then(function (list) { var v = list.filter(function (x) { return x.number === +a.number; })[0]; if (!v) throw new Error('No v' + a.number + ' for ' + (doc || 'this dashboard') + '.'); return v.id; });
+      };
+      if (act === 'list') return V.records(a.all ? null : doc).then(function (list) { return { dashboard: a.all ? null : doc, versions: list.map(function (v) { return Object.assign({ version: v.number ? 'v' + v.number : null, when: new Date(v.created).toISOString() }, v); }) }; });
+      if (act === 'restore') return find().then(function (id) { return V.restore(id, { nonInteractive: true, force: !!a.force }); }).then(function (v) { if (!v) throw new Error('Not restored. The dashboard on screen has unexported edits: export it first, or pass force: true.'); return { restored: v.number ? 'v' + v.number : v.name, name: v.name, doc: v.doc }; });
+      if (act === 'delete') return find().then(function (id) { return V.forget(id).then(function () { return { deleted: id }; }); });
+      throw new Error('action is list, restore or delete.');
+    } });
 
   /* autosave for crash recovery */
   var autosave = MS.debounce(function (session) {

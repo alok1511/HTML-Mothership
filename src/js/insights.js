@@ -365,7 +365,7 @@
     return MS.store.all('versions').catch(function () { return []; }).then(function (list) {
       list.sort(function (a, b) { return b.key - a.key; });
       var out = MS.child ? [{ id: 'now', name: 'Now (on screen)', get: function () { return MS.exportHtml(); } }] : [];
-      return out.concat(list.map(function (x) { var v = x.value; return { id: String(x.key), name: v.name + ' · ' + new Date(v.created).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), get: function () { return v.html; } }; }));
+      return out.concat(list.map(function (x) { var v = x.value; return { id: String(x.key), name: (v.number ? 'v' + v.number + ' ' : '') + v.name + ' · ' + new Date(v.created).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), doc: v.doc, get: function () { return v.html; } }; }));
     });
   };
   V.compare = function (htmlA, htmlB) {
@@ -377,7 +377,7 @@
     r.sections.forEach(function (s) { L.push(s.title.toUpperCase()); s.items.forEach(function (x) { L.push((x.op === '+' ? '+ ' : x.op === '-' ? '− ' : '~ ') + x.text + (x.before != null ? ': ' + x.before + ' → ' + x.after : '')); }); L.push(''); });
     return L.join('\n');
   };
-  V.dialog = function () {
+  V.dialog = function (beforeId) {
     V.sources().then(function (src) {
       var files = {};
       var mk = function (pick) {
@@ -392,7 +392,8 @@
         return s;
       };
       if (src.length < 1) return MS.toast('Open a dashboard or save a version first (Ctrl+S).', 'warn');
-      var a = mk(Math.min(1, src.length - 1)), b = mk(0);
+      var pre = beforeId != null ? src.map(function (x) { return x.id; }).indexOf(String(beforeId)) : -1;
+      var a = mk(pre >= 0 ? pre : Math.min(1, src.length - 1)), b = mk(0);
       a.addEventListener('change', function () { if (a.value !== 'file') go(); }); b.addEventListener('change', function () { if (b.value !== 'file') go(); });
       var get = function (s) { var x = files[s.value]; if (x) return { name: x.name, html: x.html }; var y = src.filter(function (q) { return q.id === s.value; })[0]; return y ? { name: y.name.split(' · ')[0], html: y.get() } : null; };
       var list = h('div', { 'class': 'cmp-list' }), sbs = h('div', { 'class': 'cmp-sbs' }), last = '';

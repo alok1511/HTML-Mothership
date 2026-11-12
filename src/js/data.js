@@ -111,7 +111,8 @@
   /* ================================================================ INSERT */
   var Ins = MS.insert = {};
   Ins.block = function (b) {
-    var rt = MS.rt(), sel = MS.sel && MS.blocks.of(MS.sel);
+    var rt = MS.rt(), sel = MS.sel && MS.sel.isConnected && MS.blocks.of(MS.sel);
+    if (sel && !sel.parentNode) sel = null; // a selection left over from a dashboard that has since closed
     var section = !sel && MS.sel && MS.sel.isConnected && MS.sel.closest('.ms-section');
     var host;
     if (sel) host = sel.parentNode;

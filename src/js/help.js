@@ -75,6 +75,8 @@
     prompt: function () { return practice().prompt; },
     'practice-data': function () { var r = rt(); return r && Object.keys(r.state.datasets).some(function (n) { var d = r.state.datasets[n]; return d.rows && d.rows.length === 3 && /sales-practice-2026-10/i.test(d.file || n); }); },
     plan: function () { return MS.qa.cases().length > 0; },
+    'layout-ranked': function () { var r = rt(); return !!r && r.charts().some(function (c) { var s = (r.state.charts[c.key] || {}).style; return s && s.highlight && s.labels; }); },
+    'layout-bridge': function () { var r = rt(); return !!r && r.charts().some(function (c) { var s = (r.state.charts[c.key] || {}).style; return s && s.colors && s.colors.Base === 'transparent'; }); },
     'recipe-brief': function () { return rt() && rt().tabs().some(function (t) { return t.title === 'Board brief'; }); },
     ran: function () { return MS.qa.cases().some(function (c) { return !!(c.stepResults && c.stepResults.length); }); },
     stale: function () { return !!MS.qa.summary().byStatus.Stale; },

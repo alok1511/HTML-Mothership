@@ -19,12 +19,12 @@
     return true;
   };
   // The style fields the template owns: colours and font families (size, weight and layout stay free).
-  Fm.BRAND_KEY = /colou?r$|^background|^font(Family)?$|^tip(Bg|Border)$/i;
+  Fm.BRAND_KEY = /colou?rs?$|^background|^font(Family)?$|^tip(Bg|Border)$|^highlight$|^signs$/i;
   // For the shared style setters: blocks (with the message) when a locked brand field would change.
   // With `before`, only fields whose value differs count, so re-saving a whole look is fine.
   Fm.blocksStyle = function (next, before, what) {
     if (Fm.applying || !Fm.locked() || !next) return false;
-    var str = function (v) { return v == null ? '' : String(v); };
+    var str = function (v) { return v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v); };
     var keys = Object.keys(next).concat(before ? Object.keys(before) : []);
     var hit = keys.some(function (k) { return Fm.BRAND_KEY.test(k) && (!before || str(next[k]) !== str(before[k])); });
     return hit ? Fm.blocks(what) : false;

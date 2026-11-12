@@ -16,14 +16,24 @@ const esc = s => s.replace(/<\/script/gi, '<\\/script');
 
 // The package, editor and both MCP entry points publish the same release number.
 const version = JSON.parse(read('package.json')).version;
-for (const p of ['src/js/app.js', 'tools/mcp/mothership-mcp.js', 'tools/mcp/mothership_mcp.py']) {
-  if ((/VERSION = '([^']+)'/.exec(read(p)) || [])[1] !== version) throw new Error('Version mismatch: ' + p + ' (expected ' + version + ')');
+// package.json is the one place to change it; this stops a build where anything else disagrees.
+const versionChecks = [
+  ['src/js/app.js', /VERSION = '([^']+)'/],
+  ['tools/mcp/mothership-mcp.js', /VERSION = '([^']+)'/],
+  ['tools/mcp/mothership_mcp.py', /VERSION = '([^']+)'/],
+  ['src/js/runtime.js', /__MS_RT = \{ version: '([^']+)'/],
+  ['package-lock.json', /"version": "([^"]+)"/],
+  ['CHANGELOG.md', /^## (\d+\.\d+\.\d+)/m],
+  ['README.md', /Version (\d+\.\d+\.\d+)/]
+];
+for (const [p, re] of versionChecks) {
+  if ((re.exec(read(p)) || [])[1] !== version) throw new Error('Version mismatch: ' + p + ' (expected ' + version + '). Change package.json and every file listed in tools/build.js together.');
 }
 
 // 1. samples
 const srcDir = path.join(root, 'samples/src');
 const bundle = {};
-const ids = { 'sales-dashboard.html': 'sales', 'ops-dashboard.html': 'ops', 'risk-dashboard.html': 'risk' };
+const ids = { 'sales-dashboard.html': 'sales', 'ops-dashboard.html': 'ops', 'risk-dashboard.html': 'risk', 'claims-risk-review.html': 'layouts' };
 function inlineSample(html) {
   return html.replace(/<script data-inline="([^"]+)"><\/script>/g, (m, p) => '<script>/* ' + p.split('/').pop() + ' (inlined) */\n' + esc(read(p)) + '\n</script>');
 }

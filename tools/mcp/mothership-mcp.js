@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '3.9.0';
+var VERSION = '4.0.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -307,7 +307,8 @@ var LOCAL = {
   status: { description: 'Is Mothership running? Which browser, which editor file, and what is open.', props: {},
     run: function () {
       var s = { editor: EDITOR, browser: B.exe || (process.env.MOTHERSHIP_ATTACH ? 'attached on port ' + process.env.MOTHERSHIP_ATTACH : findBrowser()), mode: B.mode, connected: !!(B.ws && B.ws.open && B.session), headless: HEADLESS && B.mode !== 'attached', saveFolder: OUT, lastError: B.error };
-      return ensure().then(function () { return api('outline', {}); }).then(function (o) { s.dashboard = o.open ? { name: o.name, charts: o.charts.length, tabs: o.tabs.length, unsavedChanges: o.unsavedChanges } : null; return s; }, function (e) { s.lastError = e.message; return s; });
+      s.serverVersion = VERSION;
+      return ensure().then(function () { return api('outline', {}); }).then(function (o) { s.dashboard = o.open ? { name: o.name, charts: (o.charts || []).length, tabs: (o.tabs || []).length, unsavedChanges: o.unsavedChanges } : null; s.editorVersion = o.editorVersion || null; if (s.editorVersion && s.editorVersion !== VERSION) s.warning = 'This MCP server is version ' + VERSION + ' but the editor it opened is ' + s.editorVersion + '. Point the server at the mothership.html from the same Mothership folder (MOTHERSHIP_HTML), or some tools may be missing.'; return s; }, function (e) { s.lastError = e.message; return s; });
     } },
   open_file: { description: 'Open a dashboard HTML file from disk. Local scripts, styles, images and fonts it refers to are bundled in, so it works offline. A published file locked for editing needs its password.', props: { path: ['string', 'Path to the .html file', true], password: ['string', 'Password, for a published file locked for editing'], force: ['boolean', 'Replace unexported edits (default false)'] },
     run: function (a) {
@@ -468,6 +469,7 @@ var INSTRUCTIONS = 'Mothership edits HTML dashboards like PowerPoint edits slide
   'Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. Every change is undoable (undo). ' +
   'Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). ' +
   'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout. ' +
+  'For a new consulting-style chart use chart_layouts (action list, then insert with your dataset, or sample: true to try it); it writes an action title and keeps the house rules. Saved versions: versions and save_version. ' +
   'To test a dashboard like Playwright: ui_snapshot, then ui_tab / ui_click / ui_hover / ui_select / ui_type, check with ui_expect / ui_read / ui_errors, look with ui_screenshot; plan and record with test_plan / test_run / test_record and save with save_test_document.';
 
 function reply(id, result) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, result: result }) + '\n'); }

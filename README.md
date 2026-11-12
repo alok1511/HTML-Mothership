@@ -27,7 +27,7 @@
 13. [Roadmap ideas](#13-roadmap-ideas)
 14. [Licence](#14-licence)
 
-**Current release: 3.9.0.** Open **Start here** for the guided workflow or **Help › Tutorial** for 11 practice lessons. The [user guide](docs/USER-GUIDE.md) and [practice handout](docs/TUTORIAL.md) are also available here. See [what changed](CHANGELOG.md).
+**Version 4.0.0** (see [Version history](#version-history) for how the numbers fit together). Open **Start here** for the guided workflow or **Help › Tutorial** for 13 practice lessons. The [user guide](docs/USER-GUIDE.md) and [practice handout](docs/TUTORIAL.md) are also available here. See [what changed](CHANGELOG.md).
 
 ---
 
@@ -246,6 +246,37 @@ The [changelog](CHANGELOG.md) lists all fixes and compatibility notes.
 
 ---
 
+### New in 4.0.0: chart layouts, and one version number
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Chart layouts** | **Insert › Chart layouts** or **Charts › Chart layouts** | 24 consulting-style charts ready to fill, built from the McKinsey-style recipes: ranked bars with one highlight, columns with a CAGR arrow, bridge (waterfall), 100% mix, line against a dashed target, variance against plan, distribution, risk heat map, risk register with RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause (Pareto), frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, an executive summary page and house style for existing charts. Pick one, choose your columns (Mothership guesses them) or **try it on sample data**. It writes a suggested action title from your numbers, adds the unit line and source, and inserts everything as one undo step. |
+| **The consulting look on any chart** | **Charts › Look**, or `chart_settings.look` | New for Chart.js charts: values on the bars, no gridlines, no value axis, dashed series (targets), green/red by plus or minus, 100% stacked and horizontal stacked bars. For every chart: its own colours and a highlight (one colour for the point you want read, grey for the rest) that no longer changes other charts. |
+| **Numbered versions per dashboard** | **File › Versions** (Ctrl+S to save) | Each dashboard has its own history v1, v2, v3…. **Compare** any version with the screen. The automatic safety copies Mothership keeps before risky steps are listed separately and trimmed first, so they can no longer push out a version you named. |
+| **Newer-file warning** | When you open a file | If a dashboard was saved by a newer Mothership than the copy you are using, Mothership says so, so you know to use the newest copy. |
+| **MCP** | Both servers | `chart_layouts` (list, preview, insert) and `versions` (list, restore, delete). `status` reports the editor version and warns if it does not match the server. |
+
+### Version history
+
+Until 3.9.0 the releases had two numbers: the name used in messages and zip files ("v3.7") and a different number inside the app and `package.json` (2.8.0). From 3.9.0 there is one number, set in `package.json` and checked by `node tools/build.js` against the editor, the dashboard runtime, both MCP servers, this README and the changelog. Zip files are named after it: `HTML-Mothership-v4.0.0.zip` (`node tools/release.js`).
+
+| Release | Number inside the app | Pull request | Highlights |
+|---|---|---|---|
+| **4.0.0** | 4.0.0 | #14 to #17 and this release | Chart layouts, recipe workshop, report layouts, inference ladder, numbered versions. The earlier zip `HTML-Mothership-v3.9-inferences.zip` was a preview of part of it. |
+| 3.9.0 | 3.9.0 | #13 | Studio redesign, reliability, guided workflow and lessons |
+| v3.8 | 2.9.0 | #12 | Full-coverage testing and expected numbers |
+| v3.7 | 2.8.0 | #11 | Watch tests run, prompt from failed tests, top bar |
+| v3.6 | 2.7.0 | #10 | Move with the mouse, draw on charts, testing module |
+| v3.4 and v3.5 | 2.6.0 | #9 | Copy and paste, chart size and data; client-ready features |
+| v3.3 | 2.4.0 | #8 | Your own tabs, Comment mode |
+| v3.2 | 2.3.0 | #6 | US $ default, publishing |
+| v3.1 | 2.2.0 | #6 (with v3.2) | Highcharts and D3, summaries, compare |
+| v3 | 2.1.0 | #3 | Polished UI, Python MCP |
+| v2 | 2.0.0 | #2 | Zoom, chart look, build from scratch |
+| v1 | 1.0.0 | #1 | First release |
+
+**Which version am I using?** **Help › About** shows it, and every exported dashboard carries it in its `generator` tag. The **Publish** version (1.0, 1.1…) is different: it numbers the copies of *your dashboard* that you share, not Mothership itself.
+
 ## 3. How-to guide
 
 ### Selecting and editing
@@ -405,7 +436,8 @@ A plugin is a JavaScript file that calls `Mothership.registerPlugin({...})` and 
 | | What | Where it lives |
 |---|---|---|
 | **Export HTML** (Ctrl+E) | One self-contained `.html`: the dashboard + your edits + Mothership's small runtime (~50 KB) for tabs, filters, tooltips and drill-down | A file on your laptop. In Chrome/Edge you pick the folder once, and the next Ctrl+E overwrites the same file. |
-| **Save version** (Ctrl+S) | Named snapshot | This browser's storage on this laptop (last 60 kept). **File › Versions** to restore or download. |
+| **Save version** (Ctrl+S) | Named snapshot, numbered v1, v2… for each dashboard | This browser's storage on this laptop (the last 100 you named, plus the last 20 automatic safety copies). **File › Versions** to restore, compare with the screen, download or delete. |
+| **Safety copies** | Automatic, before refreshing data, removing names, turning off tabs or leaving unsaved work | **File › Versions › Show automatic safety copies**. Trimmed first, so they never push out a version you named. |
 | **Autosave** | Every few seconds after a change | Offered back as *Recover* when Mothership reopens after a crash |
 
 Versions are **not** a backup: clearing browser data removes them. Export the files you care about.
@@ -499,7 +531,8 @@ Python's PowerPoint reader is used only to validate a test output; users do not 
 | `src/js/brand.js` | Skill parsing, theme editor, brand check |
 | `src/js/importers.js` | md/docx/pptx/xlsx/pdf/images → HTML |
 | `src/js/plugins.js` | Plugin API and recipes |
-| `src/js/versions.js` | Export, versions, autosave |
+| `src/js/versions.js` | Export, numbered versions per dashboard, safety copies, autosave |
+| `src/js/layouts.js` | Chart layouts (`MS.layouts`, tool `chart_layouts`): the consulting chart gallery and its sample data |
 | `src/js/present.js` | Presenter mode |
 | `src/js/compose.js` | Build from scratch: page parts, KPI cards, new charts, new dashboard |
 | `src/js/arrange.js` | Category order, category colours, format painter, chart image/CSV, drill-down data files |
@@ -512,6 +545,8 @@ Python's PowerPoint reader is used only to validate a test output; users do not 
 | `licenses/` | The licence texts of the libraries in `vendor/` |
 
 After changing `src/`, run `npm run build` so `dist/mothership-standalone.html` stays in sync.
+
+**Releasing.** Change the number in `package.json` only, then update the files `tools/build.js` lists (it stops with a clear message until they agree), add a `## x.y.z` section at the top of `CHANGELOG.md`, run `npm run build`, `npm test`, and `node tools/release.js` for `dist/HTML-Mothership-vx.y.z.zip`. Use 4.0.1 for fixes, 4.1.0 for new features, 5.0.0 when files saved by the new version will not open properly in the old one.
 
 ---
 
@@ -583,7 +618,9 @@ with MothershipClient() as ms:                      # starts the Python server
 | Checks | `chart_summaries`, `number_check`, `compare_versions`, `compare_file` |
 | Draw and share | `chart_shapes` (growth arrow with CAGR, difference, arrows, boxes, callouts), `chart_picture`, `annotate` |
 | Testing (like Playwright) | `ui_snapshot`, `ui_tab`, `ui_click`, `ui_hover`, `ui_select`, `ui_type`, `ui_press`, `ui_scroll`, `ui_wait`, `ui_read`, `ui_expect`, `ui_errors`, `ui_width`, `ui_screenshot`, `ui_mouse` (real mouse), `test_plan`, `test_run`, `test_record`, `test_document`, `save_test_document` |
+| Chart layouts | `chart_layouts` (list, preview the suggested title, insert with your columns or sample data) |
 | Recipes | `recipe_context`, `preview_recipe`, `capture_recipe`, `run_recipe` |
+| Versions | `save_version`, `versions` (list, restore, delete), `compare_versions` |
 | Anything else | `undo`, `redo`, `call` (any Mothership function by name) |
 
 **Testing with an AI.** Ask it: *"Open sales.html, draft a test plan, run it, check the 'check by eye' steps with screenshots, record every result and save the test document."* It calls `test_plan {action: "draft"}`, `test_run`, then works through the remaining cases with `ui_snapshot`, `ui_hover {target: "chart=Sales by region", point: "West"}`, `ui_expect {target: "kpi=Margin", text: "16.1%"}`, `ui_screenshot {target: "chart=Monthly sales trend"}` and `test_record {id, status, actual}`, and finishes with `save_test_document`. Targets: a ref from `ui_snapshot`, `text=…`, `button=…`, `tab=…`, `chart=…` (with `point` for one bar), `kpi=…`, `filter=…`, or a CSS selector.

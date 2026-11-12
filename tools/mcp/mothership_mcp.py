@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '3.9.0'
+VERSION = '4.0.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -433,11 +433,15 @@ def open_files(main, others, password=None, force=False):
 def t_status(a):
     s = {'editor': EDITOR, 'browser': B.exe or ('attached on port ' + os.environ['MOTHERSHIP_ATTACH'] if os.environ.get('MOTHERSHIP_ATTACH') else B.find_browser()),
          'mode': B.mode, 'connected': bool(B.ws and B.session), 'headless': HEADLESS and B.mode != 'attached', 'saveFolder': OUT,
-         'server': 'python ' + sys.version.split()[0], 'lastError': B.error}
+         'server': 'python ' + sys.version.split()[0], 'serverVersion': VERSION, 'lastError': B.error}
     try:
         o = B.api('outline', {})
         s['connected'] = True
-        s['dashboard'] = {'name': o.get('name'), 'charts': len(o.get('charts', [])), 'tabs': len(o.get('tabs', [])), 'unsavedChanges': o.get('unsavedChanges')} if o.get('open') else None
+        s['dashboard'] = {'name': o.get('name'), 'charts': len(o.get('charts') or []), 'tabs': len(o.get('tabs') or []), 'unsavedChanges': o.get('unsavedChanges')} if o.get('open') else None
+        s['editorVersion'] = o.get('editorVersion')
+        if s['editorVersion'] and s['editorVersion'] != VERSION:
+            s['warning'] = ('This MCP server is version %s but the editor it opened is %s. Point the server at the mothership.html from the same '
+                            'Mothership folder (MOTHERSHIP_HTML), or some tools may be missing.' % (VERSION, s['editorVersion']))
     except Exception as e:
         s['lastError'] = str(e)
     return s
@@ -761,6 +765,8 @@ INSTRUCTIONS = ('Mothership edits HTML dashboards like PowerPoint edits slides. 
                 'datasets and comments. Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. '
                 'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). '
                 'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout. '
+                'For a new consulting-style chart use chart_layouts (action list, then insert with your dataset, or sample: true to try it); it writes an action title '
+                'and keeps the house rules. Saved versions: versions and save_version. '
                 'To test a dashboard like Playwright: ui_snapshot, then ui_tab / ui_click / ui_hover / ui_select / ui_type, check with ui_expect / ui_read / ui_errors, look with ui_screenshot; '
                 'plan and record with test_plan / test_run / test_record and save with save_test_document.')
 
