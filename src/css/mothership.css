@@ -1211,3 +1211,15 @@ body[data-ms-ui-mode="none"] #appbar .cmdk-btn .lbl { display: inline; }
 .gallery-row h4 { margin: 2px 0 4px; font-size: 17px; letter-spacing: -.025em; }
 .gallery-featured { padding: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; }
 .gallery-featured:last-child { border-bottom: 1px solid var(--line); }
+
+/* Chart layouts gallery (src/js/layouts.js) */
+.lay-gallery > .inp { width: 100%; margin-bottom: 4px; }
+.lay-head { margin: 16px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.lay-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.lay-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel-2); color: var(--text); cursor: pointer; font: inherit; transition: border-color .12s, box-shadow .12s; }
+.lay-card:hover, .lay-card:focus-visible { border-color: var(--accent-line); box-shadow: var(--shadow); outline: none; }
+.lay-card small { color: var(--muted); line-height: 1.35; }
+.lay-pic { display: block; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 4px; line-height: 0; }
+.lay-fill-head { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.lay-fill-head p { margin: 2px 0 0; }
+.lay-preview { font-size: 12px; margin-top: 6px; }

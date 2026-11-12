@@ -1,7 +1,15 @@
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '3.9.0';
+  MS.VERSION = '4.0.0';
+  // Release numbers are major.minor.patch (4.0.0). Returns -1, 0 or 1.
+  MS.compareVersions = function (a, b) {
+    var p = String(a || '0').split('.'), q = String(b || '0').split('.');
+    for (var i = 0; i < 3; i++) { var x = parseInt(p[i], 10) || 0, y = parseInt(q[i], 10) || 0; if (x !== y) return x > y ? 1 : -1; }
+    return 0;
+  };
+  // The Mothership version a dashboard file was last saved with (from its generator tag), or null.
+  MS.madeWith = function (html) { var m = /<meta[^>]+content="HTML Mothership (\d+\.\d+(?:\.\d+)?)"/i.exec(String(html || '').slice(0, 200000)) || /HTML Mothership (\d+\.\d+\.\d+)"/.exec(String(html || '')); return m ? m[1] : null; };
   var h = MS.h;
 
   MS.busy = function (on) { document.body.classList.toggle('busy', !!on); };
@@ -95,7 +103,8 @@
     list: [
       { id: 'sales', label: 'Sales dashboard (Chart.js, with data for drill-down)' },
       { id: 'ops', label: 'Operations dashboard (ECharts)' },
-      { id: 'risk', label: 'Risk dashboard (Plotly)' }
+      { id: 'risk', label: 'Risk dashboard (Plotly)' },
+      { id: 'layouts', label: 'Claims and risk review (built from Chart layouts)' }
     ],
     menu: function () { return MS.samples.list.map(function (s) { return { label: s.label, run: function () { MS.samples.open(s.id); } }; }); },
     open: function (id, opts) {

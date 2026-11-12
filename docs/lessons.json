@@ -369,5 +369,39 @@
         "see": "The prompt names your chosen model. Check targets lets you review an imported draft before applying it."
       }
     ]
+  },
+  {
+    "id": "chart-layouts",
+    "title": "Make a consulting chart from a layout",
+    "minutes": 6,
+    "goal": "Insert a ready-made consulting chart, write its action title and know how to undo it.",
+    "steps": [
+      {
+        "do": "Open Insert › Chart layouts. Type ranked in the search box and choose Ranked bars, one highlight.",
+        "see": "The window lists Items and Value, a Data choice and a suggested action title.",
+        "ribbon": [
+          "Insert",
+          "Chart layouts"
+        ]
+      },
+      {
+        "do": "Leave Data on Sample data. Read the suggested title, then change it to a sentence of your own that says the one thing to take away. Choose Insert.",
+        "see": "A horizontal bar chart with one blue bar, the others grey, values at the end of each bar, and your title above it.",
+        "check": "layout-ranked"
+      },
+      {
+        "do": "Press Ctrl+Z once, then Ctrl+Y.",
+        "see": "The whole chart and its sample data disappear in one step and come back in one step."
+      },
+      {
+        "do": "Open Chart layouts again and choose Bridge (waterfall). Insert it with the sample data.",
+        "see": "The first and last bars are totals, increases float in green, decreases in red, and a bracket shows the change from start to end.",
+        "check": "layout-bridge"
+      },
+      {
+        "do": "Press Ctrl+S, name the version After layouts, then open File › Versions.",
+        "see": "The version is listed as v1 (or the next number) for this practice dashboard, with Restore, Compare, Download and Delete."
+      }
+    ]
   }
 ]

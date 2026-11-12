@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 4.0.0 — Chart layouts, recipes, report studio and one version number
+
+### Added
+
+- **Chart layouts** (Insert › Chart layouts, Charts › Chart layouts, tool `chart_layouts`): 24 consulting-style charts built from the McKinsey-style recipes, in seven groups (core, data analysis, risk registers, claims and loss runs, surveys, benchmarking, page layouts). Each has sample data to try it, guesses your columns, suggests an action title from the numbers, and inserts as one undo step.
+- Chart look for Chart.js charts: values on the data (`labels`), no gridlines (`grid: false`), no value axis (`valueAxis: false`), dashed series (`dashed`), plus/minus colours (`signs`), a fixed axis maximum (`max`). For every chart: its own colours (`colors`) and a highlight (`highlight`, `highlightColor`, `restColor`) that affect only that chart. Invisible pieces (the base of a bridge) no longer show a pop-up.
+- `insert_chart`: `percent` (100% stacked) and type `hstacked` (horizontal stacked bars). `insert_table`: `sort`, `desc`, `columns`, `span`, and it returns the table number.
+- File › Versions: numbered versions per dashboard (v1, v2…), a Compare button, a filter for this dashboard or all, and automatic safety copies listed and trimmed separately. Tool `versions` (list, restore, delete); `save_version` returns the number.
+- Opening a file saved by a newer Mothership shows a warning.
+- MCP `status` reports the editor version and warns when the editor and the server versions differ.
+- `tools/release.js` builds `dist/HTML-Mothership-v<version>.zip`.
+
+### Changed
+
+- One version number: `package.json` is the source, and `tools/build.js` refuses to build when the editor, the dashboard runtime (it said 1.0.0), the MCP servers, `package-lock.json`, this changelog or the README disagree. The README has a version history that maps the old names (v3.7) to the numbers inside the app (2.8.0).
+- Automatic safety copies can no longer push named versions out of File › Versions (named versions keep 100, automatic copies 20).
+- Samples: a new Claims and risk review sample built entirely from chart layouts.
+
+### From the work merged since 3.9.0
+
 - Recipes: a new `api` step runs most Mothership tools (shapes, colours, legends, sources, sizes) from a recipe file, with `each` to repeat a tool for every matching chart. `run_recipe` waits for those steps and still applies the recipe as one undo step.
 - Charts › Inferences: an inference ladder for every chart (what it shows, what is driving it, what follows if it holds), with the checks to make before stating a cause. Tool: `chart_inferences`.
 - The inference ladder reads periods oldest first however the chart is sorted, and does not read a trend when the order in time cannot be settled. A recipe with more than 200 changes is still one undo step.

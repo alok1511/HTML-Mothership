@@ -47,6 +47,8 @@ const call = async (name, args) => {
 
   const st = await call('status');
   check('status: browser connected', st.json && st.json.connected, st);
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+  check('status: editor and server report the same version', st.json && st.json.serverVersion === pkgVersion && st.json.editorVersion === pkgVersion && !st.json.warning && init.serverInfo.version === pkgVersion, st.json);
 
   let testedOpenGuard = false;
   for (const [file, lib] of [['sales-dashboard.html', 'Chart.js'], ['ops-dashboard.html', 'ECharts'], ['risk-dashboard.html', 'Plotly']]) {
@@ -165,6 +167,19 @@ const call = async (name, args) => {
 
   const bad = await call('no_such_tool', {});
   check('unknown tool is an error, not a crash', !!bad.error, bad);
+
+  // chart layouts and numbered versions through MCP
+  await call('new_dashboard', { title: 'Layouts over MCP', tabs: false, force: true });
+  const ll = await call('chart_layouts', {});
+  const lp = await call('chart_layouts', { action: 'preview', layout: 'claims-by-cause' });
+  const li = await call('chart_layouts', { action: 'insert', layout: 'claims-by-cause', sample: true, source: 'Loss run', as_of: '2026-09-30' });
+  check('chart_layouts lists, previews and inserts a layout',
+    ll.json && ll.json.layouts.length >= 24 && lp.json && /drive \d+% of incurred/.test(lp.json.title) && li.json && li.json.charts.length === 1 && li.json.issues.length === 0 && li.json.title === lp.json.title,
+    ll.error || lp.error || li.error || li.json);
+  const v1 = await call('save_version', { name: 'First' }), v2 = await call('save_version', { name: 'Second' }), vl = await call('versions', {});
+  check('save_version numbers versions per dashboard; versions lists them',
+    v1.json && v2.json && v2.json.number === v1.json.number + 1 && vl.json && vl.json.versions[0].name === 'Second' && vl.json.versions.every(v => v.doc === vl.json.dashboard),
+    v1.error || v2.error || vl.error || vl.json);
 
   srv.stdin.end();
   console.log(failures ? '\n' + failures + ' check(s) failed' : '\nAll MCP checks passed');

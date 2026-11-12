@@ -125,6 +125,9 @@
       document.title = doc.name + ' · Mothership';
       MS.$('#doc-name').textContent = doc.name;
       MS.emit('doc-opened', doc);
+      // A file saved by a newer Mothership than this copy may use features this copy does not know.
+      doc.madeWith = MS.madeWith(html);
+      if (!keep && doc.madeWith && MS.compareVersions(doc.madeWith, MS.VERSION) > 0) MS.toast('This file was saved with Mothership ' + doc.madeWith + ', which is newer than this copy (' + MS.VERSION + '). It should open, but some parts may not edit correctly. Use the newest Mothership for this file.', 'warn', 12000);
       if (assets.relative.length && !keep) MS.toast(assets.relative.length + ' file reference(s) remain, for example ' + assets.relative[0] + '. Check File › Import report.', 'warn', 9000);
       return mountFrame(prepared.html, doc, opts.onLoad);
     });

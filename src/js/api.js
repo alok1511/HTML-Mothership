@@ -81,7 +81,7 @@
     f: function (a) { var h = MS.exportHtml({ dropComments: !!a.drop_comments }), s = MS.doc.session; return { html: h, bytes: h.length, name: MS.exportName(), session: s.id, revision: s.revision }; } };
   A.export_saved = { d: 'Acknowledge that the export was written to disk.', p: { session: ['string', 'Document session', true], revision: ['number', 'Export revision', true] },
     f: function (a) { return { saved: !!(MS.doc && MS.doc.session.id === a.session && MS.versions.markSaved(MS.doc.session, a.revision)) }; } };
-  A.save_version = { d: 'Keep a named version in the browser (restore from File › Versions).', p: { name: ['string', 'Version name'] }, f: function (a) { return MS.versions.save(a.name || 'Saved by assistant', true).then(function (saved) { return { ok: !!saved }; }); } };
+  A.save_version = { d: 'Keep a named version in the browser (restore from File › Versions).', p: { name: ['string', 'Version name'] }, f: function (a) { return MS.versions.save(a.name || 'Saved by assistant', true, 'named').then(function (saved) { return saved ? { ok: true, version: 'v' + saved.number, number: saved.number, name: saved.name, id: saved.id, doc: saved.doc } : { ok: false }; }); } };
   A.undo = { d: 'Undo the last change.', p: {}, f: function () { MS.history.undo(); return { ok: true, canUndo: MS.history.canUndo() }; } };
   A.redo = { d: 'Redo.', p: {}, f: function () { MS.history.redo(); return { ok: true, canRedo: MS.history.canRedo() }; } };
   A.set_mode = { d: 'Edit, comment or interact mode.', p: { mode: ['string', 'edit | comment | interact', true] }, f: function (a) { MS.setMode(/^(interact|comment)$/.test(a.mode) ? a.mode : 'edit'); return done(); } };
@@ -132,6 +132,7 @@
     f: function (a) { return MS.plugins.runRecipe({ name: 'Replace text', steps: [{ do: 'replaceText', find: a.find, replace: a.replace }] }, 'api'); } };
 
   /* ---------------------------------------------------------- building */
+  (function (f) { A.outline.f = function (a) { var o = f(a); if (o && typeof o === 'object' && !o.then) o.editorVersion = MS.VERSION; return o; }; })(A.outline.f);
   A.insert_part = { d: 'Insert a page part after the element `after` (or at the end of the current tab): banner (page header), section, heading, para, cols2, cols3, callout, divider, spacer, footer.', p: { part: ['string', 'banner | section | heading | para | cols2 | cols3 | callout | divider | spacer | footer', true], after: ['string', 'Element ref to insert after'], title: ['string', 'Main text (heading/title)'], text: ['string', 'Secondary text (subtitle/paragraph)'] },
     f: function (a) {
       if (a.after) MS.edit.select(elOf(a.after)); else MS.edit.select(null);
@@ -202,18 +203,18 @@
   A.compare_versions = { d: 'What changed between two versions: tabs, text, chart settings, data, KPI cards, filters, colours and comments. Compares saved versions by name, the dashboard now ("now"), or HTML you pass.', p: { before: ['string', 'Saved version name, or "now"'], after: ['string', 'Saved version name, or "now" (default)'], before_html: ['string', 'Or the HTML of the earlier file'], after_html: ['string', 'Or the HTML of the later file'] },
     f: function (a) {
       return MS.compare.sources().then(function (src) {
-        var pick = function (n, html) { if (html) return html; n = n || 'now'; var x = src.filter(function (s) { return s.id === n || (n === 'now' && s.id === 'now') || s.name.split(' · ')[0].toLowerCase() === String(n).toLowerCase(); })[0]; if (!x) throw new Error('No version called "' + n + '". Versions: ' + src.map(function (s) { return s.name.split(' · ')[0]; }).join(', ')); return x.get(); };
+        var pick = function (n, html) { if (html) return html; n = n || 'now'; var q = String(n).toLowerCase(), mine = function (s) { return !s.doc || !MS.doc || s.doc === MS.doc.name; }, x = src.filter(function (s) { var nm = s.name.split(' · ')[0].toLowerCase(); return s.id === n || (n === 'now' && s.id === 'now') || nm === q || nm.replace(/^v\d+ /, '') === q || (/^v\d+$/.test(q) && nm.indexOf(q + ' ') === 0 && mine(s)); })[0]; if (!x) throw new Error('No version called "' + n + '". Versions: ' + src.map(function (s) { return s.name.split(' · ')[0]; }).join(', ')); return x.get(); };
         if (!a.before && !a.before_html) throw new Error('Say what to compare from: before (a version name) or before_html.');
         var r = MS.compare.compare(pick(a.before, a.before_html), pick(a.after, a.after_html));
         return { changes: r.changes, sections: r.sections };
       });
     } };
-  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], sort: ['string', 'desc | asc | source (the order of the rows, e.g. time or the steps of a bridge) | "" (by label, A to Z)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
+  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | hstacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], percent: ['boolean', 'Stacked charts: show each category as 100% (shares of its total)'], sort: ['string', 'desc | asc | source (the order of the rows, e.g. time or the steps of a bridge) | "" (by label, A to Z)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
     f: function (a) {
       if (a.into) MS.edit.select(elOf(a.into)); else MS.edit.select(null);
       return MS.compose.ensureChartLib().then(function () {
         var before = rt().charts().map(function (c) { return c.key; });
-        MS.compose.addChart({ title: a.title || ((a.agg === 'count' || !a.measure ? 'Count' : a.measure.charAt(0).toUpperCase() + a.measure.slice(1)) + ' by ' + a.by), ds: a.dataset, type: a.type || 'bar', by: a.by, measure: a.measure, agg: a.agg || 'sum', series: a.series, sort: a.sort == null ? 'desc' : a.sort, top: a.top });
+        MS.compose.addChart({ title: a.title || ((a.agg === 'count' || !a.measure ? 'Count' : a.measure.charAt(0).toUpperCase() + a.measure.slice(1)) + ' by ' + a.by), ds: a.dataset, type: a.type || 'bar', by: a.by, measure: a.measure, agg: a.agg || 'sum', series: a.series, sort: a.sort == null ? 'desc' : a.sort, top: a.top, percent: !!a.percent });
         return settle(300).then(function () {
           var r = rt(), c = r.charts().filter(function (x) { return before.indexOf(x.key) < 0; })[0];
           if (c && a.levels && a.levels.length) MS.history.state('Drill levels', function (s) { s.charts[c.key].binding.levels = [a.by].concat(a.levels); });
@@ -221,11 +222,14 @@
         });
       });
     } };
-  A.insert_table = { d: 'Insert a table snapshot of a dataset.', p: { dataset: ['string', 'Dataset', true], rows: ['number', 'Max rows (default 50)'], title: ['string', 'Title'] },
+  A.insert_table = { d: 'Insert a table snapshot of a dataset.', p: { dataset: ['string', 'Dataset', true], rows: ['number', 'Max rows (default 50)'], title: ['string', 'Title'], sort: ['string', 'Column to sort by (default: the order of the rows)'], desc: ['boolean', 'Sort largest first'], columns: ['array', 'Columns to show, in order (default all)'], span: ['number', 'Width in 12ths (default 12)'] },
     f: function (a) {
-      var r = rt(), rows = r.filteredRows(a.dataset).slice(0, a.rows || 50), cols = rows[0] ? Object.keys(rows[0]) : [];
+      if (MS.sel && !MS.sel.isConnected) MS.edit.select(null);
+      var r = rt(), all = r.filteredRows(a.dataset).slice();
+      if (a.sort) all.sort(function (x, y) { var p = x[a.sort], q = y[a.sort], n = typeof p === 'number' && typeof q === 'number' ? p - q : String(p == null ? '' : p).localeCompare(String(q == null ? '' : q)); return a.desc ? -n : n; });
+      var rows = all.slice(0, a.rows || 50), cols = a.columns && a.columns.length ? a.columns : rows[0] ? Object.keys(rows[0]) : [];
       var html = '<table class="ms-table"><thead><tr>' + cols.map(function (c) { return '<th>' + MS.esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (x) { return '<tr>' + cols.map(function (c) { var v = x[c]; return '<td' + (typeof v === 'number' ? ' class="num"' : '') + '>' + MS.esc(typeof v === 'number' ? r.fmtNum(v) : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
-      var b = MS.insert.block(MS.blocks.create({ title: a.title || a.dataset, content: true, html: html, span: 12 })); return { ref: refOf(b) };
+      var b = MS.insert.block(MS.blocks.create({ title: a.title || a.dataset, content: true, html: html, span: a.span || 12 })); return { ref: refOf(b), table: r.tables().indexOf(b.querySelector('table')) };
     } };
   A.insert_content_file = { d: 'Turn a document (Markdown, Word, Excel, PowerPoint, PDF, image) into a new tab or a block. The MCP insert_file tool fills in the file for you.', p: { file: ['object', '{name, b64}', true], as: ['string', 'tab | block (default tab)'], title: ['string', 'Tab title'] },
     f: function (a) {
@@ -284,7 +288,7 @@
   A.chart_settings = { d: 'Change a chart: commentary (title/subtitle/inference), pop-up text template, look (fonts, legend, pop-up colours, axis number format), linked data and drill-down.', p: {
       chart: ['string', 'Chart name or key', true], title: ['string', 'Title above the chart'], subtitle: ['string', 'Subtitle'], inference: ['string', 'The "so what" line'],
       tooltip: ['string', 'Pop-up template, e.g. "{label}\\n{value:short}" ("" = chart default). Placeholders {label} {series} {value} {pct} {total} {count} {<column>}; formats :cur :curshort :short (follow set_locale) :usd :k :m :pct :int'],
-      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: cur|curshort|short|usd|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius} (null = reset)'],
+      look: ['object', '{font, size, color, legend: top|bottom|left|right|none, axisFormat: cur|curshort|short|usd|int|k|m|pct, tipBg, tipColor, tipBorder, tipSize, tipRadius; this chart only: colors {name: colour}, highlight [names] with highlightColor and restColor (everything else, default grey); Chart.js charts: labels true|"inside" (values on the data), labelFormat, grid false, valueAxis false, max, dashed [series names], signs {up, down} (colour bars by plus or minus)} (null = reset)'],
       data: ['object', '{dataset, levels:[col,...], measure, agg, series, sort, top} (null = unlink)'], double_click: ['string', 'levels | details | crossfilter | none'], columns: ['array', 'Columns in the records view'] },
     f: function (a) {
       var r = rt(), key = chartKey(a.chart), c = r.chart(key);

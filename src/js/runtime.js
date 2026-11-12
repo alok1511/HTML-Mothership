@@ -16,7 +16,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   'use strict';
   if (window.__MS_RT) return;
   var EDITOR = !!window.__MS_EDITOR;
-  var rt = (window.__MS_RT = { version: '1.0.0' });
+  var rt = (window.__MS_RT = { version: '4.0.0' }); // the Mothership release that wrote this runtime (tools/build.js checks it)
   var D = document;
 
   /* ------------------------------------------------------------ state */
@@ -162,6 +162,66 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   function fontOf(st, size) { var f = {}; if (st.font) f.family = st.font; if (size) f.size = +size; return f; }
 
   var A = {};
+  function clearColour(c) { return c === 'transparent' || /^rgba\([^)]*,\s*0\)$/.test(String(c || '').replace(/\s+/g, ' ')) || /^#[0-9a-f]{6}00$/i.test(c || ''); }
+  /* The consulting look for Chart.js charts: no gridlines (look.grid false), no value axis when the bars carry labels
+     (look.valueAxis false), values on the data (look.labels true | "end" | "inside"), dashed series such as a target
+     (look.dashed: [names]), and no pop-up for invisible pieces such as the base of a bridge. */
+  function cjsLook(i, st, o, t) {
+    if (!/^(pie|doughnut|polarArea|radar)$/.test(i.config.type)) {
+      var valueId = o.indexAxis === 'y' ? 'x' : 'y';
+      o.scales = o.scales || {};
+      Object.keys(i.scales || {}).forEach(function (id) {
+        if (id === 'r') return;
+        var sc = o.scales[id] = o.scales[id] || {};
+        if (st.grid === false) { sc.grid = Object.assign({}, sc.grid, { display: false }); sc.border = Object.assign({}, sc.border, { display: id !== valueId }); }
+        if (st.valueAxis === false && id === valueId) sc.display = false;
+        if (st.max != null && st.max !== '' && id === valueId) sc.max = +st.max;
+        if (st.labels && id === valueId && sc.display !== false) sc.grace = '8%';
+      });
+    }
+    if (st.labels) { o.layout = Object.assign({}, o.layout, { padding: Object.assign({ top: 18, right: 28 }, (o.layout || {}).padding) }); cjsLabelPlugin(); }
+    t.filter = function (item) { return !clearColour(Array.isArray(item.dataset.backgroundColor) ? item.dataset.backgroundColor[item.dataIndex] : item.dataset.backgroundColor); };
+    var dash = st.dashed ? [].concat(st.dashed).map(function (x) { return String(x).toLowerCase(); }) : [];
+    i.data.datasets.forEach(function (d) {
+      var on = dash.indexOf(String(d.label || '').toLowerCase()) >= 0;
+      d.borderDash = on ? [6, 4] : undefined; if (on) { d.pointRadius = 0; d.fill = false; }
+      if (st.straight) d.tension = 0;
+    });
+  }
+  function cjsLabelPlugin() {
+    var C = window.Chart; if (!C || !C.register || C.__msLabels) return;
+    C.__msLabels = true;
+    C.register({ id: 'msLabels', afterDatasetsDraw: function (ch) {
+      var st = ch.__msLook; if (!st || !st.labels) return;
+      var x = ch.ctx, horiz = ch.options.indexAxis === 'y', type = ch.config.type, radial = /pie|doughnut|polarArea/.test(type);
+      var stacked = !radial && Object.keys(ch.scales || {}).some(function (id) { return ch.scales[id].options && ch.scales[id].options.stacked; });
+      var spec = st.labelFormat || st.axisFormat, size = +(st.size || 11);
+      x.save(); x.font = '600 ' + size + 'px ' + (st.font || C.defaults.font.family);
+      ch.data.datasets.forEach(function (d, k) {
+        if (!ch.isDatasetVisible(k)) return;
+        var meta = ch.getDatasetMeta(k), line = (d.type || type) === 'line';
+        meta.data.forEach(function (e, j) {
+          var bg = Array.isArray(d.backgroundColor) ? d.backgroundColor[j] : d.backgroundColor;
+          if (clearColour(bg)) return;
+          var raw = d.data[j], v = Number(raw && typeof raw === 'object' ? (horiz ? raw.x : raw.y) : raw);
+          if (raw == null || isNaN(v) || (v === 0 && (stacked || radial))) return;
+          var txt = fmtNum(v, spec), p = e.getCenterPoint ? e.getCenterPoint() : { x: e.x, y: e.y };
+          var inside = radial || (stacked && !line) || st.labels === 'inside';
+          if (inside) {
+            var w = x.measureText(txt).width, box = e.getProps ? e.getProps(['width', 'height', 'base', 'x', 'y'], true) : {};
+            if (!radial && (horiz ? Math.abs(box.width || (box.x - box.base)) < w + 6 : Math.abs(box.height || (box.base - box.y)) < size + 4)) return;
+            x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+            x.fillText(txt, radial ? e.tooltipPosition().x : p.x, radial ? e.tooltipPosition().y : p.y);
+          } else {
+            x.fillStyle = st.color || '#374151';
+            if (horiz && !line) { x.textAlign = v < 0 ? 'right' : 'left'; x.textBaseline = 'middle'; x.fillText(txt, e.x + (v < 0 ? -4 : 4), e.y); }
+            else { x.textAlign = 'center'; x.textBaseline = v < 0 && !line ? 'top' : 'bottom'; x.fillText(txt, e.x, e.y + (v < 0 && !line ? 4 : -5)); }
+          }
+        });
+      });
+      x.restore();
+    } });
+  }
   // Chart.js 4 keeps the old colours on screen after update('none'); a full update with animation off redraws them at once
   function cjsStill(i) { var o = i.options, a = o ? o.animation : undefined; if (o) o.animation = false; i.update(); if (o) o.animation = a; }
   A.chartjs = {
@@ -213,6 +273,16 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       });
       cjsStill(i);
     },
+    // Bars above zero in one colour and below zero in another (look.signs = {up, down}), e.g. variance against plan.
+    setSigns: function (i, sg) {
+      if (/pie|doughnut|polarArea|radar/.test(i.config.type)) return;
+      i.data.datasets.forEach(function (d) {
+        if ((d.type || i.config.type) === 'line') return;
+        d.backgroundColor = (d.data || []).map(function (v) { v = Number(v && typeof v === 'object' ? (v.y != null ? v.y : v.x) : v); return v < 0 ? sg.down || '#C62828' : sg.up || '#2E7D32'; });
+        d.borderColor = d.backgroundColor;
+      });
+      cjsStill(i);
+    },
     image: function (i) {
       var cv = i.canvas, out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height;
       var x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.drawImage(cv, 0, 0);
@@ -252,11 +322,13 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     setStyle: function (i, st) {
       var o = i.config.options = i.config.options || {}; o.plugins = o.plugins || {};
       var TK = ['backgroundColor', 'titleColor', 'bodyColor', 'footerColor', 'borderColor', 'borderWidth', 'titleFont', 'bodyFont', 'cornerRadius'];
-      if (!i.__msStyleOrig) { var t0 = o.plugins.tooltip || {}, tk = {}; TK.forEach(function (k) { tk[k] = deepClone(t0[k]); }); i.__msStyleOrig = { scales: deepClone(o.scales), legend: deepClone(o.plugins.legend), title: deepClone(o.plugins.title), tip: tk }; }
+      if (!i.__msStyleOrig) { var t0 = o.plugins.tooltip || {}, tk = {}; TK.forEach(function (k) { tk[k] = deepClone(t0[k]); }); i.__msStyleOrig = { scales: deepClone(o.scales), legend: deepClone(o.plugins.legend), title: deepClone(o.plugins.title), tip: tk, layout: deepClone(o.layout) }; }
       var O = i.__msStyleOrig;
       put(o, 'scales', deepClone(O.scales)); put(o.plugins, 'legend', deepClone(O.legend)); put(o.plugins, 'title', deepClone(O.title));
       var t = o.plugins.tooltip = o.plugins.tooltip || {};
       TK.forEach(function (k) { put(t, k, deepClone(O.tip[k])); });
+      delete t.filter; put(o, 'layout', deepClone(O.layout));
+      if (!st || !st.dashed) i.data.datasets.forEach(function (d) { if (d.borderDash) d.borderDash = undefined; });
       if (st) {
         var f = fontOf(st, st.size), hasF = !!(st.font || st.size);
         var tint = function (x) { if (!x) return; if (hasF) x.font = Object.assign({}, typeof x.font === 'object' ? x.font : {}, f); if (st.color) x.color = st.color; };
@@ -280,7 +352,9 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         if (st.tipBorder) { t.borderColor = st.tipBorder; t.borderWidth = 1; }
         if (st.tipSize || st.font) { t.bodyFont = fontOf(st, st.tipSize); t.titleFont = Object.assign(fontOf(st, st.tipSize), { weight: 'bold' }); }
         if (st.tipRadius !== undefined && st.tipRadius !== '') t.cornerRadius = +st.tipRadius;
+        cjsLook(i, st, o, t);
       }
+      i.__msLook = st && (st.labels || st.dashed) ? st : null;
       cjsStill(i);
     },
     onDbl: function (elm, i, cb) {
@@ -1090,6 +1164,11 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var series = G.series.map(function (s) {
       return { name: s === '_' ? (b.agg === 'count' || !b.measure ? 'Count' : b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
     });
+    // 100% stacked: each category's series become shares of that category's total
+    if (b.percent) labels.forEach(function (_, j) {
+      var tot = series.reduce(function (t, s) { return t + Math.abs(s.values[j] || 0); }, 0);
+      series.forEach(function (s) { s.values[j] = tot ? Math.round(s.values[j] / tot * 1000) / 10 : 0; });
+    });
     var gm = {}; list.forEach(function (g) { gm[g.label] = g; });
     rt.groups[c.key] = gm;
     c.a.setData(c.inst, labels, series);
@@ -1200,12 +1279,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       var reordered = !c.inst.__msBound && applyOrder(c);
       if (reordered) reset = true;
       if (!pal && c.inst.__msNative) pal = NATIVE_PAL;
-      var cat = catMapFor(c), ck = (pal ? String(pal) : '') + '|' + (cat ? JSON.stringify(cat) : '') + '|' + (c.inst.__msOrderKey || '');
-      if (force || ck !== (c.inst.__msColKey || '|') || (c.inst.__msBound && (c.lib === 'chartjs' || cat))) {
-        if (pal || c.inst.__msPal || cat || c.inst.__msCat) c.a.setPalette(c.inst, pal);
+      var cat = catMapFor(c), signs = cs && cs.style && cs.style.signs || null;
+      var ck = (pal ? String(pal) : '') + '|' + (cat ? JSON.stringify(cat) : '') + '|' + (c.inst.__msOrderKey || '') + (signs ? '|' + JSON.stringify(signs) : '');
+      if (force || ck !== (c.inst.__msColKey || '|') || (c.inst.__msBound && (c.lib === 'chartjs' || cat || signs))) {
+        if (pal || c.inst.__msPal || cat || signs || c.inst.__msCat) c.a.setPalette(c.inst, pal);
         c.inst.__msPal = pal ? String(pal) : null;
         if (cat) c.a.setCatColors(c.inst, cat);
-        c.inst.__msCat = !!cat; c.inst.__msColKey = ck;
+        if (signs && c.a.setSigns) c.a.setSigns(c.inst, signs);
+        c.inst.__msCat = !!(cat || signs); c.inst.__msColKey = ck;
         syncLegend(c, !!(pal || cat));
       }
       var tpl = cs && cs.tooltip;
@@ -1271,10 +1352,19 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     c.inst.__msOrderKey = key;
     return true;
   }
+  // Colours for one chart: the shared category colours, then this chart's own (look.colors), then a highlight
+  // (look.highlight: the names to pick out in look.highlightColor, everything else in look.restColor).
   function catMapFor(c) {
-    var m = rt.state.layout.colors; if (!m || !Object.keys(m).length) return null;
-    var info = c.a.info(c.inst), out = {}, n = 0;
-    (info.labels || []).concat(info.series || []).forEach(function (l) { var col = lookColor(l); if (col) { out[l] = col; n++; } });
+    var m = rt.state.layout.colors, cs = rt.state.charts[c.key], st = (cs && cs.style) || {};
+    var own = st.colors && typeof st.colors === 'object' ? st.colors : null, hl = st.highlight ? [].concat(st.highlight).map(low) : null;
+    if ((!m || !Object.keys(m).length) && !own && !hl) return null;
+    var info = c.a.info(c.inst), out = {}, n = 0, ser = info.series || [];
+    var ownCol = function (l) { if (!own) return null; if (own[l]) return own[l]; for (var k in own) if (low(k) === low(l)) return own[k]; return null; };
+    var names = (info.labels || []).concat(ser);
+    if (hl) (ser.length > 1 && !/pie|doughnut/.test(info.type) ? ser : info.labels || []).forEach(function (l) {
+      out[l] = hl.indexOf(low(l)) >= 0 ? st.highlightColor || '#2251FF' : st.restColor || '#B8BEC6'; n++;
+    });
+    names.forEach(function (l) { var col = ownCol(l) || (out[l] ? null : lookColor(l)); if (col) { out[l] = col; n++; } });
     return n ? out : null;
   }
 
@@ -1335,10 +1425,10 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   /* ------------------------------------------------------------ charts built in Mothership (Chart.js + a dataset) */
   var NATIVE_PAL = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
   function nativeConfig(spec) {
-    var t = spec.type || 'bar', type = { hbar: 'bar', stacked: 'bar', area: 'line' }[t] || t;
+    var t = spec.type || 'bar', type = { hbar: 'bar', stacked: 'bar', hstacked: 'bar', area: 'line' }[t] || t;
     var o = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: /pie|doughnut/.test(t) || !!spec.legend, position: 'bottom' } } };
-    if (t === 'hbar') o.indexAxis = 'y';
-    if (t === 'stacked') o.scales = { x: { stacked: true }, y: { stacked: true } };
+    if (t === 'hbar' || t === 'hstacked') o.indexAxis = 'y';
+    if (t === 'stacked' || t === 'hstacked') o.scales = { x: { stacked: true }, y: { stacked: true } };
     return { type: type, data: { labels: [], datasets: [{ label: '', data: [], fill: t === 'area', tension: t === 'line' || t === 'area' ? 0.3 : 0 }] }, options: o };
   }
   function renderNative() {
@@ -2258,7 +2348,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
           txtBox(L, 'ms-sh-pill', sh, txt, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - 2, col, true);
           handles = [{ k: 'a', x: p1.x, y: p1.y }, { k: 'b', x: p2.x, y: p2.y }];
         } else {
-          var top = Math.min(a.y, b.y) - lift, gap = 6;
+          var lst = (rt.state.charts[c.key] || {}).style || {}, gap = lst.labels && lst.labels !== 'inside' ? 20 : 6, top = Math.min(a.y, b.y) - lift - (gap - 6);
           var d = 'M' + a.x + ' ' + (a.y - gap) + 'V' + top + 'H' + b.x + 'V' + (b.y - gap - 7 - w * 2);
           g.appendChild(svgEl('path', Object.assign({ d: d }, st)));
           head(g, b.x, top, b.x, b.y - gap, col, w);

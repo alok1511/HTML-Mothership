@@ -102,6 +102,7 @@
         { icon: '⭐', label: 'Templates', title: 'Insert a saved chart, card, section or whole tab (yours or a starter), or save the selection for reuse in any dashboard', run: needRt(function () { MS.templates.gallery(); }) }] },
       { name: 'From data', items: [
         { icon: '📊', label: 'Chart', title: 'A new chart from a dataset. It follows the filter pane and can drill down.', run: needRt(MS.compose.chart) },
+        { icon: '📈', label: 'Chart layouts', title: 'Consulting-style charts ready to fill: ranked bars, bridge, CAGR, mix, risk heat map, loss run, survey, peers and more. Try any of them on sample data.', run: needRt(function () { MS.layouts.gallery(); }) },
         { icon: '🔢', label: 'KPI cards', title: 'A row of headline numbers. With a dataset they follow the filter pane.', run: need(MS.compose.kpis) }] }
     ] },
     { tab: 'Layout', groups: [
@@ -136,6 +137,8 @@
         { icon: '✅', label: 'Brand check', title: 'Find off-brand colours and fonts, low contrast, and charts missing commentary', run: need(MS.brand.check) }] }
     ] },
     { tab: 'Charts', groups: [
+      { name: 'New', items: [
+        { icon: '📈', label: 'Chart layouts', title: 'Consulting-style charts ready to fill: ranked bars with one highlight, bridge, CAGR, 100% mix, line vs target, risk, claims, survey and benchmark layouts', run: needRt(function () { MS.layouts.gallery(); }) }] },
       { name: 'Selected chart', items: [
         { icon: '⚙', label: 'Settings', title: 'Commentary, size, tooltip, data & drill-down for the selected chart', run: needRt(function () { MS.charts.settings(); }) },
         { icon: '💬', label: 'Tooltip', title: 'What the hover pop-up shows', run: needRt(function () { MS.charts.settings(null, 'Tooltip'); }) },

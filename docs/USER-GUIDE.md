@@ -95,6 +95,32 @@ Use **Charts › Category order** or **Category colours** when the same labels a
 
 **Worked example:** use **{label}: {value:short}** to show a raw value of 12,500,000 as 12.5M. If the source already stores 12.5 in millions, use the raw value and label the unit. Verify one value against the source.
 
+<!-- guide:layouts -->
+## Chart layouts: consulting-style charts ready to fill
+
+**Insert › Chart layouts** (or **Charts › Chart layouts**) opens a gallery of 24 ready-made charts that follow the consulting house rules: an action title that says the so-what, a unit line, one highlight colour with everything else grey, values on the bars instead of gridlines, and a source line.
+
+| Group | Layouts | Use it to answer |
+|---|---|---|
+| Core | Ranked bars with one highlight, columns with a growth (CAGR) arrow, bridge (waterfall), 100% mix, line against a target | Who is biggest? How fast is it growing? How did we get from A to B? Is the mix shifting? Are we on track? |
+| Data analysis | Variance against plan, distribution with the tail picked out | Where are we over or under plan? Where is the bulk and the tail? |
+| Risk registers | 5 × 5 heat map, register with red/amber/green, risks by category, inherent vs residual | Where do risks sit? Which stay above appetite after controls? |
+| Claims and loss runs | Paid and outstanding, large-loss ranking, claims by cause (Pareto), frequency and severity, incurred bridge, development triangle | How much is still reserve? Are claims more frequent or bigger? |
+| Surveys | Top-2-box ranking, Likert spread, net promoter score | Which statements score lowest? Would they recommend us? |
+| Benchmarking | Client against peers, benchmark scorecard | How far is the client from the peer median? |
+| Page layouts | Executive summary page, house style on every chart | One page with the headline, three numbers, two charts and the takeaway |
+
+1. Pick a layout. The window shows what it needs, for example *Items* and *Value*.
+2. Choose **Data**: one of your datasets, or **Sample data** to see the layout working first. With your own data, Mothership guesses the columns from their names; check each one.
+3. Read the suggested **action title**. It is worked out from your numbers (for example *“Maharashtra is the highest at 9.1, 1.9× West Bengal”*). Edit it so it says the one thing the reader should take away. Add the unit line, the source and the date.
+4. **Insert**. The chart, its colours, labels, arrows and source go in as one step: **Ctrl+Z** removes all of it.
+
+Some layouts make a small working copy of your columns (a bridge needs a hidden base under each step, a line against target needs the target as its own series). These appear in **Data** with a “·” in their name, for example *Sales · bridge*. Filters on your original dataset do not change those charts; insert the layout again after a data refresh.
+
+**Good to know:** the risk heat map is a picture of the register when you insert it; insert it again when scores change. For claims, use claim references, never claimant names, and run **Consulting › Remove names** before sharing. A survey chart should always say how many people answered (n); under about 30, call it indicative.
+
+You can also give any Chart.js chart the same look from **Charts › Look**, or with the `chart_settings` tool: values on the bars, no gridlines, one highlighted bar, green and red for plus and minus, or a dashed target line.
+
 <!-- guide:drill -->
 ## Data, filters and drill-down
 
@@ -304,7 +330,7 @@ If the fault happens after interacting, reproduce it in **Interact**, then use *
 |---|---|---|
 | Export HTML | A file on disk that can reopen for editing | At milestones and before leaving the editor |
 | Save as… | An export with a new path or a download | New month, client or version |
-| Save version | A named browser snapshot | Before a large change, or to compare revisions |
+| Save version | A numbered browser snapshot (v1, v2… for each dashboard) | Before a large change, or to compare revisions |
 | Publish | A separate viewer copy with release details | The file you want people to use |
 | Autosave and recovery | Recent work in the same browser profile | After an interruption |
 
@@ -313,6 +339,10 @@ Opening, creating or closing a different dashboard with unsaved edits asks what 
 Safe mode and Network lock reload the dashboard from the current edits. They keep changes and the unsaved flag; undo history is cleared when the frame reloads. Mothership tries to keep a recovery version for unsaved work before changing these modes. Look in **File › Versions** if you need the previous state.
 
 **Find your export:** Chrome or Edge may offer a file picker. If the browser uses downloads instead, look in Downloads or its download history. After a first save, exporting again may overwrite that same chosen file. Use **Save as…** for a new path. Open the resulting file and verify it before closing the editor.
+
+**File › Versions** lists the versions of the dashboard on screen, newest first, as v1, v2, v3…. **Compare** shows what changed between a version and the screen; **Restore** opens it in place of what is on screen; **Download** saves it as a file. Choose **All dashboards** to see every dashboard's versions. Mothership also keeps automatic safety copies before risky steps (refreshing data, removing names, turning off tabs, leaving with unsaved work). They are hidden unless you tick **Show automatic safety copies**, and the oldest ones are removed first, so they never push out a version you named.
+
+**Which Mothership am I using?** **Help › About** shows the version, for example 4.0.0. If you open a dashboard that was saved by a newer Mothership, a message tells you to use the newest copy. The **Publish** version (1.0, 1.1…) is different: it numbers the copies of your dashboard that you share.
 
 Browser snapshots are local to this browser profile and can be deleted by office policy or clearing browser data. Keep dated HTML exports for durable backups. On the start screen, **Recover** can restore a recent autosave if one is available.
 
