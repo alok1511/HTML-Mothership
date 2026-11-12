@@ -5,8 +5,8 @@
   var I = MS.importers = {};
 
   /* lazy-load vendored libraries (or their inlined copies in the single-file build) */
-  var LIBS = { marked: 'vendor/marked.min.js', mammoth: 'vendor/mammoth.browser.min.js', xlsx: 'vendor/xlsx.full.min.js', jszip: 'vendor/jszip.min.js', pdf: 'vendor/pdf.min.js', pdfworker: 'vendor/pdf.worker.min.js' };
-  var GLOBAL = { marked: 'marked', mammoth: 'mammoth', xlsx: 'XLSX', jszip: 'JSZip', pdf: 'pdfjsLib', pdfworker: 'pdfjsWorker' };
+  var LIBS = { chartjs: 'vendor/charts/chart.umd.min.js', marked: 'vendor/marked.min.js', mammoth: 'vendor/mammoth.browser.min.js', xlsx: 'vendor/xlsx.full.min.js', jszip: 'vendor/jszip.min.js', pdf: 'vendor/pdf.min.js', pdfworker: 'vendor/pdf.worker.min.js' };
+  var GLOBAL = { chartjs: 'Chart', marked: 'marked', mammoth: 'mammoth', xlsx: 'XLSX', jszip: 'JSZip', pdf: 'pdfjsLib', pdfworker: 'pdfjsWorker' };
   var loading = {};
   MS.lib = function (name) {
     if (window[GLOBAL[name]]) return Promise.resolve(window[GLOBAL[name]]);
@@ -92,23 +92,24 @@
     return out.innerHTML;
   };
 
-  I.sheet = function (XLSX, buf, name, title) {
-    var wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  I.sheet = function (XLSX, buf, name, title, dataOnly) {
+    var wb = XLSX.read(buf, { type: 'array', cellDates: true, raw: !!dataOnly });
     var html = '', datasets = [];
     wb.SheetNames.forEach(function (sn) {
       var ws = wb.Sheets[sn];
+      var rows = XLSX.utils.sheet_to_json(ws, { raw: true, defval: null });
+      rows.forEach(function (r) { Object.keys(r).forEach(function (k) { if (r[k] instanceof Date) r[k] = r[k].toISOString().slice(0, 10); }); });
+      if (rows.length) datasets.push({ name: (wb.SheetNames.length > 1 ? title + ' – ' + sn : title), rows: rows, sheet: sn });
+      if (dataOnly) return;
       var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
       if (!aoa.length) return;
-      var rows = XLSX.utils.sheet_to_json(ws, { raw: true, defval: null });
-      rows = rows.map(function (r) { var o = {}; Object.keys(r).forEach(function (k) { var v = r[k]; o[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v; }); return o; });
-      if (rows.length) datasets.push({ name: (wb.SheetNames.length > 1 ? title + ' – ' + sn : title), rows: rows });
       var lim = 2000;
       html += (wb.SheetNames.length > 1 ? '<h2>' + MS.esc(sn) + '</h2>' : '') + '<div class="ms-table-wrap"><table class="ms-table"><thead><tr>' +
         aoa[0].map(function (h) { return '<th>' + MS.esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
         aoa.slice(1, lim + 1).map(function (r) { return '<tr>' + aoa[0].map(function (_, i) { var v = r[i]; var num = typeof v === 'number'; return '<td' + (num ? ' class="num"' : '') + '>' + MS.esc(v instanceof Date ? v.toISOString().slice(0, 10) : num ? v.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : (v == null ? '' : v)) + '</td>'; }).join('') + '</tr>'; }).join('') +
         '</tbody></table></div>' + (aoa.length > lim + 1 ? '<p class="ms-muted">Showing the first ' + lim + ' of ' + (aoa.length - 1) + ' rows.</p>' : '');
     });
-    return { html: MS.sanitize(html), title: title, datasets: datasets };
+    return { html: dataOnly ? '' : MS.sanitize(html), title: title, datasets: datasets };
   };
 
   // PowerPoint: text, bullet levels, tables and pictures per slide, plus speaker notes.

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node tools/build.js",
     "release": "node tools/build.js && node tools/release.js",
-    "test": "node tests/smoke.test.js && node tests/v2.test.js && node tests/v3.test.js && node tests/v4.test.js && node tests/v5.test.js && node tests/v6.test.js && node tests/v7.test.js && node tests/v8.test.js && node tests/v9.test.js && node tests/v10.test.js && node tests/v11.test.js && node tests/v12.test.js && node tests/v13.test.js && node tests/v14.test.js && node tests/v15.test.js && node tests/v16.test.js && node tests/v17.test.js && node tests/v18.test.js && node tests/mcp.test.js && node tests/mcp.test.js --python",
+    "test": "node tests/smoke.test.js && node tests/v2.test.js && node tests/v3.test.js && node tests/v4.test.js && node tests/v5.test.js && node tests/v6.test.js && node tests/v7.test.js && node tests/v8.test.js && node tests/v9.test.js && node tests/v10.test.js && node tests/v11.test.js && node tests/v12.test.js && node tests/v13.test.js && node tests/v14.test.js && node tests/v15.test.js && node tests/v16.test.js && node tests/v17.test.js && node tests/v18.test.js && node tests/v19.test.js && node tests/mcp.test.js && node tests/mcp.test.js --python",
     "mcp:python": "python tools/mcp/mothership_mcp.py",
     "mcp": "node tools/mcp/mothership-mcp.js",
     "serve": "node tools/serve.js",

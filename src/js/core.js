@@ -50,6 +50,7 @@ window.MS = window.MS || {};
       if (opts.multiple) inp.multiple = true;
       if (opts.folder) { inp.webkitdirectory = true; inp.multiple = true; }
       inp.addEventListener('change', function () { res(Array.prototype.slice.call(inp.files || [])); inp.remove(); });
+      inp.addEventListener('cancel', function () { res([]); inp.remove(); });
       document.body.appendChild(inp);
       inp.click();
     });

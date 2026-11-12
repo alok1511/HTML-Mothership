@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added a sample chooser with 23 options and ten guided practice dashboards with source data, worked tasks and expected results.
+- Added a local data-to-chart workflow for CSV, TSV, Excel, ODS and JSON with live chart and source previews, calculations, split series and chart-only filters.
+- Added 26 searchable McKinsey reference entries, five standard chart layouts and [copyable recipe Markdown](docs/CHART-RECIPE-REFERENCE.md).
+- Reduced repeated preview work and chart history copying. Bound averages now exclude blank cells.
+
 ## 4.1.0 — 19 more chart layouts, and every chart editable after it is in
 
 ### Added

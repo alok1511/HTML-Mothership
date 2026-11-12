@@ -175,11 +175,13 @@
   /* ---------------------------------------------------------- new chart from a dataset (Chart.js) */
   // Chart.js is put into the dashboard itself, so exports keep working offline.
   Cp.ensureChartLib = function () {
-    var w = MS.child.win;
+    var child = MS.child, w = child.win;
     if (w.Chart && w.Chart.register) return Promise.resolve(w.Chart);
     if (w.Chart) return Promise.reject(new Error('This dashboard has an old Chart.js (version ' + (w.Chart.version || '2') + '). New charts need version 3 or later.'));
     return MS.libSource('chartjs').then(function (src) {
-      var d = MS.child.doc, s = d.createElement('script');
+      if (MS.child !== child) throw new Error('The open dashboard changed.');
+      if (w.Chart && w.Chart.register) return w.Chart;
+      var d = child.doc, s = d.createElement('script');
       s.setAttribute('data-ms-own', ''); s.setAttribute('data-ms-lib', 'chartjs');
       s.textContent = src;
       d.head.appendChild(s);
@@ -187,55 +189,228 @@
       return w.Chart;
     });
   };
-  var TYPES = [{ value: 'bar', label: 'Column (vertical bars)' }, { value: 'hbar', label: 'Bar (horizontal)' }, { value: 'stacked', label: 'Stacked columns (needs "split by")' }, { value: 'hstacked', label: 'Stacked bars, horizontal (needs "split by")' }, { value: 'line', label: 'Line' }, { value: 'area', label: 'Area' }, { value: 'pie', label: 'Pie' }, { value: 'doughnut', label: 'Doughnut' }, { value: 'stackedarea', label: 'Stacked area (needs "split by")' }, { value: 'dumbbell', label: 'Dumbbell: two values per row joined by a line (needs "split by")' }, { value: 'range', label: 'Range: low to high bar with the middle as a dot (split by low / mid / high)' }, { value: 'pyramid', label: 'Pyramid: two groups back to back (split by the two groups)' }, { value: 'scatter', label: 'Scatter (x and y columns)' }, { value: 'bubble', label: 'Bubble (x, y and size columns)' }];
+  var TYPES = [{ value: 'bar', label: 'Column (vertical bars)' }, { value: 'hbar', label: 'Bar (horizontal)' }, { value: 'stacked', label: 'Stacked columns (needs "split by")' }, { value: 'hstacked', label: 'Stacked bars, horizontal (needs "split by")' }, { value: 'line', label: 'Line' }, { value: 'area', label: 'Area' }, { value: 'pie', label: 'Pie' }, { value: 'doughnut', label: 'Doughnut' }, { value: 'stackedarea', label: 'Stacked area (needs "split by")' }, { value: 'dumbbell', label: 'Dumbbell: two values per row joined by a line (needs "split by")' }, { value: 'range', label: 'Range: low to high bar with the middle as a dot (split by low / mid / high)' }, { value: 'pyramid', label: 'Pyramid: two groups back to back (split by the two groups)' }, { value: 'dot-compare', label: 'Dot comparison (split by series)' }, { value: 'area-benchmark', label: 'Area with benchmark (layout only)', layoutOnly: true }, { value: 'scatter', label: 'Scatter (x and y columns)' }, { value: 'bubble', label: 'Bubble (x, y and size columns)' }];
   Cp.TYPES = TYPES;
   // Binding keys beyond the basics, kept by every editor that rewrites a binding.
-  Cp.EXTRA = ['x', 'y', 'size', 'where', 'only', 'hide', 'order', 'rename', 'seriesOnly', 'seriesHide', 'seriesOrder', 'percent'];
-  Cp.chart = function () {
+  Cp.EXTRA = ['x', 'y', 'size', 'where', 'only', 'hide', 'order', 'rename', 'seriesOnly', 'seriesHide', 'seriesOrder', 'percent', 'sparse', 'overlay'];
+  Cp.chart = async function (preferredDataset) {
     if (!need()) return;
-    var rt = MS.rt(); if (!rt) return MS.toast('Turn off Safe mode (View tab) to add charts.', 'warn');
+    var rt = MS.rt(), child = MS.child;
+    if (!rt) return MS.toast('Turn off Safe mode in View to add charts.', 'warn');
     var names = Object.keys(rt.state.datasets);
-    if (!names.length) return MS.dialog({ title: 'A chart needs data', body: MS.h('p', { html: 'Load a CSV, Excel or JSON file first (<b>Data › Load data</b>), or let Mothership find the tables inside this dashboard (<b>Data › Find data</b>).' }),
-      buttons: [{ label: 'Close', value: null }, { label: 'Find data', value: 'find' }, { label: 'Load data file', primary: true, value: 'load' }] }).then(function (v) { if (v === 'load') MS.data.loadFile(); if (v === 'find') MS.data.discover(); });
-    var opts = function (ds, numeric, blank) { return (blank ? [{ value: '', label: blank }] : []).concat(rt.fields(ds).filter(function (x) { return numeric == null || !!x.numeric === numeric; }).map(function (x) { return { value: x.name, label: x.name }; })); };
-    var ds0 = names[0];
-    var f = MS.form([
-      { key: 'title', label: 'Title', value: 'New chart' },
-      { key: 'ds', label: 'Dataset', type: 'select', options: names, value: ds0 },
-      { key: 'type', label: 'Chart type', type: 'select', options: TYPES, value: 'bar' },
-      { key: 'by', label: 'Show by (categories)', type: 'select', options: opts(ds0, false) },
-      { key: 'measure', label: 'Value', type: 'select', options: opts(ds0, true) },
-      { key: 'agg', label: 'Calculate', type: 'select', options: AGGS.filter(function (a) { return a.value !== 'distinct'; }), value: 'sum' },
-      { key: 'series', label: 'Split by (optional, gives several series)', type: 'select', options: opts(ds0, false, '— none —') },
-      { key: 'sort', label: 'Sort', type: 'select', options: [{ value: 'desc', label: 'Largest first' }, { value: '', label: 'By label' }, { value: 'asc', label: 'Smallest first' }, { value: 'source', label: 'As in the data' }] },
-      { key: 'top', label: 'Top N only (blank = all)', type: 'number', min: 1 }
+    if (!names.length) {
+      var loaded = await MS.data.loadFile();
+      return loaded.length ? Cp.chart(loaded[0]) : false;
+    }
+    var h = MS.h, cache = new Map(), first = names.includes(preferredDataset) ? preferredDataset : names[0];
+    var limits = { categories: 120, series: 16, preview: 24 };
+    var chart, previewKind, chartLib, timer, closed = false, suggested = '';
+    var labels = ['By name', 'Largest first', 'Smallest first', 'Source order'];
+    var order = ['', 'desc', 'asc', 'source'].map(function (value, i) { return { value: value, label: labels[i] }; });
+    var form = MS.form([
+      { key: 'ds', label: 'Dataset', type: 'select', options: names, value: first },
+      { key: 'type', label: 'Chart type', type: 'select', options: TYPES.filter(function (type) { return !type.layoutOnly; }) },
+      { key: 'by', label: 'Category', type: 'select' },
+      { key: 'agg', label: 'Calculation', type: 'select', options: AGGS.filter(function (x) { return x.value !== 'distinct'; }) },
+      { key: 'measure', label: 'Value', type: 'select' },
+      { key: 'x', label: 'X axis', type: 'select' },
+      { key: 'y', label: 'Y axis', type: 'select' },
+      { key: 'size', label: 'Bubble size', type: 'select' },
+      { key: 'series', label: 'Split by', type: 'select' },
+      { key: 'title', label: 'Chart title', type: 'text' },
+      { key: 'subtitle', label: 'Unit and scope (optional)', type: 'text', placeholder: 'e.g. Shipments, units, October' },
+      { key: 'inference', label: 'Key inference (optional)', type: 'text', placeholder: 'What should the reader take away?' },
+      { key: 'caption', label: 'Show a summary that follows filters', type: 'checkbox' },
+      { key: 'sort', label: 'Sort categories', type: 'select', options: order },
+      { key: 'top', label: 'Category limit', type: 'number', min: 1, max: limits.categories, value: 24 },
+      { key: 'filter', label: 'Filter this chart by', type: 'select' },
+      { key: 'filterValue', label: 'Equals', type: 'text' },
+      { key: 'percent', label: 'Show each stack as 100%', type: 'checkbox' }
     ]);
-    f.inputs.ds.addEventListener('change', function () {
-      var ds = f.inputs.ds.value;
-      [['by', false], ['measure', true], ['series', false, '— none —']].forEach(function (p) { var s = f.inputs[p[0]]; s.innerHTML = ''; opts(ds, p[1], p[2]).forEach(function (o) { s.appendChild(MS.h('option', { value: o.value, text: o.label })); }); });
+    var i = form.inputs, control = {};
+    Object.keys(i).forEach(function (key) {
+      control[key] = i[key].closest('label');
+      i[key].setAttribute('aria-label', control[key].querySelector('span').textContent);
     });
-    MS.dialog({ title: 'New chart from data', body: MS.h('div', {}, [f, MS.h('small', { 'class': 'hint', text: 'The chart follows the filter pane and supports drill-down. Add more drill levels later in Chart settings › Data & drill-down.' })]),
-      buttons: [{ label: 'Cancel', value: null }, { label: 'Insert chart', primary: true, value: function () { return f.values(); } }] }).then(function (v) {
-      if (!v) return;
-      Cp.ensureChartLib().then(function () { Cp.addChart(v); }).catch(function (e) { MS.toast(e.message, 'error', 8000); });
+    control.inference.classList.add('bi-wide');
+    control.caption.classList.add('bi-wide');
+    var advanced = h('details', { 'class': 'bi-advanced' }, [h('summary', { text: 'Sort, limit and filter' })]);
+    ['sort', 'top', 'filter', 'filterValue', 'percent'].forEach(function (k) { advanced.appendChild(control[k]); });
+    form.appendChild(advanced);
+    var status = h('p', { 'class': 'bi-status', role: 'status' });
+    var canvas = h('canvas', { role: 'img', 'aria-label': 'Chart preview' });
+    var surface = h('div', { 'class': 'bi-canvas' }, [canvas]);
+    var legend = h('ul', { 'class': 'bi-legend', 'aria-label': 'Chart preview legend', hidden: true });
+    var data = h('div', { 'class': 'bi-table' });
+    var source = h('details', {}, [h('summary', { text: 'Source rows' }), data]);
+    var preview = h('section', { 'class': 'bi-preview', 'aria-label': 'Chart preview area' },
+      [h('h3', { text: 'Preview' }), status, surface, legend, source]);
+    function fields(name) {
+      if (!cache.has(name)) cache.set(name, { fields: rt.fields(name), rows: rt.getRows(name) });
+      return cache.get(name);
+    }
+    function fill(key, values, fallback, blank) {
+      var field = i[key], selected = field.value;
+      field.replaceChildren(...(blank ? [new Option(blank, '')] : []), ...values.map(function (v) { return new Option(v, v); }));
+      if (values.includes(selected)) field.value = selected;
+      else field.value = fallback == null ? '' : fallback;
+    }
+    function sourceTable(entry) {
+      var columns = entry.fields.slice(0, 12).map(function (f) { return f.name; });
+      var table = h('table', { 'aria-label': 'First eight source rows' }, [
+        h('thead', {}, [h('tr', {}, columns.map(function (n) { return h('th', { scope: 'col', text: n }); }))]),
+        h('tbody', {}, entry.rows.slice(0, 8).map(function (row) {
+          return h('tr', {}, columns.map(function (n) { return h('td', { text: row[n] == null ? '' : String(row[n]) }); }));
+        }))
+      ]);
+      data.replaceChildren(h('p', { 'class': 'muted', text: 'First ' + Math.min(8, entry.rows.length) + ' rows · ' + columns.length + ' of ' + entry.fields.length + ' columns' }), table);
+    }
+    function setDataset() {
+      var entry = fields(i.ds.value), all = entry.fields.map(function (f) { return f.name; });
+      var nums = entry.fields.filter(function (f) { return f.numeric; }).map(function (f) { return f.name; });
+      var category = entry.fields.find(function (f) { return !f.numeric; });
+      fill('by', all, category ? category.name : all[0]);
+      fill('measure', nums, nums[0]);
+      fill('x', nums, nums[0]); fill('y', nums, nums[1] || nums[0]); fill('size', nums, nums[2] || nums[0]);
+      fill('series', all, '', 'No split'); fill('filter', all, '', 'No chart filter'); i.filterValue.value = '';
+      if (!nums.length) i.agg.value = 'count';
+      else if (rt.XY_TYPES[i.type.value] || i.agg.value === 'count') i.agg.value = 'sum';
+      sourceTable(entry);
+    }
+    function sync() {
+      var xy = !!rt.XY_TYPES[i.type.value], stacked = /stacked/.test(i.type.value);
+      ['x', 'y'].forEach(function (k) { control[k].hidden = !xy; });
+      control.size.hidden = i.type.value !== 'bubble';
+      control.measure.hidden = xy || i.agg.value === 'count';
+      control.percent.hidden = !stacked;
+      control.caption.hidden = xy;
+      control.filterValue.hidden = !i.filter.value;
+      Array.from(i.agg.options).forEach(function (option) { option.disabled = xy && option.value !== 'sum' && option.value !== 'avg'; });
+      if (i.agg.selectedOptions[0] && i.agg.selectedOptions[0].disabled) i.agg.value = 'sum';
+      var next = (xy ? i.y.value + ' vs ' + i.x.value : (i.agg.value === 'count' ? 'Record count' : i.measure.value)) + ' by ' + i.by.value;
+      if (!i.title.value || i.title.value === suggested) i.title.value = next;
+      suggested = next;
+    }
+    function values() {
+      var v = form.values(), xy = !!rt.XY_TYPES[v.type], stacked = /stacked/.test(v.type);
+      var required = { stacked: 2, hstacked: 2, stackedarea: 2, dumbbell: 2, range: 3, pyramid: 2, 'dot-compare': 2 }[v.type];
+      if (!v.by) throw new Error('Choose a category column.');
+      if (xy && (!v.x || !v.y || v.type === 'bubble' && !v.size)) throw new Error('Choose numeric columns for both axes and the bubble size when needed.');
+      if (!xy && v.agg !== 'count' && !v.measure) throw new Error('Choose a numeric value or select Count rows.');
+      if (!Number.isInteger(v.top) || v.top < 1 || v.top > limits.categories) throw new Error('Choose a category limit from 1 to ' + limits.categories + '.');
+      if (required && !v.series) throw new Error('Choose a split-by column for this chart type.');
+      if (v.filter && !v.filterValue.trim()) throw new Error('Enter a value for the chart filter.');
+      v.title = v.title.trim() || suggested;
+      v.percent = stacked && v.percent;
+      v.legend = !!v.series;
+      v.sparse = true;
+      v.caption = v.caption && !xy;
+      v.where = v.filter ? [{ field: v.filter, op: 'eq', value: v.filterValue.trim() }] : [];
+      if (!xy) { v.x = ''; v.y = ''; }
+      if (v.type !== 'bubble') v.size = '';
+      return v;
+    }
+    function calculate(v, top) {
+      return rt.previewBinding({ dataset: v.ds, levels: [v.by], measure: v.measure, agg: v.agg, series: v.series,
+        sort: v.sort, top: top, where: v.where, x: v.x, y: v.y, size: v.size, percent: v.percent, sparse: v.sparse }, v.type, limits.series);
+    }
+    function check(v, result) {
+      if (!result.labels.length || !result.series.some(function (s) { return s.values.some(function (n) { return n !== null; }); })) throw new Error('No values match these settings.');
+      if ((v.percent || /^(pie|doughnut)$/.test(v.type)) && result.series.some(function (s) { return s.values.some(function (n) { return n < 0; }); })) throw new Error('Use a bar or line chart for negative values.');
+      if (result.seriesCount > limits.series) throw new Error('The split has ' + result.seriesCount + ' series. Choose a different split or filter the chart to ' + limits.series + ' series or fewer.');
+      if (/^(dumbbell|pyramid|range)$/.test(v.type) && result.seriesCount !== (v.type === 'range' ? 3 : 2)) {
+        throw new Error('This chart type needs exactly ' + (v.type === 'range' ? 'three' : 'two') + ' series.');
+      }
+    }
+    function draw() {
+      if (closed || child !== MS.child || !chartLib) return;
+      try {
+        var v = values(), result = calculate(v, Math.min(v.top, limits.preview));
+        check(v, result);
+        surface.hidden = false;
+        if (!chart || previewKind !== v.type) {
+          if (chart) chart.destroy();
+          var config = rt.nativeConfig({ type: v.type });
+          config.options.animation = false;
+          config.options.plugins.legend.display = false;
+          chart = new chartLib(canvas, config);
+          previewKind = v.type;
+        }
+        rt.paintPreview(chart, result);
+        var radial = /^(pie|doughnut)$/.test(v.type), datasets = chart.data.datasets;
+        var items = radial ? result.labels.map(function (label, j) {
+          return { label: label, backgroundColor: datasets[0].backgroundColor[j] };
+        }) : v.legend ? datasets.filter(function (d) { return !d.msLink; }) : [];
+        legend.hidden = !items.length;
+        legend.replaceChildren(...items.map(function (item) {
+          return h('li', {}, [h('span', { 'aria-hidden': 'true', style: { backgroundColor: item.borderColor || item.backgroundColor } }), item.label]);
+        }));
+        status.textContent = result.labels.length + ' of ' + result.categories.toLocaleString('en-US') +
+          ' categories in preview · ' + result.rows.toLocaleString('en-US') + ' matching rows';
+      } catch (error) {
+        if (chart) { chart.destroy(); chart = null; }
+        surface.hidden = true;
+        legend.hidden = true;
+        status.textContent = error.message;
+      }
+    }
+    function queue() { clearTimeout(timer); timer = setTimeout(draw, 90); }
+    form.addEventListener('change', function (event) {
+      if (event.target === i.ds) setDataset();
+      sync(); queue();
     });
+    i.filterValue.addEventListener('input', queue);
+    setDataset(); sync();
+    status.textContent = 'Loading chart preview…';
+    var dialog = MS.dialog({ title: 'Build chart', xwide: true, enterSubmits: false,
+      body: h('div', { 'class': 'bi-builder' }, [form, preview]),
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Insert chart', primary: true, value: function () {
+        try {
+          var v = values();
+          check(v, calculate(v, Math.min(v.top, limits.preview)));
+          return v;
+        } catch (error) { MS.dialogError(error.message); return false; }
+      } }] });
+    MS.lib('chartjs').then(function (lib) { chartLib = lib; draw(); }).catch(function (error) { status.textContent = error.message; });
+    var selected = await dialog;
+    closed = true; clearTimeout(timer);
+    if (chart) chart.destroy();
+    if (!selected || MS.child !== child) return false;
+    try {
+      await Cp.ensureChartLib();
+      if (MS.child !== child) return false;
+      Cp.addChart(selected);
+      return true;
+    } catch (error) { MS.toast(error.message, 'error', 8000); return false; }
+  };
+  Cp.fromData = async function () {
+    var child = MS.child, doc = MS.doc;
+    if (MS.settings.safe) return MS.toast('Turn off Safe mode in View to build charts from data.', 'warn');
+    var tables = await MS.data.pickDatasets();
+    if (!tables.length || child !== MS.child || doc !== MS.doc) return false;
+    if (!child && !(await Cp.createDoc(tables[0].file.replace(/\.[^.]+$/, ''), true))) return false;
+    var names = MS.data.addTables(tables);
+    return names.length ? Cp.chart(names[0]) : false;
   };
   Cp.addChart = function (v) {
     var rt = MS.rt(), key = rt.uid('c');
-    var b = MS.blocks.create({ title: v.title || '', sub: v.ds, span: v.span || (/pie|doughnut/.test(v.type) ? 4 : 6), height: v.height || 300 });
+    var b = MS.blocks.create({ title: v.title || '', sub: v.subtitle || v.ds, inf: v.inference, span: v.span || (/pie|doughnut/.test(v.type) ? 4 : 6), height: v.height || 300 });
     var holder = make('<div></div>'); holder.setAttribute('data-ms-chart', key);
     b.querySelector('.ms-visual').appendChild(holder);
-    var spec = { native: { type: v.type }, binding: { dataset: v.ds, levels: [v.by].filter(Boolean), measure: v.agg === 'count' ? undefined : v.measure, agg: v.agg, series: v.series || undefined, sort: v.sort || undefined, top: v.top || undefined, percent: v.percent || undefined }, drill: { mode: 'levels' }, title: v.title };
+    var spec = { native: { type: v.type, legend: v.legend || undefined }, binding: { dataset: v.ds, levels: [v.by].filter(Boolean), measure: v.agg === 'count' ? undefined : v.measure, agg: v.agg, series: v.series || undefined, sort: v.sort || undefined, top: v.top || undefined, percent: v.percent || undefined }, drill: { mode: 'levels' }, title: v.title };
+    if (v.caption) spec.summary = { show: 'caption' };
     Cp.EXTRA.forEach(function (k) { if (v[k] != null && v[k] !== '' && !(Array.isArray(v[k]) && !v[k].length)) spec.binding[k] = v[k]; });
     MS.history.group('Insert chart', function () {
-      MS.history.state('New chart', function (s) { s.charts[key] = JSON.parse(JSON.stringify(spec)); });
+      MS.history.push({ label: 'Chart settings',
+        undo: function () { delete MS.rt().state.charts[key]; },
+        redo: function () { MS.rt().state.charts[key] = JSON.parse(JSON.stringify(spec)); } });
       var sec = MS.sel && MS.sel.closest && MS.sel.closest('.ms-section');
       if (sec && !MS.blocks.of(MS.sel)) MS.history.move('Insert chart', b, function () { sec.querySelector(':scope > .ms-grid').appendChild(b); });
       else MS.insert.block(b);
       if (b.classList.contains('ms-inline')) b.querySelector('.ms-visual').style.height = 'var(--ms-h)';
     });
     MS.decorate();
-    setTimeout(function () { var r = MS.rt(); if (r) r.refresh(); MS.emit('structure'); MS.edit.reveal(b); }, 60);
+    if (b.isConnected) { MS.afterDomChange(); MS.edit.reveal(b); }
   };
 
   /* ---------------------------------------------------------- new dashboard */

@@ -1,0 +1,76 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const esc = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const json = value => JSON.stringify(value).replace(/</g, '\\u003c');
+const csv = rows => rows.map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n') + '\r\n';
+const link = (label, name, rows) => '<a class="practice-download" download="' + esc(name) + '" href="data:text/csv;charset=utf-8,' + encodeURIComponent(csv(rows)) + '">' + esc(label) + '</a>';
+const styles = `body{margin:0;background:#f2f6f5;color:#172d32;font-family:system-ui,sans-serif}
+.practice-hero{background:var(--practice-ink);color:white;padding:clamp(19px,3vw,36px);border-bottom:4px solid #b9d7cc}
+.practice-hero h1{margin:0;font-size:clamp(27px,4vw,52px);letter-spacing:-.045em}.practice-hero p{margin:.4em 0 0}
+.practice-content{padding:18px;max-width:1000px;margin:auto}.practice-content h2{margin:0 0 .4em}
+.practice-content li{margin:.8em 0;max-width:78ch}.practice-check{border-left:4px solid var(--practice-ink);padding:.7em 1em;background:white}
+.practice-download{display:inline-block;margin:0 .6em .7em 0;color:#113e47;text-underline-offset:3px;font-weight:650}
+.practice-table{overflow:auto}.practice-table table{width:100%;border-collapse:collapse;background:white}.practice-table th,.practice-table td{text-align:left;padding:8px;border-bottom:1px solid #d8e4e0}
+.practice-kpis{display:flex;gap:8px;flex-wrap:wrap;margin:0;padding:16px}.practice-kpis .kpi{border-left:3px solid var(--practice-ink);background:white;padding:7px 15px;min-width:120px}.practice-kpis strong{display:block;font-size:24px}
+.practice-grid{padding:0 16px 16px}.practice-grid .ms-block{min-width:0}
+@media(max-width:680px){.practice-grid .ms-block{grid-column:1/-1!important}.practice-content{padding:12px}}
+`;
+
+module.exports = function buildPractice(root, bundle) {
+  const catalog = JSON.parse(fs.readFileSync(path.join(root, 'samples/practice/catalog.json'), 'utf8'));
+  const context = { MS: {} };
+  context.window = context;
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'src/js/runtime.js'), 'utf8'), context);
+  const runtime = context.MS.RUNTIME_SRC().replace(/<\/script/gi, '<\\/script');
+  const library = fs.readFileSync(path.join(root, 'vendor/charts/chart.umd.min.js'), 'utf8').replace(/<\/script/gi, '<\\/script');
+  for (const sample of catalog) {
+    const name = sample.id + '-practice.html';
+    const dataset = sample.title.charAt(0) + sample.title.slice(1).toLowerCase();
+    const rows = sample.rows.map(row => Object.fromEntries(sample.fields.map((key, i) => [key, row[i]])));
+    const charts = {}, kpis = {};
+    const card = ({ measure: label, agg = 'sum' }, i) => {
+      const key = 'practice-kpi-' + i;
+      kpis[key] = { dataset, measure: label, agg, format: label.includes('%') ? 'pct' : 'num' };
+      return '<div class="kpi" data-ms-kpi="' + key + '"><span class="ms-kpi-label">' + esc(label) + '</span><strong class="ms-kpi-value">—</strong><span class="ms-kpi-note"></span></div>';
+    };
+    const blocks = sample.charts.map((chart, i) => {
+      const key = 'practice-chart-' + i;
+      const title = chart.measure + ' by ' + chart.by;
+      charts[key] = { title, native: { type: chart.type, legend: !!chart.series },
+        binding: { dataset, levels: [chart.by].concat(chart.drill || []), measure: chart.measure, agg: chart.agg || 'sum', series: chart.series, sort: 'source' },
+        drill: { mode: 'levels' }, summary: { show: 'caption' }, style: { legend: chart.series ? 'bottom' : 'none', axisFormat: chart.measure.includes('%') ? 'pct' : 'num' } };
+      return '<article class="ms-block ms-in-grid" style="grid-column:span ' + (sample.charts.length === 1 ? 12 : 6) + '">' +
+        '<div class="ms-head"><div class="ms-title" role="heading" aria-level="3">' + esc(title) + '</div><div class="ms-sub">Practice dataset</div><div class="ms-inf"></div></div>' +
+        '<div class="ms-crumbs"></div><div class="ms-visual" style="--ms-h:255px"><div data-ms-chart="' + key + '"></div></div></article>';
+    }).join('');
+    const state = { datasets: { [dataset]: { rows, source: 'file', file: sample.id + '-2026-10.csv' } }, charts, kpis,
+      filters: sample.filter ? [{ dataset, field: sample.filter, label: sample.filter }] : [],
+      layout: { ribbon: { brand: sample.title, position: 'top' }, pane: { visible: !!sample.filter } } };
+    const data = '<div class="practice-content"><h2>Source data</h2><p>All ' + rows.length + ' source rows before dashboard filters.</p>' +
+      link(sample.nextRows ? 'Download October CSV' : 'Download source CSV', sample.id + '-2026-10.csv', [sample.fields].concat(sample.rows)) +
+      (sample.nextRows ? link('Download November CSV', sample.id + '-2026-11.csv', [sample.fields].concat(sample.nextRows)) : '') +
+      (sample.expectation ? link('Download expected numbers CSV', sample.id + '-expected.csv',
+        [['What','Category','Series','Value'], ['KPI: ' + sample.expectation,'','',sample.rows.reduce((sum, row) => sum + row[sample.fields.indexOf(sample.expectation)],0)]]) : '') +
+      '<div class="practice-table"><table><thead><tr>' + sample.fields.map(f => '<th scope="col">' + esc(f) + '</th>').join('') + '</tr></thead><tbody>' +
+      sample.rows.map(row => '<tr>' + row.map(value => '<td>' + esc(value) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div></div>';
+    const task = '<div class="practice-content"><h2>Practice ' + esc(sample.focus.toLowerCase()) + '</h2><p>Open this dashboard in Mothership to use the editor tools.</p><ol>' +
+      sample.steps.map(step => '<li>' + esc(step) + '</li>').join('') + '</ol><p class="practice-check"><strong>Expected result</strong> ' + esc(sample.check) + '</p></div>';
+    const overview = '<header class="practice-hero"><h1>' + esc(sample.title) + '</h1><p>' + esc(sample.question) + '</p></header>' +
+      '<div class="practice-kpis">' + sample.charts.map(card).join('') + '</div><div class="ms-grid practice-grid">' + blocks + '</div>';
+    const tab = (key, title, content) => '<section class="ms-tab' + (key === 'overview' ? ' ms-active' : '') + '" data-ms-tab="' + key +
+      '" data-ms-title="' + esc(title) + '" data-ms-kind="original">' + content + '</section>';
+    const shell = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>' + esc(sample.title) + '</title><style>' + styles + '</style><!-- practice-chart-library --></head><body style="--practice-ink:' + esc(sample.color) +
+      '"><div id="ms-app"><nav id="ms-ribbon"></nav><div id="ms-body"><main id="ms-main">' + tab('overview','Overview',overview) +
+      tab('source','Source data',data) + tab('practice','Practice tasks',task) + '</main></div></div>' +
+      '<script id="ms-state" type="application/json">' + json(state) + '</script><!-- practice-runtime --></body></html>\n';
+    const full = shell.replace('<!-- practice-chart-library -->', () => '<script data-ms-own data-ms-lib="chartjs">' + library + '</script>')
+      .replace('<!-- practice-runtime -->', () => '<script id="ms-runtime" data-ms-own>' + runtime + '</script>');
+    fs.writeFileSync(path.join(root, 'samples', name), full);
+    bundle[sample.id] = { name, html: shell.replace('<!-- practice-runtime -->', ''), chartjs: true };
+  }
+  return catalog.map(({ id, title, focus, question }) => ({ id, title, focus, question }));
+};

@@ -774,6 +774,176 @@
         { tool: 'table_rules', args: { table: '$table', action: 'set', rules: p.cols.map(function (c) { return { col: c, type: 'scale', low: '#F1F4F8', mid: '', high: '#2251FF', higher: hi }; }) } }];
     } });
 
+  // Reference layouts keep their source bindings so they follow dashboard filters.
+  var referenceRoles = [
+    { key: 'cat', label: 'Category or period', kind: 'text', hint: /period|year|category|activity|cohort|item|measure/ },
+    { key: 'grp', label: 'Series', kind: 'text', hint: /series|scenario|group|technology|source|component|cohort/ },
+    { key: 'val', label: 'Value', kind: 'number' }
+  ];
+  function seriesSample(name, cat, grp, val, rows, unit, options) {
+    return { name: name, rows: rows.map(function (row) { return rec([cat, grp, val], row); }),
+      fields: { cat: cat, grp: grp, val: val }, unit: unit, options: options };
+  }
+  function referenceChart(x, type, settings, style) {
+    return [{ tool: 'insert_chart', args: Object.assign({ dataset: x.ds, by: x.f.cat, series: x.f.grp, measure: x.f.val,
+      type: type, sort: 'source', sparse: true, title: x.title, span: 12 }, settings) },
+    { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}',
+      look: look(Object.assign({ legend: 'top' }, style)) } }];
+  }
+  function referenceSeries(x, min, max) {
+    var keys = uniq(x.rows, x.f.grp);
+    if (keys.length < min || keys.length > max) throw new Error('This layout needs ' + min + '–' + max + ' series. Check the series column.');
+    return keys;
+  }
+  function observedValues(x) {
+    var categories = new Map();
+    x.rows.forEach(function (r) {
+      var v = r[x.f.val];
+      if (v == null || String(v).trim() === '') return;
+      v = num(v); if (!Number.isFinite(v)) return;
+      var cat = String(r[x.f.cat]), series = String(r[x.f.grp]), group = categories.get(cat);
+      if (!group) { group = new Map(); categories.set(cat, group); }
+      group.set(series, (group.get(series) || 0) + v);
+    });
+    return function (category, series) {
+      var group = categories.get(category);
+      return group && group.has(series) ? group.get(series) : null;
+    };
+  }
+
+  add({ id: 'comparison-dots', group: 'compare', name: 'Multi-series dot comparison',
+    question: 'Where do several comparable series differ across the same measures?', pic: 'multidots',
+    roles: referenceRoles,
+    sample: seriesSample('Tool adoption by activity', 'Activity', 'Series', 'Share', [
+      ['Market research', 'Assistive today', 29], ['Market research', 'Assistive planned', 50], ['Market research', 'Autonomous today', 7], ['Market research', 'Autonomous planned', 39],
+      ['List price setting', 'Assistive today', 21], ['List price setting', 'Assistive planned', 43], ['List price setting', 'Autonomous today', 8], ['List price setting', 'Autonomous planned', 34],
+      ['Cost tracking', 'Assistive today', 24], ['Cost tracking', 'Assistive planned', 48], ['Cost tracking', 'Autonomous today', 5], ['Cost tracking', 'Autonomous planned', 40]
+    ], 'Share of respondents, %, synthetic survey'),
+    draft: function (x) {
+      var keys = referenceSeries(x, 2, 8), value = observedValues(x);
+      var ranks = uniq(x.rows, x.f.cat).map(function (label) {
+        var v = keys.map(function (key) { return value(label, key); }).filter(Number.isFinite);
+        return { label: label, gap: v.length > 1 ? Math.max.apply(null, v) - Math.min.apply(null, v) : 0 };
+      }).sort(function (a, b) { return b.gap - a.gap; });
+      return { title: ranks[0] && ranks[0].gap ? ranks[0].label + ' has the widest spread across series' : 'Compare ' + x.f.val + ' across ' + x.f.grp, sub: x.f.val + ' by ' + x.f.cat };
+    },
+    build: function (x) { return referenceChart(x, 'dot-compare', { series_order: referenceSeries(x, 2, 8) }); }
+  });
+
+  add({ id: 'scenario-columns', group: 'trend', name: 'Actual and scenario columns',
+    question: 'How far apart are the alternatives, and where do observations end?', pic: 'scenarios',
+    roles: referenceRoles,
+    options: [{ key: 'actual', label: 'Observed series name', value: 'Actual' }],
+    sample: seriesSample('Storage capacity scenarios', 'Period', 'Series', 'Capacity', [
+      ['2023', 'Actual', 101], ['2024', 'Actual', 158], ['2025', 'Actual', 220],
+      ['2026', 'Slow', 270], ['2026', 'Base', 320], ['2026', 'Fast', 355],
+      ['2030', 'Slow', 430], ['2030', 'Base', 560], ['2030', 'Fast', 670]
+    ], 'New storage capacity, GWh, 2023–2030, synthetic scenarios'),
+    draft: function (x) {
+      var keys = referenceSeries(x, 2, 8), categories = uniq(x.rows, x.f.cat), last = categories[categories.length - 1], value = observedValues(x);
+      var vals = keys.filter(function (k) { return k !== x.o.actual; }).map(function (k) { return value(last, k); }).filter(Number.isFinite);
+      return { title: vals.length > 1 ? last + ' scenarios range from ' + fmt(Math.min.apply(null, vals)) + ' to ' + fmt(Math.max.apply(null, vals)) : x.f.val + ' across observed and projected series', sub: x.f.val + ' by ' + x.f.cat + ' and ' + x.f.grp };
+    },
+    build: function (x) {
+      var keys = referenceSeries(x, 2, 8), colors = {}, actual = x.o.actual;
+      if (keys.indexOf(actual) < 0) throw new Error('Set Observed series name to an existing series.');
+      keys = [actual].concat(keys.filter(function (key) { return key !== actual; }));
+      keys.forEach(function (key, j) { colors[key] = [C.ink, '#568BBD', C.highlight, '#8268B4', '#138180', '#9B631D', '#7C596C', '#546576'][j]; });
+      return referenceChart(x, 'bar', { series_order: keys }, { colors: colors });
+    }
+  });
+
+  add({ id: 'stacked-area-benchmark', group: 'trend', name: 'Stacked area with benchmark line',
+    question: 'How does the sum of its components compare with an independent benchmark?', pic: 'area-line',
+    roles: referenceRoles,
+    options: [{ key: 'benchmark', label: 'Benchmark series name', value: 'Benchmark' }],
+    sample: seriesSample('Demand mix against capacity', 'Period', 'Series', 'Volume', [
+      ['2022', 'Households', 31], ['2022', 'Industry', 42], ['2022', 'Benchmark', 90],
+      ['2023', 'Households', 38], ['2023', 'Industry', 45], ['2023', 'Benchmark', 95],
+      ['2024', 'Households', 45], ['2024', 'Industry', 50], ['2024', 'Benchmark', 99],
+      ['2025', 'Households', 55], ['2025', 'Industry', 60], ['2025', 'Benchmark', 108]
+    ], 'Demand by source and available capacity, units, synthetic data'),
+    draft: function (x) {
+      var keys = referenceSeries(x, 3, 8), categories = uniq(x.rows, x.f.cat), last = categories[categories.length - 1], value = observedValues(x);
+      var benchmark = value(last, x.o.benchmark);
+      var parts = keys.filter(function (k) { return k !== x.o.benchmark; }).map(function (k) { return value(last, k); });
+      var delta = benchmark == null || !parts.every(Number.isFinite) ? null : parts.reduce(function (a, b) { return a + b; }, 0) - benchmark;
+      return { title: delta == null ? 'Compare the stack with its benchmark' : last + ' combined ' + x.f.val.toLowerCase() + (delta === 0 ? ' matches the benchmark' : ' is ' + fmt(Math.abs(delta)) + ' ' + (delta > 0 ? 'above' : 'below') + ' the benchmark'), sub: x.f.val + ' by ' + x.f.cat + ' and ' + x.f.grp + ', shared scale' };
+    },
+    build: function (x) {
+      var keys = referenceSeries(x, 3, 8), line = x.o.benchmark, colors = {};
+      if (keys.indexOf(line) < 0) throw new Error('Set Benchmark series name to an existing series with the same units.');
+      keys = keys.filter(function (key) { return key !== line; }).concat(line);
+      keys.forEach(function (key, j) { colors[key] = key === line ? C.ink : ['#6295C1', '#2251FF', '#3F8C91', '#977AB4', '#B38558', '#546A83', '#638052'][j]; });
+      return referenceChart(x, 'area-benchmark', { series_order: keys, overlay: line }, { colors: colors });
+    }
+  });
+
+  add({ id: 'cohort-bars', group: 'compare', name: 'Signed cohort bars',
+    question: 'Which measures and cohorts move in opposite directions around zero?', pic: 'cohorts',
+    roles: referenceRoles,
+    sample: seriesSample('Purchase intent by cohort', 'Category', 'Cohort', 'Net intent', [
+      ['Counter service', 'Early career', 12], ['Counter service', 'Mid career', -8], ['Counter service', 'Retired', -20],
+      ['Table service', 'Early career', -6], ['Table service', 'Mid career', -13], ['Table service', 'Retired', -19],
+      ['Delivery', 'Early career', 8], ['Delivery', 'Mid career', 2], ['Delivery', 'Retired', -25]
+    ], 'Net intent (share increasing minus share decreasing), percentage points, synthetic data'),
+    draft: function (x) {
+      var keys = referenceSeries(x, 2, 8), value = observedValues(x);
+      var mixed = uniq(x.rows, x.f.cat).filter(function (cat) {
+        var v = keys.map(function (key) { return value(cat, key); }).filter(Number.isFinite);
+        return v.some(function (n) { return n > 0; }) && v.some(function (n) { return n < 0; });
+      });
+      return { title: mixed.length ? mixed.join(' and ') + ' show opposite directions across cohorts' : 'Compare ' + x.f.val + ' by cohort', sub: x.f.val + ' by ' + x.f.cat + ' and ' + x.f.grp + ', zero as baseline' };
+    },
+    build: function (x) {
+      return referenceChart(x, 'bar', { series_order: referenceSeries(x, 2, 8) },
+        { refs: [{ axis: 'y', value: 0, color: C.secondary, dash: false }] });
+    }
+  });
+
+  add({ id: 'threshold-dot-grid', group: 'composition', name: 'Threshold dot groups',
+    question: 'How does the count and composition change as the threshold rises?', pic: 'dots',
+    roles: referenceRoles,
+    sample: seriesSample('Suppliers clearing service thresholds', 'Threshold', 'Tier', 'Suppliers', [
+      ['At least 80%', 'Local', 31], ['At least 80%', 'Regional', 25], ['At least 80%', 'National', 16],
+      ['At least 90%', 'Local', 12], ['At least 90%', 'Regional', 13], ['At least 90%', 'National', 11],
+      ['At least 95%', 'Local', 2], ['At least 95%', 'Regional', 4], ['At least 95%', 'National', 7],
+      ['At least 98%', 'Local', 0], ['At least 98%', 'Regional', 1], ['At least 98%', 'National', 3]
+    ], 'Count of suppliers reaching each service threshold, synthetic data'),
+    counts: function (x) {
+      var keys = referenceSeries(x, 1, 8), cats = uniq(x.rows, x.f.cat), value = observedValues(x);
+      if (cats.length > 12) throw new Error('Use up to 12 thresholds.');
+      var groups = cats.map(function (category) {
+        var counts = keys.map(function (key) { return value(category, key); });
+        if (counts.some(function (n) { return n !== null && (!Number.isSafeInteger(n) || n < 0); })) throw new Error('Threshold counts must be non-negative whole numbers.');
+        return { category: category, counts: counts, total: counts.reduce(function (a, b) { return a + (b || 0); }, 0) };
+      });
+      return { keys: keys, groups: groups };
+    },
+    draft: function (x) {
+      var groups = this.counts(x).groups, first = groups[0], last = groups[groups.length - 1];
+      return { title: first && last && first !== last ? fmt(first.total) + ' reach ' + first.category.toLowerCase() + ', while ' + fmt(last.total) + ' reach ' + last.category.toLowerCase() : 'Counts at each threshold', sub: x.f.val + ' by ' + x.f.cat + ' and ' + x.f.grp };
+    },
+    build: function (x) {
+      var data = this.counts(x), colours = ['#2251FF', '#051C2C', '#138180', '#9B631D', '#8268B4', '#A13F61', '#546576', '#667740'];
+      var unit = Math.max(1, Math.ceil(Math.max.apply(null, data.groups.map(function (g) { return g.total; })) / 240));
+      function dot(colour) { return '<span aria-hidden="true" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + colour + '"></span>'; }
+      var panels = data.groups.map(function (g) {
+        var marks = g.counts.map(function (n, i) { return dot(colours[i]).repeat(Math.round((n || 0) / unit)); }).join('');
+        var summary = data.keys.map(function (key, i) { return esc(key) + ' ' + (g.counts[i] == null ? '–' : fmt(g.counts[i])); }).join(' · ');
+        return '<div style="padding:10px;border-top:2px solid #CBD5E1"><strong style="font-size:20px">' + fmt(g.total) + '</strong><div>' +
+          esc(g.category) + '</div><div style="display:grid;grid-template-columns:repeat(16,7px);gap:2px;margin:8px 0" aria-hidden="true">' +
+          marks + '</div><p style="font-size:12px;color:#475569;margin:0">' + summary + '</p></div>';
+      }).join('');
+      var legend = data.keys.map(function (key, i) { return '<span>' + dot(colours[i]) + ' ' + esc(key) + '</span>'; }).join(' · ');
+      var html = '<p style="margin:0 0 6px;color:#475569;font-size:12px">' + esc(x.sub) + '</p><p style="margin:0 0 10px;font-size:12px">' +
+        legend + ' · Each dot represents ' + (unit === 1 ? '1' : 'about ' + fmt(unit)) +
+        '. Counts are shown below each threshold.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">' + panels + '</div>';
+      if (x.source) html += '<p style="font-size:12px;color:#475569">Source ' + esc(x.source) + (x.asOf ? ' · As of ' + esc(x.asOf) : '') + '</p>';
+      return [{ tool: 'insert_text_block', args: { title: x.title, html: html, span: 12 }, as: 'block' }];
+    }
+  });
+
   /* ---------------------------------------------------------- matching columns, running a layout */
   Ly.get = function (id) { var l = L.filter(function (x) { return x.id === id; })[0]; if (!l) throw new Error('No chart layout "' + id + '". Layouts: ' + L.map(function (x) { return x.id; }).join(', ')); return l; };
   // A best guess at which column plays each role: by name first, then by kind (text / number), each column once.
@@ -808,7 +978,13 @@
     var lay = Ly.get(id); a = a || {};
     var ds = a.sample || !a.dataset ? null : a.dataset;
     if (ds && !rt().state.datasets[ds]) throw new Error('No dataset "' + ds + '".');
-    if (!ds && lay.roles.length) { var x0 = { ds: lay.sample.name, f: lay.sample.fields, o: Object.assign({}, lay.sample.options), rows: sampleRows(lay) }; var d0 = lay.draft(x0) || {}; return { title: d0.title || lay.name, subtitle: lay.sample.unit || d0.sub || '', fields: lay.sample.fields, sample: true }; }
+    if (!ds && lay.roles.length) {
+      var defaults = {};
+      (lay.options || []).forEach(function (op) { if (op.value != null) defaults[op.key] = op.value; });
+      var x0 = { ds: lay.sample.name, f: lay.sample.fields, o: Object.assign(defaults, lay.sample.options || {}, a.options || {}), rows: sampleRows(lay) };
+      var d0 = lay.draft(x0) || {};
+      return { title: d0.title || lay.name, subtitle: lay.sample.unit || d0.sub || '', fields: lay.sample.fields, sample: true };
+    }
     var x = context(lay, a, ds);
     return { title: x.title, subtitle: x.sub, fields: x.f, options: x.o };
   };
@@ -943,6 +1119,10 @@
     pyramid: [0, 1, 2, 3, 4, 5].map(function (i) { var l = [10, 18, 26, 32, 36, 28][i], r = [12, 20, 25, 30, 33, 26][i], y = 4 + i * 10; return '<rect x="' + (47 - l) + '" y="' + y + '" width="' + l + '" height="8" fill="#051C2C"/><rect x="49" y="' + y + '" width="' + r + '" height="8" fill="#2251FF"/>'; }).join(''),
     mekko: '<rect x="4" y="4" width="40" height="24" fill="#2251FF"/><rect x="4" y="29" width="40" height="18" fill="#051C2C"/><rect x="4" y="48" width="40" height="12" fill="#B8BEC6"/><rect x="45" y="4" width="26" height="30" fill="#2251FF"/><rect x="45" y="35" width="26" height="25" fill="#051C2C"/><rect x="72" y="4" width="20" height="14" fill="#2251FF"/><rect x="72" y="19" width="20" height="20" fill="#051C2C"/><rect x="72" y="40" width="20" height="20" fill="#B8BEC6"/>',
     venn: '<circle cx="38" cy="26" r="18" fill="#2251FF" fill-opacity=".2" stroke="#2251FF"/><circle cx="58" cy="26" r="18" fill="#051C2C" fill-opacity=".15" stroke="#051C2C"/><circle cx="48" cy="42" r="18" fill="#7F8C99" fill-opacity=".2" stroke="#7F8C99"/>',
+    multidots: '<path d="M8 12H90 M8 30H90 M8 48H90" stroke="#D9DDE2"/><circle cx="24" cy="12" r="4" fill="#051C2C"/><circle cx="40" cy="30" r="4" fill="#051C2C"/><circle cx="32" cy="48" r="4" fill="#051C2C"/><path d="M44 8l4 8h-8z M58 26l4 8h-8z M65 44l4 8h-8z" fill="#2251FF"/><path d="M64 8h8v8h-8z M75 26h8v8h-8z M76 44h8v8h-8z" fill="#7F8C99"/>',
+    scenarios: '<path d="M5 58H92" stroke="#7F8C99"/><path d="M10 42h10v16H10z M26 36h10v22H26z M42 30h10v28H42z" fill="#051C2C"/><path d="M60 25h8v33h-8z" fill="#568BBD"/><path d="M69 17h8v41h-8z" fill="#2251FF"/><path d="M78 9h8v49h-8z" fill="#8268B4"/>',
+    'area-line': '<path d="M6 59V43L26 44L48 38L68 36L90 28V59Z" fill="#2251FF"/><path d="M6 43L26 44L48 38L68 36L90 28V12L68 18L48 23L26 33L6 36Z" fill="#6295C1"/><path d="M6 24L26 22L48 19L68 14L90 18" stroke="#051C2C" stroke-width="3" fill="none"/>',
+    cohorts: '<path d="M6 30H90" stroke="#7F8C99"/><path d="M12 12h9v18h-9z M40 30h9v10h-9z M68 21h9v9h-9z" fill="#2251FF"/><path d="M22 30h9v12h-9z M50 30h9v23h-9z M78 30h9v18h-9z" fill="#7F8C99"/>',
     dots: [0, 1].map(function (k) { var s = '', n = [74, 29][k]; for (var i = 0; i < 100; i++) s += '<circle cx="' + (6 + k * 46 + (i % 10) * 4) + '" cy="' + (16 + Math.floor(i / 10) * 4.4) + '" r="1.4" fill="' + (i < n ? (k ? '#051C2C' : '#2251FF') : '#D9DDE2') + '"/>'; return s; }).join(''),
     kpi: '<rect x="4" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="35" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="66" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="9" y="26" width="17" height="9" fill="#2251FF"/><rect x="40" y="26" width="17" height="9" fill="#051C2C"/><rect x="71" y="26" width="17" height="9" fill="#C62828"/>'
   };
@@ -956,11 +1136,32 @@
   Ly.gallery = function (only, run) {
     var r = MS.rt(); if (!r) return MS.toast('Open a dashboard (or File › New) and turn off Safe mode to add chart layouts.', 'warn');
     var close = function () { var w = MS.$$('.dlg-wrap').pop(); if (w) w.remove(); };
-    var search = h('input', { type: 'search', 'class': 'inp', placeholder: 'Search: bridge, loss run, survey, peers…', 'aria-label': 'Search chart layouts' });
-    var groups = h('div', { 'class': 'lay-groups' });
+    var search = h('input', { type: 'search', 'class': 'inp', placeholder: 'Search chart layouts', 'aria-label': 'Search chart layouts' });
+    var groups = h('div', { 'class': 'lay-groups' }), references = (window.MS_STUDIO || {}).chartReferences || [], showingRefs = false;
+    var allButton = h('button', { class: 'btn', type: 'button', 'aria-pressed': 'true', text: 'Standard layouts', onclick: function () { switchMode(false); } });
+    var refButton = h('button', { class: 'btn', type: 'button', 'aria-pressed': 'false', text: 'McKinsey references', onclick: function () { switchMode(true); } });
+    function switchMode(show) {
+      showingRefs = show;
+      allButton.setAttribute('aria-pressed', String(!show));
+      refButton.setAttribute('aria-pressed', String(show));
+      search.placeholder = show ? 'Search titles or chart forms' : 'Search chart layouts';
+      search.value = '';
+      draw();
+    }
     function draw() {
       var q = low(search.value); groups.innerHTML = '';
-      Ly.GROUPS.forEach(function (g) {
+      if (showingRefs) {
+        var statuses = { existing: 'Existing layout', new: 'New layout', approx: 'Adapted layout', collection: 'Collection' };
+        var matches = references.filter(function (ref) {
+          return !q || low(ref.title + ' ' + Ly.get(ref.layout).name + ' ' + ref.note).indexOf(q) >= 0;
+        });
+        if (matches.length) groups.appendChild(h('div', { class: 'lay-grid' }, matches.map(function (ref) {
+          var lay = Ly.get(ref.layout);
+          return h('button', { class: 'lay-card', 'data-reference': ref.layout, title: ref.note, onclick: function () {
+            close(); Ly.reference(ref, run);
+          } }, [thumb(lay), h('strong', { text: ref.title }), h('small', { text: statuses[ref.status] + ' · ' + lay.name })]);
+        })));
+      } else Ly.GROUPS.forEach(function (g) {
         var items = L.filter(function (l) { return l.group === g.id && (!only || only === g.id) && (!q || low(l.name + ' ' + l.question + ' ' + g.label).indexOf(q) >= 0); });
         if (!items.length) return;
         groups.appendChild(h('h4', { 'class': 'lay-head', text: g.label }));
@@ -972,7 +1173,22 @@
     }
     search.addEventListener('input', draw); draw();
     MS.dialog({ title: run ? 'Switch to another chart layout' : 'Chart layouts', sub: run ? 'Pick the layout to rebuild these charts as. Your data stays; check the columns on the next step.' : 'Consulting-style charts ready to fill: action title, one highlight colour, values on the bars, source line. Pick one, then choose your columns or try it on sample data.', xwide: true,
-      body: h('div', { 'class': 'lay-gallery' }, [search, groups]), buttons: [{ label: 'Close', value: null }] });
+      body: h('div', { 'class': 'lay-gallery' }, [references.length && !only ? h('div', { class: 'lay-modes' }, [allButton, refButton]) : null, search, groups]), buttons: [{ label: 'Close', value: null }] });
+  };
+
+  Ly.reference = function (ref, run) {
+    var ids = [ref.layout].concat(ref.companions || []);
+    MS.dialog({ title: ref.title, sub: ref.note, wide: true,
+      body: h('div', { class: 'lay-reference' }, [
+        h('a', { href: ref.url, target: '_blank', rel: 'noopener noreferrer', text: 'View original reference' }),
+        h('div', { class: 'lay-grid' }, ids.map(function (id) {
+          var lay = Ly.get(id);
+          return h('button', { class: 'lay-card', type: 'button', 'data-reference-layout': id, onclick: function () {
+            var wrap = MS.$$('.dlg-wrap').pop(); if (wrap) wrap.remove();
+            Ly.fill(id, run);
+          } }, [thumb(lay), h('strong', { text: lay.name }), h('small', { text: lay.question })]);
+        }))
+      ]), buttons: [{ label: 'Close', value: null }] });
   };
 
   // run: the id of an inserted layout to edit (columns, options and words start from what it used; Update replaces it in place)
@@ -1059,7 +1275,7 @@
   };
 
   /* ---------------------------------------------------------- tool */
-  MS.api.add('chart_layouts', { d: 'Consulting-style chart layouts (from the McKinsey-style recipes): ranked bars with one highlight, columns with a CAGR arrow, bridge, 100% mix, line against target, variance against plan, distribution, risk heat map, risk register RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause, frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, executive summary page and house style; plus dumbbell, paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble, net bars either side of zero, stacked bars ranked by total, actuals then forecast, stacked area, one line in focus, growth multiples, small multiples, sorted percentile curve, population pyramid, Marimekko, three-way overlap, 100-dot stats and heat grid. action: list (default) | preview (the suggested action title and unit line, and the columns it would use) | insert | runs (the layouts already on the page) | edit (rebuild an inserted layout in place with other columns, options, words, or another layout: chart = any chart it made, or run). Leave out fields to let Mothership guess them; sample: true tries the layout on made-up data. Inserting and editing are one undo step each.',
+  MS.api.add('chart_layouts', { d: 'Consulting-style chart layouts (from the McKinsey-style recipes): ranked bars with one highlight, columns with a CAGR arrow, bridge, 100% mix, line against target, variance against plan, distribution, risk heat map, risk register RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause, frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, executive summary page and house style; plus dumbbell, paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble, net bars either side of zero, stacked bars ranked by total, actuals then forecast, stacked area, one line in focus, growth multiples, small multiples, sorted percentile curve, population pyramid, Marimekko, three-way overlap, 100-dot stats, heat grid, multi-series dots, scenario columns, area with a benchmark, signed cohort bars, and threshold dot groups. action: list (default) | preview (the suggested action title and unit line, and the columns it would use) | insert | runs (the layouts already on the page) | edit (rebuild an inserted layout in place with other columns, options, words, or another layout: chart = any chart it made, or run). Leave out fields to let Mothership guess them; sample: true tries the layout on made-up data. Inserting and editing are one undo step each.',
     p: { action: ['string', 'list | preview | insert | runs | edit'], layout: ['string', 'Layout id, from list (with edit: switch to this layout)'], chart: ['string', 'edit: a chart the layout inserted (name or key)'], run: ['string', 'edit: the run id from runs or insert'], keep_title: ['boolean', 'edit: keep the old title even though the numbers change'], dataset: ['string', 'Dataset to use (or the name for the sample data)'], sample: ['boolean', 'Use the layout\'s sample data'], fields: ['object', '{role: column}, e.g. {"cat": "State", "val": "Days"} (roles from list)'], options: ['object', 'Layout options, e.g. {"pick": "Maharashtra", "better": "low"}'], title: ['string', 'Action title (default: suggested from the data)'], subtitle: ['string', 'Unit line'], source: ['string', 'Source line under the chart'], as_of: ['string', 'Data as of (YYYY-MM-DD)'] },
     f: function (a) {
       var act = a.action || 'list';

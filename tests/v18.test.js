@@ -30,7 +30,7 @@ const NEW = ['dumbbell', 'gap-pairs', 'range-dots', 'parity-scatter', 'quadrant-
 
       /* --- the new layouts are listed in their groups and each has an action title worked out from the numbers --- */
       const list = (await api('chart_layouts', {})).layouts;
-      assert.equal(list.length, 43, '43 layouts');
+      assert.ok(list.length >= 43, 'at least the 43 layouts shipped with v4.1.0');
       assert.deepEqual(NEW.filter(id => !list.some(l => l.id === id)), [], 'every new layout is listed');
       const groups = (await api('chart_layouts', {})).groups.map(g => g.id);
       assert.deepEqual(groups.slice(-4), ['compare', 'trend', 'composition', 'page']);

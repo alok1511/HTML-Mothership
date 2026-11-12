@@ -37,7 +37,7 @@
 HTML-Mothership/
 ├── mothership.html          ← double-click this
 ├── dist/mothership-standalone.html   ← or this: the same app in ONE file (email it / put it on a shared drive)
-├── samples/                 ← three demo dashboards (Chart.js, ECharts, Plotly)
+├── samples/                 ← sample dashboards, chart galleries and guided exercises
 ├── skills/acme-brand/       ← example brand skill (SKILL.md)
 ├── plugins/                 ← example plugin
 └── recipes/                 ← example recipe (adds How-to / FAQ / Methodology tabs)
@@ -45,8 +45,10 @@ HTML-Mothership/
 
 1. **Download** the repo (green *Code* button › *Download ZIP*) and unzip it anywhere, e.g. `Documents\HTML-Mothership`.
 2. **Double-click `mothership.html`.** It opens in Chrome or Edge. Firefox works too, except "Save as" falls back to a normal download.
-3. Click **Browse report layouts** for five reusable layouts, a finished showcase and two practice labs, **Try the sales sample**, or **Open dashboard** to load your own `.html`.
+3. Open **Choose a sample** for 23 dashboards and exercises, including ten guided practice dashboards. Choose **Build from data** to start with CSV, Excel, ODS, TSV or JSON, or **Open dashboard** to load an existing `.html`.
 4. Edit it. Then click **Export** (Ctrl+E) to save the result to your laptop.
+
+**From data to a chart.** Choose a dataset, category, calculation and value, then check the live chart and source rows. Add a split or filter when it answers a specific question. Insert the chart and use **Charts › Reshape** or **Charts › Settings** to refine it. Find 48 standard layouts and the reference gallery in **Charts › Chart layouts**. The [chart recipe reference](docs/CHART-RECIPE-REFERENCE.md) maps 26 McKinsey links to the available layouts and includes paste-ready recipes.
 
 > **Tip.** If your dashboard loads its own `.js`, `.css`, images or `data.json` from next to it, use **Open folder…** instead. Mothership bundles all of them into the single exported file, including data the page `fetch()`es.
 

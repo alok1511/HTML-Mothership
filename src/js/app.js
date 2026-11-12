@@ -99,6 +99,7 @@
   MS.on('child-loaded', function (c) { V.layout(); c.win.addEventListener('wheel', wheelZoom, { passive: false }); });
 
   /* samples are bundled into samples/samples.js by tools/build.js so they open from file:// */
+  var sampleBundle;
   MS.samples = {
     list: [
       { id: 'sales', label: 'Sales dashboard (Chart.js, with data for drill-down)' },
@@ -107,21 +108,61 @@
       { id: 'layouts', label: 'Claims and risk review (built from Chart layouts)' },
       { id: 'gallery', label: 'Chart layout gallery: comparisons, trends and composition' }
     ],
-    menu: function () { return MS.samples.list.map(function (s) { return { label: s.label, run: function () { MS.samples.open(s.id); } }; }); },
+    groups: function () {
+      var catalog = window.MS_STUDIO || {};
+      function entries(list) { return (list || []).map(function (s) { return { id: s.id, label: s.title, detail: s.focus || s.visual }; }); }
+      return [
+        { name: 'Guided practice', entries: entries(catalog.practiceSamples) },
+        { name: 'Showcase and report layouts', entries: entries(catalog.reports) },
+        { name: 'Practice labs', entries: entries(catalog.labs) },
+        { name: 'Charts and classic dashboards', entries: MS.samples.list }
+      ];
+    },
+    choose: function () {
+      var groups = MS.samples.groups(), details = new Map();
+      var select = h('select', { 'class': 'inp', 'aria-label': 'Sample dashboard' });
+      groups.forEach(function (group) {
+        if (!group.entries.length) return;
+        select.appendChild(h('optgroup', { label: group.name }, group.entries.map(function (sample) {
+          details.set(sample.id, sample.detail || group.name);
+          return h('option', { value: sample.id, text: sample.label });
+        })));
+      });
+      var summary = h('p', { 'class': 'muted', role: 'status' });
+      function describe() { summary.textContent = details.get(select.value) || ''; }
+      select.addEventListener('change', describe); describe();
+      return MS.dialog({ title: 'Choose a sample dashboard',
+        body: h('div', {}, [h('p', { text: 'Open a finished dashboard or choose Guided practice for a worked exercise.' }), select, summary]),
+        buttons: [{ label: 'Cancel', value: null }, { label: 'Open sample', primary: true, value: function () { return select.value; } }]
+      }).then(function (id) {
+        if (!id) return false;
+        return Promise.resolve(MS.samples.open(id)).catch(function (error) { MS.toast(error.message, 'error'); return false; });
+      });
+    },
+    menu: function () { return MS.samples.groups().flatMap(function (g) { return g.entries; }).map(function (s) { return { label: s.label, run: function () { MS.samples.open(s.id); } }; }); },
     open: function (id, opts) {
       var go = function () {
         var s = window.MS_SAMPLES && window.MS_SAMPLES[id];
         if (!s) return MS.toast('Sample not found. Run "node tools/build.js" or keep the samples folder next to mothership.html.', 'error');
+        if (s.chartjs) return MS.libSource('chartjs').then(function (src) {
+          var html = s.html.replace('<!-- practice-chart-library -->', function () {
+            return '<script data-ms-own data-ms-lib="chartjs">' + src.replace(/<\/script/gi, '<\\/script') + '</script>';
+          });
+          return MS.openHtml(html, opts && opts.name || s.name, opts);
+        });
         return MS.openHtml(s.html, opts && opts.name || s.name, opts);
       };
       if (window.MS_SAMPLES) return go();
-      MS.busy(true);
-      return new Promise(function (resolve, reject) {
-        var sc = document.createElement('script'); sc.src = 'samples/samples.js';
-        sc.onload = function () { MS.busy(false); Promise.resolve(go()).then(resolve, reject); };
-        sc.onerror = function () { MS.busy(false); MS.toast('Could not load samples/samples.js.', 'error'); resolve(false); };
-        document.head.appendChild(sc);
-      });
+      if (!sampleBundle) {
+        MS.busy(true);
+        sampleBundle = new Promise(function (resolve, reject) {
+          var sc = document.createElement('script'); sc.src = 'samples/samples.js';
+          sc.onload = resolve;
+          sc.onerror = function () { sampleBundle = null; reject(new Error('Could not load the sample dashboards.')); };
+          document.head.appendChild(sc);
+        }).finally(function () { MS.busy(false); });
+      }
+      return sampleBundle.then(go);
     }
   };
 
@@ -164,7 +205,7 @@
     MS.$('#btn-cmdk').addEventListener('click', function () { MS.palette(); });
     MS.$('#btn-theme').addEventListener('click', function () { MS.ui.dialog(); });
     MS.appbar.boot();
-    MS.$$('[data-act]').forEach(function (b) { b.addEventListener('click', function () { var a = b.getAttribute('data-act'); if (a === 'sample') MS.samples.open('sales'); else MS.cmd[a](); }); });
+    MS.$$('[data-act]').forEach(function (b) { b.addEventListener('click', function () { MS.cmd[b.getAttribute('data-act')](); }); });
     // drag & drop files anywhere
     var dz = MS.$('#dropzone'), depth = 0;
     window.addEventListener('dragenter', function (e) { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { depth++; dz.classList.add('on'); } });

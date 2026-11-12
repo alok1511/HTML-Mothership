@@ -18,6 +18,8 @@ Read this in the repository or open **Help › User guide** in Mothership. The s
 
 | I want to… | Start here |
 |---|---|
+| Build charts from a data file | Build from data on the welcome screen, or Data › Import and build |
+| Practice a feature with an expected result | Choose a sample › Guided practice |
 | Update last month's dashboard | Data › Manage › Refresh from file |
 | Fix a chart label or pop-up | Double-click the chart in Edit |
 | Collect sign-off feedback | Comment mode, then Review |
@@ -98,7 +100,7 @@ Use **Charts › Category order** or **Category colours** when the same labels a
 <!-- guide:layouts -->
 ## Chart layouts: consulting-style charts ready to fill
 
-**Insert › Chart layouts** (or **Charts › Chart layouts**) opens a gallery of 43 ready-made charts that follow the consulting house rules: an action title that says the so-what, a unit line, one highlight colour with everything else grey, values on the bars instead of gridlines, and a source line.
+**Insert › Chart layouts** (or **Charts › Chart layouts**) opens a gallery of 48 ready-made layouts that follow the consulting house rules: an action title that says the so-what, a unit line, one highlight colour with everything else grey, values on the bars instead of gridlines, and a source line.
 
 | Group | Layouts | Use it to answer |
 |---|---|---|
@@ -163,6 +165,21 @@ Use a repeatable loop: **save working copy → preview data → apply → check 
 6. Use **Home › Undo** immediately if the replacement was wrong, or **File › Versions** to restore the recovery copy. Export under a new month/version when ready.
 
 **Example:** October has 1,250 rows and 2.4M net sales; November's file has 1,119 rows and 1.9M. Neither change is automatically wrong. Check the period, excluded regions and returns, then compare the 1.9M with the independent report.
+
+<!-- guide:data-builder -->
+## Load data, preview and build a chart
+
+Choose **Build from data** on the welcome screen to create a dashboard from a data file. With a dashboard open, **Data › Import and build** adds datasets to the current dashboard. Use **Data › Build chart** to reuse a dataset you already loaded. Accepted files include CSV, TSV, Excel, ODS and JSON. Each populated workbook sheet becomes a separate dataset. JSON can be a list of row objects or a named object of row lists.
+
+1. Pick the dataset and chart type. Start with bars for comparisons and a line for trends. If dates or codes matter, check **Source rows** and verify headers, leading zeros and the order of the records.
+2. Choose **Category** and **Value**. For counts, choose **Count rows**. For averages, blank values are excluded. Add **Split by** for comparable groups. Scatter needs two numeric measures and a bubble chart needs a third for size.
+3. Open **Sort, limit and filter** to show fewer categories or isolate rows with one field value. The preview shows up to 24 categories. The inserted chart uses your selected limit up to 120 categories and supports up to 16 series. Use **Source order** when a file is already sorted chronologically.
+4. Give the chart a useful title. Put units, time period and population in **Unit and scope**. Put the consequence or decision in **Key inference**. Turn on **Show a summary that follows filters** to add a caption that recalculates from the visible data. Check the preview, then click **Insert chart**.
+5. To refine the result, select it and use **Charts › Reshape** for the data, **Charts › Settings** for commentary and appearance, and **Consulting › Source** for provenance. Undo removes the chart as a single edit and leaves the imported data available for the next chart.
+
+To practice, choose **Shipment Analysis** from **Choose a sample › Guided practice**. Download the CSV from **Source data** and follow **Practice tasks**. Compare the sum and average, then check that your split series reconcile to the unfiltered totals.
+
+Open **Charts › Chart layouts › McKinsey references** for comparison, forecast, distribution and composition forms. A card opens the matching standard layout and any relevant companion layouts. Use sample data first to check which columns the layout expects.
 
 <!-- guide:build -->
 ## Build a dashboard from scratch
@@ -273,6 +290,8 @@ To run Python instead, replace `node` with your Python command and use `tools/mc
 | **Model / harness** | The AI that reasons or drafts / the app and tools it works through, such as Codex or Claude Code. |
 | **MCP** | Model Context Protocol. Mothership's local server lets a compatible assistant call editor tools. |
 | **Dataset / field / binding** | A set of records / a column in those records / the connection from a chart or filter to a dataset. |
+| **Chart-only filter** | A filter applied to the rows used by one chart. Dashboard filters can still affect those rows. |
+| **Scenario** | A set of assumptions that produces a projection. Each scenario is displayed separately from historical observations. |
 | **Grain** | What one row represents, such as one month, state, team and asset type. |
 | **Snapshot / tenure** | Values as of a point in time / elapsed time in a group, such as weeks since signup. |
 | **KPI / denominator** | A key performance indicator / the base used to compute a rate. |
@@ -389,6 +408,8 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 | Works in the editor, blank after export | Missing resources or script-generated content | Try the exported file offline and read the browser/load error; confirm the source assets are bundled |
 | Filter appears but chart does not change | The chart's binding | In Data & drill-down, check that the chart uses the filtered dataset and field |
 | A number is much smaller or larger than expected | Units already scaled | Confirm the source unit and choose an unscaled format when the source already stores values in thousands or millions |
+| Chart preview shows no values | Category, measure, and chart-only filter | Clear the chart filter, check the source rows, and confirm the value field is numeric or choose Count rows |
+| The chart preview shows fewer categories than the finished chart | Preview limit | The preview displays up to 24 categories. Set the desired final limit under Sort, limit and filter before inserting. |
 | Dataset refresh is blocked | Required column renamed or measure has text | Restore the exact header and fix the values in the new file, then preview again |
 | A test didn't execute | Wrong tab, unavailable target, manual step or cap | Read the result and target. Open the correct tab, update the target and rerun or check manually |
 | Tests show Stale | An edit happened after the last run | Run the relevant tests again against the new revision |
