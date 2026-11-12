@@ -1,6 +1,6 @@
 # Mothership chart recipes and reference audit
 
-Open **Charts › Chart layouts › McKinsey references**. Search for an exhibit, choose one of its layouts, then use **Sample data** to practice or select your own dataset and match its columns. The examples use synthetic values. They use Mothership’s chart styling and can be exported offline.
+Open **Charts › Chart layouts** to see **Standard layouts**. Search by chart type or by a topic from the audit below. Choose a layout, then use **Sample data** to practise or select your own dataset and match its columns. The examples use synthetic values. They use Mothership’s chart styling and can be exported offline.
 
 The audit covers 26 requested links. Fifteen use layouts available in v4.1, six use one of five newly added layouts, three use adaptations, and two are collections. The recommendations below map chart forms and analytical intent to Mothership. Exhibit text, images and data remain with the publisher.
 

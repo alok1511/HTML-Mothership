@@ -83,7 +83,7 @@
   var actions = new Set(['layout', 'theme', 'addTab', 'ensureTab', 'renameTab', 'deleteTab', 'hideTab', 'wrapCharts',
     'tooltip', 'chart', 'moveChart', 'copyChart', 'dataset', 'filter', 'replaceText', 'css', 'api']);
   // Tools a recipe's "api" step may not call: they open, close or replace the dashboard, step outside it, or run arbitrary functions.
-  P.RECIPE_BLOCKED = /^(call|run_recipe|preview_recipe|open_html|open_folder_files|new_dashboard|close_dashboard|export_saved|undo|redo|publish|scrub_names|firm_template)$/;
+  P.RECIPE_BLOCKED = /^(call|run_recipe|preview_recipe|open_sample|open_html|open_folder_files|new_dashboard|close_dashboard|export_saved|undo|redo|publish|scrub_names|firm_template)$/;
   function apiProblem(s) {
     var tool = String(s.tool || '');
     return P.RECIPE_BLOCKED.test(tool) ? 'The tool “' + tool + '” cannot be used in a recipe.' : !MS.api || typeof MS.api[tool] !== 'function' || !MS.api.describe().some(function (t) { return t.name === tool; }) ? 'There is no tool called “' + tool + '”.' : '';

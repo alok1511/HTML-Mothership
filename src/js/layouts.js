@@ -1,4 +1,4 @@
-/* Chart layouts: ready-made consulting-style charts built from the house rules in the McKinsey-style recipes.
+/* Chart layouts: standard charts and analytical layouts with the Mothership Studio palette.
    Pick a layout (ranked bar with one highlight, bridge, CAGR columns, risk heat map, loss run, survey, benchmark…),
    point it at your columns (or try it on sample data) and it inserts a finished chart: action title, unit line,
    one highlight colour, values on the bars, no clutter, source line and the drawn takeaway.
@@ -8,12 +8,12 @@
   var Ly = MS.layouts = {};
   var h = MS.h;
 
-  // The neutral consulting palette (swap for your firm's with Design › Edit theme; a locked firm template wins).
-  var C = Ly.COLOURS = { ink: '#051C2C', highlight: '#2251FF', secondary: '#7F8C99', grey: '#B8BEC6', up: '#2E7D32', down: '#C62828', amber: '#F2A900', text: '#4B5563' };
+  // The default layout palette follows the Mothership Studio design.
+  var C = Ly.COLOURS = { ink: '#152D28', highlight: '#0B6B59', secondary: '#648077', grey: '#B8C8C2', up: '#2E7D32', down: '#C62828', amber: '#F2A900', text: '#465A53' };
   var HOUSE = { size: 11, color: C.text, grid: false };
 
   Ly.GROUPS = [
-    { id: 'core', label: 'Core consulting charts' },
+    { id: 'core', label: 'Comparison essentials' },
     { id: 'analysis', label: 'Data analysis' },
     { id: 'risk', label: 'Risk registers' },
     { id: 'claims', label: 'Claims and loss runs' },
@@ -43,7 +43,14 @@
   function sorted(list, dir) { return list.slice().sort(function (a, b) { return dir === 'asc' ? a.value - b.value : b.value - a.value; }); }
   function total(list) { return list.reduce(function (t, g) { return t + g.value; }, 0); }
   function median(vals) { var v = vals.slice().sort(function (a, b) { return a - b; }), m = Math.floor(v.length / 2); return v.length ? (v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2) : 0; }
-  function look(extra) { return Object.assign({}, HOUSE, extra); }
+  function look(extra) {
+    var style = Object.assign({}, HOUSE, extra);
+    if (style.highlight) {
+      style.highlightColor = style.highlightColor || C.highlight;
+      style.restColor = style.restColor || C.grey;
+    }
+    return style;
+  }
   function esc(s) { return MS.esc(String(s == null ? '' : s)); }
 
   /* ---------------------------------------------------------- the layouts
@@ -132,7 +139,7 @@
       return { title: top.label + ' has gone from ' + round(top.a, 0) + '% to ' + round(top.b, 0) + '% of the mix since ' + top.first, sub: 'Share of ' + x.f.val + ' by ' + x.f.series + ', %' };
     },
     build: function (x) {
-      var s = this.shares(x), pick = x.o.pick || (s[0] && s[0].label), others = [C.ink, C.secondary, C.grey, '#D9DDE2', '#8E99A6'], colors = {}, k = 0;
+      var s = this.shares(x), pick = x.o.pick || (s[0] && s[0].label), others = [C.ink, C.secondary, C.grey, '#D9E4DF', '#879C93'], colors = {}, k = 0;
       s.forEach(function (p) { colors[p.label] = p.label === pick ? C.highlight : others[k++ % others.length]; });
       return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.period, measure: x.f.val, series: x.f.series, type: 'stacked', sort: 'source', percent: true, title: x.title } },
         { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:pct}', look: look({ legend: 'right', labels: 'inside', labelFormat: 'pct', axisFormat: 'pct', max: 100, colors: colors }) } }];
@@ -233,7 +240,7 @@
       return '<tr><th scope="row">' + l + '</th>' + [1, 2, 3, 4, 5].map(function (i) { return '<td style="background:' + colour(l * i) + ';text-align:center;font-weight:600;font-size:12px;height:44px;min-width:56px">' + esc((cell[l + ':' + i] || []).join(', ')) + '</td>'; }).join('') + '</tr>';
     }).join('');
     return '<table class="ms-table ms-heatmap" style="border-collapse:separate;border-spacing:3px;margin:auto"><thead><tr><th>Likelihood ↓ / Impact →</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-      '<p style="font-size:11px;color:#4B5563;margin:6px 0 0">Red: score 15 or more · Amber: 8 to 14 · Green: under 8 (score = likelihood × impact). A picture of the register: rebuild it when scores change.</p>';
+      '<p style="font-size:11px;color:#465A53;margin:6px 0 0">Red: score 15 or more · Amber: 8 to 14 · Green: under 8 (score = likelihood × impact). A picture of the register: rebuild it when scores change.</p>';
   };
   var RISKS = [['R1', 'Cyber attack on policy system', 'IT', 4, 5, 3], ['R2', 'Cat event above reinsurance cover', 'Underwriting', 3, 5, 3], ['R3', 'Reserve deficiency on motor TP', 'Actuarial', 4, 4, 3], ['R4', 'Key distributor exits', 'Distribution', 3, 4, 2], ['R5', 'Regulatory change to commissions', 'Compliance', 4, 3, 3], ['R6', 'Claims fraud ring', 'Claims', 3, 3, 2], ['R7', 'Data privacy breach', 'IT', 3, 5, 4], ['R8', 'Staff attrition in claims', 'Operations', 4, 2, 2]];
   var riskRows = RISKS.map(function (r) { return { ID: r[0], Risk: r[1], Category: r[2], Likelihood: r[3], Impact: r[4], Inherent: r[3] * r[4], Residual: r[3] * r[5], Rating: r[3] * r[5] >= 12 ? 'High' : r[3] * r[5] >= 6 ? 'Medium' : 'Low' }; });
@@ -397,7 +404,7 @@
         { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'none', labels: true, labelFormat: 'pct', valueAxis: false, max: 100, highlight: lo ? [lo.label] : [], highlightColor: C.down }) } }];
     } });
 
-  var LIKERT = { 'strongly disagree': C.down, disagree: '#E39A9A', neutral: C.grey, 'neither agree nor disagree': C.grey, agree: '#8FA8FF', 'strongly agree': C.highlight };
+  var LIKERT = { 'strongly disagree': C.down, disagree: '#E39A9A', neutral: C.grey, 'neither agree nor disagree': C.grey, agree: '#83B5A5', 'strongly agree': C.highlight };
   add({ id: 'survey-likert', group: 'survey', name: 'Likert scale spread', question: 'How are answers spread across the scale?', pic: 'likert',
     roles: [{ key: 'stmt', label: 'Statement', kind: 'text', hint: /statement|question|item/ }, { key: 'answer', label: 'Answer (Strongly disagree … Strongly agree)', kind: 'text', hint: /answer|response|scale|rating/ }, { key: 'val', label: 'Responses (count or %)', kind: 'number', opt: true, hint: /count|responses|share|%|n$/ }],
     sample: { name: 'Likert answers', rows: [].concat.apply([], [['Decisions are explained well', [14, 22, 20, 30, 14]], ['I have the tools to do my job', [5, 11, 13, 46, 25]], ['My manager supports me', [3, 7, 12, 44, 34]]].map(function (s) { return ['Strongly disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly agree'].map(function (a, i) { return { Statement: s[0], Answer: a, Responses: s[1][i] }; }); })), fields: { stmt: 'Statement', answer: 'Answer', val: 'Responses' }, unit: 'Share of responses, %' },
@@ -477,7 +484,7 @@
   function pctile(vals, p) { var v = vals.slice().sort(function (a, b) { return a - b; }); if (!v.length) return 0; var i = (v.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return v[lo] + (v[hi] - v[lo]) * (i - lo); }
   // sum of val for rows where col = v (and col2 = v2)
   function sumWhere(rows, val, col, v, col2, v2) { var t = 0; rows.forEach(function (r) { if (String(r[col]) === v && (!col2 || String(r[col2]) === v2)) { var n = num(r[val]); if (n != null) t += n; } }); return t; }
-  var GREYS = [C.ink, C.secondary, C.grey, '#D9DDE2', '#8E99A6', '#5B6B7A'];
+  var GREYS = [C.ink, C.secondary, C.grey, '#D9E4DF', '#879C93', '#526B62'];
   function partColours(parts, pick) { var o = {}, k = 0; parts.forEach(function (p) { o[p] = p === pick ? C.highlight : GREYS[k++ % GREYS.length]; }); return o; }
   function sgn(v, d) { return (v >= 0 ? '+' : '−') + fmt(Math.abs(round(v, d == null ? 1 : d))); }
   function rec(names, vals) { return names.reduce(function (o, n, i) { o[n] = vals[i]; return o; }, {}); }
@@ -498,7 +505,7 @@
     build: function (x) {
       var e = this.ends(x), order = this.moves(x).sort(function (p, q) { return q.b - p.b; }).map(function (m) { return m.label; }), colors = {}; colors[e.a] = C.grey; colors[e.b] = C.highlight;
       return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.cat, measure: x.f.val, series: x.f.when, type: 'dumbbell', sort: 'source', order: order, series_only: [e.a, e.b], series_order: [e.a, e.b], title: x.title } },
-        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'top', colors: colors, refs: [{ axis: 'x', value: 0, dash: false, color: '#CBD2DA' }] }) } }];
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'top', colors: colors, refs: [{ axis: 'x', value: 0, dash: false, color: '#CBDAD3' }] }) } }];
     } });
 
   add({ id: 'gap-pairs', group: 'compare', name: 'Paired bars with the gap', question: 'How far apart are two groups on each measure?', pic: 'pair',
@@ -586,7 +593,7 @@
     sample: { name: 'Bought online in the last 3 months', rows: [['Motor renewal', 21, 9], ['Travel', 6, 17], ['Health top-up', 11, 8], ['Two-wheeler', 14, 4], ['Home contents', 3, 7], ['Personal accident', 4, 5], ['Pet', 2, 3]].reduce(function (a, r) { a.push({ Product: r[0], Purchase: 'Repeat', Share: r[1] }); a.push({ Product: r[0], Purchase: 'First time', Share: r[2] }); return a; }, []), fields: { cat: 'Product', part: 'Purchase', val: 'Share' }, unit: '% of online buyers, by product and type of purchase, made-up survey' },
     draft: function (x) { var g = sorted(group(x.rows, x.f.cat, x.f.val)); if (!g.length) return {}; var parts = uniq(x.rows, x.f.part), pick = x.o.pick || parts[0], share = g[0].value ? sumWhere(x.rows, x.f.val, x.f.cat, g[0].label, x.f.part, pick) / g[0].value * 100 : 0; return { title: g[0].label + ' leads at ' + fmt(g[0].value) + '; ' + round(share, 0) + '% of it is ' + String(pick).toLowerCase(), sub: x.f.val + ' by ' + x.f.cat + ', split by ' + x.f.part }; },
     build: function (x) {
-      var parts = uniq(x.rows, x.f.part), pick = x.o.pick || parts[0], colors = {}; colors[pick] = C.highlight; parts.filter(function (p) { return p !== pick; }).forEach(function (p, i) { colors[p] = [C.grey, C.secondary, '#D9DDE2'][i % 3]; });
+      var parts = uniq(x.rows, x.f.part), pick = x.o.pick || parts[0], colors = {}; colors[pick] = C.highlight; parts.filter(function (p) { return p !== pick; }).forEach(function (p, i) { colors[p] = [C.grey, C.secondary, '#D9E4DF'][i % 3]; });
       return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.cat, measure: x.f.val, series: x.f.part, type: 'hstacked', sort: 'desc', series_order: [pick], title: x.title } },
         { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'top', labels: 'inside', valueAxis: false, colors: colors }) } }];
     } });
@@ -611,7 +618,7 @@
       var s = this.split(x), rows = s.map(function (p) { return { Period: p.label, Basis: p.fc ? 'Forecast' : 'Actual', Value: round(p.value, 2) }; }), act = s.filter(function (p) { return !p.fc; }), base = act[act.length - 1], last = s[s.length - 1];
       var steps = [{ tool: 'add_dataset', args: { name: x.ds + ' · actual and forecast', rows: rows }, as: 'ds' },
         { tool: 'insert_chart', args: { dataset: '$ds', by: 'Period', measure: 'Value', series: 'Basis', type: 'stacked', sort: 'source', title: x.title } },
-        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'top', labels: true, valueAxis: false, colors: { Actual: C.ink, Forecast: '#8FA8FF' } }) } }];
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'top', labels: true, valueAxis: false, colors: { Actual: C.ink, Forecast: '#83B5A5' } }) } }];
       if (base && last && base !== last) steps.push({ tool: 'chart_shapes', args: { action: 'add', chart: '$1', kind: 'cagr', a: { label: base.label, series: 0 }, b: { label: last.label, series: 1 }, periods: s.indexOf(last) - s.indexOf(base) } });
       return steps;
     } });
@@ -665,7 +672,7 @@
     draft: function (x) { var p = this.panels(x), cut = num(x.o.cut) || 2, over = p.filter(function (q) { return q.m != null && q.m >= cut; }), per = uniq(x.rows, x.f.period); return { title: over.length ? over.map(function (q) { return q.label; }).slice(0, 3).join(', ') + (over.length > 1 ? ' have' : ' has') + ' grown ' + (cut === 2 ? 'twofold' : cut + '×') + ' or more since ' + per[0] : 'No ' + x.f.panel.toLowerCase() + ' has grown ' + cut + '× since ' + per[0], sub: x.f.val + ' by ' + x.f.period + ', one chart for each ' + x.f.panel.toLowerCase() }; },
     build: function (x) {
       var p = this.panels(x), cut = num(x.o.cut) || 2, span = p.length <= 2 ? 6 : p.length === 4 ? 6 : 4;
-      var s = [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0;color:#4B5563">' + esc(x.sub) + '</p>', span: 12 }, as: 'block' }];
+      var s = [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0;color:#465A53">' + esc(x.sub) + '</p>', span: 12 }, as: 'block' }];
       p.forEach(function (q) {
         s.push({ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.period, measure: x.f.val, type: x.o.type || 'bar', sort: 'source', where: [{ field: x.f.panel, op: 'eq', value: q.label }], span: span, height: 200, title: q.label + (q.m != null ? ' · ' + round(q.m) + '×' : '') } });
         s.push({ tool: 'chart_settings', args: { chart: '$' + (s.filter(function (t) { return t.tool === 'insert_chart'; }).length), subtitle: '', look: look({ legend: 'none', labels: true, valueAxis: false, highlight: [], restColor: q.m != null && q.m >= cut ? C.highlight : C.secondary }) } });
@@ -716,7 +723,7 @@
     });
     var legend = parts.map(function (p) { return '<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px"><i style="width:10px;height:10px;display:inline-block;background:' + colors[p] + '"></i>' + esc(p) + '</span>'; }).join('');
     return '<div class="ms-mekko"><div style="font-size:11px;color:#374151;margin-bottom:6px">' + legend + '</div><svg viewBox="0 0 ' + W + ' ' + (H + 36) + '" width="100%" style="max-height:380px" role="img" aria-label="Marimekko chart">' + out + '</svg>' +
-      '<p style="font-size:11px;color:#4B5563;margin:4px 0 0">Column width = share of the total; height inside a column = share of that column. A picture of the data: rebuild it (Edit layout) when the numbers change.</p></div>';
+      '<p style="font-size:11px;color:#465A53;margin:4px 0 0">Column width = share of the total; height inside a column = share of that column. A picture of the data: rebuild it (Edit layout) when the numbers change.</p></div>';
   };
   add({ id: 'marimekko', group: 'composition', name: 'Marimekko (mekko)', question: 'How big is each market, and who or what wins inside it?', pic: 'mekko',
     roles: [{ key: 'col', label: 'Columns (e.g. markets)', kind: 'text', hint: /market|line|segment|region|cost|category/ }, { key: 'part', label: 'Parts inside each column', kind: 'text', hint: /channel|player|company|type|part|measure/ }, { key: 'val', label: 'Value', kind: 'number' }],
@@ -727,30 +734,30 @@
     build: function (x) {
       var m = this.cols(x), tot = {}; m.parts.forEach(function (p) { tot[p] = m.cols.reduce(function (t, c) { return t + (c.parts[p] || 0); }, 0); });
       var pick = x.o.pick || m.parts.slice().sort(function (a, b) { return tot[b] - tot[a]; })[0];
-      return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 6px;color:#4B5563;font-size:12px">' + esc(x.sub) + '</p>' + Ly.marimekkoHtml(m.cols, m.parts, pick, partColours(m.parts, pick)), span: 8 }, as: 'block' }];
+      return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 6px;color:#465A53;font-size:12px">' + esc(x.sub) + '</p>' + Ly.marimekkoHtml(m.cols, m.parts, pick, partColours(m.parts, pick)), span: 8 }, as: 'block' }];
     } });
 
   function yes(v) { if (typeof v === 'number') return v > 0; return /^(y|yes|true|1|x|✓)$/i.test(String(v == null ? '' : v).trim()); }
   Ly.vennHtml = function (names, z) {
-    var c = [[150, 120, '#2251FF'], [250, 120, '#051C2C'], [200, 205, '#7F8C99']], T = Object.keys(z).reduce(function (t, k) { return t + z[k]; }, 0) || 1;
+    var c = [[150, 120, '#0B6B59'], [250, 120, '#152D28'], [200, 205, '#648077']], T = Object.keys(z).reduce(function (t, k) { return t + z[k]; }, 0) || 1;
     var lab = function (k, x_, y_) { return '<text x="' + x_ + '" y="' + y_ + '" text-anchor="middle" font-size="12" font-weight="700" fill="#111827">' + fmt(z[k] || 0) + '</text><text x="' + x_ + '" y="' + (y_ + 13) + '" text-anchor="middle" font-size="10" fill="#374151">' + Math.round((z[k] || 0) / T * 100) + '%</text>'; };
     var svg = c.map(function (q) { return '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="92" fill="' + q[2] + '" fill-opacity="0.14" stroke="' + q[2] + '" stroke-width="1.5"/>'; }).join('') +
       lab('a', 110, 95) + lab('b', 290, 95) + lab('c', 200, 260) + lab('ab', 200, 82) + lab('ac', 145, 185) + lab('bc', 255, 185) + lab('abc', 200, 150) +
-      '<text x="70" y="22" font-size="12" font-weight="600" fill="#2251FF">' + esc(names[0]) + '</text><text x="330" y="22" text-anchor="end" font-size="12" font-weight="600" fill="#051C2C">' + esc(names[1]) + '</text><text x="200" y="318" text-anchor="middle" font-size="12" font-weight="600" fill="#4B5563">' + esc(names[2]) + '</text>';
+      '<text x="70" y="22" font-size="12" font-weight="600" fill="#0B6B59">' + esc(names[0]) + '</text><text x="330" y="22" text-anchor="end" font-size="12" font-weight="600" fill="#152D28">' + esc(names[1]) + '</text><text x="200" y="318" text-anchor="middle" font-size="12" font-weight="600" fill="#465A53">' + esc(names[2]) + '</text>';
     return '<div class="ms-venn"><svg viewBox="0 0 400 326" width="100%" style="max-width:460px;display:block;margin:auto" role="img" aria-label="Three-set overlap">' + svg + '</svg>' +
-      '<p style="font-size:11px;color:#4B5563;margin:4px 0 0">' + fmt(z.none || 0) + ' (' + Math.round((z.none || 0) / T * 100) + '%) is in none of the three. A picture of the data: rebuild it (Edit layout) when the numbers change.</p></div>';
+      '<p style="font-size:11px;color:#465A53;margin:4px 0 0">' + fmt(z.none || 0) + ' (' + Math.round((z.none || 0) / T * 100) + '%) is in none of the three. A picture of the data: rebuild it (Edit layout) when the numbers change.</p></div>';
   };
   add({ id: 'overlap-venn', group: 'composition', name: 'Three-way overlap', question: 'How much is exposed to one, two or all three risks?', pic: 'venn',
     roles: [{ key: 'item', label: 'Items', kind: 'text', hint: /item|supplier|product|name|vendor|risk|id/ }, { key: 'a', label: 'First test (yes / no or 1 / 0)', kind: 'text', hint: /critical|first|a$/ }, { key: 'b', label: 'Second test', kind: 'text', hint: /concentr|second|b$/ }, { key: 'c', label: 'Third test', kind: 'text', hint: /hard|distant|third|c$/ }, { key: 'val', label: 'Value (optional; blank counts items)', kind: 'number', opt: true }],
     sample: { name: 'Vendor exposure', rows: [['Core policy system', 'Yes', 'Yes', 'Yes', 42], ['Claims platform', 'Yes', 'Yes', 'No', 31], ['Payment gateway', 'Yes', 'No', 'No', 18], ['Data centre', 'Yes', 'Yes', 'Yes', 26], ['Call centre', 'No', 'Yes', 'No', 14], ['Reinsurance broker', 'Yes', 'No', 'Yes', 22], ['Print and mail', 'No', 'No', 'No', 6], ['Cloud analytics', 'No', 'Yes', 'Yes', 19], ['Survey network', 'No', 'No', 'Yes', 9], ['Security operations', 'Yes', 'No', 'Yes', 12]].map(function (r) { return { Vendor: r[0], Critical: r[1], Concentrated: r[2], 'Hard to replace': r[3], Spend: r[4] }; }), fields: { item: 'Vendor', a: 'Critical', b: 'Concentrated', c: 'Hard to replace', val: 'Spend' }, unit: 'Vendor spend, millions, FY25, by the three tests it meets, made-up vendors' },
     zones: function (x) { var z = { a: 0, b: 0, c: 0, ab: 0, ac: 0, bc: 0, abc: 0, none: 0 }; x.rows.forEach(function (r) { var k = (yes(r[x.f.a]) ? 'a' : '') + (yes(r[x.f.b]) ? 'b' : '') + (yes(r[x.f.c]) ? 'c' : '') || 'none'; z[k] += x.f.val ? (num(r[x.f.val]) || 0) : 1; }); return z; },
     draft: function (x) { var z = this.zones(x), T = Object.keys(z).reduce(function (t, k) { return t + z[k]; }, 0) || 1, any = T - z.none; return { title: round(any / T * 100, 0) + '% ' + (x.f.val ? 'of ' + x.f.val.toLowerCase() : 'of items') + ' meets at least one test; ' + round(z.abc / T * 100, 0) + '% meets all three', sub: (x.f.val || 'Count of ' + x.f.item) + ' by ' + [x.f.a, x.f.b, x.f.c].join(', ') }; },
-    build: function (x) { return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 6px;color:#4B5563;font-size:12px">' + esc(x.sub) + '</p>' + Ly.vennHtml([x.f.a, x.f.b, x.f.c], this.zones(x)), span: 6 }, as: 'block' }]; } });
+    build: function (x) { return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 6px;color:#465A53;font-size:12px">' + esc(x.sub) + '</p>' + Ly.vennHtml([x.f.a, x.f.b, x.f.c], this.zones(x)), span: 6 }, as: 'block' }]; } });
 
   Ly.dotsHtml = function (items) {
     return '<div class="ms-dotstats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">' + items.map(function (it, k) {
       var n = Math.max(0, Math.min(100, Math.round(it.v))), dots = '';
-      for (var i = 0; i < 100; i++) dots += '<circle cx="' + (6 + (i % 10) * 11) + '" cy="' + (6 + Math.floor(i / 10) * 11) + '" r="4" fill="' + (i < n ? (k === 0 ? C.highlight : C.ink) : '#D9DDE2') + '"/>';
+      for (var i = 0; i < 100; i++) dots += '<circle cx="' + (6 + (i % 10) * 11) + '" cy="' + (6 + Math.floor(i / 10) * 11) + '" r="4" fill="' + (i < n ? (k === 0 ? C.highlight : C.ink) : '#D9E4DF') + '"/>';
       return '<div style="text-align:left"><div style="font-size:28px;font-weight:700;color:' + (k === 0 ? C.highlight : C.ink) + '">' + n + '%</div><div style="font-size:12px;color:#374151;margin:2px 0 6px;min-height:30px">' + esc(it.label) + '</div><svg viewBox="0 0 112 112" width="112" height="112" role="img" aria-label="' + n + ' of 100">' + dots + '</svg></div>';
     }).join('') + '</div>';
   };
@@ -759,7 +766,7 @@
     options: [{ key: 'max', label: 'Most panels', type: 'number', value: 6 }],
     sample: { name: 'Digital use along the journey', rows: [['used a digital tool to research cover', 74], ['compared quotes online', 58], ['asked an AI assistant a question', 37], ['bought the policy online', 29], ['filed a claim in the app', 22], ['let an AI agent renew for them', 6]].map(function (r) { return { Step: r[0], Share: r[1] }; }), fields: { label: 'Step', val: 'Share' }, unit: '% of policyholders, last 12 months, made-up survey' },
     draft: function (x) { var g = group(x.rows, x.f.label, x.f.val, 'avg'), top = sorted(g)[0], bot = sorted(g, 'asc')[0]; if (!top) return {}; return { title: round(top.value, 0) + '% ' + top.label + (bot && bot !== top ? ', but only ' + round(bot.value, 0) + '% ' + bot.label : ''), sub: x.f.val + ', %' }; },
-    build: function (x) { var g = group(x.rows, x.f.label, x.f.val, 'avg').slice(0, num(x.o.max) || 6).map(function (q) { return { label: q.label, v: q.value }; }); return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 10px;color:#4B5563;font-size:12px">' + esc(x.sub) + '</p>' + Ly.dotsHtml(g), span: 12 }, as: 'block' }]; } });
+    build: function (x) { var g = group(x.rows, x.f.label, x.f.val, 'avg').slice(0, num(x.o.max) || 6).map(function (q) { return { label: q.label, v: q.value }; }); return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 10px;color:#465A53;font-size:12px">' + esc(x.sub) + '</p>' + Ly.dotsHtml(g), span: 12 }, as: 'block' }]; } });
 
   add({ id: 'heat-grid', group: 'composition', name: 'Heat grid (rows × columns)', question: 'Across many items and measures, where are the hot spots?', pic: 'heat',
     roles: [{ key: 'row', label: 'Rows', kind: 'text', hint: /region|state|country|branch|economy|item|name/ }, { key: 'col', label: 'Columns', kind: 'text', hint: /measure|kpi|element|metric|dimension|factor/ }, { key: 'val', label: 'Value', kind: 'number' }],
@@ -771,7 +778,7 @@
       var p = this.pivot(x), hi = x.o.better !== 'low';
       return [{ tool: 'add_dataset', args: { name: x.ds + ' · grid', rows: p.rows }, as: 'ds' },
         { tool: 'insert_table', args: { dataset: '$ds', title: x.title, span: 8 }, as: 'table' },
-        { tool: 'table_rules', args: { table: '$table', action: 'set', rules: p.cols.map(function (c) { return { col: c, type: 'scale', low: '#F1F4F8', mid: '', high: '#2251FF', higher: hi }; }) } }];
+        { tool: 'table_rules', args: { table: '$table', action: 'set', rules: p.cols.map(function (c) { return { col: c, type: 'scale', low: '#F1F4F8', mid: '', high: '#0B6B59', higher: hi }; }) } }];
     } });
 
   // Reference layouts keep their source bindings so they follow dashboard filters.
@@ -811,7 +818,7 @@
     };
   }
 
-  add({ id: 'comparison-dots', group: 'compare', name: 'Multi-series dot comparison',
+  add({ id: 'comparison-dots', group: 'compare', name: 'Multi-series dot plot',
     question: 'Where do several comparable series differ across the same measures?', pic: 'multidots',
     roles: referenceRoles,
     sample: seriesSample('Tool adoption by activity', 'Activity', 'Series', 'Share', [
@@ -830,7 +837,7 @@
     build: function (x) { return referenceChart(x, 'dot-compare', { series_order: referenceSeries(x, 2, 8) }); }
   });
 
-  add({ id: 'scenario-columns', group: 'trend', name: 'Actual and scenario columns',
+  add({ id: 'scenario-columns', group: 'trend', name: 'Actuals and scenario columns',
     question: 'How far apart are the alternatives, and where do observations end?', pic: 'scenarios',
     roles: referenceRoles,
     options: [{ key: 'actual', label: 'Observed series name', value: 'Actual' }],
@@ -874,12 +881,12 @@
       var keys = referenceSeries(x, 3, 8), line = x.o.benchmark, colors = {};
       if (keys.indexOf(line) < 0) throw new Error('Set Benchmark series name to an existing series with the same units.');
       keys = keys.filter(function (key) { return key !== line; }).concat(line);
-      keys.forEach(function (key, j) { colors[key] = key === line ? C.ink : ['#6295C1', '#2251FF', '#3F8C91', '#977AB4', '#B38558', '#546A83', '#638052'][j]; });
+      keys.forEach(function (key, j) { colors[key] = key === line ? C.ink : ['#6295C1', '#0B6B59', '#3F8C91', '#977AB4', '#B38558', '#546A83', '#638052'][j]; });
       return referenceChart(x, 'area-benchmark', { series_order: keys, overlay: line }, { colors: colors });
     }
   });
 
-  add({ id: 'cohort-bars', group: 'compare', name: 'Signed cohort bars',
+  add({ id: 'cohort-bars', group: 'compare', name: 'Cohort comparison around zero',
     question: 'Which measures and cohorts move in opposite directions around zero?', pic: 'cohorts',
     roles: referenceRoles,
     sample: seriesSample('Purchase intent by cohort', 'Category', 'Cohort', 'Net intent', [
@@ -901,7 +908,7 @@
     }
   });
 
-  add({ id: 'threshold-dot-grid', group: 'composition', name: 'Threshold dot groups',
+  add({ id: 'threshold-dot-grid', group: 'composition', name: 'Threshold dot matrix',
     question: 'How does the count and composition change as the threshold rises?', pic: 'dots',
     roles: referenceRoles,
     sample: seriesSample('Suppliers clearing service thresholds', 'Threshold', 'Tier', 'Suppliers', [
@@ -925,7 +932,7 @@
       return { title: first && last && first !== last ? fmt(first.total) + ' reach ' + first.category.toLowerCase() + ', while ' + fmt(last.total) + ' reach ' + last.category.toLowerCase() : 'Counts at each threshold', sub: x.f.val + ' by ' + x.f.cat + ' and ' + x.f.grp };
     },
     build: function (x) {
-      var data = this.counts(x), colours = ['#2251FF', '#051C2C', '#138180', '#9B631D', '#8268B4', '#A13F61', '#546576', '#667740'];
+      var data = this.counts(x), colours = ['#0B6B59', '#152D28', '#138180', '#9B631D', '#8268B4', '#A13F61', '#546576', '#667740'];
       var unit = Math.max(1, Math.ceil(Math.max.apply(null, data.groups.map(function (g) { return g.total; })) / 240));
       function dot(colour) { return '<span aria-hidden="true" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + colour + '"></span>'; }
       var panels = data.groups.map(function (g) {
@@ -1090,45 +1097,49 @@
 
   /* ---------------------------------------------------------- thumbnails (drawn, no images) */
   var PIC = {
-    rank: '<rect x="8" y="8" width="68" height="7" fill="#2251FF"/><rect x="8" y="19" width="54" height="7" fill="#B8BEC6"/><rect x="8" y="30" width="44" height="7" fill="#B8BEC6"/><rect x="8" y="41" width="33" height="7" fill="#B8BEC6"/><rect x="8" y="52" width="22" height="7" fill="#B8BEC6"/>',
-    cagr: '<rect x="10" y="40" width="10" height="20" fill="#051C2C"/><rect x="26" y="35" width="10" height="25" fill="#051C2C"/><rect x="42" y="30" width="10" height="30" fill="#051C2C"/><rect x="58" y="22" width="10" height="38" fill="#051C2C"/><rect x="74" y="14" width="10" height="46" fill="#051C2C"/><path d="M15 32 L79 6" stroke="#2251FF" stroke-width="2" fill="none" marker-end="url(#ah)"/>',
-    bridge: '<rect x="6" y="20" width="11" height="40" fill="#051C2C"/><rect x="21" y="12" width="11" height="8" fill="#2E7D32"/><rect x="36" y="7" width="11" height="5" fill="#2E7D32"/><rect x="51" y="7" width="11" height="9" fill="#C62828"/><rect x="66" y="16" width="11" height="6" fill="#C62828"/><rect x="81" y="22" width="11" height="38" fill="#051C2C"/>',
-    mix: '<rect x="12" y="8" width="16" height="30" fill="#051C2C"/><rect x="12" y="38" width="16" height="12" fill="#7F8C99"/><rect x="12" y="50" width="16" height="10" fill="#2251FF"/><rect x="40" y="8" width="16" height="26" fill="#051C2C"/><rect x="40" y="34" width="16" height="12" fill="#7F8C99"/><rect x="40" y="46" width="16" height="14" fill="#2251FF"/><rect x="68" y="8" width="16" height="22" fill="#051C2C"/><rect x="68" y="30" width="16" height="12" fill="#7F8C99"/><rect x="68" y="42" width="16" height="18" fill="#2251FF"/>',
-    line: '<path d="M6 46 L22 42 L38 36 L54 44 L70 30 L88 22" stroke="#2251FF" stroke-width="2.5" fill="none"/><path d="M6 26 H90" stroke="#C62828" stroke-width="1.5" stroke-dasharray="5 3"/>',
+    rank: '<rect x="8" y="8" width="68" height="7" fill="#0B6B59"/><rect x="8" y="19" width="54" height="7" fill="#B8C8C2"/><rect x="8" y="30" width="44" height="7" fill="#B8C8C2"/><rect x="8" y="41" width="33" height="7" fill="#B8C8C2"/><rect x="8" y="52" width="22" height="7" fill="#B8C8C2"/>',
+    cagr: '<rect x="10" y="40" width="10" height="20" fill="#152D28"/><rect x="26" y="35" width="10" height="25" fill="#152D28"/><rect x="42" y="30" width="10" height="30" fill="#152D28"/><rect x="58" y="22" width="10" height="38" fill="#152D28"/><rect x="74" y="14" width="10" height="46" fill="#152D28"/><path d="M15 32 L79 6" stroke="#0B6B59" stroke-width="2" fill="none" marker-end="url(#ah)"/>',
+    bridge: '<rect x="6" y="20" width="11" height="40" fill="#152D28"/><rect x="21" y="12" width="11" height="8" fill="#2E7D32"/><rect x="36" y="7" width="11" height="5" fill="#2E7D32"/><rect x="51" y="7" width="11" height="9" fill="#C62828"/><rect x="66" y="16" width="11" height="6" fill="#C62828"/><rect x="81" y="22" width="11" height="38" fill="#152D28"/>',
+    mix: '<rect x="12" y="8" width="16" height="30" fill="#152D28"/><rect x="12" y="38" width="16" height="12" fill="#648077"/><rect x="12" y="50" width="16" height="10" fill="#0B6B59"/><rect x="40" y="8" width="16" height="26" fill="#152D28"/><rect x="40" y="34" width="16" height="12" fill="#648077"/><rect x="40" y="46" width="16" height="14" fill="#0B6B59"/><rect x="68" y="8" width="16" height="22" fill="#152D28"/><rect x="68" y="30" width="16" height="12" fill="#648077"/><rect x="68" y="42" width="16" height="18" fill="#0B6B59"/>',
+    line: '<path d="M6 46 L22 42 L38 36 L54 44 L70 30 L88 22" stroke="#0B6B59" stroke-width="2.5" fill="none"/><path d="M6 26 H90" stroke="#C62828" stroke-width="1.5" stroke-dasharray="5 3"/>',
     variance: '<path d="M48 4 V60" stroke="#94A3B8"/><rect x="48" y="8" width="36" height="8" fill="#2E7D32"/><rect x="48" y="20" width="20" height="8" fill="#2E7D32"/><rect x="34" y="32" width="14" height="8" fill="#C62828"/><rect x="18" y="44" width="30" height="8" fill="#C62828"/>',
-    hist: '<rect x="8" y="12" width="16" height="48" fill="#B8BEC6"/><rect x="28" y="30" width="16" height="30" fill="#B8BEC6"/><rect x="48" y="44" width="16" height="16" fill="#B8BEC6"/><rect x="68" y="54" width="16" height="6" fill="#2251FF"/>',
-    style: '<rect x="8" y="8" width="80" height="6" fill="#051C2C"/><rect x="8" y="18" width="50" height="4" fill="#94A3B8"/><rect x="12" y="40" width="12" height="20" fill="#051C2C"/><rect x="30" y="32" width="12" height="28" fill="#051C2C"/><rect x="48" y="28" width="12" height="32" fill="#2251FF"/><rect x="66" y="36" width="12" height="24" fill="#051C2C"/>',
-    page: '<rect x="6" y="4" width="84" height="10" fill="#051C2C"/><rect x="6" y="18" width="26" height="10" fill="#E2E8F0"/><rect x="35" y="18" width="26" height="10" fill="#E2E8F0"/><rect x="64" y="18" width="26" height="10" fill="#E2E8F0"/><rect x="6" y="32" width="40" height="20" fill="#B8BEC6"/><rect x="50" y="32" width="40" height="20" fill="#B8BEC6"/><rect x="6" y="55" width="84" height="5" fill="#2251FF"/>',
+    hist: '<rect x="8" y="12" width="16" height="48" fill="#B8C8C2"/><rect x="28" y="30" width="16" height="30" fill="#B8C8C2"/><rect x="48" y="44" width="16" height="16" fill="#B8C8C2"/><rect x="68" y="54" width="16" height="6" fill="#0B6B59"/>',
+    style: '<rect x="8" y="8" width="80" height="6" fill="#152D28"/><rect x="8" y="18" width="50" height="4" fill="#94A3B8"/><rect x="12" y="40" width="12" height="20" fill="#152D28"/><rect x="30" y="32" width="12" height="28" fill="#152D28"/><rect x="48" y="28" width="12" height="32" fill="#0B6B59"/><rect x="66" y="36" width="12" height="24" fill="#152D28"/>',
+    page: '<rect x="6" y="4" width="84" height="10" fill="#152D28"/><rect x="6" y="18" width="26" height="10" fill="#E2EBE6"/><rect x="35" y="18" width="26" height="10" fill="#E2EBE6"/><rect x="64" y="18" width="26" height="10" fill="#E2EBE6"/><rect x="6" y="32" width="40" height="20" fill="#B8C8C2"/><rect x="50" y="32" width="40" height="20" fill="#B8C8C2"/><rect x="6" y="55" width="84" height="5" fill="#0B6B59"/>',
     heat: (function () { var s = ''; for (var r = 0; r < 5; r++) for (var c = 0; c < 5; c++) { var v = (5 - r) * (c + 1); s += '<rect x="' + (20 + c * 14) + '" y="' + (2 + r * 12) + '" width="13" height="11" fill="' + (v >= 15 ? '#F4C7C3' : v >= 8 ? '#FCE8B2' : '#D6EAD8') + '"/>'; } return s; })(),
-    table: '<rect x="6" y="6" width="84" height="8" fill="#051C2C"/>' + [0, 1, 2, 3].map(function (i) { return '<rect x="6" y="' + (17 + i * 11) + '" width="54" height="8" fill="#E2E8F0"/><rect x="64" y="' + (17 + i * 11) + '" width="26" height="8" fill="' + ['#F4C7C3', '#FCE8B2', '#D6EAD8', '#D6EAD8'][i] + '"/>'; }).join(''),
-    stack: '<rect x="12" y="30" width="14" height="30" fill="#051C2C"/><rect x="12" y="16" width="14" height="14" fill="#2251FF"/><rect x="34" y="34" width="14" height="26" fill="#051C2C"/><rect x="34" y="24" width="14" height="10" fill="#2251FF"/><rect x="56" y="40" width="14" height="20" fill="#051C2C"/><rect x="56" y="22" width="14" height="18" fill="#2251FF"/><rect x="78" y="50" width="14" height="10" fill="#051C2C"/><rect x="78" y="20" width="14" height="30" fill="#2251FF"/>',
-    pair: [0, 1, 2, 3].map(function (i) { return '<rect x="' + (10 + i * 21) + '" y="' + (14 + i * 3) + '" width="8" height="' + (46 - i * 3) + '" fill="#B8BEC6"/><rect x="' + (18 + i * 21) + '" y="' + (34 + i * 2) + '" width="8" height="' + (26 - i * 2) + '" fill="#2251FF"/>'; }).join(''),
-    twin: '<rect x="6" y="36" width="8" height="24" fill="#B8BEC6"/><rect x="17" y="34" width="8" height="26" fill="#B8BEC6"/><rect x="28" y="33" width="8" height="27" fill="#B8BEC6"/><rect x="39" y="32" width="8" height="28" fill="#B8BEC6"/><rect x="52" y="40" width="8" height="20" fill="#051C2C"/><rect x="63" y="34" width="8" height="26" fill="#051C2C"/><rect x="74" y="26" width="8" height="34" fill="#051C2C"/><rect x="85" y="16" width="8" height="44" fill="#051C2C"/>',
-    likert: [0, 1, 2].map(function (i) { var w = [[10, 14, 14, 30, 16], [4, 8, 10, 40, 22], [3, 6, 10, 38, 27]][i], x = 6, s = ''; w.forEach(function (v, k) { s += '<rect x="' + x + '" y="' + (10 + i * 17) + '" width="' + v + '" height="11" fill="' + ['#C62828', '#E39A9A', '#B8BEC6', '#8FA8FF', '#2251FF'][k] + '"/>'; x += v; }); return s; }).join(''),
-    dumbbell: [0, 1, 2, 3, 4].map(function (i) { var a = [20, 30, 14, 44, 36][i], b = [62, 50, 70, 54, 22][i], y = 9 + i * 11; return '<path d="M' + a + ' ' + y + ' H' + b + '" stroke="#CBD2DA" stroke-width="2"/><circle cx="' + a + '" cy="' + y + '" r="3.5" fill="#B8BEC6"/><circle cx="' + b + '" cy="' + y + '" r="3.5" fill="#2251FF"/>'; }).join(''),
-    range: [0, 1, 2, 3].map(function (i) { var x = 14 + i * 22, lo = [44, 30, 38, 24][i], hi = [20, 12, 26, 8][i], m = [32, 22, 31, 15][i]; return '<rect x="' + (x - 4) + '" y="' + hi + '" width="8" height="' + (lo - hi) + '" fill="#B8BEC6"/><circle cx="' + x + '" cy="' + m + '" r="4" fill="#2251FF"/>'; }).join('') + '<path d="M4 58 H92" stroke="#94A3B8"/>',
-    parity: '<path d="M8 58 L88 6" stroke="#7F8C99" stroke-dasharray="4 3"/><circle cx="20" cy="30" r="3.5" fill="#2251FF"/><circle cx="34" cy="22" r="3.5" fill="#2251FF"/><circle cx="52" cy="44" r="3.5" fill="#7F8C99"/><circle cx="66" cy="40" r="3.5" fill="#7F8C99"/><circle cx="78" cy="30" r="3.5" fill="#7F8C99"/><circle cx="46" cy="18" r="3.5" fill="#2251FF"/>',
-    quad: '<path d="M48 4 V60 M6 32 H92" stroke="#7F8C99" stroke-dasharray="4 3"/><circle cx="66" cy="14" r="3.5" fill="#2251FF"/><circle cx="78" cy="22" r="3.5" fill="#2251FF"/><circle cx="24" cy="18" r="3.5" fill="#7F8C99"/><circle cx="30" cy="48" r="3.5" fill="#7F8C99"/><circle cx="64" cy="46" r="3.5" fill="#7F8C99"/><circle cx="14" cy="40" r="3.5" fill="#7F8C99"/>',
-    bubble: '<circle cx="24" cy="42" r="6" fill="#7F8C99" fill-opacity=".7"/><circle cx="44" cy="30" r="9" fill="#7F8C99" fill-opacity=".7"/><circle cx="70" cy="22" r="15" fill="#2251FF" fill-opacity=".75"/><circle cx="58" cy="50" r="5" fill="#7F8C99" fill-opacity=".7"/><circle cx="16" cy="18" r="4" fill="#7F8C99" fill-opacity=".7"/>',
-    hstack: [0, 1, 2, 3, 4].map(function (i) { var a = [40, 30, 26, 18, 10][i], b = [30, 26, 16, 14, 10][i], y = 6 + i * 11; return '<rect x="6" y="' + y + '" width="' + a + '" height="8" fill="#2251FF"/><rect x="' + (6 + a) + '" y="' + y + '" width="' + b + '" height="8" fill="#B8BEC6"/>'; }).join(''),
-    forecast: [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { var hh = 8 + i * 6; return '<rect x="' + (6 + i * 11) + '" y="' + (60 - hh) + '" width="8" height="' + hh + '" fill="' + (i < 5 ? '#051C2C' : '#8FA8FF') + '"/>'; }).join(''),
-    area: '<path d="M6 60 L6 44 L30 40 L54 34 L78 28 L90 24 L90 60 Z" fill="#B8BEC6"/><path d="M6 44 L30 40 L54 34 L78 28 L90 24 L90 10 L78 14 L54 22 L30 32 L6 38 Z" fill="#2251FF"/><path d="M6 38 L30 32 L54 22 L78 14 L90 10 L90 6 L78 10 L54 18 L30 28 L6 34 Z" fill="#051C2C"/>',
-    lines: '<path d="M6 40 L24 36 L42 42 L60 30 L78 32 L90 28" stroke="#B8BEC6" stroke-width="2" fill="none"/><path d="M6 50 L24 46 L42 48 L60 44 L78 40 L90 42" stroke="#B8BEC6" stroke-width="2" fill="none"/><path d="M6 34 L24 30 L42 22 L60 12 L78 16 L90 18" stroke="#2251FF" stroke-width="2.5" fill="none"/>',
-    multiples: [0, 1, 2, 3, 4, 5].map(function (k) { var ox = 4 + (k % 3) * 31, oy = 4 + Math.floor(k / 3) * 30, big = k === 1 || k === 3; return [0, 1, 2, 3].map(function (i) { var hh = big ? 5 + i * 6 : 8 + i * 2; return '<rect x="' + (ox + i * 7) + '" y="' + (oy + 26 - hh) + '" width="5" height="' + hh + '" fill="' + (big ? '#2251FF' : '#7F8C99') + '"/>'; }).join(''); }).join(''),
-    curve: '<path d="M6 58 C40 56 60 52 72 40 C80 30 86 18 90 4" stroke="#2251FF" stroke-width="2.5" fill="none"/><path d="M6 50 H90" stroke="#7F8C99" stroke-dasharray="4 3"/><circle cx="90" cy="4" r="3" fill="#051C2C"/>',
-    pyramid: [0, 1, 2, 3, 4, 5].map(function (i) { var l = [10, 18, 26, 32, 36, 28][i], r = [12, 20, 25, 30, 33, 26][i], y = 4 + i * 10; return '<rect x="' + (47 - l) + '" y="' + y + '" width="' + l + '" height="8" fill="#051C2C"/><rect x="49" y="' + y + '" width="' + r + '" height="8" fill="#2251FF"/>'; }).join(''),
-    mekko: '<rect x="4" y="4" width="40" height="24" fill="#2251FF"/><rect x="4" y="29" width="40" height="18" fill="#051C2C"/><rect x="4" y="48" width="40" height="12" fill="#B8BEC6"/><rect x="45" y="4" width="26" height="30" fill="#2251FF"/><rect x="45" y="35" width="26" height="25" fill="#051C2C"/><rect x="72" y="4" width="20" height="14" fill="#2251FF"/><rect x="72" y="19" width="20" height="20" fill="#051C2C"/><rect x="72" y="40" width="20" height="20" fill="#B8BEC6"/>',
-    venn: '<circle cx="38" cy="26" r="18" fill="#2251FF" fill-opacity=".2" stroke="#2251FF"/><circle cx="58" cy="26" r="18" fill="#051C2C" fill-opacity=".15" stroke="#051C2C"/><circle cx="48" cy="42" r="18" fill="#7F8C99" fill-opacity=".2" stroke="#7F8C99"/>',
-    multidots: '<path d="M8 12H90 M8 30H90 M8 48H90" stroke="#D9DDE2"/><circle cx="24" cy="12" r="4" fill="#051C2C"/><circle cx="40" cy="30" r="4" fill="#051C2C"/><circle cx="32" cy="48" r="4" fill="#051C2C"/><path d="M44 8l4 8h-8z M58 26l4 8h-8z M65 44l4 8h-8z" fill="#2251FF"/><path d="M64 8h8v8h-8z M75 26h8v8h-8z M76 44h8v8h-8z" fill="#7F8C99"/>',
-    scenarios: '<path d="M5 58H92" stroke="#7F8C99"/><path d="M10 42h10v16H10z M26 36h10v22H26z M42 30h10v28H42z" fill="#051C2C"/><path d="M60 25h8v33h-8z" fill="#568BBD"/><path d="M69 17h8v41h-8z" fill="#2251FF"/><path d="M78 9h8v49h-8z" fill="#8268B4"/>',
-    'area-line': '<path d="M6 59V43L26 44L48 38L68 36L90 28V59Z" fill="#2251FF"/><path d="M6 43L26 44L48 38L68 36L90 28V12L68 18L48 23L26 33L6 36Z" fill="#6295C1"/><path d="M6 24L26 22L48 19L68 14L90 18" stroke="#051C2C" stroke-width="3" fill="none"/>',
-    cohorts: '<path d="M6 30H90" stroke="#7F8C99"/><path d="M12 12h9v18h-9z M40 30h9v10h-9z M68 21h9v9h-9z" fill="#2251FF"/><path d="M22 30h9v12h-9z M50 30h9v23h-9z M78 30h9v18h-9z" fill="#7F8C99"/>',
-    dots: [0, 1].map(function (k) { var s = '', n = [74, 29][k]; for (var i = 0; i < 100; i++) s += '<circle cx="' + (6 + k * 46 + (i % 10) * 4) + '" cy="' + (16 + Math.floor(i / 10) * 4.4) + '" r="1.4" fill="' + (i < n ? (k ? '#051C2C' : '#2251FF') : '#D9DDE2') + '"/>'; return s; }).join(''),
-    kpi: '<rect x="4" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="35" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="66" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="9" y="26" width="17" height="9" fill="#2251FF"/><rect x="40" y="26" width="17" height="9" fill="#051C2C"/><rect x="71" y="26" width="17" height="9" fill="#C62828"/>'
+    table: '<rect x="6" y="6" width="84" height="8" fill="#152D28"/>' + [0, 1, 2, 3].map(function (i) { return '<rect x="6" y="' + (17 + i * 11) + '" width="54" height="8" fill="#E2EBE6"/><rect x="64" y="' + (17 + i * 11) + '" width="26" height="8" fill="' + ['#F4C7C3', '#FCE8B2', '#D6EAD8', '#D6EAD8'][i] + '"/>'; }).join(''),
+    stack: '<rect x="12" y="30" width="14" height="30" fill="#152D28"/><rect x="12" y="16" width="14" height="14" fill="#0B6B59"/><rect x="34" y="34" width="14" height="26" fill="#152D28"/><rect x="34" y="24" width="14" height="10" fill="#0B6B59"/><rect x="56" y="40" width="14" height="20" fill="#152D28"/><rect x="56" y="22" width="14" height="18" fill="#0B6B59"/><rect x="78" y="50" width="14" height="10" fill="#152D28"/><rect x="78" y="20" width="14" height="30" fill="#0B6B59"/>',
+    pair: [0, 1, 2, 3].map(function (i) { return '<rect x="' + (10 + i * 21) + '" y="' + (14 + i * 3) + '" width="8" height="' + (46 - i * 3) + '" fill="#B8C8C2"/><rect x="' + (18 + i * 21) + '" y="' + (34 + i * 2) + '" width="8" height="' + (26 - i * 2) + '" fill="#0B6B59"/>'; }).join(''),
+    twin: '<rect x="6" y="36" width="8" height="24" fill="#B8C8C2"/><rect x="17" y="34" width="8" height="26" fill="#B8C8C2"/><rect x="28" y="33" width="8" height="27" fill="#B8C8C2"/><rect x="39" y="32" width="8" height="28" fill="#B8C8C2"/><rect x="52" y="40" width="8" height="20" fill="#152D28"/><rect x="63" y="34" width="8" height="26" fill="#152D28"/><rect x="74" y="26" width="8" height="34" fill="#152D28"/><rect x="85" y="16" width="8" height="44" fill="#152D28"/>',
+    likert: [0, 1, 2].map(function (i) { var w = [[10, 14, 14, 30, 16], [4, 8, 10, 40, 22], [3, 6, 10, 38, 27]][i], x = 6, s = ''; w.forEach(function (v, k) { s += '<rect x="' + x + '" y="' + (10 + i * 17) + '" width="' + v + '" height="11" fill="' + ['#C62828', '#E39A9A', '#B8C8C2', '#83B5A5', '#0B6B59'][k] + '"/>'; x += v; }); return s; }).join(''),
+    dumbbell: [0, 1, 2, 3, 4].map(function (i) { var a = [20, 30, 14, 44, 36][i], b = [62, 50, 70, 54, 22][i], y = 9 + i * 11; return '<path d="M' + a + ' ' + y + ' H' + b + '" stroke="#CBDAD3" stroke-width="2"/><circle cx="' + a + '" cy="' + y + '" r="3.5" fill="#B8C8C2"/><circle cx="' + b + '" cy="' + y + '" r="3.5" fill="#0B6B59"/>'; }).join(''),
+    range: [0, 1, 2, 3].map(function (i) { var x = 14 + i * 22, lo = [44, 30, 38, 24][i], hi = [20, 12, 26, 8][i], m = [32, 22, 31, 15][i]; return '<rect x="' + (x - 4) + '" y="' + hi + '" width="8" height="' + (lo - hi) + '" fill="#B8C8C2"/><circle cx="' + x + '" cy="' + m + '" r="4" fill="#0B6B59"/>'; }).join('') + '<path d="M4 58 H92" stroke="#94A3B8"/>',
+    parity: '<path d="M8 58 L88 6" stroke="#648077" stroke-dasharray="4 3"/><circle cx="20" cy="30" r="3.5" fill="#0B6B59"/><circle cx="34" cy="22" r="3.5" fill="#0B6B59"/><circle cx="52" cy="44" r="3.5" fill="#648077"/><circle cx="66" cy="40" r="3.5" fill="#648077"/><circle cx="78" cy="30" r="3.5" fill="#648077"/><circle cx="46" cy="18" r="3.5" fill="#0B6B59"/>',
+    quad: '<path d="M48 4 V60 M6 32 H92" stroke="#648077" stroke-dasharray="4 3"/><circle cx="66" cy="14" r="3.5" fill="#0B6B59"/><circle cx="78" cy="22" r="3.5" fill="#0B6B59"/><circle cx="24" cy="18" r="3.5" fill="#648077"/><circle cx="30" cy="48" r="3.5" fill="#648077"/><circle cx="64" cy="46" r="3.5" fill="#648077"/><circle cx="14" cy="40" r="3.5" fill="#648077"/>',
+    bubble: '<circle cx="24" cy="42" r="6" fill="#648077" fill-opacity=".7"/><circle cx="44" cy="30" r="9" fill="#648077" fill-opacity=".7"/><circle cx="70" cy="22" r="15" fill="#0B6B59" fill-opacity=".75"/><circle cx="58" cy="50" r="5" fill="#648077" fill-opacity=".7"/><circle cx="16" cy="18" r="4" fill="#648077" fill-opacity=".7"/>',
+    hstack: [0, 1, 2, 3, 4].map(function (i) { var a = [40, 30, 26, 18, 10][i], b = [30, 26, 16, 14, 10][i], y = 6 + i * 11; return '<rect x="6" y="' + y + '" width="' + a + '" height="8" fill="#0B6B59"/><rect x="' + (6 + a) + '" y="' + y + '" width="' + b + '" height="8" fill="#B8C8C2"/>'; }).join(''),
+    forecast: [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { var hh = 8 + i * 6; return '<rect x="' + (6 + i * 11) + '" y="' + (60 - hh) + '" width="8" height="' + hh + '" fill="' + (i < 5 ? '#152D28' : '#83B5A5') + '"/>'; }).join(''),
+    area: '<path d="M6 60 L6 44 L30 40 L54 34 L78 28 L90 24 L90 60 Z" fill="#B8C8C2"/><path d="M6 44 L30 40 L54 34 L78 28 L90 24 L90 10 L78 14 L54 22 L30 32 L6 38 Z" fill="#0B6B59"/><path d="M6 38 L30 32 L54 22 L78 14 L90 10 L90 6 L78 10 L54 18 L30 28 L6 34 Z" fill="#152D28"/>',
+    lines: '<path d="M6 40 L24 36 L42 42 L60 30 L78 32 L90 28" stroke="#B8C8C2" stroke-width="2" fill="none"/><path d="M6 50 L24 46 L42 48 L60 44 L78 40 L90 42" stroke="#B8C8C2" stroke-width="2" fill="none"/><path d="M6 34 L24 30 L42 22 L60 12 L78 16 L90 18" stroke="#0B6B59" stroke-width="2.5" fill="none"/>',
+    multiples: [0, 1, 2, 3, 4, 5].map(function (k) { var ox = 4 + (k % 3) * 31, oy = 4 + Math.floor(k / 3) * 30, big = k === 1 || k === 3; return [0, 1, 2, 3].map(function (i) { var hh = big ? 5 + i * 6 : 8 + i * 2; return '<rect x="' + (ox + i * 7) + '" y="' + (oy + 26 - hh) + '" width="5" height="' + hh + '" fill="' + (big ? '#0B6B59' : '#648077') + '"/>'; }).join(''); }).join(''),
+    curve: '<path d="M6 58 C40 56 60 52 72 40 C80 30 86 18 90 4" stroke="#0B6B59" stroke-width="2.5" fill="none"/><path d="M6 50 H90" stroke="#648077" stroke-dasharray="4 3"/><circle cx="90" cy="4" r="3" fill="#152D28"/>',
+    pyramid: [0, 1, 2, 3, 4, 5].map(function (i) { var l = [10, 18, 26, 32, 36, 28][i], r = [12, 20, 25, 30, 33, 26][i], y = 4 + i * 10; return '<rect x="' + (47 - l) + '" y="' + y + '" width="' + l + '" height="8" fill="#152D28"/><rect x="49" y="' + y + '" width="' + r + '" height="8" fill="#0B6B59"/>'; }).join(''),
+    mekko: '<rect x="4" y="4" width="40" height="24" fill="#0B6B59"/><rect x="4" y="29" width="40" height="18" fill="#152D28"/><rect x="4" y="48" width="40" height="12" fill="#B8C8C2"/><rect x="45" y="4" width="26" height="30" fill="#0B6B59"/><rect x="45" y="35" width="26" height="25" fill="#152D28"/><rect x="72" y="4" width="20" height="14" fill="#0B6B59"/><rect x="72" y="19" width="20" height="20" fill="#152D28"/><rect x="72" y="40" width="20" height="20" fill="#B8C8C2"/>',
+    venn: '<circle cx="38" cy="26" r="18" fill="#0B6B59" fill-opacity=".2" stroke="#0B6B59"/><circle cx="58" cy="26" r="18" fill="#152D28" fill-opacity=".15" stroke="#152D28"/><circle cx="48" cy="42" r="18" fill="#648077" fill-opacity=".2" stroke="#648077"/>',
+    multidots: '<path d="M8 12H90 M8 30H90 M8 48H90" stroke="#D9E4DF"/><circle cx="24" cy="12" r="4" fill="#152D28"/><circle cx="40" cy="30" r="4" fill="#152D28"/><circle cx="32" cy="48" r="4" fill="#152D28"/><path d="M44 8l4 8h-8z M58 26l4 8h-8z M65 44l4 8h-8z" fill="#0B6B59"/><path d="M64 8h8v8h-8z M75 26h8v8h-8z M76 44h8v8h-8z" fill="#648077"/>',
+    scenarios: '<path d="M5 58H92" stroke="#648077"/><path d="M10 42h10v16H10z M26 36h10v22H26z M42 30h10v28H42z" fill="#152D28"/><path d="M60 25h8v33h-8z" fill="#568BBD"/><path d="M69 17h8v41h-8z" fill="#0B6B59"/><path d="M78 9h8v49h-8z" fill="#8268B4"/>',
+    'area-line': '<path d="M6 59V43L26 44L48 38L68 36L90 28V59Z" fill="#0B6B59"/><path d="M6 43L26 44L48 38L68 36L90 28V12L68 18L48 23L26 33L6 36Z" fill="#6295C1"/><path d="M6 24L26 22L48 19L68 14L90 18" stroke="#152D28" stroke-width="3" fill="none"/>',
+    cohorts: '<path d="M6 30H90" stroke="#648077"/><path d="M12 12h9v18h-9z M40 30h9v10h-9z M68 21h9v9h-9z" fill="#0B6B59"/><path d="M22 30h9v12h-9z M50 30h9v23h-9z M78 30h9v18h-9z" fill="#648077"/>',
+    dots: [0, 1].map(function (k) { var s = '', n = [74, 29][k]; for (var i = 0; i < 100; i++) s += '<circle cx="' + (6 + k * 46 + (i % 10) * 4) + '" cy="' + (16 + Math.floor(i / 10) * 4.4) + '" r="1.4" fill="' + (i < n ? (k ? '#152D28' : '#0B6B59') : '#D9E4DF') + '"/>'; return s; }).join(''),
+    kpi: '<rect x="4" y="14" width="27" height="34" rx="3" fill="#E2EBE6"/><rect x="35" y="14" width="27" height="34" rx="3" fill="#E2EBE6"/><rect x="66" y="14" width="27" height="34" rx="3" fill="#E2EBE6"/><rect x="9" y="26" width="17" height="9" fill="#0B6B59"/><rect x="40" y="26" width="17" height="9" fill="#152D28"/><rect x="71" y="26" width="17" height="9" fill="#C62828"/>'
   };
   function thumb(lay) {
     var s = h('span', { 'class': 'lay-pic', 'aria-hidden': 'true' });
-    s.innerHTML = '<svg viewBox="0 0 96 64" width="96" height="64"><defs><marker id="ah" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6z" fill="#2251FF"/></marker></defs>' + (PIC[lay.pic] || PIC.rank) + '</svg>';
+    var arrow = MS.uid('layout-arrow');
+    var art = (PIC[lay.pic] || PIC.rank).replace(/#0B6B59/g, 'var(--accent)').replace(/#152D28/g, 'var(--text-2)')
+      .replace(/#B8C8C2|#CBDAD3|#D9E4DF|#E2EBE6/g, 'var(--line-strong)').replace(/url\(#ah\)/g, 'url(#' + arrow + ')');
+    s.innerHTML = '<svg viewBox="0 0 96 64" width="96" height="64"><defs><marker id="' + arrow +
+      '" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6z" fill="var(--accent)"/></marker></defs>' + art + '</svg>';
     return s;
   }
 
@@ -1137,58 +1148,31 @@
     var r = MS.rt(); if (!r) return MS.toast('Open a dashboard (or File › New) and turn off Safe mode to add chart layouts.', 'warn');
     var close = function () { var w = MS.$$('.dlg-wrap').pop(); if (w) w.remove(); };
     var search = h('input', { type: 'search', 'class': 'inp', placeholder: 'Search chart layouts', 'aria-label': 'Search chart layouts' });
-    var groups = h('div', { 'class': 'lay-groups' }), references = (window.MS_STUDIO || {}).chartReferences || [], showingRefs = false;
-    var allButton = h('button', { class: 'btn', type: 'button', 'aria-pressed': 'true', text: 'Standard layouts', onclick: function () { switchMode(false); } });
-    var refButton = h('button', { class: 'btn', type: 'button', 'aria-pressed': 'false', text: 'McKinsey references', onclick: function () { switchMode(true); } });
-    function switchMode(show) {
-      showingRefs = show;
-      allButton.setAttribute('aria-pressed', String(!show));
-      refButton.setAttribute('aria-pressed', String(show));
-      search.placeholder = show ? 'Search titles or chart forms' : 'Search chart layouts';
-      search.value = '';
-      draw();
-    }
+    var groups = h('div', { 'class': 'lay-groups' }), aliases = new Map();
+    ((window.MS_STUDIO || {}).chartReferences || []).forEach(function (ref) {
+      [ref.layout].concat(ref.companions).forEach(function (id) {
+        aliases.set(id, (aliases.get(id) || '') + ' ' + ref.title + ' ' + ref.note);
+      });
+    });
     function draw() {
       var q = low(search.value); groups.innerHTML = '';
-      if (showingRefs) {
-        var statuses = { existing: 'Existing layout', new: 'New layout', approx: 'Adapted layout', collection: 'Collection' };
-        var matches = references.filter(function (ref) {
-          return !q || low(ref.title + ' ' + Ly.get(ref.layout).name + ' ' + ref.note).indexOf(q) >= 0;
+      Ly.GROUPS.forEach(function (g) {
+        var items = L.filter(function (l) {
+          return l.group === g.id && (!only || only === g.id) &&
+            (!q || low([l.id, l.name, l.question, g.label, aliases.get(l.id)].join(' ')).indexOf(q) >= 0);
         });
-        if (matches.length) groups.appendChild(h('div', { class: 'lay-grid' }, matches.map(function (ref) {
-          var lay = Ly.get(ref.layout);
-          return h('button', { class: 'lay-card', 'data-reference': ref.layout, title: ref.note, onclick: function () {
-            close(); Ly.reference(ref, run);
-          } }, [thumb(lay), h('strong', { text: ref.title }), h('small', { text: statuses[ref.status] + ' · ' + lay.name })]);
-        })));
-      } else Ly.GROUPS.forEach(function (g) {
-        var items = L.filter(function (l) { return l.group === g.id && (!only || only === g.id) && (!q || low(l.name + ' ' + l.question + ' ' + g.label).indexOf(q) >= 0); });
         if (!items.length) return;
         groups.appendChild(h('h4', { 'class': 'lay-head', text: g.label }));
         groups.appendChild(h('div', { 'class': 'lay-grid' }, items.map(function (l) {
           return h('button', { 'class': 'lay-card', 'data-layout': l.id, title: l.question, onclick: function () { close(); Ly.fill(l.id, run); } }, [thumb(l), h('strong', { text: l.name }), h('small', { text: l.question })]);
         })));
       });
-      if (!groups.childNodes.length) groups.appendChild(h('p', { 'class': 'muted', text: 'No layout matches. Try another word.' }));
+      if (!groups.childNodes.length) groups.appendChild(h('p', { 'class': 'muted', text: 'No layout matches. Try a chart type or a topic.' }));
     }
     search.addEventListener('input', draw); draw();
-    MS.dialog({ title: run ? 'Switch to another chart layout' : 'Chart layouts', sub: run ? 'Pick the layout to rebuild these charts as. Your data stays; check the columns on the next step.' : 'Consulting-style charts ready to fill: action title, one highlight colour, values on the bars, source line. Pick one, then choose your columns or try it on sample data.', xwide: true,
-      body: h('div', { 'class': 'lay-gallery' }, [references.length && !only ? h('div', { class: 'lay-modes' }, [allButton, refButton]) : null, search, groups]), buttons: [{ label: 'Close', value: null }] });
-  };
-
-  Ly.reference = function (ref, run) {
-    var ids = [ref.layout].concat(ref.companions || []);
-    MS.dialog({ title: ref.title, sub: ref.note, wide: true,
-      body: h('div', { class: 'lay-reference' }, [
-        h('a', { href: ref.url, target: '_blank', rel: 'noopener noreferrer', text: 'View original reference' }),
-        h('div', { class: 'lay-grid' }, ids.map(function (id) {
-          var lay = Ly.get(id);
-          return h('button', { class: 'lay-card', type: 'button', 'data-reference-layout': id, onclick: function () {
-            var wrap = MS.$$('.dlg-wrap').pop(); if (wrap) wrap.remove();
-            Ly.fill(id, run);
-          } }, [thumb(lay), h('strong', { text: lay.name }), h('small', { text: lay.question })]);
-        }))
-      ]), buttons: [{ label: 'Close', value: null }] });
+    MS.dialog({ title: run ? 'Switch to another chart layout' : 'Standard layouts',
+      sub: run ? 'Pick a layout to rebuild these charts. Check the data and columns on the next step.' : 'Search by chart type or topic. Choose a layout and match your columns, or try it with sample data.',
+      xwide: true, body: h('div', { 'class': 'lay-gallery' }, [search, groups]), buttons: [{ label: 'Close', value: null }] });
   };
 
   // run: the id of an inserted layout to edit (columns, options and words start from what it used; Update replaces it in place)
@@ -1275,16 +1259,17 @@
   };
 
   /* ---------------------------------------------------------- tool */
-  MS.api.add('chart_layouts', { d: 'Consulting-style chart layouts (from the McKinsey-style recipes): ranked bars with one highlight, columns with a CAGR arrow, bridge, 100% mix, line against target, variance against plan, distribution, risk heat map, risk register RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause, frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, executive summary page and house style; plus dumbbell, paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble, net bars either side of zero, stacked bars ranked by total, actuals then forecast, stacked area, one line in focus, growth multiples, small multiples, sorted percentile curve, population pyramid, Marimekko, three-way overlap, 100-dot stats, heat grid, multi-series dots, scenario columns, area with a benchmark, signed cohort bars, and threshold dot groups. action: list (default) | preview (the suggested action title and unit line, and the columns it would use) | insert | runs (the layouts already on the page) | edit (rebuild an inserted layout in place with other columns, options, words, or another layout: chart = any chart it made, or run). Leave out fields to let Mothership guess them; sample: true tries the layout on made-up data. Inserting and editing are one undo step each.',
-    p: { action: ['string', 'list | preview | insert | runs | edit'], layout: ['string', 'Layout id, from list (with edit: switch to this layout)'], chart: ['string', 'edit: a chart the layout inserted (name or key)'], run: ['string', 'edit: the run id from runs or insert'], keep_title: ['boolean', 'edit: keep the old title even though the numbers change'], dataset: ['string', 'Dataset to use (or the name for the sample data)'], sample: ['boolean', 'Use the layout\'s sample data'], fields: ['object', '{role: column}, e.g. {"cat": "State", "val": "Days"} (roles from list)'], options: ['object', 'Layout options, e.g. {"pick": "Maharashtra", "better": "low"}'], title: ['string', 'Action title (default: suggested from the data)'], subtitle: ['string', 'Unit line'], source: ['string', 'Source line under the chart'], as_of: ['string', 'Data as of (YYYY-MM-DD)'] },
+  MS.api.add('chart_layouts', { d: 'Standard chart layouts using the Mothership Studio palette: ranked bars with one highlight, columns with a CAGR arrow, bridge, 100% mix, line against target, variance against plan, distribution, risk heat map, risk register RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause, frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, executive summary page and house style; plus dumbbell, paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble, net bars either side of zero, stacked bars ranked by total, actuals then forecast, stacked area, one line in focus, growth multiples, small multiples, sorted percentile curve, population pyramid, Marimekko, three-way overlap, 100-dot stats, heat grid, multi-series dots, scenario columns, area with a benchmark, signed cohort bars, and threshold dot groups. action: list (default) | references (source exhibit mappings) | preview (the suggested action title and unit line, and the columns it would use) | insert | runs (the layouts already on the page) | edit (rebuild an inserted layout in place with other columns, options, words, or another layout: chart = any chart it made, or run). Leave out fields to let Mothership guess them; sample: true tries the layout on made-up data. Inserting and editing are one undo step each.',
+    p: { action: ['string', 'list | references | preview | insert | runs | edit'], layout: ['string', 'Layout id, from list (with edit: switch to this layout)'], chart: ['string', 'edit: a chart the layout inserted (name or key)'], run: ['string', 'edit: the run id from runs or insert'], keep_title: ['boolean', 'edit: keep the old title even though the numbers change'], dataset: ['string', 'Dataset to use (or the name for the sample data)'], sample: ['boolean', 'Use the layout\'s sample data'], fields: ['object', '{role: column}, e.g. {"cat": "State", "val": "Days"} (roles from list)'], options: ['object', 'Layout options, e.g. {"pick": "Maharashtra", "better": "low"}'], title: ['string', 'Action title (default: suggested from the data)'], subtitle: ['string', 'Unit line'], source: ['string', 'Source line under the chart'], as_of: ['string', 'Data as of (YYYY-MM-DD)'] },
     f: function (a) {
       var act = a.action || 'list';
       if (act === 'list') return { layouts: Ly.list(), groups: Ly.GROUPS };
+      if (act === 'references') return { references: (window.MS_STUDIO || {}).chartReferences || [] };
       if (act === 'runs') return { runs: Ly.runs() };
       if (act === 'edit') return Ly.edit(a.run || a.chart, { layout: a.layout, dataset: a.dataset, fields: a.fields, options: a.options, title: a.title, subtitle: a.subtitle, source: a.source, as_of: a.as_of, keep_title: a.keep_title });
       if (!a.layout) throw new Error('Say which layout (layout: an id from action "list").');
       if (act === 'preview') return Ly.preview(a.layout, a);
       if (act === 'insert') return Ly.insert(a.layout, a);
-      throw new Error('action is list, preview, insert, runs or edit.');
+      throw new Error('action is list, references, preview, insert, runs or edit.');
     } });
 })(window.MS);

@@ -1252,7 +1252,3 @@ body[data-ms-ui-mode="none"] #appbar .cmdk-btn .lbl { display: inline; }
 .bi-table th,.bi-table td { padding:4px 7px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left }
 .bi-builder [hidden] { display:none!important }
 @media(max-width:700px) { .bi-builder { grid-template-columns:1fr } }
-
-.lay-modes { display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px }
-.lay-modes button[aria-pressed="true"] { border-color:var(--accent);font-weight:700 }
-.lay-reference > a { display:inline-block;margin:0 0 12px }

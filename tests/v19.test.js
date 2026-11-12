@@ -10,6 +10,7 @@ const XLSX = require('../vendor/xlsx.full.min.js');
 
 const root = path.resolve(__dirname, '..');
 const practices = require('../samples/practice/catalog.json');
+const business = require('../samples/practice/business-catalog.json');
 const references = require('../docs/chart-references.json');
 const editors = process.env.V19_ONLY ? [process.env.V19_ONLY] : ['mothership.html', 'dist/mothership-standalone.html'];
 const csv = { name: 'shipments.csv', mimeType: 'text/csv', buffer: Buffer.from('Warehouse,Depot,Units,Code\nEast,North,5,001\nEast,North,,002\nEast,South,15,003\nWest,North,3,004\n') };
@@ -45,7 +46,7 @@ const log = (message) => console.log('  ✓ ' + message);
       }, key || null);
       await button('Choose a sample').click();
       const pick = page.getByLabel('Sample dashboard', { exact: true });
-      assert.equal(await pick.locator('option').count(), 23);
+      assert.equal(await pick.locator('option').count(), 28);
       assert.equal(await pick.locator('optgroup[label="Guided practice"] option').count(), 10);
       await pick.selectOption(practices[0].id);
       await button('Open sample').click();
@@ -71,7 +72,38 @@ const log = (message) => console.log('  ✓ ' + message);
         assert.deepEqual(data.tabs, ['overview', 'source', 'practice'], entry.title);
         assert.ok(data.charts && data.rows > 0 && data.tasks.includes('Expected result'), entry.title);
       }
-      log('23 chooser entries and ten offline practice dashboards with live charts, data and exercises');
+      await api('open_sample', { id: 'inspection-qa', force: true });
+      const baseline = await api('test_baseline', { action: 'import', rows: [{ what: 'KPI: Inspections', value: 160 }] });
+      assert.equal(baseline.matched, 1, 'the practice KPI can be targeted by its name');
+      log('28 chooser entries and ten core practice dashboards with live charts, data and exercises');
+
+      const checkpoints = {
+        'insurance-claims': { field: 'Line of business', value: 'Property', kpis: ['5', '24,300', '44,500', '2'] },
+        'erm-manufacturing': { field: 'Rating', value: 'High', kpis: ['4', '4', '3'] },
+        'erm-services': { field: 'Department', value: 'Technology', kpis: ['2', '1', '1'] },
+        'crm-database': { field: 'Owner team', value: 'Enterprise', kpis: ['3', '400', '1'] },
+        'team-performance': { field: 'Week', value: 'W43', kpis: ['385', '377', '32', '26'] }
+      };
+      for (const sample of business) {
+        const outline = await api('open_sample', { id: sample.id, force: true });
+        assert.deepEqual(outline.tabs.map((tab) => tab.title), ['Overview', 'Source data', 'Methodology', 'FAQ', 'Practice tasks']);
+        assert.equal(outline.charts.length, 3, sample.id);
+        assert.equal(outline.datasets[0].rows, sample.rows.length);
+        const { field, value, kpis } = checkpoints[sample.id];
+        await api('set_filter', { dataset: sample.dataset, field, value });
+        const values = await page.evaluate(() => {
+          const doc = MS.child.doc;
+          return { kpis: Array.from(doc.querySelectorAll('.ms-kpi-value')).map((e) => e.textContent),
+            sources: doc.querySelectorAll('.ms-source').length,
+            downloads: doc.querySelectorAll('[data-ms-tab="source"] a[download]').length,
+            faq: doc.querySelectorAll('[data-ms-tab="faq"] details').length };
+        });
+        assert.deepEqual(values.kpis, kpis, sample.id);
+        assert.equal(values.sources, 3);
+        assert.equal(values.downloads, 1 + (sample.related || []).length);
+        assert.ok(values.faq >= 3);
+      }
+      log('five business samples with working filters, KPI reconciliation, CSVs, Methodology and FAQ');
 
       await page.reload();
       if (process.env.V19_FIREFOX) {
@@ -132,11 +164,11 @@ const log = (message) => console.log('  ✓ ' + message);
         for (const id of [ref.layout, ...ref.companions]) assert.ok(layouts.some((layout) => layout.id === id), ref.title + ' uses ' + id);
       }
       await page.evaluate(() => MS.layouts.gallery());
-      await button('McKinsey references').click();
-      assert.equal(await page.locator('[data-reference]').count(), 26);
+      assert.equal(await page.getByRole('dialog', { name: 'Standard layouts' }).count(), 1);
+      assert.equal(await page.getByRole('button', { name: /McKinsey/ }).count(), 0);
+      assert.equal(await page.locator('[data-layout]').count(), 48);
       await page.getByLabel('Search chart layouts', { exact: true }).fill('B2B pricing');
-      await page.locator('[data-reference="comparison-dots"]').click();
-      await page.locator('[data-reference-layout="comparison-dots"]').click();
+      await page.locator('[data-layout="comparison-dots"]').click();
       await page.getByRole('dialog').getByRole('button', { name: 'Insert', exact: true }).click();
       await page.waitForFunction(() => MS.rt().charts().length === 1);
       const dots = await chartData();
@@ -188,8 +220,13 @@ const log = (message) => console.log('  ✓ ' + message);
         const ran = await api('run_recipe', { recipe });
         assert.deepEqual(ran.issues, [], recipe.name);
       }
+      await api('close_dashboard', { force: true });
+      await page.evaluate(() => MS.help.tutorial(MS.help.LESSONS.findIndex((lesson) => lesson.id === 'claims-practice')));
+      await button('Open practice copy').click();
+      await page.waitForFunction(() => MS.doc?.session.practice?.sample === 'insurance-claims');
+      assert.match(await page.locator('.coach-example').textContent(), /44,500/);
       assert.deepEqual(errors, []);
-      log('26 searchable chart references, five new layouts, layout edits, export and executable recipe Markdown');
+      log('one standard gallery searchable by 26 exhibit topics, five new layouts, layout edits, export and executable recipe Markdown');
       await page.close();
     }
   } finally { await browser.close(); }

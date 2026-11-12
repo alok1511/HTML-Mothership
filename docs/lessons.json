@@ -386,7 +386,7 @@
       },
       {
         "do": "Leave Data on Sample data. Read the suggested title, then change it to a sentence of your own that says the one thing to take away. Choose Insert.",
-        "see": "A horizontal bar chart with one blue bar, the others grey, values at the end of each bar, and your title above it.",
+        "see": "A horizontal bar chart with one Studio green bar, the others muted, values at the end of each bar, and your title above it.",
         "check": "layout-ranked"
       },
       {
@@ -412,7 +412,7 @@
     "steps": [
       {
         "do": "Open Insert › Chart layouts, type dumbbell and choose Dumbbell: before and after. Insert it with the sample data.",
-        "see": "Each channel has a grey dot for 2024 and a blue dot for 2026, joined by a line, with an action title about the biggest move.",
+        "see": "Each channel has a muted dot for 2024 and a Studio green dot for 2026, joined by a line, with an action title about the biggest move.",
         "ribbon": [
           "Insert",
           "Chart layouts"
@@ -444,6 +444,35 @@
         "do": "Choose Update.",
         "see": "The dumbbell is replaced in the same place by paired bars with the gap in each label. One Ctrl+Z brings the dumbbell back.",
         "check": "layout-edited"
+      }
+    ]
+  },
+  {
+    "id": "claims-practice",
+    "sample": "insurance-claims",
+    "title": "Trace insurance reserves to individual claims",
+    "minutes": 6,
+    "goal": "Compare reserve concentration and verify the figure in a fictional loss run.",
+    "steps": [
+      {
+        "do": "Switch to Interact and select Property under Line of business.",
+        "see": "The Claims card shows 5 and Outstanding USD shows 44,500."
+      },
+      {
+        "do": "Double-click Property in Outstanding reserves by line, then double-click Commercial property.",
+        "see": "The chart shows the claims behind that coverage. Use the breadcrumb to step back."
+      },
+      {
+        "do": "Open Source data and match the claim IDs to their paid and outstanding amounts. Read the Methodology tab.",
+        "see": "Each row is one claim. Incurred is paid plus outstanding in this sample."
+      },
+      {
+        "do": "Reset the filters. Switch to Edit, then use Charts › Chart layouts to insert Loss run: paid and outstanding. Choose Claims register and match Policy year, Paid USD and Outstanding USD.",
+        "see": "The new layout splits each policy year into paid and outstanding. The source totals are USD 43,500 and USD 52,250.",
+        "ribbon": [
+          "Charts",
+          "Chart layouts"
+        ]
       }
     ]
   }

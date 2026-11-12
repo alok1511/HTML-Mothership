@@ -87,8 +87,9 @@
     saved: function () { return practice().saved; }
   };
   H.practice = function (lesson) {
-    return MS.samples.open('sales', { name: 'Mothership practice - sales.html', onLoad: function () {
-      MS.doc.session.practice = { heading: (MS.child.doc.querySelector('h1') || {}).textContent };
+    var sample = LESSONS[lesson] && LESSONS[lesson].sample || 'sales';
+    return MS.samples.open(sample, { name: 'Mothership practice - ' + sample + '.html', onLoad: function () {
+      MS.doc.session.practice = { sample: sample, heading: (MS.child.doc.querySelector('h1') || {}).textContent };
       MS.setMode('edit');
     } }).then(function (ok) {
       if (ok) H.tutorial(lesson == null ? 0 : lesson);
@@ -108,17 +109,20 @@
     }
     function menu() {
       clearSpot(); head('Practice lessons', Object.keys(completed).length + ' / ' + LESSONS.length);
-      panel.appendChild(h('p', { 'class': 'muted', text: 'Follow the lessons in order for a complete walkthrough, or pick one task. Lessons use a separate sales practice copy.' }));
+      panel.appendChild(h('p', { 'class': 'muted', text: 'Follow the lessons in order for a complete walkthrough, or pick one task. Each lesson opens a separate practice copy.' }));
       LESSONS.forEach(function (ls, i) {
         panel.appendChild(h('button', { 'class': 'coach-lesson', onclick: function () { run(i, 0); } }, [
           h('span', { text: (completed[ls.id] ? '✓ ' : (i + 1) + '. ') + ls.title }), h('small', { 'class': 'muted', text: ls.minutes + ' min' })]));
       });
-      if (practice()) panel.appendChild(h('button', { 'class': 'btn sm', onclick: function () { H.practice(0); } }, ['Restart with a fresh copy']));
+      if (practice()) panel.appendChild(h('button', { 'class': 'btn sm', onclick: function () {
+        var first = LESSONS.findIndex(function (item) { return (item.sample || 'sales') === practice().sample; });
+        H.practice(Math.max(0, first));
+      } }, ['Restart with a fresh copy']));
     }
     function run(i, k) {
       clearSpot();
       var ls = LESSONS[i]; if (!ls) return menu();
-      if (!practice()) {
+      if (!practice() || practice().sample !== (ls.sample || 'sales')) {
         head(ls.title, ls.minutes + ' min', true);
         panel.appendChild(h('p', { text: ls.goal }));
         panel.appendChild(h('p', { 'class': 'muted', text: 'Open the built-in practice dashboard to follow this lesson. If you have unsaved work, you will be asked what to do with it.' }));

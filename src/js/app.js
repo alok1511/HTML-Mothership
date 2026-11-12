@@ -113,6 +113,7 @@
       function entries(list) { return (list || []).map(function (s) { return { id: s.id, label: s.title, detail: s.focus || s.visual }; }); }
       return [
         { name: 'Guided practice', entries: entries(catalog.practiceSamples) },
+        { name: 'Business practice', entries: entries(catalog.businessSamples) },
         { name: 'Showcase and report layouts', entries: entries(catalog.reports) },
         { name: 'Practice labs', entries: entries(catalog.labs) },
         { name: 'Charts and classic dashboards', entries: MS.samples.list }
@@ -132,18 +133,18 @@
       function describe() { summary.textContent = details.get(select.value) || ''; }
       select.addEventListener('change', describe); describe();
       return MS.dialog({ title: 'Choose a sample dashboard',
-        body: h('div', {}, [h('p', { text: 'Open a finished dashboard or choose Guided practice for a worked exercise.' }), select, summary]),
+        body: h('div', {}, [h('p', { text: 'Choose a finished dashboard or an exercise in Guided practice or Business practice.' }), select, summary]),
         buttons: [{ label: 'Cancel', value: null }, { label: 'Open sample', primary: true, value: function () { return select.value; } }]
       }).then(function (id) {
         if (!id) return false;
-        return Promise.resolve(MS.samples.open(id)).catch(function (error) { MS.toast(error.message, 'error'); return false; });
+        return Promise.resolve().then(function () { return MS.samples.open(id); }).catch(function (error) { MS.toast(error.message, 'error'); return false; });
       });
     },
     menu: function () { return MS.samples.groups().flatMap(function (g) { return g.entries; }).map(function (s) { return { label: s.label, run: function () { MS.samples.open(s.id); } }; }); },
     open: function (id, opts) {
       var go = function () {
         var s = window.MS_SAMPLES && window.MS_SAMPLES[id];
-        if (!s) return MS.toast('Sample not found. Run "node tools/build.js" or keep the samples folder next to mothership.html.', 'error');
+        if (!s) return Promise.reject(new Error('Sample not found. Keep the samples folder next to mothership.html, or open the standalone editor.'));
         if (s.chartjs) return MS.libSource('chartjs').then(function (src) {
           var html = s.html.replace('<!-- practice-chart-library -->', function () {
             return '<script data-ms-own data-ms-lib="chartjs">' + src.replace(/<\/script/gi, '<\\/script') + '</script>';

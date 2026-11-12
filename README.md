@@ -27,7 +27,7 @@
 13. [Roadmap ideas](#13-roadmap-ideas)
 14. [Licence](#14-licence)
 
-**Version 4.1.0** (see [Version history](#version-history) for how the numbers fit together). Open **Start here** for the guided workflow or **Help › Tutorial** for 14 practice lessons. The [user guide](docs/USER-GUIDE.md) and [practice handout](docs/TUTORIAL.md) are also available here. See [what changed](CHANGELOG.md).
+**Version 4.1.0** (see [Version history](#version-history) for how the numbers fit together). Open **Start here** for the guided workflow or **Help › Tutorial** for 15 practice lessons. The [user guide](docs/USER-GUIDE.md) and [practice handout](docs/TUTORIAL.md) are also available here. See [what changed](CHANGELOG.md).
 
 ---
 
@@ -45,10 +45,10 @@ HTML-Mothership/
 
 1. **Download** the repo (green *Code* button › *Download ZIP*) and unzip it anywhere, e.g. `Documents\HTML-Mothership`.
 2. **Double-click `mothership.html`.** It opens in Chrome or Edge. Firefox works too, except "Save as" falls back to a normal download.
-3. Open **Choose a sample** for 23 dashboards and exercises, including ten guided practice dashboards. Choose **Build from data** to start with CSV, Excel, ODS, TSV or JSON, or **Open dashboard** to load an existing `.html`.
+3. Open **Choose a sample** for 28 dashboards and exercises, including ten guided practice dashboards and five business dashboards for claims, ERM, CRM and team performance. Choose **Build from data** to start with CSV, Excel, ODS, TSV or JSON, or **Open dashboard** to load an existing `.html`.
 4. Edit it. Then click **Export** (Ctrl+E) to save the result to your laptop.
 
-**From data to a chart.** Choose a dataset, category, calculation and value, then check the live chart and source rows. Add a split or filter when it answers a specific question. Insert the chart and use **Charts › Reshape** or **Charts › Settings** to refine it. Find 48 standard layouts and the reference gallery in **Charts › Chart layouts**. The [chart recipe reference](docs/CHART-RECIPE-REFERENCE.md) maps 26 McKinsey links to the available layouts and includes paste-ready recipes.
+**From data to a chart.** Choose a dataset, category, calculation and value, then check the live chart and source rows. Add a split or filter when it answers a specific question. Insert the chart and use **Charts › Reshape** or **Charts › Settings** to refine it. Find all 48 **Standard layouts** in **Charts › Chart layouts**. Search by chart type or topic. The [chart recipe reference](docs/CHART-RECIPE-REFERENCE.md) maps 26 McKinsey links to the available layouts and includes paste-ready recipes.
 
 > **Tip.** If your dashboard loads its own `.js`, `.css`, images or `data.json` from next to it, use **Open folder…** instead. Mothership bundles all of them into the single exported file, including data the page `fetch()`es.
 
@@ -237,7 +237,7 @@ HTML-Mothership/
 | Feature | Where | What changed |
 |---|---|---|
 | **Guided workflow** | Welcome › Start here, or **Help › Start here** | Import, Edit, Review, Check and Export checklist, with links to the relevant commands and help chapters. |
-| **Practice lessons and searchable guide** | **Help › Tutorial / User guide** | A separate sample copy, 11 lessons with expected results, downloadable practice data, and task and symptom guides included in the standalone file. |
+| **Practice lessons and searchable guide** | **Help › Tutorial / User guide** | A separate sample copy, 15 lessons with expected results, downloadable practice data, and task and symptom guides included in the standalone file. |
 | **Import report** | **File › Import report** | Recognised chart libraries, limitations and linked or unresolved resources. |
 | **Preview refresh** | **Data › Refresh / Manage** | See changed columns, row counts, totals and dates before applying; missing required fields block a replacement. One undo restores the old data. |
 | **Recovery and export** | **File**, **View › Safe mode** | Unsaved-work protection, scoped export cancellation, and recovery checkpoints when leaving or changing mode. |
@@ -263,7 +263,7 @@ The [changelog](CHANGELOG.md) lists all fixes and compatibility notes.
 
 | Feature | Where | What it does |
 |---|---|---|
-| **Chart layouts** | **Insert › Chart layouts** or **Charts › Chart layouts** | 24 consulting-style charts ready to fill, built from the McKinsey-style recipes: ranked bars with one highlight, columns with a CAGR arrow, bridge (waterfall), 100% mix, line against a dashed target, variance against plan, distribution, risk heat map, risk register with RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause (Pareto), frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, an executive summary page and house style for existing charts. Pick one, choose your columns (Mothership guesses them) or **try it on sample data**. It writes a suggested action title from your numbers, adds the unit line and source, and inserts everything as one undo step. |
+| **Chart layouts** | **Insert › Chart layouts** or **Charts › Chart layouts** | 24 consulting-style charts ready to fill, using one shared chart palette: ranked bars with one highlight, columns with a CAGR arrow, bridge (waterfall), 100% mix, line against a dashed target, variance against plan, distribution, risk heat map, risk register with RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause (Pareto), frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, an executive summary page and house style for existing charts. Pick one, choose your columns (Mothership guesses them) or **try it on sample data**. It writes a suggested action title from your numbers, adds the unit line and source, and inserts everything as one undo step. |
 | **The consulting look on any chart** | **Charts › Look**, or `chart_settings.look` | New for Chart.js charts: values on the bars, no gridlines, no value axis, dashed series (targets), green/red by plus or minus, 100% stacked and horizontal stacked bars. For every chart: its own colours and a highlight (one colour for the point you want read, grey for the rest) that no longer changes other charts. |
 | **Numbered versions per dashboard** | **File › Versions** (Ctrl+S to save) | Each dashboard has its own history v1, v2, v3…. **Compare** any version with the screen. The automatic safety copies Mothership keeps before risky steps are listed separately and trimmed first, so they can no longer push out a version you named. |
 | **Newer-file warning** | When you open a file | If a dashboard was saved by a newer Mothership than the copy you are using, Mothership says so, so you know to use the newest copy. |
@@ -618,14 +618,17 @@ with MothershipClient() as ms:                      # starts the Python server
 
 **Codex and Claude Code:** see the [model selection and local MCP setup](docs/USER-GUIDE.md#give-codex-or-claude-code-access-to-mothership-tools). The repo includes `.mcp.json`, so opening Claude Code in this folder offers the `mothership` server. Or run `claude mcp add --transport stdio mothership -- python tools/mcp/mothership_mcp.py` (or `-- node tools/mcp/mothership-mcp.js`).
 
+For a safe first run with synthetic data, ask the assistant to find a claims or CRM sample with `list_samples`, open it with `open_sample`, inspect `outline`, then check totals with `preview_chart`. See the [MCP walkthrough](docs/USER-GUIDE.md#open-a-sample-and-verify-an-aggregation-with-mcp).
+
 **Tools.** The list is generated from `MS.api` (see [`docs/EXTENDING.md`](docs/EXTENDING.md#msapi-and-the-mcp-server)), so anything new added to `MS.api` appears automatically. The main ones:
 
 | Group | Tools |
 |---|---|
+| Samples | `list_samples` (search by topic), `open_sample` (open a clean copy by ID) |
 | Files | `open_file`, `open_folder`, `new_dashboard`, `export_html`, `screenshot`, `chart_image`, `insert_file`, `load_data`, `drill_data_file`, `load_brand`, `save_prompt` |
 | Look at it | `status`, `outline`, `find`, `get_element`, `list_comments`, `dataset_rows`, `brand_check` |
 | Text and style | `set_text`, `replace_text`, `set_style`, `set_popup`, `popup_style`, `move_element`, `duplicate`, `delete` |
-| Build | `insert_part`, `insert_text_block`, `insert_button`, `insert_kpis`, `kpi_status`, `insert_chart`, `insert_table`, `resize_block` |
+| Build | `preview_chart` (check filtered numbers before inserting), `insert_part`, `insert_text_block`, `insert_button`, `insert_kpis`, `kpi_status`, `insert_chart`, `insert_table`, `resize_block` |
 | Tabs | `layout`, `add_tab`, `rename_tab`, `move_tab`, `hide_tab`, `duplicate_tab`, `move_chart`, `tab_notes` |
 | Charts | `chart_settings` (commentary, pop-up text, look, data, drill), `chart_look_all`, `tooltip_all`, `category_order`, `category_colors`, `format_painter`, `find_chart_data`, `link_chart_data`, `drill`, `chart_data` |
 | Data | `discover_datasets`, `add_dataset`, `refresh_dataset`, `drill_data`, `filter_pane`, `set_filter` |
@@ -633,7 +636,7 @@ with MothershipClient() as ms:                      # starts the Python server
 | Checks | `chart_summaries`, `number_check`, `compare_versions`, `compare_file` |
 | Draw and share | `chart_shapes` (growth arrow with CAGR, difference, arrows, boxes, callouts), `chart_picture`, `annotate` |
 | Testing (like Playwright) | `ui_snapshot`, `ui_tab`, `ui_click`, `ui_hover`, `ui_select`, `ui_type`, `ui_press`, `ui_scroll`, `ui_wait`, `ui_read`, `ui_expect`, `ui_errors`, `ui_width`, `ui_screenshot`, `ui_mouse` (real mouse), `test_plan`, `test_run`, `test_record`, `test_document`, `save_test_document` |
-| Chart layouts | `chart_layouts` (list, preview the suggested title, insert with your columns or sample data, runs, edit in place) |
+| Chart layouts | `chart_layouts` (list, source references, preview the suggested title, insert with your columns or sample data, runs, edit in place) |
 | Reshape a chart | `chart_edit` (type, columns, calculation, `where` filters, show / hide / order / rename categories and series) |
 | Recipes | `recipe_context`, `preview_recipe`, `capture_recipe`, `run_recipe` |
 | Versions | `save_version`, `versions` (list, restore, delete), `compare_versions` |

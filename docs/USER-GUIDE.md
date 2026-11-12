@@ -100,7 +100,7 @@ Use **Charts › Category order** or **Category colours** when the same labels a
 <!-- guide:layouts -->
 ## Chart layouts: consulting-style charts ready to fill
 
-**Insert › Chart layouts** (or **Charts › Chart layouts**) opens a gallery of 48 ready-made layouts that follow the consulting house rules: an action title that says the so-what, a unit line, one highlight colour with everything else grey, values on the bars instead of gridlines, and a source line.
+**Insert › Chart layouts** (or **Charts › Chart layouts**) opens a gallery of 48 ready-made layouts that follow the consulting house rules: an action title, a unit line, Studio green and muted companion colours, and a source line. Some layouts use colour to distinguish scenarios, risk grades or signs.
 
 | Group | Layouts | Use it to answer |
 |---|---|---|
@@ -179,7 +179,7 @@ Choose **Build from data** on the welcome screen to create a dashboard from a da
 
 To practice, choose **Shipment Analysis** from **Choose a sample › Guided practice**. Download the CSV from **Source data** and follow **Practice tasks**. Compare the sum and average, then check that your split series reconcile to the unfiltered totals.
 
-Open **Charts › Chart layouts › McKinsey references** for comparison, forecast, distribution and composition forms. A card opens the matching standard layout and any relevant companion layouts. Use sample data first to check which columns the layout expects.
+Open **Charts › Chart layouts** for **Standard layouts**. Search by chart type or a topic such as B2B pricing, battery storage, or claims reserves. Select a card to see the fields it expects and try it with sample data.
 
 <!-- guide:build -->
 ## Build a dashboard from scratch
@@ -251,6 +251,23 @@ Choose **Capture dashboard setup**. Pick the pieces to reuse. Tab titles, theme 
 | Review, branding, recovery and delivery | Use either lab in **Edit**. Try **Design**, **Review**, **File › Versions**, **Testing**, and **Publish**. Reopen the HTML export, test it offline, and try presenter notes, PDF and PowerPoint where your office setup permits. |
 | Recipe and work assistant round-trip | Use a lab. Check and apply a starter, undo it, capture the setup, then draft a variation with either work model. Paste the returned JSON and check it before applying. |
 
+<!-- guide:business-practice -->
+## Practice claims, risk registers, CRM and team reporting
+
+Open **Choose a sample › Business practice** from the welcome screen or **File › Samples**. Each dashboard is fictional and has **Overview**, **Source data**, **Methodology**, **FAQ** and **Practice tasks**. The **Overview** charts, cards and chart summaries respond to the filters. **Source data** shows all original records with a downloadable CSV for each table.
+
+| Sample | Practice this | Check your result |
+|---|---|---|
+| **Insurance Claims Portfolio** | Filter the claims inventory, drill from line to coverage to claim, and build a paid-and-outstanding loss run | Property has five claims and USD 44,500 in outstanding reserves. Total incurred is USD 95,750. |
+| **ERM Risk Register · Harborlight Components** | Compare departments, use a risk register with RAG colours, and inspect an overdue action and its owner | Four risks are above appetite and three actions are overdue. All three belong to above-appetite risks. |
+| **ERM Risk Register · Cedarline Services** | Compare the same scoring method in a service business and distinguish risk rating from action status | Technology has two risks. The overdue action belongs to a different risk from the High rating. |
+| **CRM Pipeline & Account Activity** | Filter by stage or owner team and trace IDs across opportunities, accounts, contacts and activities | Enterprise has 400 open seats. Opportunity O-02 appears in two activity rows and contributes 260 seats once. |
+| **Team Performance & Service Delivery** | Compare backlog snapshots, service levels, rework and workload | Client Support completed 127 items in W43 and 17 were outside SLA. Its closing backlog reached 54. |
+
+Use **Interact** to try the filters and drill-down, then **Edit** to change layouts and commentary. Follow **Help › Tutorial › Trace insurance reserves to individual claims** for a guided walkthrough. For your own data, download the relevant CSV to see the columns, then use **Data › Import and build**. Keep company, case and contact identifiers free of personal or confidential details when sharing examples.
+
+**Risk scoring and source notes.** The ERM samples define Low as 1–5, Medium as 6–11 and High as 12–25. Set the RAG layout to 5 and 11 to match. The standard 5 × 5 heat map marks scores of 15 and above in red. Use the Methodology tab to explain the distinction when showing both.
+
 <!-- guide:mcp -->
 ## Draft recipes with Terra or Sonnet
 
@@ -270,6 +287,16 @@ The Mothership **MCP server** connects a coding assistant to a separate local Mo
 - **Claude Sonnet 5 in Claude Code.** Use `/model claude-sonnet-5` for the Anthropic model ID when available, or select the provider deployment your organisation gave you. Use the repo's `.mcp.json` from the checkout, or run `claude mcp add --transport stdio mothership -- node "/absolute/path/HTML-Mothership/tools/mcp/mothership-mcp.js"`. Check `/mcp` in Claude Code. [Anthropic model](https://platform.claude.com/docs/en/models/sonnet-5/overview) · [Claude Code MCP](https://code.claude.com/docs/en/mcp)
 
 To run Python instead, replace `node` with your Python command and use `tools/mcp/mothership_mcp.py`. The assistant can use `open_file` on a disposable HTML copy, `recipe_context` for tab/chart names and optional field names, and `preview_recipe` to check the draft without applying it. Use `run_recipe` only when you want the connected assistant to apply the recipe to that copy. A model's availability and access permissions depend on the work environment.
+
+### Open a sample and verify an aggregation with MCP
+
+1. Call `list_samples` with `{"query":"business practice"}` to find all five IDs. Call `open_sample` with `{"id":"insurance-claims"}` to load a clean copy. It returns an outline with datasets, fields, tabs and charts. Export existing work before switching samples.
+2. Call `set_filter` with `{"dataset":"Claims register","field":"Line of business","value":"Property"}`. Call `dataset_rows` with `{"name":"Claims register","limit":5}` to see the five matching records.
+3. Call `preview_chart` with `{"dataset":"Claims register","by":"Line of business","measure":"Outstanding USD","agg":"sum","type":"hbar"}`. The preview should show Property at 44,500. The tool reads current filters and returns chart-ready numbers, including total matching rows.
+4. When the numbers are right, use the same data arguments with `insert_chart`, plus a headline, units and an optional inference. Use `chart_edit` to change an existing chart, or `chart_layouts` with `action: "list"` for standard layouts and `action: "references"` for their source mappings.
+5. Call `export_html` to save an editable HTML file to the configured output folder. Opening the same sample again starts from the original built-in copy.
+
+For CRM, open `crm-database` and check the four datasets with `outline`. Read a few records at a time with `dataset_rows`. When reconciling open pipeline, aggregate the `CRM opportunities` dataset at opportunity grain. Use the Account ID, Contact ID and Opportunity ID to inspect the related tables.
 
 **Claude Desktop and other MCP clients:** use the client’s local server configuration. In Claude Desktop, open **Settings › Developer › Edit Config** and add a `mothership` entry under `mcpServers`. Set the command to `node` or your Python executable, and pass the full path to the matching script as its first argument. Restart the client and check for Mothership tools. Use Claude Code or your approved work chat if your Desktop account does not offer the exact Sonnet 5 model.
 
@@ -292,6 +319,10 @@ To run Python instead, replace `node` with your Python command and use `tools/mc
 | **Dataset / field / binding** | A set of records / a column in those records / the connection from a chart or filter to a dataset. |
 | **Chart-only filter** | A filter applied to the rows used by one chart. Dashboard filters can still affect those rows. |
 | **Scenario** | A set of assumptions that produces a projection. Each scenario is displayed separately from historical observations. |
+| **Loss run / case reserve** | A claim-level listing / the amount set aside for a specific claim that is still outstanding. |
+| **Inherent risk / residual risk / appetite** | Exposure before controls / exposure after controls / the level of risk the organisation accepts. |
+| **CRM opportunity / activity** | A potential sale / a dated interaction or action linked to a sale. |
+| **Flow / snapshot** | Work or movement within a period / the amount at a point in time, such as closing backlog. |
 | **Grain** | What one row represents, such as one month, state, team and asset type. |
 | **Snapshot / tenure** | Values as of a point in time / elapsed time in a group, such as weeks since signup. |
 | **KPI / denominator** | A key performance indicator / the base used to compute a rate. |
@@ -419,7 +450,9 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 | Applying a recipe left a tab unchanged | It already matched an Add a tab if it’s missing step | Open the tab and edit its content directly. Use Add a new tab every time only when you want another tab. |
 | The assistant returned something you cannot paste | Extra prose or an unsupported action | Ask for one Mothership JSON object, or one JSON code block. Fix the step listed by Paste recipe. Use Advanced for an exact selector. |
 | Terra or Sonnet is missing from the picker | Work account, provider or model policy | Confirm the exact model with your work login and provider. Choose the model there. Mothership's Draft with AI menu chooses the prompt format. |
-| The assistant sees a different dashboard | Local MCP opens its own browser | Use open_file on a disposable copy in the assistant session. Confirm the tab names with recipe_context. |
+| The assistant sees a different dashboard | Local MCP opens its own browser | Use open_sample for a bundled dashboard or open_file for your own copy. Confirm tab and dataset names with outline. |
+| The assistant cannot find list_samples, open_sample or preview_chart | Its MCP session points to an older checkout or standalone file | Update the checkout or MOTHERSHIP_HTML path, restart the MCP client, then check the tool list. |
+| A business practice total differs from the source tab | An Overview filter is active | Clear filters before reconciling the whole file. Source data always shows the original full extract. |
 | The work client blocks local MCP | Local execution, managed MCP or browser policy | Use Draft with AI, copy the prompt to approved chat, then paste the JSON back. |
 | Map shows zero matched shapes | Wrong join field, state spelling or code | Choose the shared name or ISO code field. Check unmatched values. Convert projected files to WGS84 and keep one polygon layer in the ZIP. |
 | Report CSV was rejected | Missing required header, invalid numeric value, or size cap | Reset filters and download the example CSV. Match headers and units. The loader supports up to 20,000 rows and 6 MB. |
@@ -451,4 +484,12 @@ The optional edit password is a **deterrent** inside Mothership. It is not encry
 
 **Do I need work-model access for a recipe?** You can make, edit, check and run recipes offline. Your work assistant is optional and can draft the JSON or inspect a disposable copy through MCP.
 
-**Which sample should I open first?** Open Monsoon Readiness Review to see a finished report. Open Release Rehearsal Lab to practise QA, or Monthly Close Lab to practise a refresh and handover.
+**Which sample should I open first?** Use **Business practice** for claims, risk, CRM or team reporting. Open Monsoon Readiness Review to see a finished report. Use Release Rehearsal Lab for QA or Monthly Close Lab for a refresh and handover.
+
+**Are these real insurance, risk, CRM or staff records?** They are fictional datasets with synthetic identifiers and values. Their Methodology and FAQ tabs explain the definitions and assumptions behind each exercise.
+
+**Will the CRM charts join my tables automatically?** Charts bind to one dataset. The sample’s Opportunities table includes the owner team and account segment for analysis, while the related records can be traced by ID. Prepare a joined table if your chart requires fields from several tables.
+
+**Where did the reference layouts go?** Find all chart types together in **Charts › Chart layouts › Standard layouts**. Search by topic or chart name. The recipe Markdown contains the original source mappings.
+
+**Can I use a sample from MCP without opening the editor first?** Yes. With the local server connected, call `list_samples` then `open_sample`. Work on the server’s copy, and use `export_html` to bring edits back into your normal browser.

@@ -311,8 +311,9 @@
       return v;
     }
     function calculate(v, top) {
-      return rt.previewBinding({ dataset: v.ds, levels: [v.by], measure: v.measure, agg: v.agg, series: v.series,
-        sort: v.sort, top: top, where: v.where, x: v.x, y: v.y, size: v.size, percent: v.percent, sparse: v.sparse }, v.type, limits.series);
+      var binding = Cp.chartBinding(v);
+      binding.top = top;
+      return rt.previewBinding(binding, v.type, limits.series);
     }
     function check(v, result) {
       if (!result.labels.length || !result.series.some(function (s) { return s.values.some(function (n) { return n !== null; }); })) throw new Error('No values match these settings.');
@@ -392,14 +393,19 @@
     var names = MS.data.addTables(tables);
     return names.length ? Cp.chart(names[0]) : false;
   };
+  Cp.chartBinding = function (v) {
+    var b = { dataset: v.ds, levels: [v.by].filter(Boolean), measure: v.agg === 'count' ? undefined : v.measure,
+      agg: v.agg, series: v.series || undefined, sort: v.sort || undefined, top: v.top || undefined, percent: v.percent || undefined };
+    Cp.EXTRA.forEach(function (k) { if (v[k] != null && v[k] !== '' && !(Array.isArray(v[k]) && !v[k].length)) b[k] = v[k]; });
+    return b;
+  };
   Cp.addChart = function (v) {
     var rt = MS.rt(), key = rt.uid('c');
     var b = MS.blocks.create({ title: v.title || '', sub: v.subtitle || v.ds, inf: v.inference, span: v.span || (/pie|doughnut/.test(v.type) ? 4 : 6), height: v.height || 300 });
     var holder = make('<div></div>'); holder.setAttribute('data-ms-chart', key);
     b.querySelector('.ms-visual').appendChild(holder);
-    var spec = { native: { type: v.type, legend: v.legend || undefined }, binding: { dataset: v.ds, levels: [v.by].filter(Boolean), measure: v.agg === 'count' ? undefined : v.measure, agg: v.agg, series: v.series || undefined, sort: v.sort || undefined, top: v.top || undefined, percent: v.percent || undefined }, drill: { mode: 'levels' }, title: v.title };
-    if (v.caption) spec.summary = { show: 'caption' };
-    Cp.EXTRA.forEach(function (k) { if (v[k] != null && v[k] !== '' && !(Array.isArray(v[k]) && !v[k].length)) spec.binding[k] = v[k]; });
+    var spec = { native: { type: v.type, legend: v.legend || undefined }, binding: Cp.chartBinding(v), drill: { mode: 'levels' }, title: v.title };
+    if (v.caption && !rt.XY_TYPES[v.type]) spec.summary = { show: 'caption' };
     MS.history.group('Insert chart', function () {
       MS.history.push({ label: 'Chart settings',
         undo: function () { delete MS.rt().state.charts[key]; },
