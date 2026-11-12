@@ -138,8 +138,10 @@
     ] },
     { tab: 'Charts', groups: [
       { name: 'New', items: [
-        { icon: '📈', label: 'Chart layouts', title: 'Consulting-style charts ready to fill: ranked bars with one highlight, bridge, CAGR, 100% mix, line vs target, risk, claims, survey and benchmark layouts', run: needRt(function () { MS.layouts.gallery(); }) }] },
+        { icon: '📈', label: 'Chart layouts', title: 'Consulting-style charts ready to fill: ranked bars with one highlight, bridge, CAGR, 100% mix, line vs target, dumbbell, scatter, bubble, Marimekko, pyramid, small multiples, risk, claims, survey and benchmark layouts', run: needRt(function () { MS.layouts.gallery(); }) },
+        { icon: '🪄', label: 'Edit layout', title: 'Redo the chart layout behind the selected chart with other columns, options or words, or switch it to another layout', run: needRt(function () { MS.layouts.editDialog(); }) }] },
       { name: 'Selected chart', items: [
+        { icon: '⚲', label: 'Reshape', title: 'Change the chart type, columns, calculation, filters for this chart, and which categories and series show, in what order and under what names', run: needRt(function () { MS.reshape.dialog(); }) },
         { icon: '⚙', label: 'Settings', title: 'Commentary, size, tooltip, data & drill-down for the selected chart', run: needRt(function () { MS.charts.settings(); }) },
         { icon: '💬', label: 'Tooltip', title: 'What the hover pop-up shows', run: needRt(function () { MS.charts.settings(null, 'Tooltip'); }) },
         { icon: '⤓', label: 'Drill-down', title: 'Bind to data and choose what double-click does', run: needRt(function () { MS.charts.settings(null, 'Data & drill-down'); }) },

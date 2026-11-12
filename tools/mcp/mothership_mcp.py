@@ -32,7 +32,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = '4.0.0'
+VERSION = '4.1.0'
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 EDITOR = os.path.abspath(os.environ.get('MOTHERSHIP_HTML') or os.path.join(ROOT, 'mothership.html'))
 OUT = os.path.abspath(os.environ.get('MOTHERSHIP_OUT') or os.getcwd())
@@ -766,7 +766,9 @@ INSTRUCTIONS = ('Mothership edits HTML dashboards like PowerPoint edits slides. 
                 'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). '
                 'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout. '
                 'For a new consulting-style chart use chart_layouts (action list, then insert with your dataset, or sample: true to try it); it writes an action title '
-                'and keeps the house rules. Saved versions: versions and save_version. '
+                'and keeps the house rules. To change a layout after it is in, chart_layouts action edit (other columns, options or another layout); '
+                'to reshape any chart from data (type, columns, filters, which categories and series show, their order and names), chart_edit. '
+                'Saved versions: versions and save_version. '
                 'To test a dashboard like Playwright: ui_snapshot, then ui_tab / ui_click / ui_hover / ui_select / ui_type, check with ui_expect / ui_read / ui_errors, look with ui_screenshot; '
                 'plan and record with test_plan / test_run / test_record and save with save_test_document.')
 

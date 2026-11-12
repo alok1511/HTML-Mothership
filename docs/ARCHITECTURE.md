@@ -194,3 +194,9 @@ DOM snapshots (innerHTML) are deliberately avoided for containers holding charts
 - Per-chart colours (`style.colors`, `style.highlight`) are resolved in the runtime's `catMapFor` after the shared category colours, so they work for every chart library and never leak into other charts. The Chart.js look (`cjsLook`) and the value-label plugin (`msLabels`, registered once on the dashboard's own Chart.js) run inside the dashboard and exports.
 - Versions are numbered per dashboard (`number`) and tagged `named` or `auto`; pruning keeps the two kinds apart.
 - One release number: `package.json`, checked by `tools/build.js`. `rt.version` inside exports and the `generator` tag both carry it, and `MS.madeWith` warns when a file comes from a newer Mothership.
+
+## 4.1.0: editable layouts and charts
+
+- Inserted layouts are recorded in `state.layoutRuns`, so they can be rebuilt in place (`MS.layouts.edit`) with other columns, options or another layout. The rebuild is one undo step: old working datasets out, steps run again, new blocks moved to the old position, old blocks removed.
+- A chart's binding can carry its own row filter (`where`) and its own category and series choices (`only`, `hide`, `order`, `rename`, `seriesOnly`, `seriesHide`, `seriesOrder`). `renderBound` applies them after the dashboard's filter pane and before sort and top N; `rt.renamed` maps shown names back to data values for drill-down.
+- New native types are shaped in the Chart.js adapter (`shapeData` for dumbbell and range, `renderXY` for scatter and bubble). `renderNative` destroys and rebuilds a chart whose `native.type` changed.

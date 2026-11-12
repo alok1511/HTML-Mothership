@@ -98,7 +98,7 @@ Use **Charts › Category order** or **Category colours** when the same labels a
 <!-- guide:layouts -->
 ## Chart layouts: consulting-style charts ready to fill
 
-**Insert › Chart layouts** (or **Charts › Chart layouts**) opens a gallery of 24 ready-made charts that follow the consulting house rules: an action title that says the so-what, a unit line, one highlight colour with everything else grey, values on the bars instead of gridlines, and a source line.
+**Insert › Chart layouts** (or **Charts › Chart layouts**) opens a gallery of 43 ready-made charts that follow the consulting house rules: an action title that says the so-what, a unit line, one highlight colour with everything else grey, values on the bars instead of gridlines, and a source line.
 
 | Group | Layouts | Use it to answer |
 |---|---|---|
@@ -108,6 +108,9 @@ Use **Charts › Category order** or **Category colours** when the same labels a
 | Claims and loss runs | Paid and outstanding, large-loss ranking, claims by cause (Pareto), frequency and severity, incurred bridge, development triangle | How much is still reserve? Are claims more frequent or bigger? |
 | Surveys | Top-2-box ranking, Likert spread, net promoter score | Which statements score lowest? Would they recommend us? |
 | Benchmarking | Client against peers, benchmark scorecard | How far is the client from the peer median? |
+| Comparisons and relationships | Dumbbell (before and after), paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble with one in focus, net bars either side of zero, stacked bars ranked by total | What changed for each item? How far apart are two groups? Which items grow faster on one measure than the other? Which are high on both? |
+| Trends and forecasts | Actuals then forecast, stacked area, several lines with one in focus, growth multiples (2.5×), small multiples, sorted percentile curve | Where are we heading? Which part drove the growth? Which items more than doubled? How uneven is it? |
+| Shares and composition | Population pyramid, Marimekko, three-way overlap, 100-dot stats, heat grid | How do two groups compare across age bands? How big is each market and who wins in it? How much is exposed to one, two or all three risks? Where are the hot spots? |
 | Page layouts | Executive summary page, house style on every chart | One page with the headline, three numbers, two charts and the takeaway |
 
 1. Pick a layout. The window shows what it needs, for example *Items* and *Value*.
@@ -118,6 +121,16 @@ Use **Charts › Category order** or **Category colours** when the same labels a
 Some layouts make a small working copy of your columns (a bridge needs a hidden base under each step, a line against target needs the target as its own series). These appear in **Data** with a “·” in their name, for example *Sales · bridge*. Filters on your original dataset do not change those charts; insert the layout again after a data refresh.
 
 **Good to know:** the risk heat map is a picture of the register when you insert it; insert it again when scores change. For claims, use claim references, never claimant names, and run **Consulting › Remove names** before sharing. A survey chart should always say how many people answered (n); under about 30, call it indicative.
+
+**Change it after it is in.** Nothing about a layout is fixed:
+
+| To change | Use | What you can do |
+|---|---|---|
+| The whole layout | **Charts › Edit layout**, or the wand on the floating toolbar | Pick other columns or another dataset, change the options (which bar to highlight, the cut-offs, the target), rewrite the title, unit line and source, or **‹ Switch layout** to turn it into a different layout with the same data. **Update** rebuilds it in the same place; **Ctrl+Z** brings back the old one. Clear the title to get a fresh suggestion from the new numbers. |
+| One chart | **Charts › Reshape**, or the filter button on the floating toolbar | Chart type (bars, lines, stacked, dumbbell, range, pyramid, scatter, bubble…), the category, split-by and value columns, sum or average, sort and top N. **Filters for this chart only** (for example *Year is 2026*, or *Region is one of North, South*). Tick categories and series on or off, type a shorter name, and move them up or down so the one that matters comes first. |
+| Colours, labels, legend | **Charts › Look** or **Chart settings** | Highlight colour, values on the bars, gridlines, legend position, pop-up text. |
+
+Reshape works on every chart made from a dataset, not only on layouts. Renamed categories still drill down with their original names. Marimekko, three-way overlap, 100-dot stats, the heat map and the heat grid are pictures of the numbers when you insert them: use **Edit layout** to redraw them after the data changes.
 
 You can also give any Chart.js chart the same look from **Charts › Look**, or with the `chart_settings` tool: values on the bars, no gridlines, one highlighted bar, green and red for plus and minus, or a dashed target line.
 

@@ -403,5 +403,48 @@
         "see": "The version is listed as v1 (or the next number) for this practice dashboard, with Restore, Compare, Download and Delete."
       }
     ]
+  },
+  {
+    "id": "reshape-layout",
+    "title": "Reshape a chart and edit its layout",
+    "minutes": 7,
+    "goal": "Change what a chart shows after it is in: other columns, fewer bars, new names, another layout.",
+    "steps": [
+      {
+        "do": "Open Insert › Chart layouts, type dumbbell and choose Dumbbell: before and after. Insert it with the sample data.",
+        "see": "Each channel has a grey dot for 2024 and a blue dot for 2026, joined by a line, with an action title about the biggest move.",
+        "ribbon": [
+          "Insert",
+          "Chart layouts"
+        ],
+        "check": "layout-dumbbell"
+      },
+      {
+        "do": "With the chart selected, open Charts › Reshape. Untick Social media, type Agents as the new name for Insurance agent, move Gen AI assistant to the top with the up arrow, and choose Apply.",
+        "see": "Social media has gone, Gen AI assistant is the first row and Insurance agent now reads Agents.",
+        "ribbon": [
+          "Charts",
+          "Reshape"
+        ],
+        "check": "reshaped"
+      },
+      {
+        "do": "In Reshape, add a filter: Year is 2026. Change Chart type to Bar (horizontal) and Apply.",
+        "see": "A plain bar chart of 2026 only. Undo (Ctrl+Z) goes back one change at a time."
+      },
+      {
+        "do": "Press Ctrl+Z until the dumbbell is back. Then choose Charts › Edit layout, then ‹ Switch layout, and pick Paired bars with the gap.",
+        "see": "The window keeps your data and guesses the columns for the new layout.",
+        "ribbon": [
+          "Charts",
+          "Edit layout"
+        ]
+      },
+      {
+        "do": "Choose Update.",
+        "see": "The dumbbell is replaced in the same place by paired bars with the gap in each label. One Ctrl+Z brings the dumbbell back.",
+        "check": "layout-edited"
+      }
+    ]
   }
 ]

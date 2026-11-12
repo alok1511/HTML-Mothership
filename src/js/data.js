@@ -627,7 +627,9 @@
         if (lookStyle) next.style = lookStyle; else delete next.style;
         if (dsSel.value && measureSel) {
           var bv = colsSel.values();
+          var prevB = (rt.state.charts[key] || {}).binding || {};
           next.binding = { dataset: dsSel.value, levels: levels.filter(Boolean), measure: bv.measure, agg: bv.agg, series: bv.series || undefined, sort: bv.sort || undefined, top: bv.top || undefined };
+          if (prevB.dataset === dsSel.value) MS.compose.EXTRA.forEach(function (k) { if (prevB[k] != null) next.binding[k] = prevB[k]; });
           next.drill = { mode: bv.mode, columns: bv.cols && bv.cols.length ? bv.cols : undefined };
           next.title = block ? lay.values().title : info.title;
         } else { delete next.binding; delete next.drill; }

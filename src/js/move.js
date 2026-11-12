@@ -283,8 +283,12 @@
     b.appendChild(cdoc().createElement('i'));
     if (key) {
       b.appendChild(btn('settings', 'Chart settings', function () { MS.charts.settings(key); }));
+      if (MS.reshape && rt.state.charts[key] && rt.state.charts[key].binding) b.appendChild(btn('filter', 'Reshape: type, columns, filters, which bars and series show, their order and names', function () { MS.reshape.dialog(key); }));
+      if (MS.layouts && MS.layouts.runOf(key)) b.appendChild(btn('wand', 'Edit the chart layout: other columns, options, words, or another layout', function () { MS.layouts.editDialog(key); }));
       if (MS.shapes) b.appendChild(btn('pen', 'Draw on this chart: arrows, growth (CAGR), boxes, callouts', function (e, bt) { var r = bt.getBoundingClientRect(), fr = MS.$('#stage-frame-host iframe').getBoundingClientRect(), s = MS.view.scale || 1; MS.menuAt(fr.left + r.left * s, fr.top + r.bottom * s + 4, MS.shapes.menuItems(key)); }));
     }
+    var uref = !key && MS.layouts && unit.getAttribute && (unit.getAttribute('data-ms-id') || unit.getAttribute('data-ms-ref'));
+    if (uref && MS.layouts.runOf(uref)) b.appendChild(btn('wand', 'Edit the chart layout: other columns, options, words, or another layout', function () { MS.layouts.fill(rt.state.layoutRuns[MS.layouts.runOf(uref)].layout, MS.layouts.runOf(uref)); }));
     if (MS.picture) b.appendChild(btn('image', 'Copy as picture (paste into PowerPoint, Word, email)', function () { MS.picture.copy(unit); }));
     b.appendChild(btn('copy', 'Duplicate (Ctrl+D)', function () { MS.clipboard.duplicate(el); }));
     b.appendChild(btn('trash', 'Delete', function () { MS.blocks.remove(el); }, 'ms-mb-del'));

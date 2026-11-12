@@ -28,7 +28,7 @@ var http = require('http');
 var crypto = require('crypto');
 var cp = require('child_process');
 
-var VERSION = '4.0.0';
+var VERSION = '4.1.0';
 var ROOT = path.resolve(__dirname, '..', '..');
 var EDITOR = path.resolve(process.env.MOTHERSHIP_HTML || path.join(ROOT, 'mothership.html'));
 var OUT = path.resolve(process.env.MOTHERSHIP_OUT || process.cwd());
@@ -469,7 +469,7 @@ var INSTRUCTIONS = 'Mothership edits HTML dashboards like PowerPoint edits slide
   'Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. Every change is undoable (undo). ' +
   'Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). ' +
   'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout. ' +
-  'For a new consulting-style chart use chart_layouts (action list, then insert with your dataset, or sample: true to try it); it writes an action title and keeps the house rules. Saved versions: versions and save_version. ' +
+  'For a new consulting-style chart use chart_layouts (action list, then insert with your dataset, or sample: true to try it); it writes an action title and keeps the house rules. To change a layout after it is in, chart_layouts action edit (other columns, options or another layout); to reshape any chart from data (type, columns, filters, which categories and series show, their order and names), chart_edit. Saved versions: versions and save_version. ' +
   'To test a dashboard like Playwright: ui_snapshot, then ui_tab / ui_click / ui_hover / ui_select / ui_type, check with ui_expect / ui_read / ui_errors, look with ui_screenshot; plan and record with test_plan / test_run / test_record and save with save_test_document.';
 
 function reply(id, result) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: id, result: result }) + '\n'); }
