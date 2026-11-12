@@ -761,11 +761,11 @@ def call_tool(name, args):
 
 
 # --------------------------------------------------------------------------- MCP over stdio (newline-delimited JSON-RPC)
-INSTRUCTIONS = ('Mothership edits HTML dashboards like PowerPoint edits slides. Start with open_file (or new_dashboard), then outline to see the tabs, charts, '
+INSTRUCTIONS = ('Mothership edits HTML dashboards like PowerPoint edits slides. Start with list_samples and open_sample for a fictional practice dashboard, open_file for your own dashboard, or new_dashboard. Then use outline to see the tabs, charts, '
                 'datasets and comments. Refer to charts by their plain names from outline. Elements: use find to get refs, then set_text / set_style / set_popup. '
                 'Every change is undoable (undo). Use screenshot to look at the result and export_html to save. Numbers follow the region set with set_locale (US $ by default). '
                 'If outline lists pageTabs, the dashboard has its own tabs: use page_tabs for them, not add_tab or layout. '
-                'For a new consulting-style chart use chart_layouts (action list, then insert with your dataset, or sample: true to try it); it writes an action title '
+                'Use load_data and preview_chart to check aggregations before insert_chart. For a consulting-style chart use chart_layouts (action list or references, then insert with your dataset, or sample: true to try it); it writes an action title '
                 'and keeps the house rules. To change a layout after it is in, chart_layouts action edit (other columns, options or another layout); '
                 'to reshape any chart from data (type, columns, filters, which categories and series show, their order and names), chart_edit. '
                 'Saved versions: versions and save_version. '

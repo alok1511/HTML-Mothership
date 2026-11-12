@@ -30,7 +30,7 @@ const NEW = ['dumbbell', 'gap-pairs', 'range-dots', 'parity-scatter', 'quadrant-
 
       /* --- the new layouts are listed in their groups and each has an action title worked out from the numbers --- */
       const list = (await api('chart_layouts', {})).layouts;
-      assert.equal(list.length, 43, '43 layouts');
+      assert.ok(list.length >= 43, 'at least the 43 layouts shipped with v4.1.0');
       assert.deepEqual(NEW.filter(id => !list.some(l => l.id === id)), [], 'every new layout is listed');
       const groups = (await api('chart_layouts', {})).groups.map(g => g.id);
       assert.deepEqual(groups.slice(-4), ['compare', 'trend', 'composition', 'page']);
@@ -56,7 +56,7 @@ const NEW = ['dumbbell', 'gap-pairs', 'range-dots', 'parity-scatter', 'quadrant-
       assert.equal(d.kind, 'dumbbell');
       assert.deepEqual(d.ds.map(x => [x.label, x.link]), [['', true], ['2024', false], ['2026', false]], 'a connector bar plus one dot series per end');
       assert.deepEqual(d.ds[0].data[d.labels.indexOf('Social media')], [-9, 6], 'the connector runs from the lower to the higher value');
-      assert.equal(d.ds[2].bg, '#2251FF', 'the later end is the highlight colour');
+      assert.equal(d.ds[2].bg, '#0B6B59', 'the later end is the highlight colour');
       const rg = await chartInfo(range.charts[0]);
       assert.equal(rg.kind, 'range');
       assert.deepEqual(rg.ds.map(x => x.label), ['', 'Median'], 'range bar plus the median dot');
@@ -66,7 +66,7 @@ const NEW = ['dumbbell', 'gap-pairs', 'range-dots', 'parity-scatter', 'quadrant-
       assert.equal(bb.kind, 'bubble');
       const big = bb.ds[0].data.find(p => p.n === 'Coastal cyclone');
       assert.ok(big && big.r === 28 && big.v === 2400, 'the largest bubble gets the largest radius');
-      assert.ok(bb.ds[0].bg[bb.ds[0].data.indexOf(big)].startsWith('#2251FF'), 'the focus bubble is highlighted');
+      assert.ok(bb.ds[0].bg[bb.ds[0].data.indexOf(big)].startsWith('#0B6B59'), 'the focus bubble is highlighted');
       const ps = await page.evaluate(k => { const c = MS.rt().chart(k); return { refs: c.inst.__msLook && c.inst.__msLook.refs, plugin: !!MS.child.win.Chart.registry.plugins.get('msRefs') }; }, par.charts[0]);
       assert.deepEqual(ps.refs, [{ diag: true, label: 'above the line' }]);
       assert.ok(ps.plugin, 'reference lines are drawn by their own plugin');

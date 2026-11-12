@@ -299,7 +299,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         if (d.msLink) return;
         var line = (d.type || i.config.type) === 'line' || (d.type || i.config.type) === 'radar';
         if (xy) { if (many) { var cx = map[d.label]; if (cx) { d.borderColor = cx; d.backgroundColor = cx + 'B3'; } return; } d.backgroundColor = (d.data || []).map(function (p) { var c0 = p && map[p.n]; return c0 ? c0 + 'B3' : (Array.isArray(d.backgroundColor) ? '#7F8C99B3' : d.backgroundColor); }); d.borderColor = (d.data || []).map(function (p) { return p && map[p.n] || '#7F8C99'; }); return; }
-        if (many) { var c = map[d.label]; if (c) { d.borderColor = c; d.backgroundColor = line ? (kind === 'stackedarea' ? c + 'CC' : d.showLine === false ? c : c + '33') : c; } return; }
+        if (many) { var c = map[d.label]; if (c) { d.borderColor = c; d.backgroundColor = line ? ((kind === 'stackedarea' || kind === 'area-benchmark') && d.fill !== false ? c + 'CC' : d.showLine === false ? c : c + '33') : c; } return; }
         if (line) return;
         var base = d.backgroundColor;
         d.backgroundColor = labels.map(function (l, j) { return map[l] || (Array.isArray(base) ? base[j % base.length] : base); });
@@ -332,7 +332,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         else {
           var c = colors[(k - (i.data.datasets[0] && i.data.datasets[0].msLink ? 1 : 0)) % colors.length];
           var line = (d.type || i.config.type) === 'line' || (d.type || i.config.type) === 'radar';
-          d.borderColor = c; d.backgroundColor = line ? (i.config.options.msType === 'stackedarea' ? c + 'CC' : d.showLine === false ? c : c + '33') : c;
+          d.borderColor = c; d.backgroundColor = line ? ((i.config.options.msType === 'stackedarea' || i.config.options.msType === 'area-benchmark') && d.fill !== false ? c + 'CC' : d.showLine === false ? c : c + '33') : c;
         }
       });
       cjsStill(i);
@@ -1031,7 +1031,8 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var c = rt.chart(key); if (!c) return '';
     var d = rt.chartData(key, true), info = c.a.info(c.inst) || {};
     if (!d || !d.labels.length || !d.series.length) return '';
-    var type = String(info.type || ''), cs = rt.state.charts[key] || {};
+    var cs = rt.state.charts[key] || {}, type = cs.native && cs.native.type || String(info.type || '');
+    var additive = !cs.binding || !cs.binding.percent && (!cs.binding.agg || /^(sum|count)$/.test(cs.binding.agg));
     var f = sumFmt(cs.style, [name, info.title, d.series.map(function (s) { return s.name; }).join(' ')].join(' '));
     var L = d.labels, n = L.length, S = d.series.filter(function (s) { return s.values.some(function (v) { return v != null; }); });
     if (!S.length) return '';
@@ -1052,6 +1053,10 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         var by = p.slice().sort(function (a, b) { return b.v - a.v; });
         out.push(lead + by[0].l + ' is the largest share at ' + f(by[0].v) + ' (' + pctOf(by[0].v, T) + ')' + (by[1] ? ', followed by ' + by[1].l + ' (' + pctOf(by[1].v, T) + ')' : '') + '.');
         if (by.length > 2) out.push('The smallest is ' + by[by.length - 1].l + ' (' + pctOf(by[by.length - 1].v, T) + '). Total ' + f(T) + '.');
+      } else if (p.length === 1) {
+        out.push(lead + p[0].l + ' shows ' + f(p[0].v) + '.');
+      } else if (!additive) {
+        out.push(lead + hi.l + ' is highest at ' + f(hi.v) + ', and ' + lo.l + ' is lowest at ' + f(lo.v) + '.');
       } else {
         var srt = p.slice().sort(function (a, b) { return b.v - a.v; }), top = srt.slice(0, Math.min(3, srt.length - 1));
         out.push(lead + p.length + ' item' + words(p.length) + ', total ' + f(T) + '. ' + hi.l + ' is highest at ' + f(hi.v) + (T > 0 ? ' (' + pctOf(hi.v, T) + ')' : '') + '; ' + lo.l + ' is lowest at ' + f(lo.v) + '.');
@@ -1063,12 +1068,13 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         out.push(lead + S.length + ' series from ' + L[0] + ' to ' + L[n - 1] + '.');
         S.slice(0, 4).forEach(function (s) { var p = pts(s); if (p.length < 2) return; var a0 = p[0].v, z = p[p.length - 1].v; out.push(s.name + ' ' + (z > a0 ? 'rose' : z < a0 ? 'fell' : 'was flat') + ' from ' + f(a0) + ' to ' + f(z) + '.'); });
       } else {
-        out.push(lead + S.length + ' series across ' + n + ' categor' + (n === 1 ? 'y' : 'ies') + '. ' + tots.slice(0, 3).map(function (x) { return x.s + ' totals ' + f(x.t); }).join(', ') + '.');
+        out.push(lead + S.length + ' series across ' + n + ' categor' + (n === 1 ? 'y' : 'ies') + '.' + (additive ? ' ' + tots.slice(0, 3).map(function (x) { return x.s + ' totals ' + f(x.t); }).join(', ') + '.' : ''));
         var best = S[0], bp = pts(best);
         if (bp.length) { var bh = bp.reduce(function (a, b) { return b.v > a.v ? b : a; }); out.push(best.name + ' is highest in ' + bh.l + ' (' + f(bh.v) + ').'); }
       }
     }
-    var fl = []; Object.keys(rt.filterValues || {}).forEach(function (ds) { var fv = rt.filterValues[ds]; Object.keys(fv).forEach(function (k) { if (fv[k] !== '' && fv[k] != null) fl.push(k + ' = ' + fv[k]); }); });
+    var fl = [], fv = cs.binding && rt.filterValues[cs.binding.dataset] || {};
+    Object.keys(fv).forEach(function (k) { if (fv[k] !== '' && fv[k] != null) fl.push(k + ' = ' + fv[k]); });
     if (fl.length && cs.binding) out.push('Filtered to ' + fl.join(', ') + '.');
     return out.join(' ');
   };
@@ -1076,8 +1082,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var cs = rt.state.charts[c.key] || {}, sm = cs.summary, host = c.el.closest('.ms-visual') || (c.el.tagName === 'CANVAS' && c.el.parentNode !== D.body ? c.el.parentNode : c.el);
     var cap = host.parentNode && host.parentNode.querySelector(':scope > .ms-summary[data-for="' + c.key.replace(/"/g, '') + '"]');
     if (!sm) { if (cap) cap.remove(); if (c.el.__msAria) { c.el.removeAttribute('aria-label'); c.el.removeAttribute('role'); c.el.__msAria = false; } return; }
-    var text = rt.summarize(c.key, sm.name);
-    if (!text) return;
+    var text = rt.summarize(c.key, sm.name) || 'No values for the current selection.';
     if (c.el.tagName !== 'CANVAS' || !c.el.getAttribute('aria-label') || c.el.__msAria) { c.el.setAttribute('role', 'img'); c.el.setAttribute('aria-label', text); c.el.__msAria = true; }
     if (sm.show === 'caption') {
       if (!cap) { cap = el('p', { 'class': 'ms-summary', 'data-for': c.key }); host.parentNode.insertBefore(cap, host.nextSibling); }
@@ -1110,11 +1115,11 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     return [];
   };
   rt.fields = function (name) {
-    var rows = rt.getRows(name).slice(0, 200), f = {};
+    var rows = rt.getRows(name).slice(0, 200), f = Object.create(null);
     rows.forEach(function (r) { Object.keys(r).forEach(function (k) {
       f[k] = f[k] || { name: k, num: 0, n: 0 };
       var v = r[k]; if (v === null || v === '' || v === undefined) return;
-      f[k].n++; if (typeof v === 'number' || (!isNaN(Number(v)) && String(v).trim() !== '')) f[k].num++;
+      f[k].n++; if ((typeof v === 'number' || typeof v === 'string') && Number.isFinite(Number(v)) && String(v).trim() !== '') f[k].num++;
     }); });
     return Object.keys(f).map(function (k) { return { name: k, numeric: f[k].n > 0 && f[k].num / f[k].n > 0.9 }; });
   };
@@ -1161,27 +1166,62 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   }
   rt.filteredRows = filteredRows;
 
-  function groupBy(rows, dim, measure, agg, seriesDim) {
+  function groupBy(rows, dim, measure, agg, seriesDim, includeSums) {
     var groups = new Map(), seriesKeys = new Set();
     rows.forEach(function (r) {
       var k = r[dim]; k = (k === null || k === undefined || k === '') ? '(blank)' : String(k);
       var g = groups.get(k);
-      if (!g) { g = { label: k, count: 0, sums: {}, by: {} }; groups.set(k, g); }
+      if (!g) { g = { label: k, count: 0, sums: Object.create(null), by: Object.create(null) }; groups.set(k, g); }
       g.count++;
-      Object.keys(r).forEach(function (f) { var n = Number(r[f]); if (typeof r[f] !== 'boolean' && r[f] !== '' && !isNaN(n)) g.sums[f] = (g.sums[f] || 0) + n; });
+      if (includeSums) Object.keys(r).forEach(function (f) {
+        var n = measureNumber(r[f]); if (Number.isFinite(n)) g.sums[f] = (g.sums[f] || 0) + n;
+      });
       var sk = seriesDim ? String(r[seriesDim]) : '_';
       seriesKeys.add(sk);
-      var b = g.by[sk] = g.by[sk] || { n: 0, s: 0, min: Infinity, max: -Infinity };
-      var v = Number(r[measure]);
-      b.n++; if (!isNaN(v)) { b.s += v; b.min = Math.min(b.min, v); b.max = Math.max(b.max, v); }
+      var b = g.by[sk] = g.by[sk] || { n: 0, valid: 0, s: 0, min: Infinity, max: -Infinity };
+      var v = measureNumber(r[measure]);
+      b.n++; if (Number.isFinite(v)) { b.valid++; b.s += v; b.min = Math.min(b.min, v); b.max = Math.max(b.max, v); }
     });
     function val(b) {
       if (!b) return 0;
-      switch (agg) { case 'count': return b.n; case 'avg': return b.n ? b.s / b.n : 0; case 'min': return b.min; case 'max': return b.max; default: return b.s; }
+      switch (agg) { case 'count': return b.n; case 'avg': return b.valid ? b.s / b.valid : NaN; case 'min': return b.min; case 'max': return b.max; default: return b.s; }
     }
     var list = Array.from(groups.values());
-    list.forEach(function (g) { g.value = 0; Object.keys(g.by).forEach(function (k) { g.value += val(g.by[k]); }); });
+    list.forEach(function (g) { g.value = 0; Object.keys(g.by).forEach(function (k) { var v = val(g.by[k]); if (Number.isFinite(v)) g.value += v; }); });
     return { list: list, series: Array.from(seriesKeys), val: val };
+  }
+
+  function measureNumber(value) {
+    return (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
+  }
+
+  function boundCategories(rows, dim, b, includeSums, seriesLimit) {
+    var G = groupBy(rows, dim, b.measure, b.agg || 'sum', b.series, includeSums);
+    var list = keepCats(G.list, b);
+    if (b.sort === 'desc') list.sort(function (x, y) { return y.value - x.value; });
+    else if (b.sort === 'asc') list.sort(function (x, y) { return x.value - y.value; });
+    else if (b.sort === 'source') { /* keep the order of the rows */ }
+    else list.sort(function (x, y) { return x.label < y.label ? -1 : x.label > y.label ? 1 : 0; });
+    if (!b.sort) { var oi = orderLabels(list.map(function (g) { return g.label; })); if (oi) list = oi.map(function (j) { return list[j]; }); }
+    if (b.order && b.order.length) list = byOrder(list, b.order, function (g) { return g.label; });
+    var categoryCount = list.length;
+    if (b.top) list = list.slice(0, b.top);
+    var ren = b.rename || {}, back = Object.create(null);
+    var labels = list.map(function (g) { var n = Object.hasOwn(ren, g.label) && ren[g.label] != null && ren[g.label] !== '' ? String(ren[g.label]) : g.label; if (n !== g.label) back[n] = g.label; return n; });
+    var skeys = keepNames(G.series, b.seriesOnly, b.seriesHide);
+    if (b.seriesOrder && b.seriesOrder.length) skeys = byOrder(skeys, b.seriesOrder, String);
+    var seriesCount = skeys.length;
+    if (seriesLimit) skeys = skeys.slice(0, seriesLimit);
+    var series = skeys.map(function (s) {
+      var nm = s === '_' ? (b.agg === 'count' || !b.measure ? 'Count' : b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s;
+      return { name: Object.hasOwn(ren, nm) && ren[nm] != null && ren[nm] !== '' ? String(ren[nm]) : nm, overlay: b.overlay === s, values: list.map(function (g) { var entry = g.by[s], v = b.sparse && (!entry || !entry.valid && b.agg !== 'count') ? null : G.val(entry); return Number.isFinite(v) ? Math.round(v * 100) / 100 : null; }) };
+    });
+    // 100% stacked: each category's series become shares of that category's total
+    if (b.percent) labels.forEach(function (_, j) {
+      var tot = series.reduce(function (t, s) { return t + Math.abs(s.values[j] || 0); }, 0);
+      series.forEach(function (s) { if (s.values[j] !== null) s.values[j] = tot ? Math.round(s.values[j] / tot * 1000) / 10 : 0; });
+    });
+    return { labels: labels, series: series, list: list, back: back, categoryCount: categoryCount, seriesCount: seriesCount };
   }
 
   function renderBound(c) {
@@ -1193,34 +1233,27 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     var rows = filteredRows(b.dataset, path);
     if (b.where && b.where.length) rows = rows.filter(function (r) { return whereOk(r, b.where); });
     var type = cs.native && cs.native.type;
-    if (rt.XY_TYPES[type] && b.x && b.y) { renderXY(c, b, rows, dim, type); renderCrumbs(c, b, path); return; }
-    var G = groupBy(rows, dim, b.measure, b.agg || 'sum', b.series);
-    var list = keepCats(G.list, b);
-    if (b.sort === 'desc') list.sort(function (x, y) { return y.value - x.value; });
-    else if (b.sort === 'asc') list.sort(function (x, y) { return x.value - y.value; });
-    else if (b.sort === 'source') { /* keep the order of the rows */ }
-    else list.sort(function (x, y) { return x.label < y.label ? -1 : x.label > y.label ? 1 : 0; });
-    if (!b.sort) { var oi = orderLabels(list.map(function (g) { return g.label; })); if (oi) list = oi.map(function (j) { return list[j]; }); }
-    if (b.order && b.order.length) list = byOrder(list, b.order, function (g) { return g.label; });
-    if (b.top) list = list.slice(0, b.top);
-    var ren = b.rename || {}, back = rt.renamed[c.key] = {};
-    var labels = list.map(function (g) { var n = ren[g.label] != null && ren[g.label] !== '' ? String(ren[g.label]) : g.label; if (n !== g.label) back[n] = g.label; return n; });
-    var skeys = keepNames(G.series, b.seriesOnly, b.seriesHide);
-    if (b.seriesOrder && b.seriesOrder.length) skeys = byOrder(skeys, b.seriesOrder, String);
-    var series = skeys.map(function (s) {
-      var nm = s === '_' ? (b.agg === 'count' || !b.measure ? 'Count' : b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s;
-      return { name: ren[nm] != null && ren[nm] !== '' ? String(ren[nm]) : nm, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
-    });
-    // 100% stacked: each category's series become shares of that category's total
-    if (b.percent) labels.forEach(function (_, j) {
-      var tot = series.reduce(function (t, s) { return t + Math.abs(s.values[j] || 0); }, 0);
-      series.forEach(function (s) { s.values[j] = tot ? Math.round(s.values[j] / tot * 1000) / 10 : 0; });
-    });
-    var gm = {}; list.forEach(function (g, j) { gm[labels[j]] = g; });
+    var result = rt.XY_TYPES[type] && b.x && b.y ? boundPoints(b, rows, dim, type) :
+      boundCategories(rows, dim, b, !!cs.tooltip);
+    if (result.back) rt.renamed[c.key] = result.back;
+    var gm = Object.create(null);
+    result.list.forEach(function (g, j) { gm[result.labels[j]] = g; });
     rt.groups[c.key] = gm;
-    c.a.setData(c.inst, labels, series);
+    c.a.setData(c.inst, result.labels, result.series);
     renderCrumbs(c, b, path);
   }
+  rt.previewBinding = function (b, type, seriesLimit) {
+    var rows = filteredRows(b.dataset);
+    if (b.where && b.where.length) rows = rows.filter(function (r) { return whereOk(r, b.where); });
+    var result = rt.XY_TYPES[type] ? boundPoints(b, rows, b.levels[0], type, seriesLimit) :
+      boundCategories(rows, b.levels[0], b, false, seriesLimit);
+    return { labels: result.labels, series: result.series, categories: result.categoryCount, seriesCount: result.seriesCount, rows: rows.length };
+  };
+  rt.paintPreview = function (chart, data) {
+    A.chartjs.setData(chart, data.labels, data.series);
+    var theme = rt.state.theme;
+    A.chartjs.setPalette(chart, theme && theme.chartsFollowTheme !== false && theme.palette && theme.palette.length ? theme.palette : NATIVE_PAL);
+  };
   rt.renamed = {};
   // Row filters for one chart: [{field, op: eq | ne | in | notin | gt | ge | lt | le | contains, value}]
   function whereOk(r, where) {
@@ -1235,12 +1268,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   }
   rt.whereOk = whereOk;
   function keepNames(names, only, hide) {
-    var o = only && only.length ? only.map(String) : null, hd = hide && hide.length ? hide.map(String) : null;
-    return names.filter(function (n) { return (!o || o.indexOf(n) >= 0) && (!hd || hd.indexOf(n) < 0); });
+    if ((!only || !only.length) && (!hide || !hide.length)) return names;
+    var o = only && only.length ? new Set(only.map(String)) : null, hd = new Set((hide || []).map(String));
+    return names.filter(function (n) { return (!o || o.has(n)) && !hd.has(n); });
   }
   function keepCats(list, b) {
-    var keep = keepNames(list.map(function (g) { return g.label; }), b.only, b.hide);
-    return list.filter(function (g) { return keep.indexOf(g.label) >= 0; });
+    if ((!b.only || !b.only.length) && (!b.hide || !b.hide.length)) return list;
+    var keep = new Set(keepNames(list.map(function (g) { return g.label; }), b.only, b.hide));
+    return list.filter(function (g) { return keep.has(g.label); });
   }
   function byOrder(list, order, key) {
     var o = order.map(String), first = [], rest = [];
@@ -1249,30 +1284,61 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     return first.concat(rest);
   }
   // Scatter and bubble: one point per category, x and y (and size) worked out with the chart's calculation (sum or average).
-  function renderXY(c, b, rows, dim, type) {
-    var pts = [], idx = {}, sd = b.series, agg = b.agg === 'avg' ? 'avg' : 'sum';
+  function boundPoints(b, rows, dim, type, seriesLimit) {
+    var grouped = new Map(), counts = new Map();
     rows.forEach(function (r) {
+      var x = measureNumber(r[b.x]), y = measureNumber(r[b.y]), size = b.size ? measureNumber(r[b.size]) : 0;
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(size)) return;
       var k = r[dim]; k = k == null || k === '' ? '(blank)' : String(k);
-      var s = sd ? String(r[sd]) : '_', id = s + '\u0001' + k, p = idx[id];
-      if (!p) { p = idx[id] = { n: k, s: s, x: 0, y: 0, v: 0, c: 0 }; pts.push(p); }
-      var nx = Number(r[b.x]), ny = Number(r[b.y]), nv = b.size ? Number(r[b.size]) : 0;
-      if (!isNaN(nx)) p.x += nx; if (!isNaN(ny)) p.y += ny; if (!isNaN(nv)) p.v += nv; p.c++;
+      var s = b.series ? String(r[b.series]) : '_';
+      var points = grouped.get(s);
+      if (!points) { points = new Map(); grouped.set(s, points); }
+      var p = points.get(k);
+      if (!p) { p = { x: 0, y: 0, v: 0, n: 0 }; points.set(k, p); }
+      p.x += x; p.y += y; p.v += size; p.n++;
+      counts.set(k, (counts.get(k) || 0) + 1);
     });
-    if (agg === 'avg') pts.forEach(function (p) { if (p.c) { p.x /= p.c; p.y /= p.c; p.v /= p.c; } });
-    var keep = keepNames(pts.map(function (p) { return p.n; }), b.only, b.hide);
-    pts = pts.filter(function (p) { return keep.indexOf(p.n) >= 0; });
-    var ren = b.rename || {}, max = 0; pts.forEach(function (p) { max = Math.max(max, Math.abs(p.v)); });
-    var skeys = keepNames(pts.reduce(function (a, p) { if (a.indexOf(p.s) < 0) a.push(p.s); return a; }, []), b.seriesOnly, b.seriesHide);
-    if (b.seriesOrder && b.seriesOrder.length) skeys = byOrder(skeys, b.seriesOrder, String);
+    var keys = keepNames(Array.from(grouped.keys()), b.seriesOnly, b.seriesHide);
+    if (b.seriesOrder && b.seriesOrder.length) keys = byOrder(keys, b.seriesOrder, String);
+    var seriesCount = keys.length;
+    if (seriesLimit) keys = keys.slice(0, seriesLimit);
+    var scores = new Map();
+    keys.forEach(function (key) {
+      grouped.get(key).forEach(function (p, name) {
+        if (b.agg === 'avg') { p.x /= p.n; p.y /= p.n; p.v /= p.n; }
+        scores.set(name, (scores.get(name) || 0) + p.y);
+      });
+    });
+    var names = keepNames(Array.from(scores.keys()), b.only, b.hide), categoryCount = names.length;
+    if (b.sort === 'desc' || b.sort === 'asc') names.sort(function (x, y) {
+      return (b.sort === 'desc' ? -1 : 1) * (scores.get(x) - scores.get(y));
+    });
+    if (b.order && b.order.length) names = byOrder(names, b.order, String);
+    if (b.top) names = names.slice(0, b.top);
+    var ren = b.rename || {}, back = Object.create(null), max = 0;
+    var labels = names.map(function (n) {
+      var label = Object.hasOwn(ren, n) && ren[n] ? String(ren[n]) : n;
+      if (label !== n) back[label] = n;
+      return label;
+    });
+    if (type === 'bubble') keys.forEach(function (key) {
+      var points = grouped.get(key);
+      names.forEach(function (n) { var p = points.get(n); if (p) max = Math.max(max, Math.abs(p.v)); });
+    });
     var r2 = function (v) { return Math.round(v * 100) / 100; };
-    var series = skeys.map(function (s) {
-      return { name: s === '_' ? '' : (ren[s] || s), values: pts.filter(function (p) { return p.s === s; }).map(function (p) {
-        var o = { x: r2(p.x), y: r2(p.y), n: ren[p.n] || p.n }; if (type === 'bubble') { o.v = r2(p.v); o.r = max ? Math.round(4 + 24 * Math.sqrt(Math.abs(p.v) / max)) : 8; } return o;
-      }) };
+    var series = keys.map(function (key) {
+      var points = grouped.get(key), values = [];
+      names.forEach(function (n, i) {
+        var p = points.get(n);
+        if (!p) return;
+        var o = { x: r2(p.x), y: r2(p.y), n: labels[i] };
+        if (type === 'bubble') { o.v = r2(p.v); o.r = max ? Math.round(4 + 24 * Math.sqrt(Math.abs(p.v) / max)) : 8; }
+        values.push(o);
+      });
+      return { name: key === '_' ? '' : (Object.hasOwn(ren, key) ? ren[key] : key), values: values };
     });
-    var gm = {}; pts.forEach(function (p) { gm[ren[p.n] || p.n] = { label: p.n, sums: {}, count: p.c }; });
-    rt.groups[c.key] = gm;
-    c.a.setData(c.inst, pts.map(function (p) { return ren[p.n] || p.n; }), series);
+    return { labels: labels, series: series, back: back, categoryCount: categoryCount, seriesCount: seriesCount,
+      list: names.map(function (n) { return { label: n, sums: {}, count: counts.get(n) }; }) };
   }
 
   function crumbHost(c) {
@@ -1528,15 +1594,16 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   /* Native chart types. Beyond the Chart.js basics: scatter and bubble (points named by the category, x / y / size measures),
      dumbbell (two or more values per category joined by a line), range (low–high bar with the middle value as a dot),
      stackedarea, and pyramid (two series back to back, the first drawn to the left). */
-  var NATIVE_KINDS = { hbar: 'bar', stacked: 'bar', hstacked: 'bar', area: 'line', stackedarea: 'line', scatter: 'scatter', bubble: 'bubble', dumbbell: 'bar', range: 'bar', pyramid: 'bar' };
+  var NATIVE_KINDS = { hbar: 'bar', stacked: 'bar', hstacked: 'bar', area: 'line', stackedarea: 'line', scatter: 'scatter', bubble: 'bubble', dumbbell: 'bar', range: 'bar', pyramid: 'bar', 'dot-compare': 'line', 'area-benchmark': 'line' };
   rt.XY_TYPES = { scatter: 1, bubble: 1 };
   function absTick(v) { return fmtNum(Math.abs(v), 'short'); }
   function nativeConfig(spec) {
     var t = spec.type || 'bar', type = NATIVE_KINDS[t] || t;
     var o = { responsive: true, maintainAspectRatio: false, msType: t, plugins: { legend: { display: /pie|doughnut/.test(t) || !!spec.legend || t === 'dumbbell' || t === 'pyramid', position: 'bottom', labels: { filter: function (it, d) { var ds = d.datasets[it.datasetIndex]; return !(ds && ds.msLink); } } }, tooltip: { filter: function (it) { return !it.dataset.msLink; }, callbacks: {} } } };
-    if (t === 'hbar' || t === 'hstacked' || t === 'dumbbell' || t === 'pyramid') o.indexAxis = 'y';
+    if (t === 'hbar' || t === 'hstacked' || t === 'dumbbell' || t === 'pyramid' || t === 'dot-compare') o.indexAxis = 'y';
     if (t === 'stacked' || t === 'hstacked' || t === 'pyramid') o.scales = { x: { stacked: true }, y: { stacked: true } };
-    if (t === 'stackedarea') o.scales = { y: { stacked: true } };
+    if (t === 'dot-compare') o.plugins.legend.labels.usePointStyle = true;
+    if (t === 'stackedarea' || t === 'area-benchmark') o.scales = { y: { stacked: true } };
     if (t === 'range') o.scales = { y: { beginAtZero: false, grace: '10%' } };
     if (t === 'pyramid') { o.scales.x.ticks = { callback: absTick }; o.plugins.tooltip.callbacks.label = function (c) { return (c.dataset.label ? c.dataset.label + ': ' : '') + fmtNum(Math.abs(c.parsed.x), 'num'); }; }
     if (rt.XY_TYPES[t]) {
@@ -1548,9 +1615,18 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   }
   // Turns plain category × series values into the datasets a special type needs (dumbbell, range, stacked area, pyramid).
   function shapeData(kind, labels, series) {
+    if (kind === 'dot-compare') return series.map(function (s, j) {
+      return { label: s.name, data: s.values, showLine: false, pointRadius: 5, pointHoverRadius: 7,
+        pointStyle: ['circle', 'triangle', 'rect', 'rectRot', 'crossRot', 'star'][j % 6] };
+    });
+    if (kind === 'area-benchmark') return series.map(function (s) {
+      var benchmark = s.overlay;
+      return { label: s.name, data: s.values, stack: benchmark ? 'benchmark' : 'components',
+        fill: benchmark ? false : 'stack', pointRadius: benchmark ? 3 : 0, order: benchmark ? 0 : 1, borderWidth: benchmark ? 3 : 1 };
+    });
     if (kind === 'dumbbell' || kind === 'range') {
       var pts = kind === 'range' ? (series.length >= 3 ? [series[1]] : []) : series, ends = kind === 'range' ? [series[0], series[series.length - 1]] : series;
-      var link = { type: 'bar', label: '', msLink: true, order: 2, data: labels.map(function (_, j) { var v = ends.map(function (s) { return Number(s && s.values[j]); }).filter(isFinite); return v.length ? [Math.min.apply(null, v), Math.max.apply(null, v)] : null; }),
+      var link = { type: 'bar', label: '', msLink: true, order: 2, data: labels.map(function (_, j) { var v = ends.map(function (s) { return s && s.values[j]; }).filter(Number.isFinite); return v.length >= 2 ? [Math.min.apply(null, v), Math.max.apply(null, v)] : null; }),
         backgroundColor: kind === 'range' ? '#B8BEC6' : '#CBD2DA', borderColor: kind === 'range' ? '#B8BEC6' : '#CBD2DA', barThickness: kind === 'range' ? 16 : 3, borderSkipped: false };
       return [link].concat(pts.map(function (s) { return { type: 'line', label: s.name, data: s.values, showLine: false, pointRadius: 6, pointHoverRadius: 8, order: 1, borderWidth: 2 }; }));
     }

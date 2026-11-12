@@ -1,6 +1,6 @@
 # Mothership practice lessons
 
-Open Help › Tutorial in the editor, or follow the steps below. Start in the separate sales practice copy; you do not need your own dashboard.
+Open Help › Tutorial in the editor, or follow the steps below. The lessons use a built-in practice copy. Most use Sales, and the claims lesson opens Insurance Claims Portfolio.
 
 For more detail see [the user guide](USER-GUIDE.md). Some steps can be checked automatically; others ask you to confirm what you saw.
 
@@ -145,7 +145,7 @@ Insert a ready-made consulting chart, write its action title and know how to und
 1. Open Insert › Chart layouts. Type ranked in the search box and choose Ranked bars, one highlight.
    **Check:** The window lists Items and Value, a Data choice and a suggested action title.
 2. Leave Data on Sample data. Read the suggested title, then change it to a sentence of your own that says the one thing to take away. Choose Insert.
-   **Check:** A horizontal bar chart with one blue bar, the others grey, values at the end of each bar, and your title above it.
+   **Check:** A horizontal bar chart with one Studio green bar, the others muted, values at the end of each bar, and your title above it.
 3. Press Ctrl+Z once, then Ctrl+Y.
    **Check:** The whole chart and its sample data disappear in one step and come back in one step.
 4. Open Chart layouts again and choose Bridge (waterfall). Insert it with the sample data.
@@ -158,7 +158,7 @@ Insert a ready-made consulting chart, write its action title and know how to und
 Change what a chart shows after it is in: other columns, fewer bars, new names, another layout.
 
 1. Open Insert › Chart layouts, type dumbbell and choose Dumbbell: before and after. Insert it with the sample data.
-   **Check:** Each channel has a grey dot for 2024 and a blue dot for 2026, joined by a line, with an action title about the biggest move.
+   **Check:** Each channel has a muted dot for 2024 and a Studio green dot for 2026, joined by a line, with an action title about the biggest move.
 2. With the chart selected, open Charts › Reshape. Untick Social media, type Agents as the new name for Insurance agent, move Gen AI assistant to the top with the up arrow, and choose Apply.
    **Check:** Social media has gone, Gen AI assistant is the first row and Insurance agent now reads Agents.
 3. In Reshape, add a filter: Year is 2026. Change Chart type to Bar (horizontal) and Apply.
@@ -167,5 +167,20 @@ Change what a chart shows after it is in: other columns, fewer bars, new names, 
    **Check:** The window keeps your data and guesses the columns for the new layout.
 5. Choose Update.
    **Check:** The dumbbell is replaced in the same place by paired bars with the gap in each label. One Ctrl+Z brings the dumbbell back.
+
+## 15. Trace insurance reserves to individual claims (6 min)
+
+Compare reserve concentration and verify the figure in a fictional loss run.
+
+1. Switch to Interact and select Property under Line of business.
+   **Check:** The Claims card shows 5 and Outstanding USD shows 44,500.
+2. Double-click Property in Outstanding reserves by line, then double-click Commercial property.
+   **Check:** The chart shows the claims behind that coverage. Use the breadcrumb to step back.
+3. Open Source data and match the claim IDs to their paid and outstanding amounts. Read the Methodology tab.
+   **Check:** Each row is one claim. Incurred is paid plus outstanding in this sample.
+4. Reset the filters. Switch to Edit, then use Charts › Chart layouts to insert Loss run: paid and outstanding. Choose Claims register and match Policy year, Paid USD and Outstanding USD.
+   **Check:** The new layout splits each policy year into paid and outstanding. The source totals are USD 43,500 and USD 52,250.
+
+For more exercises, open Choose a sample › Business practice. Each dashboard has its own Practice tasks, Source data, Methodology and FAQ tabs.
 
 The monthly refresh lesson’s CSV downloads are available inside the tutorial. For offline practice without the editor tutorial, use [October](practice/sales-practice-2026-10.csv) and [November](practice/sales-practice-2026-11.csv).

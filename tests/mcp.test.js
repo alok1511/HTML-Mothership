@@ -50,6 +50,24 @@ const call = async (name, args) => {
   const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
   check('status: editor and server report the same version', st.json && st.json.serverVersion === pkgVersion && st.json.editorVersion === pkgVersion && !st.json.warning && init.serverInfo.version === pkgVersion, st.json);
 
+  const examples = await call('list_samples', { query: 'business practice' });
+  check('list_samples discovers all five business dashboards', examples.json?.groups?.[0]?.entries?.length === 5, examples.error || examples.json);
+  const claims = await call('open_sample', { id: 'insurance-claims' });
+  check('open_sample opens a practice copy with its five tabs', claims.json?.tabs?.length === 5 && claims.json?.datasets?.[0]?.name === 'Claims register', claims.error || claims.json);
+  await call('set_filter', { dataset: 'Claims register', field: 'Line of business', value: 'Property' });
+  const chartPreview = await call('preview_chart', { dataset: 'Claims register', by: 'Line of business', measure: 'Outstanding USD', type: 'hbar' });
+  const unchanged = await call('outline');
+  check('preview_chart uses filters and leaves the dashboard unchanged', chartPreview.json?.rows === 5 &&
+    chartPreview.json?.series?.[0]?.values?.[0] === 44500 && unchanged.json?.charts?.length === claims.json?.charts?.length &&
+    unchanged.json?.unsavedChanges === false, chartPreview.error || chartPreview.json);
+  const invalidSample = await call('open_sample', { id: '../insurance-claims' });
+  check('open_sample requires a catalog ID', /Unknown sample ID/.test(invalidSample.error || ''), invalidSample.error || invalidSample.json);
+  await call('add_comment', { chart: 'Outstanding reserves by line', text: 'Verify reserve review' });
+  const blocked = await call('open_sample', { id: 'crm-database' });
+  check('open_sample protects unexported work', /unsaved changes/i.test(blocked.error || ''), blocked.error || blocked.json);
+  const chartRefs = await call('chart_layouts', { action: 'references' });
+  check('chart_layouts returns the source mappings for standard layouts', chartRefs.json?.references?.length === 26, chartRefs.error || chartRefs.json);
+
   let testedOpenGuard = false;
   for (const [file, lib] of [['sales-dashboard.html', 'Chart.js'], ['ops-dashboard.html', 'ECharts'], ['risk-dashboard.html', 'Plotly']]) {
     console.log('Sample: ' + file + ' (' + lib + ')');

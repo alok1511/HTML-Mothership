@@ -1,0 +1,577 @@
+[
+  {
+    "id": "insurance-claims",
+    "title": "Insurance Claims Portfolio",
+    "focus": "Insurance loss runs, claims ageing and drill-down",
+    "question": "Where are open claim reserves concentrated, and which cases need review?",
+    "color": "#184a62",
+    "description": "Northstar Shield Insurance is a fictional insurer. Review its claim inventory as of 31 October 2026, then follow the largest concentrations to the records behind them.",
+    "dataset": "Claims register",
+    "filters": [
+      "Line of business",
+      "Status",
+      "Region"
+    ],
+    "fields": [
+      "Claim ID",
+      "Policy year",
+      "Line of business",
+      "Coverage",
+      "Region",
+      "Cause",
+      "Reported",
+      "Status",
+      "Age days",
+      "Paid USD",
+      "Outstanding USD",
+      "Incurred USD",
+      "Claim count",
+      "Open 90+ days"
+    ],
+    "rows": [
+      ["CL-1009", "2025", "Property", "Commercial property", "North", "Fire", "2025-12-16", "Open", 319, 10000, 18000, 28000, 1, 1],
+      ["CL-1010", "2025", "Motor", "Third-party liability", "South", "Injury", "2025-11-05", "Closed", 360, 7400, 0, 7400, 1, 0],
+      ["CL-1011", "2025", "Motor", "Own damage", "East", "Collision", "2025-08-28", "Closed", 429, 3400, 0, 3400, 1, 0],
+      ["CL-1001", "2026", "Motor", "Own damage", "North", "Collision", "2026-07-12", "Open", 111, 2600, 900, 3500, 1, 1],
+      ["CL-1002", "2026", "Motor", "Third-party liability", "North", "Collision", "2026-06-02", "Open", 151, 1800, 6200, 8000, 1, 1],
+      ["CL-1003", "2026", "Property", "Commercial property", "East", "Water damage", "2026-07-17", "Open", 106, 3000, 9000, 12000, 1, 1],
+      ["CL-1004", "2026", "Property", "Commercial property", "East", "Fire", "2026-09-02", "Open", 59, 6500, 14500, 21000, 1, 0],
+      ["CL-1005", "2026", "Health", "Medical reimbursement", "South", "Inpatient", "2026-10-02", "Closed", 29, 1250, 0, 1250, 1, 0],
+      ["CL-1006", "2026", "Health", "Medical reimbursement", "South", "Inpatient", "2026-10-15", "Open", 16, 450, 650, 1100, 1, 0],
+      ["CL-1007", "2026", "Motor", "Own damage", "West", "Theft", "2026-09-12", "Closed", 49, 2300, 0, 2300, 1, 0],
+      ["CL-1008", "2026", "Property", "Homeowners", "West", "Storm", "2026-10-05", "Open", 26, 2000, 3000, 5000, 1, 0],
+      ["CL-1012", "2026", "Property", "Homeowners", "South", "Water damage", "2026-08-08", "Closed", 84, 2800, 0, 2800, 1, 0]
+    ],
+    "kpis": [
+      {
+        "measure": "Claim count",
+        "label": "Claims"
+      },
+      {
+        "measure": "Paid USD"
+      },
+      {
+        "measure": "Outstanding USD"
+      },
+      {
+        "measure": "Open 90+ days"
+      }
+    ],
+    "charts": [
+      {
+        "type": "hbar",
+        "by": "Line of business",
+        "measure": "Outstanding USD",
+        "drill": [
+          "Coverage",
+          "Claim ID"
+        ],
+        "title": "Outstanding reserves by line",
+        "note": "Drill down to see whether one coverage or claim drives the concentration."
+      },
+      {
+        "type": "hstacked",
+        "by": "Policy year",
+        "measure": "Claim count",
+        "series": "Status",
+        "title": "Claim status by policy year",
+        "note": "Use the claims count alongside reserve size to separate case volume from severity."
+      },
+      {
+        "type": "hbar",
+        "by": "Cause",
+        "measure": "Incurred USD",
+        "drill": [
+          "Claim ID"
+        ],
+        "title": "Incurred cost by cause",
+        "note": "Follow unusually high costs to the claim level before drawing a portfolio conclusion."
+      }
+    ],
+    "methodology": [
+      ["Reporting basis", "One row per claim as of 31 October 2026. Policy year refers to the underlying policy, while Reported is the claim notification date."],
+      ["Paid, outstanding and incurred", "Paid is recorded payment to date. Outstanding is the remaining case reserve. Incurred = paid + outstanding. The sample excludes reinsurance recoveries, expenses and IBNR. Amounts are USD."],
+      ["Ageing", "Age days is the time from notification to the snapshot. Open 90+ days counts only open claims with age of at least 90 days. It is a review indicator for this exercise."]
+    ],
+    "faq": [
+      ["Why can a closed claim still have an incurred cost?", "Its prior payments remain in incurred, even though its outstanding case reserve is zero."],
+      ["Do the oldest claims automatically need the largest reserves?", "Age and reserve size are separate. Filter open claims and compare both at record level."],
+      ["Can I use my own loss run?", "Download the CSV, keep the field definitions and use Data › Import and build with a copy of your own data."]
+    ],
+    "steps": [
+      "In Interact, choose Property. The count should be five and outstanding USD should be 44,500. Double-click the Property bar, then drill into Commercial property to review the individual claims.",
+      "Reset. In Edit, open Charts › Chart layouts › Loss run: paid and outstanding. Use Claims register, map Policy year, Paid USD and Outstanding USD, then check the values against the source.",
+      "Switch to Open in the Status filter. Review the four claims marked Open 90+ days. Add a commentary line naming the reserve review you would request."
+    ],
+    "check": "12 claims reconcile to USD 43,500 paid and USD 52,250 outstanding. Incurred is USD 95,750. Property accounts for USD 44,500 of the outstanding reserve."
+  },
+  {
+    "id": "erm-manufacturing",
+    "title": "ERM Risk Register · Harborlight Components",
+    "focus": "Manufacturing ERM, departmental ownership and action tracking",
+    "question": "Which departments have above-appetite risks and late actions?",
+    "color": "#46547e",
+    "description": "Harborlight Components is a fictional manufacturing company. This is its enterprise risk register as of 31 October 2026.",
+    "dataset": "Harborlight Components risk register",
+    "filters": [
+      "Department",
+      "Rating",
+      "Action status"
+    ],
+    "fields": [
+      "Risk ID",
+      "Department",
+      "Risk",
+      "Owner role",
+      "Control in place",
+      "Inherent likelihood",
+      "Inherent impact",
+      "Inherent score",
+      "Residual likelihood",
+      "Residual impact",
+      "Residual score",
+      "Rating",
+      "Next action",
+      "Action due",
+      "Action status",
+      "Risks",
+      "Above appetite",
+      "Overdue actions"
+    ],
+    "rows": [
+      ["HC-01", "Operations", "Single-line production outage", "Plant director", "Preventive maintenance plan", 5, 5, 25, 4, 4, 16, "High", "Run a line-recovery exercise", "2026-10-18", "In progress", 1, 1, 1],
+      ["HC-02", "Operations", "Machine guarding exception", "Safety manager", "Weekly safety walkthrough", 4, 5, 20, 2, 5, 10, "Medium", "Verify guarding on line 2", "2026-11-07", "Open", 1, 0, 0],
+      ["HC-03", "Procurement", "Single-source controller supplier", "Supply lead", "Monthly supplier review", 5, 4, 20, 4, 4, 16, "High", "Qualify an alternative supplier", "2026-10-24", "Open", 1, 1, 1],
+      ["HC-04", "Procurement", "Late inbound freight", "Logistics lead", "Buffer stock on critical parts", 4, 3, 12, 3, 3, 9, "Medium", "Confirm alternate carrier", "2026-11-18", "In progress", 1, 0, 0],
+      ["HC-05", "Finance", "Slow collections from large buyers", "Financial controller", "Credit limits and ageing review", 4, 4, 16, 3, 3, 9, "Medium", "Review the ten largest balances", "2026-10-28", "Complete", 1, 0, 0],
+      ["HC-06", "Technology", "Production reporting outage", "Technology director", "Daily backup and restore tests", 4, 5, 20, 3, 4, 12, "High", "Test recovery without a local server", "2026-11-12", "In progress", 1, 1, 0],
+      ["HC-07", "Technology", "Stale service accounts", "Systems manager", "Quarterly access recertification", 4, 3, 12, 2, 2, 4, "Low", "Close flagged accounts", "2026-10-20", "Complete", 1, 0, 0],
+      ["HC-08", "Quality", "Traceability gaps in finished goods", "Quality director", "Batch sampling and audit", 4, 5, 20, 3, 4, 12, "High", "Verify traceability on all shifts", "2026-10-22", "Open", 1, 1, 1],
+      ["HC-09", "People", "Coverage for specialised machine roles", "People director", "Cross-training programme", 4, 4, 16, 3, 3, 9, "Medium", "Validate backup for night shift", "2026-11-20", "In progress", 1, 0, 0],
+      ["HC-10", "Compliance", "Incomplete waste records", "Compliance lead", "Monthly record reconciliation", 3, 3, 9, 2, 2, 4, "Low", "Close three filing exceptions", "2026-11-25", "Open", 1, 0, 0]
+    ],
+    "kpis": [
+      {
+        "measure": "Risks"
+      },
+      {
+        "measure": "Above appetite"
+      },
+      {
+        "measure": "Overdue actions"
+      }
+    ],
+    "charts": [
+      {
+        "type": "hstacked",
+        "by": "Department",
+        "measure": "Risks",
+        "series": "Rating",
+        "drill": "Risk ID",
+        "title": "Residual rating by department",
+        "note": "Compare the risk mix, then inspect the highest-rated risks and their owners."
+      },
+      {
+        "type": "hbar",
+        "by": "Department",
+        "measure": "Overdue actions",
+        "drill": "Risk ID",
+        "title": "Overdue actions by department",
+        "note": "Follow overdue actions to the named owner and confirm the current due date."
+      },
+      {
+        "type": "hbar",
+        "by": "Risk ID",
+        "measure": "Residual score",
+        "sort": "desc",
+        "title": "Residual score by risk",
+        "note": "Use scores to prioritise a discussion about exposure, controls and response.",
+        "agg": "max"
+      }
+    ],
+    "methodology": [
+      ["Record and ownership", "One row per risk. Owner role is accountable for the risk. Next action, due date and status describe the tracked response."],
+      ["Inherent and residual scoring", "Both scores equal likelihood × impact on a 1–5 scale. Inherent is the exposure before controls. Residual is the assessed exposure after controls. Low is 1–5, Medium 6–11, High 12–25. High is above the fictional appetite."],
+      ["Overdue actions", "Due before 31 October 2026 and action status other than Complete. A completed action can coexist with a High residual rating until the risk is reassessed."],
+      ["Comparisons", "Risk scores are ordinal prioritisation aids. Compare risk counts and scores at the risk level. Check whether two businesses use compatible assumptions before comparing their ratings."]
+    ],
+    "faq": [
+      ["What makes a risk above appetite?", "A residual score of 12 or more for this fictional register. Use a consistent threshold when building the RAG layout."],
+      ["Does the heat map use the same red threshold?", "The built-in 5 × 5 heat map colours scores of 15 or above red. Use the RAG table with 5 and 11 as cutoffs to match this sample’s rating policy."],
+      ["Why is a completed action still in the register?", "The action’s status and the risk assessment track different things. The risk owner can review the residual score after validating the control."],
+      ["Why look at overdue actions next to rating?", "A High risk with a late response is a stronger candidate for immediate discussion than either indicator alone."]
+    ],
+    "steps": [
+      "Choose High in Rating and compare the departments. Drill down on Operations to HC-01. Check the owner and the overdue line-recovery action in Source data.",
+      "Reset. Insert Risk register with RAG from Charts › Chart layouts. Match Residual score, Inherent score and Rating. Keep the cutoffs at 5 and 11.",
+      "Add a 5 × 5 risk heat map using Risk ID, Residual likelihood and Residual impact. Compare its red cells with the sample’s appetite threshold."
+    ],
+    "check": "10 risks across seven departments. Four are above appetite. Three actions are overdue, all on above-appetite risks."
+  },
+  {
+    "id": "erm-services",
+    "title": "ERM Risk Register · Cedarline Services",
+    "focus": "Business services ERM, departmental ownership and action tracking",
+    "question": "Where is exposure still high, and which overdue action should be escalated first?",
+    "color": "#17675e",
+    "description": "Cedarline Services is a fictional business services company. This is its enterprise risk register as of 31 October 2026.",
+    "dataset": "Cedarline Services risk register",
+    "filters": [
+      "Department",
+      "Rating",
+      "Action status"
+    ],
+    "fields": [
+      "Risk ID",
+      "Department",
+      "Risk",
+      "Owner role",
+      "Control in place",
+      "Inherent likelihood",
+      "Inherent impact",
+      "Inherent score",
+      "Residual likelihood",
+      "Residual impact",
+      "Residual score",
+      "Rating",
+      "Next action",
+      "Action due",
+      "Action status",
+      "Risks",
+      "Above appetite",
+      "Overdue actions"
+    ],
+    "rows": [
+      ["CS-01", "Client Delivery", "Missed deadlines during peak demand", "Head of delivery", "Weekly capacity planning", 5, 4, 20, 4, 4, 16, "High", "Rebalance the largest client accounts", "2026-10-25", "In progress", 1, 1, 1],
+      ["CS-02", "Client Delivery", "Inconsistent quality checks on handover", "Quality lead", "Handover checklist", 4, 4, 16, 3, 3, 9, "Medium", "Review ten escalated handovers", "2026-11-03", "Open", 1, 0, 0],
+      ["CS-03", "Sales", "Client concentration in one account", "Commercial director", "Quarterly account plans", 4, 5, 20, 3, 4, 12, "High", "Review the renewal contingency", "2026-11-10", "Open", 1, 1, 0],
+      ["CS-04", "Finance", "Incorrect billing rate applied", "Financial controller", "Peer approval for rate changes", 3, 4, 12, 2, 3, 6, "Medium", "Reconcile sample invoices", "2026-10-18", "Complete", 1, 0, 0],
+      ["CS-05", "People", "Insufficient coverage for critical roles", "People director", "Deputy succession list", 4, 4, 16, 3, 4, 12, "High", "Rehearse two deputy handovers", "2026-10-29", "Open", 1, 1, 1],
+      ["CS-06", "People", "Training completion data is late", "Learning lead", "Weekly dashboard checks", 3, 3, 9, 2, 2, 4, "Low", "Refresh the training roster", "2026-11-05", "In progress", 1, 0, 0],
+      ["CS-07", "Technology", "Client workspace outage", "IT service owner", "Failover runbook", 4, 5, 20, 3, 4, 12, "High", "Run a client workspace failover", "2026-11-14", "In progress", 1, 1, 0],
+      ["CS-08", "Technology", "Former staff retain access", "IT operations lead", "Weekly access review", 4, 4, 16, 2, 3, 6, "Medium", "Validate offboarding evidence", "2026-10-19", "Open", 1, 0, 1],
+      ["CS-09", "Compliance", "Retention controls vary by team", "Compliance manager", "Approved retention schedule", 4, 4, 16, 3, 3, 9, "Medium", "Sample shared archive folders", "2026-11-18", "Open", 1, 0, 0],
+      ["CS-10", "Vendor Management", "External staffing provider underperforms", "Vendor lead", "Quarterly vendor review", 4, 3, 12, 2, 3, 6, "Medium", "Agree a recovery plan", "2026-10-20", "Complete", 1, 0, 0]
+    ],
+    "kpis": [
+      {
+        "measure": "Risks"
+      },
+      {
+        "measure": "Above appetite"
+      },
+      {
+        "measure": "Overdue actions"
+      }
+    ],
+    "charts": [
+      {
+        "type": "hstacked",
+        "by": "Department",
+        "measure": "Risks",
+        "series": "Rating",
+        "drill": "Risk ID",
+        "title": "Residual rating by department",
+        "note": "Compare the risk mix, then inspect the highest-rated risks and their owners."
+      },
+      {
+        "type": "hbar",
+        "by": "Department",
+        "measure": "Overdue actions",
+        "drill": "Risk ID",
+        "title": "Overdue actions by department",
+        "note": "Follow overdue actions to the named owner and confirm the current due date."
+      },
+      {
+        "type": "hbar",
+        "by": "Risk ID",
+        "measure": "Residual score",
+        "sort": "desc",
+        "title": "Residual score by risk",
+        "note": "Use scores to prioritise a discussion about exposure, controls and response.",
+        "agg": "max"
+      }
+    ],
+    "methodology": [
+      ["Record and ownership", "One row per risk. Owner role is accountable for the risk. Next action, due date and status describe the tracked response."],
+      ["Inherent and residual scoring", "Both scores equal likelihood × impact on a 1–5 scale. Inherent is the exposure before controls. Residual is the assessed exposure after controls. Low is 1–5, Medium 6–11, High 12–25. High is above the fictional appetite."],
+      ["Overdue actions", "Due before 31 October 2026 and action status other than Complete. A completed action can coexist with a High residual rating until the risk is reassessed."],
+      ["Comparisons", "Risk scores are ordinal prioritisation aids. Compare risk counts and scores at the risk level. Check whether two businesses use compatible assumptions before comparing their ratings."]
+    ],
+    "faq": [
+      ["What makes a risk above appetite?", "A residual score of 12 or more for this fictional register. Use a consistent threshold when building the RAG layout."],
+      ["Does the heat map use the same red threshold?", "The built-in 5 × 5 heat map colours scores of 15 or above red. Use the RAG table with 5 and 11 as cutoffs to match this sample’s rating policy."],
+      ["Why is a completed action still in the register?", "The action’s status and the risk assessment track different things. The risk owner can review the residual score after validating the control."],
+      ["Are the overdue Technology action and the High Technology risk the same?", "No. CS-08 is overdue and Medium. CS-07 is High and its action is still within the due date."]
+    ],
+    "steps": [
+      "Filter Rating to High. Compare above-appetite risks across Client Delivery, Sales, People and Technology.",
+      "Reset. Filter Department to Technology. The two risks include one overdue action and one above-appetite risk. Read the two distinct risk records.",
+      "Compare with Harborlight Components on a separate copy. Keep the same RAG cutoffs and explain why the count of late actions on High risks is more informative than the overall overdue count."
+    ],
+    "check": "10 risks across seven departments. Four are above appetite and three actions are overdue. Two overdue actions are on above-appetite risks."
+  },
+  {
+    "id": "crm-database",
+    "title": "CRM Pipeline & Account Activity",
+    "focus": "CRM records, pipeline stage and overdue follow-ups",
+    "question": "Which account owners need to unblock near-term opportunities?",
+    "color": "#684a80",
+    "dataset": "CRM opportunities",
+    "filters": [
+      "Owner team",
+      "Segment",
+      "Stage"
+    ],
+    "description": "Pinebridge Software is fictional. Its opportunity, account, contact and activity tables form a small CRM database extract with matching IDs.",
+    "fields": [
+      "Opportunity ID",
+      "Account ID",
+      "Account",
+      "Contact ID",
+      "Owner team",
+      "Segment",
+      "Stage",
+      "Target close",
+      "Proposed seats",
+      "Next step",
+      "Next step due",
+      "Opportunities",
+      "Open seats",
+      "Overdue follow-up"
+    ],
+    "rows": [
+      ["O-01", "A-01", "Aster Clinic Group", "C-01", "Growth", "Mid-market", "Discovery", "2026-11-28", 90, "Book discovery call", "2026-10-22", 1, 90, 1],
+      ["O-02", "A-02", "Copperline Freight", "C-02", "Enterprise", "Enterprise", "Proposal", "2026-11-18", 260, "Confirm scope", "2026-10-26", 1, 260, 1],
+      ["O-03", "A-03", "Juniper Studio", "C-03", "Growth", "Small business", "Qualified", "2026-12-12", 40, "Schedule demo", "2026-11-06", 1, 40, 0],
+      ["O-04", "A-04", "Loftwell Learning", "C-04", "Public", "Public sector", "Negotiation", "2026-11-14", 180, "Get procurement date", "2026-11-05", 1, 180, 0],
+      ["O-05", "A-05", "Marblebrook Energy", "C-05", "Enterprise", "Enterprise", "Closed won", "2026-10-26", 320, "Start onboarding", "2026-11-09", 1, 0, 0],
+      ["O-06", "A-02", "Copperline Freight", "C-06", "Enterprise", "Enterprise", "Discovery", "2026-12-06", 140, "Meet operations sponsor", "2026-11-09", 1, 140, 0],
+      ["O-07", "A-04", "Loftwell Learning", "C-04", "Public", "Public sector", "Closed lost", "2026-10-19", 75, "Archive decision notes", "2026-10-21", 1, 0, 0],
+      ["O-08", "A-06", "Riverbend Housing", "C-07", "Public", "Public sector", "Proposal", "2026-11-30", 120, "Send revised proposal", "2026-10-28", 1, 120, 1],
+      ["O-09", "A-01", "Aster Clinic Group", "C-01", "Growth", "Mid-market", "Closed won", "2026-10-08", 65, "Confirm adoption owner", "2026-10-13", 1, 0, 0],
+      ["O-10", "A-07", "Tamarack Goods", "C-08", "Growth", "Mid-market", "Negotiation", "2026-11-08", 100, "Check signature timing", "2026-10-29", 1, 100, 1]
+    ],
+    "related": [
+      {
+        "id": "accounts",
+        "name": "CRM accounts",
+        "fields": [
+          "Account ID",
+          "Account",
+          "Segment",
+          "Industry"
+        ],
+        "rows": [
+          ["A-01", "Aster Clinic Group", "Mid-market", "Healthcare"],
+          ["A-02", "Copperline Freight", "Enterprise", "Logistics"],
+          ["A-03", "Juniper Studio", "Small business", "Creative"],
+          ["A-04", "Loftwell Learning", "Public sector", "Education"],
+          ["A-05", "Marblebrook Energy", "Enterprise", "Energy"],
+          ["A-06", "Riverbend Housing", "Public sector", "Housing"],
+          ["A-07", "Tamarack Goods", "Mid-market", "Retail"]
+        ]
+      },
+      {
+        "id": "contacts",
+        "name": "CRM contacts",
+        "fields": [
+          "Contact ID",
+          "Account ID",
+          "Contact role",
+          "Role in decision"
+        ],
+        "rows": [
+          ["C-01", "A-01", "Clinic operations lead", "Sponsor"],
+          ["C-02", "A-02", "Logistics finance lead", "Approver"],
+          ["C-03", "A-03", "Studio manager", "Sponsor"],
+          ["C-04", "A-04", "Procurement coordinator", "Evaluator"],
+          ["C-05", "A-05", "Systems director", "Approver"],
+          ["C-06", "A-02", "Fleet operations lead", "Sponsor"],
+          ["C-07", "A-06", "Programme officer", "Evaluator"],
+          ["C-08", "A-07", "Sales operations lead", "Sponsor"]
+        ]
+      },
+      {
+        "id": "activities",
+        "name": "CRM activities",
+        "fields": [
+          "Activity ID",
+          "Opportunity ID",
+          "Contact ID",
+          "Activity date",
+          "Activity",
+          "Outcome"
+        ],
+        "rows": [
+          ["T-01", "O-01", "C-01", "2026-10-15", "Email", "Awaiting reply"],
+          ["T-02", "O-02", "C-02", "2026-10-20", "Scope workshop", "Needs sign-off"],
+          ["T-03", "O-04", "C-04", "2026-10-21", "Call", "Procurement review pending"],
+          ["T-04", "O-08", "C-07", "2026-10-23", "Proposal review", "Revision requested"],
+          ["T-05", "O-10", "C-08", "2026-10-24", "Call", "Signature date unconfirmed"],
+          ["T-06", "O-02", "C-02", "2026-10-27", "Email", "Awaiting sign-off"]
+        ]
+      }
+    ],
+    "kpis": [
+      {
+        "measure": "Opportunities"
+      },
+      {
+        "measure": "Open seats"
+      },
+      {
+        "measure": "Overdue follow-up",
+        "label": "Overdue follow-ups"
+      }
+    ],
+    "charts": [
+      {
+        "type": "hstacked",
+        "by": "Stage",
+        "measure": "Opportunities",
+        "series": "Owner team",
+        "drill": "Opportunity ID",
+        "title": "Opportunity stage by owner team",
+        "note": "Use the stage mix to separate early discovery from active negotiations."
+      },
+      {
+        "type": "hbar",
+        "by": "Owner team",
+        "measure": "Open seats",
+        "drill": [
+          "Account",
+          "Opportunity ID"
+        ],
+        "title": "Open pipeline seats by owner team",
+        "note": "Follow the largest seat exposure to its account and next step."
+      },
+      {
+        "type": "hbar",
+        "by": "Owner team",
+        "measure": "Overdue follow-up",
+        "drill": "Opportunity ID",
+        "title": "Overdue follow-ups by owner team",
+        "note": "An overdue follow-up is a signal to check the next action with the owner."
+      }
+    ],
+    "methodology": [
+      ["Table grain and links", "Opportunities contain one row per deal. Accounts contain one row per Account ID. Contacts link to accounts by Account ID. Activities link to opportunities by Opportunity ID and contacts by Contact ID."],
+      ["Pipeline basis", "Open seats exclude Closed won and Closed lost. Each opportunity contributes once, even when it has several activities. Seat counts are a volume measure."],
+      ["Overdue follow-up", "An open opportunity whose next-step due date is before 31 October 2026. This is a snapshot of sales operations, with fictional records."]
+    ],
+    "faq": [
+      ["Does the dashboard join the CRM tables automatically?", "The charts bind to CRM opportunities, which already includes account, segment and owner team. Use the IDs to trace related records. Prepare a joined table before charting across datasets."],
+      ["Why can a deal appear twice in Activities?", "An opportunity can have several activities. Count or sum the deal once in Opportunities."],
+      ["Can I export a table separately?", "Source data has one CSV download per table. The editable HTML carries all four datasets."]
+    ],
+    "steps": [
+      "Filter Owner team to Enterprise. Open seats should be 400 across two open opportunities. Reset and double-click Enterprise in Open pipeline seats by owner team to find Copperline Freight.",
+      "Open Source data and trace opportunity O-02 to A-02 and C-02. Find its two activities. Keep the deal’s 260 seats once when reporting pipeline.",
+      "Apply the Proposal stage filter. Verify that both opportunities in the slice have overdue follow-ups. Draft an action-focused chart title that identifies the owner teams."
+    ],
+    "check": "Ten opportunities include seven open, two won and one lost. The open pipeline is 930 seats, and four open opportunities have an overdue follow-up."
+  },
+  {
+    "id": "team-performance",
+    "title": "Team Performance & Service Delivery",
+    "focus": "Team productivity, service quality and workload",
+    "question": "Which teams need a capacity discussion, and where is quality the stronger signal?",
+    "description": "Atlas Service Works is a fictional shared-services company. Compare four teams over four weeks of October 2026.",
+    "color": "#486338",
+    "dataset": "Team weekly performance",
+    "filters": [
+      "Team",
+      "Week"
+    ],
+    "fields": [
+      "Week",
+      "Team",
+      "Workstream",
+      "Headcount",
+      "Requests",
+      "Completed",
+      "Reopened",
+      "SLA target",
+      "Within SLA",
+      "SLA miss",
+      "Backlog at close",
+      "Open capacity gap"
+    ],
+    "rows": [
+      ["W40", "Client Support", "Service Desk", 8, 112, 105, 7, 100, 96, 9, 12, 7],
+      ["W40", "Case Operations", "Case handling", 7, 92, 86, 5, 84, 80, 6, 11, 6],
+      ["W40", "Platform Services", "Technology", 6, 82, 78, 3, 76, 74, 4, 8, 4],
+      ["W40", "Data Quality", "Data Operations", 5, 60, 56, 2, 54, 53, 3, 7, 4],
+      ["W41", "Client Support", "Service Desk", 8, 125, 114, 8, 109, 104, 10, 23, 11],
+      ["W41", "Case Operations", "Case handling", 7, 95, 92, 7, 89, 87, 5, 14, 3],
+      ["W41", "Platform Services", "Technology", 6, 83, 83, 3, 80, 79, 4, 8, 0],
+      ["W41", "Data Quality", "Data Operations", 5, 64, 60, 2, 57, 56, 4, 11, 4],
+      ["W42", "Client Support", "Service Desk", 8, 134, 118, 10, 113, 105, 13, 39, 16],
+      ["W42", "Case Operations", "Case handling", 7, 100, 98, 6, 94, 93, 5, 16, 2],
+      ["W42", "Platform Services", "Technology", 6, 79, 82, 2, 79, 80, 2, 5, -3],
+      ["W42", "Data Quality", "Data Operations", 5, 63, 63, 2, 60, 61, 2, 11, 0],
+      ["W43", "Client Support", "Service Desk", 8, 142, 127, 12, 121, 110, 17, 54, 15],
+      ["W43", "Case Operations", "Case handling", 7, 98, 100, 9, 96, 91, 9, 14, -2],
+      ["W43", "Platform Services", "Technology", 6, 83, 86, 2, 82, 83, 3, 2, -3],
+      ["W43", "Data Quality", "Data Operations", 5, 62, 64, 3, 61, 61, 3, 9, -2]
+    ],
+    "kpis": [
+      {
+        "measure": "Requests"
+      },
+      {
+        "measure": "Completed"
+      },
+      {
+        "measure": "SLA miss",
+        "label": "Completions outside SLA"
+      },
+      {
+        "measure": "Reopened"
+      }
+    ],
+    "charts": [
+      {
+        "type": "line",
+        "by": "Week",
+        "measure": "Backlog at close",
+        "series": "Team",
+        "title": "Backlog at each week’s close",
+        "note": "Compare the latest backlog and its direction. Each point is a snapshot."
+      },
+      {
+        "type": "hbar",
+        "by": "Team",
+        "measure": "SLA miss",
+        "drill": "Week",
+        "title": "Completions outside SLA by team",
+        "note": "Check workload and completion volume before comparing performance."
+      },
+      {
+        "type": "hbar",
+        "by": "Team",
+        "measure": "Reopened",
+        "drill": "Week",
+        "title": "Reopened work by team",
+        "note": "Use the volume to locate an issue. Use reopened divided by completed for a rate comparison."
+      }
+    ],
+    "methodology": [
+      ["Record grain", "One row per team per week. Requests and completions are flows. Backlog at close and headcount are point-in-time snapshots."],
+      ["SLA and rework", "SLA miss is Completed minus Within SLA. Calculate the aggregate SLA rate as total Within SLA ÷ total Completed. Calculate the aggregate reopened rate as total Reopened ÷ total Completed."],
+      ["Workload and capacity", "Open capacity gap is Requests minus Completed for that week. A negative number means the team cleared more work than it received. Different workstreams can differ in effort and complexity."]
+    ],
+    "faq": [
+      ["Should I sum four weeks of backlog?", "Use the latest snapshot or plot snapshots over time. Summing them double-counts work that stays open."],
+      ["What does SLA target mean in the table?", "It is the weekly target count of completions within SLA. To compare the actual and target, use the same team and week."],
+      ["Does this measure individual productivity?", "The data describes teams. Use it to examine workload, service quality and possible process changes."]
+    ],
+    "steps": [
+      "Choose Client Support. Backlog rises from 12 in W40 to 54 in W43. Compare Requests and Completed to see whether the gap is widening.",
+      "Reset and choose W43. Review the two teams with the most reopened work. Compare their denominators using the Completed column.",
+      "Build a variance chart using Within SLA against SLA target for W43. Keep the view filtered to W43 or filter a copy of the source before running a layout that creates its own dataset."
+    ],
+    "check": "For W43, Client Support received 142 requests, completed 127, and recorded 17 completions outside SLA. Case Operations had nine reopened out of 100 completed, compared with 12 out of 127 for Client Support."
+  }
+]

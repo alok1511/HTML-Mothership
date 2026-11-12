@@ -36,7 +36,7 @@ const ok = msg => console.log('  ✓ ' + msg);
       /* --- every layout inserts on its sample data, as one undo step --- */
       const list = (await api('chart_layouts', {})).layouts;
       assert.ok(list.length >= 24, 'at least 24 layouts');
-      const expectCharts = { 'frequency-severity': 2, 'exec-summary': 2, 'risk-heatmap': 0, 'risk-register-rag': 0, 'loss-triangle': 0, 'benchmark-scorecard': 0, 'house-style': 0, 'small-multiples': 6, marimekko: 0, 'overlap-venn': 0, 'dot-matrix-stats': 0, 'heat-grid': 0 };
+      const expectCharts = { 'frequency-severity': 2, 'exec-summary': 2, 'risk-heatmap': 0, 'risk-register-rag': 0, 'loss-triangle': 0, 'benchmark-scorecard': 0, 'house-style': 0, 'small-multiples': 6, marimekko: 0, 'overlap-venn': 0, 'dot-matrix-stats': 0, 'heat-grid': 0, 'threshold-dot-grid': 0 };
       for (const l of list) {
         await fresh();
         if (l.id === 'house-style') await api('chart_layouts', { action: 'insert', layout: 'ranked-highlight', sample: true });
@@ -79,8 +79,8 @@ const ok = msg => console.log('  ✓ ' + msg);
           labelsPlugin: !!window.MS.child.win.Chart.__msLabels, grid: cs[0].inst.options.scales.x.grid.display
         };
       });
-      assert.deepEqual(look.first, { mah: '#2251FF', del: '#B8BEC6' });
-      assert.deepEqual(look.second, { mah: '#B8BEC6', del: '#2251FF' }, 'a highlight on one chart does not change another');
+      assert.deepEqual(look.first, { mah: '#0B6B59', del: '#B8C8C2' });
+      assert.deepEqual(look.second, { mah: '#B8C8C2', del: '#0B6B59' }, 'a highlight on one chart does not change another');
       assert.equal(look.shared, 0, 'layouts do not touch the shared category colours');
       assert.ok(look.variance.every(([v, c]) => c === (v < 0 ? '#C62828' : '#2E7D32')), 'variance bars are green above plan and red below');
       assert.deepEqual(look.mixTotals, [100, 100, 100], '100% stacked columns add to 100');

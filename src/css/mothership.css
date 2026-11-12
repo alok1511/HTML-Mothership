@@ -1230,3 +1230,25 @@ body[data-ms-ui-mode="none"] #appbar .cmdk-btn .lbl { display: inline; }
 .rs-row .rs-name { flex: 0 0 34%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text); }
 .rs-row .inp.sm { flex: 1 1 auto; min-width: 0; padding: 3px 6px; font-size: 12px; }
 .rs-row .btn.sm { padding: 2px 7px; }
+
+.bi-builder { display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,1.65fr);gap:18px;align-items:start }
+.bi-builder .form { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px }
+.bi-builder .field { min-width:0;margin:0 }
+.bi-builder .bi-wide { grid-column:1/-1 }
+.bi-builder .field input:not([type=checkbox]),.bi-builder .field select { width:100% }
+.bi-advanced { grid-column:1/-1;border-top:1px solid var(--line);padding-top:7px }
+.bi-advanced summary { cursor:pointer;margin-bottom:6px }
+.bi-advanced .field { margin-top:5px }
+.bi-preview { padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);min-width:0 }
+.bi-preview h3 { margin:0;font-size:15px }
+.bi-status { color:var(--muted);min-height:1.5em;margin:4px 0 8px }
+.bi-canvas { height:clamp(185px,34vh,340px);background:white;border-radius:6px;margin-bottom:9px }
+.bi-legend { display:flex;flex-wrap:wrap;gap:4px 12px;list-style:none;margin:0 0 9px;padding:0;font-size:12px }
+.bi-legend li { display:inline-flex;align-items:center;gap:5px }
+.bi-legend span { width:9px;height:9px;border-radius:2px;flex:none }
+.bi-preview summary { cursor:pointer }
+.bi-table { overflow:auto;max-height:240px }
+.bi-table table { border-collapse:collapse;font-size:12px }
+.bi-table th,.bi-table td { padding:4px 7px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left }
+.bi-builder [hidden] { display:none!important }
+@media(max-width:700px) { .bi-builder { grid-template-columns:1fr } }

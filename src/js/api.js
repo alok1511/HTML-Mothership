@@ -53,6 +53,23 @@
 
   /* ---------------------------------------------------------- documents */
   var replaceProp = ['boolean', 'Replace a dashboard with unexported edits (default false)'];
+  A.list_samples = { d: 'Find built-in sample dashboards, including fictional claims, ERM, CRM and team performance exercises. Returns IDs for open_sample.', p: { query: ['string', 'Optional search of IDs, titles, groups and topics'] },
+    f: function (a) {
+      var query = low(a.query).trim();
+      return { groups: MS.samples.groups().map(function (group) {
+        return { name: group.name, entries: group.entries.filter(function (sample) {
+          return !query || low([group.name, sample.id, sample.label, sample.detail].join(' ')).indexOf(query) !== -1;
+        }) };
+      }).filter(function (group) { return group.entries.length; }) };
+    } };
+  A.open_sample = { d: 'Open a clean copy of a bundled dashboard by ID from list_samples. Refuses to replace unexported edits unless force is true. Returns the outline.', p: { id: ['string', 'Sample ID from list_samples', true], force: replaceProp },
+    f: async function (a) {
+      if (!MS.samples.groups().some(function (group) { return group.entries.some(function (sample) { return sample.id === a.id; }); })) throw new Error('Unknown sample ID. Use list_samples to find a bundled dashboard.');
+      var opened = await MS.samples.open(a.id, { force: a.force, nonInteractive: true });
+      if (!opened) return { open: false };
+      await settle(180);
+      return A.outline.f({});
+    } };
   A.open_html = { d: 'Open a dashboard from its HTML source. A published file locked for editing needs its password.', p: { html: ['string', 'The HTML', true], name: ['string', 'File name to show, e.g. sales.html'], password: ['string', 'Password, for a published file locked for editing'], force: replaceProp },
     f: function (a) {
       return MS.openHtml(a.html, a.name || 'dashboard.html', { password: a.password, nonInteractive: true, force: a.force }).then(function () { return settle(1800); }).then(function () { var o = A.outline.f({}); return MS.doc && MS.doc.integrity ? Object.assign(o, { published: MS.doc.integrity }) : o; });
@@ -209,16 +226,20 @@
         return { changes: r.changes, sections: r.sections };
       });
     } };
-  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | hstacked | line | area | stackedarea | pie | doughnut | dumbbell (series = the two ends) | range (series = low, mid, high) | pyramid (series = the two sides) | scatter (x, y) | bubble (x, y, size)'], series: ['string', 'Split-by column'], percent: ['boolean', 'Stacked charts: show each category as 100% (shares of its total)'], sort: ['string', 'desc | asc | source (the order of the rows, e.g. time or the steps of a bridge) | "" (by label, A to Z)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'],
+  function chartInputs(a) {
+    if (/^(scatter|bubble)$/.test(a.type || '') && (!a.x || !a.y)) throw new Error('A ' + a.type + ' chart needs x and y columns' + (a.type === 'bubble' ? ' (and size)' : '') + '.');
+    var v = { title: a.title || (a.x ? a.y + ' against ' + a.x : (a.agg === 'count' || !a.measure ? 'Count' : a.measure.charAt(0).toUpperCase() + a.measure.slice(1)) + ' by ' + a.by), ds: a.dataset, type: a.type || 'bar', by: a.by, measure: a.measure || a.y, agg: a.agg || 'sum', series: a.series, sort: a.sort == null ? (a.x ? '' : 'desc') : a.sort, top: a.top, percent: !!a.percent, span: a.span, height: a.height, legend: !!a.series, subtitle: a.subtitle, inference: a.inference, caption: a.caption };
+    MS.compose.EXTRA.forEach(function (k) { if (k !== 'percent' && a[k] != null) v[k] = a[k]; });
+    ['series_only', 'series_hide', 'series_order'].forEach(function (k) { if (a[k]) v[k.replace(/_(\w)/, function (_, c) { return c.toUpperCase(); })] = a[k]; });
+    return v;
+  }
+  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | hstacked | line | area | stackedarea | area-benchmark | dot-compare | pie | doughnut | dumbbell (series = the two ends) | range (series = low, mid, high) | pyramid (series = the two sides) | scatter (x, y) | bubble (x, y, size)'], series: ['string', 'Split-by column'], sparse: ['boolean', 'Leave missing series/category combinations blank'], overlay: ['string', 'area-benchmark: name of the benchmark series'], percent: ['boolean', 'Stacked charts: show each category as 100% (shares of its total)'], sort: ['string', 'desc | asc | source (the order of the rows, e.g. time or the steps of a bridge) | "" (by label, A to Z)'], top: ['number', 'Top N'], title: ['string', 'Title'], subtitle: ['string', 'Unit and scope'], inference: ['string', 'Key inference'], caption: ['boolean', 'Show a summary that updates with the filters'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'],
       x: ['string', 'scatter / bubble: column for the across axis'], y: ['string', 'scatter / bubble: column for the up axis'], size: ['string', 'bubble: column for the bubble size'], where: ['array', 'Rows this chart uses: [{field, op: eq|ne|in|notin|gt|ge|lt|le|contains, value}]'], only: ['array', 'Categories to show (others hidden)'], hide: ['array', 'Categories to hide'], order: ['array', 'Categories in this order first'], rename: ['object', '{old name: new name} for categories and series'], span: ['number', 'Width in 12ths (default 6)'], height: ['number', 'Height in px (default 300)'] },
     f: function (a) {
       if (a.into) MS.edit.select(elOf(a.into)); else MS.edit.select(null);
       return MS.compose.ensureChartLib().then(function () {
         var before = rt().charts().map(function (c) { return c.key; });
-        if (/^(scatter|bubble)$/.test(a.type || '') && (!a.x || !a.y)) throw new Error('A ' + a.type + ' chart needs x and y columns' + (a.type === 'bubble' ? ' (and size)' : '') + '.');
-        var v = { title: a.title || (a.x ? a.y + ' against ' + a.x : (a.agg === 'count' || !a.measure ? 'Count' : a.measure.charAt(0).toUpperCase() + a.measure.slice(1)) + ' by ' + a.by), ds: a.dataset, type: a.type || 'bar', by: a.by, measure: a.measure || a.y, agg: a.agg || 'sum', series: a.series, sort: a.sort == null ? (a.x ? '' : 'desc') : a.sort, top: a.top, percent: !!a.percent, span: a.span, height: a.height };
-        MS.compose.EXTRA.forEach(function (k) { if (k !== 'percent' && a[k] != null) v[k] = a[k]; });
-        ['series_only', 'series_hide', 'series_order'].forEach(function (k) { if (a[k]) v[k.replace(/_(\w)/, function (_, c) { return c.toUpperCase(); })] = a[k]; });
+        var v = chartInputs(a);
         MS.compose.addChart(v);
         return settle(300).then(function () {
           var r = rt(), c = r.charts().filter(function (x) { return before.indexOf(x.key) < 0; })[0];
@@ -226,6 +247,20 @@
           return c ? chartSummary(c) : { ok: true };
         });
       });
+    } };
+  A.preview_chart = { d: 'Preview chart numbers from a dataset without inserting anything. Uses the current dashboard filters and up to 24 categories and 16 series. Uses the same data settings as insert_chart.',
+    p: Object.fromEntries(Object.entries(A.insert_chart.p).filter(function (entry) {
+      return ['title', 'subtitle', 'inference', 'caption', 'levels', 'into', 'span', 'height'].indexOf(entry[0]) < 0;
+    })),
+    f: function (a) {
+      var r = rt(), v = chartInputs(a), binding = MS.compose.chartBinding(v);
+      if (!Object.hasOwn(r.state.datasets, v.ds)) throw new Error('No dataset "' + v.ds + '". Use outline to find datasets and fields.');
+      var names = r.fields(v.ds).map(function (field) { return field.name; });
+      [v.by, binding.measure, v.series, v.x, v.y, v.size].filter(Boolean).forEach(function (field) {
+        if (names.indexOf(field) < 0) throw new Error('No field "' + field + '" in ' + v.ds + '.');
+      });
+      binding.top = Math.max(1, Math.min(24, Math.floor(v.top || 24)));
+      return r.previewBinding(binding, v.type, 16);
     } };
   A.insert_table = { d: 'Insert a table snapshot of a dataset.', p: { dataset: ['string', 'Dataset', true], rows: ['number', 'Max rows (default 50)'], title: ['string', 'Title'], sort: ['string', 'Column to sort by (default: the order of the rows)'], desc: ['boolean', 'Sort largest first'], columns: ['array', 'Columns to show, in order (default all)'], span: ['number', 'Width in 12ths (default 12)'] },
     f: function (a) {

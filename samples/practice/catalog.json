@@ -1,0 +1,73 @@
+[
+  {
+    "id": "service-desk", "title": "Service Desk Triage", "focus": "Filters, drill-down and KPI cards", "question": "Which queue needs attention first?",
+    "fields": ["Queue", "Issue", "Tickets", "Hours"], "rows": [["Platform","Access",44,106],["Platform","Incidents",29,185],["Support","Access",25,68],["Support","Requests",39,89],["Billing","Adjustments",14,43],["Billing","Queries",31,76]],
+    "charts": [{"type":"hbar","by":"Queue","measure":"Tickets","drill":"Issue"},{"type":"bar","by":"Queue","measure":"Hours"}], "filter":"Queue", "color":"#1b6256",
+    "steps": ["Switch to Interact and select Platform in the Queue filter. The Tickets card shows 73 and the Hours card shows 291.", "Reset the filter. Double-click the Platform bar on Tickets by Queue. Access and Incidents appear as its two issue types. Use the breadcrumb to go back.", "In Edit, open Chart settings and inspect the Queue → Issue drill path. Use Data › Filter pane to choose whether the Queue filter is visible."],
+    "check": "With all queues selected, 182 tickets reconcile to the six source rows."
+  },
+  {
+    "id": "shipment-builder", "title": "Shipment Analysis", "focus": "Load CSV, aggregate and build charts", "question": "Which carrier moves the most shipments?",
+    "fields": ["Week", "Carrier", "Shipments", "Late"], "rows": [["2026-W40","Northline",120,9],["2026-W40","Roadwell",80,7],["2026-W41","Northline",150,11],["2026-W41","Roadwell",100,6],["2026-W42","Northline",160,8],["2026-W42","Roadwell",140,12]],
+    "charts": [{"type":"line","by":"Week","measure":"Shipments","series":"Carrier"}], "color":"#2d507e",
+    "steps": ["In Interact, open Source data and download the CSV. Use Build from data on the welcome screen or Data › Import and build to open it in the chart builder.", "Choose Bar, Carrier, Sum and Shipments. Read the preview, then insert the chart. Northline should show 430 and Roadwell 320.", "Build a second chart with Week on the category axis and Carrier as the split. Apply a chart filter for one carrier and compare it with the unfiltered chart."],
+    "check": "The first chart should sum to 750 shipments. An Average calculation should answer a different question."
+  },
+  {
+    "id": "product-mix", "title": "Product Mix Review", "focus": "Reshape, stacking and series control", "question": "How does the product mix vary by channel?",
+    "fields": ["Channel", "Product", "Orders", "Returns"], "rows": [["Direct","Core",120,8],["Direct","Plus",80,4],["Partner","Core",90,6],["Partner","Plus",45,2],["Online","Core",155,12],["Online","Plus",95,6]],
+    "charts": [{"type":"stacked","by":"Channel","measure":"Orders","series":"Product"}], "color":"#684c84",
+    "steps": ["In Edit, select Orders by Channel and choose Charts › Reshape. Turn on Show each bar as 100% and keep Product as the split.", "Check Direct. Core should be 60% of Direct orders and Plus 40%. Use the legend and tooltips to check the same denominator.", "Reopen Reshape, hide a series or rename one, then Undo. Compare the shares before and after the change."],
+    "check": "Each complete stack totals 100%. Undo restores the previous display."
+  },
+  {
+    "id": "plan-variance", "title": "Plan Variance Review", "focus": "Chart layouts, Edit layout and explanatory titles", "question": "Which team explains most of the plan gap?",
+    "fields": ["Team", "Plan", "Actual", "Prior"], "rows": [["Platform",210,236,204],["Delivery",180,155,161],["Customer",142,151,132],["Operations",120,118,112]],
+    "charts": [{"type":"hbar","by":"Team","measure":"Actual"},{"type":"bar","by":"Team","measure":"Plan"}], "color":"#8a4a2f",
+    "steps": ["Choose Insert › Chart layouts and select Variance vs plan. Map Team to category and map the Plan and Actual columns.", "Insert it and read the gaps. Delivery is 25 below plan and Platform is 26 above plan. Keep the sign and units visible.", "Select the inserted layout and choose Edit layout. Compare Actual with Prior, change the wording and apply it. Undo to return to the plan comparison."],
+    "check": "The sums are Plan 652 and Actual 660. A small total gap can hide large opposing gaps."
+  },
+  {
+    "id": "inspection-qa", "title": "Inspection Release Check", "focus": "Test drafting, expected numbers, coverage and reruns", "question": "Do displayed inspection totals agree with the source?",
+    "fields": ["Site", "Type", "Inspections", "Passed"], "rows": [["Ridge","Routine",48,45],["Ridge","Follow-up",12,10],["Harbour","Routine",35,33],["Harbour","Follow-up",15,11],["Central","Routine",42,39],["Central","Follow-up",8,6]],
+    "charts": [{"type":"bar","by":"Site","measure":"Inspections"}], "color":"#8a5233", "expectation":"Inspections",
+    "steps": ["In Interact, open Source data and download Expected numbers CSV. Import it through Testing › Numbers and draft tests.", "Run the expected-number case for Inspections. Change the dataset or the KPI binding so it shows Passed instead, then rerun. The independent source expects 160 inspections.", "Undo the edit, rerun the affected test, inspect Coverage and save a test pack. Try an isolated run when you want to keep a longer test separate from the editor."],
+    "check": "The correct inspection total is 160. Passed totals 144, so the changed KPI should fail the 160 expectation."
+  },
+  {
+    "id": "research-handover", "title": "Research Review Handover", "focus": "Comment pins, review tracker and AI prompts", "question": "Which parts of this report need evidence before release?",
+    "fields": ["Topic", "Responses", "Positive"], "rows": [["Ease",60,44],["Speed",55,38],["Reliability",57,45],["Clarity",52,33]],
+    "charts": [{"type":"hbar","by":"Topic","measure":"Positive"}], "color":"#285c74",
+    "steps": ["In Comment mode, pin a must-fix note to the Positive by Topic chart. Ask the reviewer to confirm the denominator of 52.", "Open the comment tracker, add an owner and reply with the source result. Open the review prompt and check that the chart location and request are clear.", "Resolve the issue with the supporting figure. Open the publication checks and confirm that the resolved comment clears its review blocker."],
+    "check": "Clarity has 33 positive responses out of 52. A count chart needs the denominator to support a rate claim."
+  },
+  {
+    "id": "brand-accessibility", "title": "Community Programme Review", "focus": "Brand, accessibility and table formatting", "question": "Can readers identify low-completion cohorts at a glance?",
+    "fields": ["Programme", "Enrolled", "Completed", "Completion %"], "rows": [["Orientation",100,82,82],["Skills clinic",100,67,67],["Mentoring",100,75,75],["Field visits",100,56,56]],
+    "charts": [{"type":"hbar","by":"Programme","measure":"Completion %","agg":"avg"}], "color":"#32673f",
+    "steps": ["In Edit, use Design › Edit theme to change the palette and inspect the result in the chart and tab ribbon.", "Open Source data, select the table, and use Data › Colour rules to highlight Completion % below 70. Keep the written values visible.", "Use Design › Brand check for contrast and Charts › Summaries for screen-reader labels. Use keyboard navigation to reach the Source data and Practice tasks tabs."],
+    "check": "Field visits and Skills clinic are below 70%. The numeric values identify them even without colour."
+  },
+  {
+    "id": "inventory-refresh", "title": "Inventory Refresh", "focus": "Refresh validation, versions and changed sections", "question": "How much stock changed between snapshots?",
+    "fields": ["Warehouse", "Stock", "Reserved", "Period"], "rows": [["North",180,52,"2026-10"],["East",124,37,"2026-10"],["West",210,61,"2026-10"]],
+    "nextRows": [["North",192,60,"2026-11"],["East",116,41,"2026-11"],["West",225,69,"2026-11"]],
+    "charts": [{"type":"hbar","by":"Warehouse","measure":"Stock"}], "color":"#286a6b",
+    "steps": ["Save an October version from File › Versions. In Testing › Changed sections save a baseline.", "Download the November CSV from Source data. Use Data › Manage to refresh the Inventory refresh dataset, or use Data › Refresh and match the file. Preview the totals and period before applying.", "Use Changed sections to see which data and tabs need checks. Compare versions, then export and reopen the November copy."],
+    "check": "October stock totals 514. November stock totals 533. The embedded source table stays as the October comparison record."
+  },
+  {
+    "id": "board-story", "title": "Capacity Board Brief", "focus": "Inferences, annotations, presenter view and PDF", "question": "Where did demand exceed capacity?",
+    "fields": ["Month", "Demand", "Capacity"], "rows": [["2026-07",125,138],["2026-08",132,139],["2026-09",153,141],["2026-10",166,150]],
+    "charts": [{"type":"line","by":"Month","measure":"Demand"},{"type":"line","by":"Month","measure":"Capacity"}], "color":"#21485d",
+    "steps": ["Open Charts › Inferences and inspect the evidence ladder for Demand by Month. Compare that chart with Capacity by Month before writing a conclusion.", "Annotate the first month with demand above capacity. Add a story step or speaker note with the decision you want the audience to make.", "Present the result in Presenter view and preview the PDF. Check that the source, period and annotation remain visible in the export."],
+    "check": "September is the first gap, at 12. October widens to 16. The series alone do not establish the cause."
+  },
+  {
+    "id": "recipe-rollout", "title": "Repeatable Metrics Rollout", "focus": "Recipe workshop, capture, skills and publishing", "question": "Can another editor reproduce this reporting setup?",
+    "fields": ["Team", "Reviews", "Closed"], "rows": [["Product",34,26],["Operations",47,31],["Finance",18,16],["Support",39,34]],
+    "charts": [{"type":"hbar","by":"Team","measure":"Reviews"}], "color":"#73514a",
+    "steps": ["Open Plugins › Recipe workshop. Choose Executive review pack, edit its first new tab title, check targets and apply it. Apply again to confirm the matching tab is reused.", "Capture dashboard setup, read the selected steps, and download the editable recipe. Try a skill ZIP or button plugin when you want to share the same instructions in another form.", "Run the ready-to-publish checks and export an offline copy. Reopen it and confirm the added brief, chart and source data."],
+    "check": "The sample has 138 reviews. Applying a reader-guide recipe should leave the underlying count intact."
+  }
+]

@@ -8,6 +8,8 @@
 
   MS.cmd = {
     reportGallery: function () { return MS.recipeStudio.gallery(); },
+    samples: function () { return MS.samples.choose(); },
+    buildFromData: function () { return MS.compose.fromData(); },
     open: function () { MS.pickFiles('.html,.htm,.json,.js,.plugin,.md,.skill,.skills,.zip').then(function (f) { if (f[0]) MS.openFileObj(f[0]); }); },
     openFolder: function () { MS.pickFiles('', { folder: true }).then(function (fs) { if (fs.length) MS.openFolder(fs); }); },
     export: need(function () { MS.versions.exportFile(false); }),
@@ -52,7 +54,7 @@
         { icon: '🗂', label: 'Open folder', title: 'Open a dashboard together with its scripts, styles, images and data files. Everything is bundled into one file.', run: MS.cmd.openFolder },
         { icon: '📋', label: 'Import report', title: 'See supported charts and unresolved assets', run: need(MS.workflow.importDialog) },
         { icon: '📊', label: 'Report layouts', title: 'Open the detailed sample report gallery', run: MS.cmd.reportGallery },
-        { icon: '🧪', label: 'Samples', title: 'Open a sample dashboard', run: function (e) { MS.menu(e.currentTarget, MS.samples.menu()); } },
+        { icon: '🧪', label: 'Samples', title: 'Choose any sample or guided practice dashboard', run: MS.cmd.samples },
         { icon: '✕', label: 'Close', title: 'Close this dashboard and go back to the start screen. Asks first if there are changes you have not exported.', run: MS.cmd.close }] },
       { name: 'Save', items: [
         { icon: '⬇', label: 'Export HTML', title: 'Save the edited dashboard as one standalone .html file on this laptop (Ctrl+E)', run: MS.cmd.export },
@@ -203,6 +205,8 @@
       { name: 'Datasets', items: [
         { icon: '🔍', label: 'Find data', title: 'Find tables of data inside the dashboard\'s scripts', run: needRt(MS.data.discover) },
         { icon: '⛁', label: 'Load data', title: 'Load JSON, CSV or Excel as a dataset', run: needRt(MS.data.loadFile) },
+        { icon: '📊', label: 'Import and build', title: 'Load a file and open the chart builder', run: MS.cmd.buildFromData },
+        { icon: '＋', label: 'Build chart', title: 'Preview a new chart from a loaded dataset', run: needRt(MS.compose.chart) },
         { icon: '↻', label: 'Refresh', title: 'Preview the columns, totals and periods in this month\'s data files before applying a refresh. Mothership remembers the files where the browser allows it.', run: needRt(MS.data.refreshAll) },
         { icon: '☰', label: 'Manage', title: 'View, download, refresh or remove datasets', run: needRt(MS.data.manage) }] },
       { name: 'Tables', items: [

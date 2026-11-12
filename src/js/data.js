@@ -172,13 +172,70 @@
     Object.keys(j).forEach(function (k) { if (Array.isArray(j[k]) && j[k][0] && typeof j[k][0] === 'object') { Dt.addDataset(name + '.' + k, j[k], true); n++; } });
     MS.toast(n ? 'Added ' + n + ' dataset(s) from ' + file : file + ' has no table-like arrays.', n ? 'ok' : 'warn');
   };
-  Dt.loadFile = function () {
-    MS.pickFiles('.json,.csv,.tsv,.xlsx,.xls,.xlsm,.ods', { multiple: true }).then(function (fs) {
-      fs.forEach(function (f) {
-        if (MS.ext(f.name) === 'json') MS.readFile(f).then(function (t) { try { Dt.addDatasetFromJson(JSON.parse(t), f.name); } catch (e) { MS.toast(f.name + ': ' + e.message, 'error'); } });
-        else MS.lib('xlsx').then(function (X) { return MS.readFile(f, 'buffer').then(function (b) { MS.importers.sheet(X, b, f.name, f.name.replace(/\.[^.]+$/, '')).datasets.forEach(function (d) { Dt.addDataset(d.name, d.rows, false, { file: f.name, sheet: d.sheet || d.name }); }); }); }).catch(function (e) { MS.toast(e.message, 'error'); });
-      });
+  Dt.pickDatasets = async function () {
+    var files = await MS.pickFiles('.json,.csv,.tsv,.xlsx,.xls,.xlsm,.ods', { multiple: true });
+    var tables = [];
+    if (!files.length) return tables;
+    MS.busy(true);
+    try {
+      for (var file of files) {
+        try {
+          var title = file.name.replace(/\.[^.]+$/, '');
+          var parsed;
+          if (MS.ext(file.name) === 'json') {
+            var json = JSON.parse(await MS.readFile(file));
+            parsed = Array.isArray(json) ? [{ name: title, rows: json }] :
+              Object.entries(json || {}).filter(function (entry) { return Array.isArray(entry[1]); })
+                .map(function (entry) { return { name: title + '.' + entry[0], rows: entry[1] }; });
+          } else {
+            var input = await Promise.all([MS.lib('xlsx'), MS.readFile(file, 'buffer')]);
+            parsed = MS.importers.sheet(input[0], input[1], file.name, title, true).datasets;
+          }
+          var valid = parsed.filter(function (table) {
+            return table.rows.length && table.rows.every(function (row) {
+              return row && typeof row === 'object' && !Array.isArray(row);
+            }) && table.rows.some(function (row) { return Object.keys(row).length; });
+          });
+          if (!valid.length) throw new Error('No rows with column headers were found.');
+          valid.forEach(function (table) { table.file = file.name; tables.push(table); });
+        } catch (error) { MS.toast(file.name + ': ' + error.message, 'error', 8000); }
+      }
+      return tables;
+    } finally { MS.busy(false); }
+  };
+  Dt.addTables = function (tables) {
+    if (!tables.length || !MS.rt()) return [];
+    var names = [], reserved = new Set(Object.keys(MS.rt().state.datasets));
+    tables.forEach(function (table) {
+      var base = table.name, name = base, suffix = 2;
+      while (reserved.has(name)) name = base + ' (' + suffix++ + ')';
+      reserved.add(name); names.push(name);
     });
+    MS.history.push({ label: 'Load datasets',
+      undo: function () {
+        var datasets = MS.rt().state.datasets;
+        names.forEach(function (name) { delete datasets[name]; });
+        MS.afterDomChange();
+      },
+      redo: function () {
+        var datasets = MS.rt().state.datasets;
+        tables.forEach(function (table, i) {
+          Object.defineProperty(datasets, names[i], { value: { rows: table.rows, source: 'file', file: table.file, sheet: table.sheet },
+            configurable: true, enumerable: true, writable: true });
+        });
+        MS.afterDomChange();
+      }
+    });
+    MS.emit('structure');
+    MS.toast('Loaded ' + tables.length + (tables.length === 1 ? ' dataset' : ' datasets') + ' with ' +
+      tables.reduce(function (n, table) { return n + table.rows.length; }, 0).toLocaleString('en-US') + ' rows.', 'ok');
+    return names;
+  };
+  Dt.loadFile = async function () {
+    var target = MS.child;
+    var tables = await Dt.pickDatasets();
+    if (target !== MS.child) { if (tables.length) MS.toast('The open dashboard changed. Choose the files again.', 'warn'); return []; }
+    return Dt.addTables(tables);
   };
   Dt.discover = function () {
     var rt = MS.rt(); if (!rt) return MS.toast('Scripts must be on to find data.', 'warn');
