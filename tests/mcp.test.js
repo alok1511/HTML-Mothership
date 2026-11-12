@@ -174,8 +174,15 @@ const call = async (name, args) => {
   const lp = await call('chart_layouts', { action: 'preview', layout: 'claims-by-cause' });
   const li = await call('chart_layouts', { action: 'insert', layout: 'claims-by-cause', sample: true, source: 'Loss run', as_of: '2026-09-30' });
   check('chart_layouts lists, previews and inserts a layout',
-    ll.json && ll.json.layouts.length >= 24 && lp.json && /drive \d+% of incurred/.test(lp.json.title) && li.json && li.json.charts.length === 1 && li.json.issues.length === 0 && li.json.title === lp.json.title,
+    ll.json && ll.json.layouts.length >= 43 && lp.json && /drive \d+% of incurred/.test(lp.json.title) && li.json && li.json.charts.length === 1 && li.json.issues.length === 0 && li.json.title === lp.json.title,
     ll.error || lp.error || li.error || li.json);
+  const le = await call('chart_layouts', { action: 'edit', chart: li.json.charts[0], layout: 'ranked-highlight' });
+  const lr = await call('chart_layouts', { action: 'runs' });
+  const ce = await call('chart_edit', { chart: le.json && le.json.charts[0], type: 'bar', top: 3, rename: { Flood: 'Floods' } });
+  check('chart_layouts edits a layout in place and chart_edit reshapes the chart',
+    le.json && le.json.layout === 'ranked-highlight' && le.json.issues.length === 0 && lr.json && lr.json.runs.length === 1 && lr.json.runs[0].layout === 'ranked-highlight' &&
+      ce.json && ce.json.type === 'bar' && ce.json.binding.top === 3 && ce.json.labels.length === 3,
+    le.error || lr.error || ce.error || [le.json, lr.json, ce.json]);
   const v1 = await call('save_version', { name: 'First' }), v2 = await call('save_version', { name: 'Second' }), vl = await call('versions', {});
   check('save_version numbers versions per dashboard; versions lists them',
     v1.json && v2.json && v2.json.number === v1.json.number + 1 && vl.json && vl.json.versions[0].name === 'Second' && vl.json.versions.every(v => v.doc === vl.json.dashboard),

@@ -16,7 +16,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   'use strict';
   if (window.__MS_RT) return;
   var EDITOR = !!window.__MS_EDITOR;
-  var rt = (window.__MS_RT = { version: '4.0.0' }); // the Mothership release that wrote this runtime (tools/build.js checks it)
+  var rt = (window.__MS_RT = { version: '4.1.0' }); // the Mothership release that wrote this runtime (tools/build.js checks it)
   var D = document;
 
   /* ------------------------------------------------------------ state */
@@ -180,7 +180,9 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       });
     }
     if (st.labels) { o.layout = Object.assign({}, o.layout, { padding: Object.assign({ top: 18, right: 28 }, (o.layout || {}).padding) }); cjsLabelPlugin(); }
-    t.filter = function (item) { return !clearColour(Array.isArray(item.dataset.backgroundColor) ? item.dataset.backgroundColor[item.dataIndex] : item.dataset.backgroundColor); };
+    t.filter = function (item) { return !item.dataset.msLink && !clearColour(Array.isArray(item.dataset.backgroundColor) ? item.dataset.backgroundColor[item.dataIndex] : item.dataset.backgroundColor); };
+    if (o.msType === 'pyramid' && o.scales && o.scales.x) o.scales.x.ticks = Object.assign({}, o.scales.x.ticks, { callback: absTick });
+    if (st.refs || st.labels) cjsLabelPlugin();
     var dash = st.dashed ? [].concat(st.dashed).map(function (x) { return String(x).toLowerCase(); }) : [];
     i.data.datasets.forEach(function (d) {
       var on = dash.indexOf(String(d.label || '').toLowerCase()) >= 0;
@@ -191,9 +193,31 @@ MS.RUNTIME_FN = function MothershipRuntime() {
   function cjsLabelPlugin() {
     var C = window.Chart; if (!C || !C.register || C.__msLabels) return;
     C.__msLabels = true;
+    // Reference lines (look.refs): [{axis: "x" | "y", value, label, color, dash}] or {diag: true} for the line where x = y.
+    C.register({ id: 'msRefs', beforeDatasetsDraw: function (ch) {
+      var st = ch.__msLook, refs = st && st.refs; if (!refs || !refs.length) return;
+      var x = ch.ctx, a = ch.chartArea, sx = ch.scales.x, sy = ch.scales.y; if (!a || !sx || !sy) return;
+      x.save(); x.font = '600 11px ' + (st.font || C.defaults.font.family);
+      [].concat(refs).forEach(function (r) {
+        if (!r) return;
+        x.strokeStyle = r.color || '#7F8C99'; x.fillStyle = r.color || '#4B5563'; x.lineWidth = 1.5; x.setLineDash(r.dash === false ? [] : [5, 4]);
+        x.beginPath();
+        if (r.diag) {
+          var lo = Math.max(sx.min, sy.min), hi = Math.min(sx.max, sy.max); if (!(hi > lo)) return;
+          x.moveTo(sx.getPixelForValue(lo), sy.getPixelForValue(lo)); x.lineTo(sx.getPixelForValue(hi), sy.getPixelForValue(hi)); x.stroke();
+          if (r.label) { x.textAlign = 'right'; x.textBaseline = 'bottom'; x.fillText(r.label, sx.getPixelForValue(hi) - 4, sy.getPixelForValue(hi) - 4); }
+          return;
+        }
+        var sc = r.axis === 'x' ? sx : sy; if (sc.type === 'category') return;
+        var px = sc.getPixelForValue(+r.value); if (!isFinite(px)) return;
+        if (r.axis === 'x') { x.moveTo(px, a.top); x.lineTo(px, a.bottom); x.stroke(); if (r.label) { x.textAlign = 'left'; x.textBaseline = 'top'; x.fillText(r.label, px + 4, a.top + 2); } }
+        else { x.moveTo(a.left, px); x.lineTo(a.right, px); x.stroke(); if (r.label) { x.textAlign = 'right'; x.textBaseline = 'bottom'; x.fillText(r.label, a.right - 2, px - 3); } }
+      });
+      x.restore();
+    } });
     C.register({ id: 'msLabels', afterDatasetsDraw: function (ch) {
       var st = ch.__msLook; if (!st || !st.labels) return;
-      var x = ch.ctx, horiz = ch.options.indexAxis === 'y', type = ch.config.type, radial = /pie|doughnut|polarArea/.test(type);
+      var x = ch.ctx, horiz = ch.options.indexAxis === 'y', type = ch.config.type, radial = /pie|doughnut|polarArea/.test(type), kind = ch.options.msType;
       var stacked = !radial && Object.keys(ch.scales || {}).some(function (id) { return ch.scales[id].options && ch.scales[id].options.stacked; });
       var spec = st.labelFormat || st.axisFormat, size = +(st.size || 11);
       x.save(); x.font = '600 ' + size + 'px ' + (st.font || C.defaults.font.family);
@@ -203,9 +227,15 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         meta.data.forEach(function (e, j) {
           var bg = Array.isArray(d.backgroundColor) ? d.backgroundColor[j] : d.backgroundColor;
           if (clearColour(bg)) return;
-          var raw = d.data[j], v = Number(raw && typeof raw === 'object' ? (horiz ? raw.x : raw.y) : raw);
+          if (d.msLink) return;
+          var raw = d.data[j];
+          if ((kind === 'scatter' || kind === 'bubble') && raw && raw.n != null) {
+            x.fillStyle = st.color || '#374151'; x.textAlign = 'left'; x.textBaseline = 'middle';
+            x.fillText(String(raw.n), e.x + (e.options && e.options.radius || 5) + 3, e.y); return;
+          }
+          var v = Number(raw && typeof raw === 'object' ? (horiz ? raw.x : raw.y) : raw);
           if (raw == null || isNaN(v) || (v === 0 && (stacked || radial))) return;
-          var txt = fmtNum(v, spec), p = e.getCenterPoint ? e.getCenterPoint() : { x: e.x, y: e.y };
+          var txt = fmtNum(kind === 'pyramid' ? Math.abs(v) : v, spec) + (st.labelSuffix || ''), p = e.getCenterPoint ? e.getCenterPoint() : { x: e.x, y: e.y };
           var inside = radial || (stacked && !line) || st.labels === 'inside';
           if (inside) {
             var w = x.measureText(txt).width, box = e.getProps ? e.getProps(['width', 'height', 'base', 'x', 'y'], true) : {};
@@ -263,9 +293,13 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     },
     setCatColors: function (i, map) {
       var labels = i.data.labels || [], radial = /pie|doughnut|polarArea/.test(i.config.type), many = i.data.datasets.length > 1 && !radial;
+      var kind = i.config.options && i.config.options.msType, xy = kind === 'scatter' || kind === 'bubble';
+      if (many && i.data.datasets[0] && i.data.datasets[0].msLink && i.data.datasets.length === 2) many = false;
       i.data.datasets.forEach(function (d) {
+        if (d.msLink) return;
         var line = (d.type || i.config.type) === 'line' || (d.type || i.config.type) === 'radar';
-        if (many) { var c = map[d.label]; if (c) { d.borderColor = c; d.backgroundColor = line ? c + '33' : c; } return; }
+        if (xy) { if (many) { var cx = map[d.label]; if (cx) { d.borderColor = cx; d.backgroundColor = cx + 'B3'; } return; } d.backgroundColor = (d.data || []).map(function (p) { var c0 = p && map[p.n]; return c0 ? c0 + 'B3' : (Array.isArray(d.backgroundColor) ? '#7F8C99B3' : d.backgroundColor); }); d.borderColor = (d.data || []).map(function (p) { return p && map[p.n] || '#7F8C99'; }); return; }
+        if (many) { var c = map[d.label]; if (c) { d.borderColor = c; d.backgroundColor = line ? (kind === 'stackedarea' ? c + 'CC' : d.showLine === false ? c : c + '33') : c; } return; }
         if (line) return;
         var base = d.backgroundColor;
         d.backgroundColor = labels.map(function (l, j) { return map[l] || (Array.isArray(base) ? base[j % base.length] : base); });
@@ -293,11 +327,12 @@ MS.RUNTIME_FN = function MothershipRuntime() {
       var radial = /pie|doughnut|polarArea/.test(i.config.type);
       i.data.datasets.forEach(function (d, k) {
         if (!colors) { var o = i.__msOrig.datasets[k] || {}; d.backgroundColor = o.backgroundColor; d.borderColor = o.borderColor; return; }
+        if (d.msLink) return;
         if (radial) { d.backgroundColor = (i.data.labels || []).map(function (_, j) { return colors[j % colors.length]; }); d.borderColor = '#fff'; }
         else {
-          var c = colors[k % colors.length];
+          var c = colors[(k - (i.data.datasets[0] && i.data.datasets[0].msLink ? 1 : 0)) % colors.length];
           var line = (d.type || i.config.type) === 'line' || (d.type || i.config.type) === 'radar';
-          d.borderColor = c; d.backgroundColor = line ? c + '33' : c;
+          d.borderColor = c; d.backgroundColor = line ? (i.config.options.msType === 'stackedarea' ? c + 'CC' : d.showLine === false ? c : c + '33') : c;
         }
       });
       cjsStill(i);
@@ -311,10 +346,14 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         i.update(); return;
       }
       i.data.labels = labels;
+      var kind = i.config.options && i.config.options.msType, shaped = kind && shapeData(kind, labels, series);
+      if (shaped) { i.data.datasets = shaped; i.update(); return; }
       series.forEach(function (s, k) {
         var d = i.data.datasets[k];
-        if (!d) { d = Object.assign({}, i.data.datasets[0]); i.data.datasets.push(d); }
-        d.data = s.values; d.label = s.name;
+        if (!d || d.msLink) { d = Object.assign({}, i.data.datasets[0]); delete d.msLink; if (k < i.data.datasets.length) i.data.datasets[k] = d; else i.data.datasets.push(d); }
+        d.data = kind === 'pyramid' && k === 0 ? s.values.map(function (v) { return v == null ? v : -Math.abs(v); }) : s.values; d.label = s.name;
+        if (kind === 'stackedarea') { d.fill = k ? '-1' : 'origin'; d.pointRadius = 0; d.tension = 0.25; }
+        if (kind === 'scatter' || kind === 'bubble') { d.pointRadius = kind === 'scatter' ? 5 : undefined; }
       });
       i.data.datasets.length = series.length;
       i.update();
@@ -354,7 +393,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
         if (st.tipRadius !== undefined && st.tipRadius !== '') t.cornerRadius = +st.tipRadius;
         cjsLook(i, st, o, t);
       }
-      i.__msLook = st && (st.labels || st.dashed) ? st : null;
+      i.__msLook = st && (st.labels || st.dashed || st.refs) ? st : null;
       cjsStill(i);
     },
     onDbl: function (elm, i, cb) {
@@ -1152,27 +1191,88 @@ MS.RUNTIME_FN = function MothershipRuntime() {
     if (path.length >= b.levels.length) path.length = b.levels.length - 1;
     var dim = b.levels[path.length];
     var rows = filteredRows(b.dataset, path);
+    if (b.where && b.where.length) rows = rows.filter(function (r) { return whereOk(r, b.where); });
+    var type = cs.native && cs.native.type;
+    if (rt.XY_TYPES[type] && b.x && b.y) { renderXY(c, b, rows, dim, type); renderCrumbs(c, b, path); return; }
     var G = groupBy(rows, dim, b.measure, b.agg || 'sum', b.series);
-    var list = G.list;
+    var list = keepCats(G.list, b);
     if (b.sort === 'desc') list.sort(function (x, y) { return y.value - x.value; });
     else if (b.sort === 'asc') list.sort(function (x, y) { return x.value - y.value; });
     else if (b.sort === 'source') { /* keep the order of the rows */ }
     else list.sort(function (x, y) { return x.label < y.label ? -1 : x.label > y.label ? 1 : 0; });
     if (!b.sort) { var oi = orderLabels(list.map(function (g) { return g.label; })); if (oi) list = oi.map(function (j) { return list[j]; }); }
+    if (b.order && b.order.length) list = byOrder(list, b.order, function (g) { return g.label; });
     if (b.top) list = list.slice(0, b.top);
-    var labels = list.map(function (g) { return g.label; });
-    var series = G.series.map(function (s) {
-      return { name: s === '_' ? (b.agg === 'count' || !b.measure ? 'Count' : b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
+    var ren = b.rename || {}, back = rt.renamed[c.key] = {};
+    var labels = list.map(function (g) { var n = ren[g.label] != null && ren[g.label] !== '' ? String(ren[g.label]) : g.label; if (n !== g.label) back[n] = g.label; return n; });
+    var skeys = keepNames(G.series, b.seriesOnly, b.seriesHide);
+    if (b.seriesOrder && b.seriesOrder.length) skeys = byOrder(skeys, b.seriesOrder, String);
+    var series = skeys.map(function (s) {
+      var nm = s === '_' ? (b.agg === 'count' || !b.measure ? 'Count' : b.measure + (b.agg && b.agg !== 'sum' ? ' (' + b.agg + ')' : '')) : s;
+      return { name: ren[nm] != null && ren[nm] !== '' ? String(ren[nm]) : nm, values: list.map(function (g) { var v = G.val(g.by[s]); return isFinite(v) ? Math.round(v * 100) / 100 : 0; }) };
     });
     // 100% stacked: each category's series become shares of that category's total
     if (b.percent) labels.forEach(function (_, j) {
       var tot = series.reduce(function (t, s) { return t + Math.abs(s.values[j] || 0); }, 0);
       series.forEach(function (s) { s.values[j] = tot ? Math.round(s.values[j] / tot * 1000) / 10 : 0; });
     });
-    var gm = {}; list.forEach(function (g) { gm[g.label] = g; });
+    var gm = {}; list.forEach(function (g, j) { gm[labels[j]] = g; });
     rt.groups[c.key] = gm;
     c.a.setData(c.inst, labels, series);
     renderCrumbs(c, b, path);
+  }
+  rt.renamed = {};
+  // Row filters for one chart: [{field, op: eq | ne | in | notin | gt | ge | lt | le | contains, value}]
+  function whereOk(r, where) {
+    for (var i = 0; i < where.length; i++) {
+      var w = where[i]; if (!w || !w.field) continue;
+      var v = r[w.field], t = String(v == null ? '' : v), n = Number(v), op = w.op || (Array.isArray(w.value) ? 'in' : 'eq'), list = [].concat(w.value == null ? [] : w.value).map(String);
+      var ok = op === 'eq' ? t === String(w.value) : op === 'ne' ? t !== String(w.value) : op === 'in' ? list.indexOf(t) >= 0 : op === 'notin' ? list.indexOf(t) < 0 :
+        op === 'gt' ? n > +w.value : op === 'ge' ? n >= +w.value : op === 'lt' ? n < +w.value : op === 'le' ? n <= +w.value : op === 'contains' ? t.toLowerCase().indexOf(String(w.value).toLowerCase()) >= 0 : true;
+      if (!ok) return false;
+    }
+    return true;
+  }
+  rt.whereOk = whereOk;
+  function keepNames(names, only, hide) {
+    var o = only && only.length ? only.map(String) : null, hd = hide && hide.length ? hide.map(String) : null;
+    return names.filter(function (n) { return (!o || o.indexOf(n) >= 0) && (!hd || hd.indexOf(n) < 0); });
+  }
+  function keepCats(list, b) {
+    var keep = keepNames(list.map(function (g) { return g.label; }), b.only, b.hide);
+    return list.filter(function (g) { return keep.indexOf(g.label) >= 0; });
+  }
+  function byOrder(list, order, key) {
+    var o = order.map(String), first = [], rest = [];
+    o.forEach(function (n) { list.forEach(function (g) { if (key(g) === n) first.push(g); }); });
+    list.forEach(function (g) { if (o.indexOf(key(g)) < 0) rest.push(g); });
+    return first.concat(rest);
+  }
+  // Scatter and bubble: one point per category, x and y (and size) worked out with the chart's calculation (sum or average).
+  function renderXY(c, b, rows, dim, type) {
+    var pts = [], idx = {}, sd = b.series, agg = b.agg === 'avg' ? 'avg' : 'sum';
+    rows.forEach(function (r) {
+      var k = r[dim]; k = k == null || k === '' ? '(blank)' : String(k);
+      var s = sd ? String(r[sd]) : '_', id = s + '\u0001' + k, p = idx[id];
+      if (!p) { p = idx[id] = { n: k, s: s, x: 0, y: 0, v: 0, c: 0 }; pts.push(p); }
+      var nx = Number(r[b.x]), ny = Number(r[b.y]), nv = b.size ? Number(r[b.size]) : 0;
+      if (!isNaN(nx)) p.x += nx; if (!isNaN(ny)) p.y += ny; if (!isNaN(nv)) p.v += nv; p.c++;
+    });
+    if (agg === 'avg') pts.forEach(function (p) { if (p.c) { p.x /= p.c; p.y /= p.c; p.v /= p.c; } });
+    var keep = keepNames(pts.map(function (p) { return p.n; }), b.only, b.hide);
+    pts = pts.filter(function (p) { return keep.indexOf(p.n) >= 0; });
+    var ren = b.rename || {}, max = 0; pts.forEach(function (p) { max = Math.max(max, Math.abs(p.v)); });
+    var skeys = keepNames(pts.reduce(function (a, p) { if (a.indexOf(p.s) < 0) a.push(p.s); return a; }, []), b.seriesOnly, b.seriesHide);
+    if (b.seriesOrder && b.seriesOrder.length) skeys = byOrder(skeys, b.seriesOrder, String);
+    var r2 = function (v) { return Math.round(v * 100) / 100; };
+    var series = skeys.map(function (s) {
+      return { name: s === '_' ? '' : (ren[s] || s), values: pts.filter(function (p) { return p.s === s; }).map(function (p) {
+        var o = { x: r2(p.x), y: r2(p.y), n: ren[p.n] || p.n }; if (type === 'bubble') { o.v = r2(p.v); o.r = max ? Math.round(4 + 24 * Math.sqrt(Math.abs(p.v) / max)) : 8; } return o;
+      }) };
+    });
+    var gm = {}; pts.forEach(function (p) { gm[ren[p.n] || p.n] = { label: p.n, sums: {}, count: p.c }; });
+    rt.groups[c.key] = gm;
+    c.a.setData(c.inst, pts.map(function (p) { return ren[p.n] || p.n; }), series);
   }
 
   function crumbHost(c) {
@@ -1201,6 +1301,7 @@ MS.RUNTIME_FN = function MothershipRuntime() {
 
   function onChartDbl(c, hit) {
     if (EDITOR && window.__MS_EDIT_MODE) return; // editor uses dblclick for editing
+    var rn = rt.renamed[c.key]; if (rn && hit && rn[hit.label] != null) hit = Object.assign({}, hit, { label: rn[hit.label] });
     var cs = rt.state.charts[c.key] || {}, b = cs.binding;
     var mode = (cs.drill && cs.drill.mode) || (b ? (b.levels.length > 1 ? 'levels' : 'details') : 'none');
     if (!b || mode === 'none') return;
@@ -1424,23 +1525,50 @@ MS.RUNTIME_FN = function MothershipRuntime() {
 
   /* ------------------------------------------------------------ charts built in Mothership (Chart.js + a dataset) */
   var NATIVE_PAL = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
+  /* Native chart types. Beyond the Chart.js basics: scatter and bubble (points named by the category, x / y / size measures),
+     dumbbell (two or more values per category joined by a line), range (low–high bar with the middle value as a dot),
+     stackedarea, and pyramid (two series back to back, the first drawn to the left). */
+  var NATIVE_KINDS = { hbar: 'bar', stacked: 'bar', hstacked: 'bar', area: 'line', stackedarea: 'line', scatter: 'scatter', bubble: 'bubble', dumbbell: 'bar', range: 'bar', pyramid: 'bar' };
+  rt.XY_TYPES = { scatter: 1, bubble: 1 };
+  function absTick(v) { return fmtNum(Math.abs(v), 'short'); }
   function nativeConfig(spec) {
-    var t = spec.type || 'bar', type = { hbar: 'bar', stacked: 'bar', hstacked: 'bar', area: 'line' }[t] || t;
-    var o = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: /pie|doughnut/.test(t) || !!spec.legend, position: 'bottom' } } };
-    if (t === 'hbar' || t === 'hstacked') o.indexAxis = 'y';
-    if (t === 'stacked' || t === 'hstacked') o.scales = { x: { stacked: true }, y: { stacked: true } };
+    var t = spec.type || 'bar', type = NATIVE_KINDS[t] || t;
+    var o = { responsive: true, maintainAspectRatio: false, msType: t, plugins: { legend: { display: /pie|doughnut/.test(t) || !!spec.legend || t === 'dumbbell' || t === 'pyramid', position: 'bottom', labels: { filter: function (it, d) { var ds = d.datasets[it.datasetIndex]; return !(ds && ds.msLink); } } }, tooltip: { filter: function (it) { return !it.dataset.msLink; }, callbacks: {} } } };
+    if (t === 'hbar' || t === 'hstacked' || t === 'dumbbell' || t === 'pyramid') o.indexAxis = 'y';
+    if (t === 'stacked' || t === 'hstacked' || t === 'pyramid') o.scales = { x: { stacked: true }, y: { stacked: true } };
+    if (t === 'stackedarea') o.scales = { y: { stacked: true } };
+    if (t === 'range') o.scales = { y: { beginAtZero: false, grace: '10%' } };
+    if (t === 'pyramid') { o.scales.x.ticks = { callback: absTick }; o.plugins.tooltip.callbacks.label = function (c) { return (c.dataset.label ? c.dataset.label + ': ' : '') + fmtNum(Math.abs(c.parsed.x), 'num'); }; }
+    if (rt.XY_TYPES[t]) {
+      o.layout = { padding: { top: 24, right: 36, left: 8, bottom: 4 } }; o.scales = { x: { grace: '8%' }, y: { grace: '12%' } };
+      o.plugins.tooltip.callbacks.title = function (items) { var r = items[0] && items[0].raw; return r && r.n != null ? String(r.n) : ''; };
+      o.plugins.tooltip.callbacks.label = function (c) { var r = c.raw || {}; return (c.dataset.label ? c.dataset.label + ': ' : '') + fmtNum(r.x, 'short') + ', ' + fmtNum(r.y, 'short') + (r.v != null ? ' (size ' + fmtNum(r.v, 'short') + ')' : ''); };
+    }
     return { type: type, data: { labels: [], datasets: [{ label: '', data: [], fill: t === 'area', tension: t === 'line' || t === 'area' ? 0.3 : 0 }] }, options: o };
   }
+  // Turns plain category × series values into the datasets a special type needs (dumbbell, range, stacked area, pyramid).
+  function shapeData(kind, labels, series) {
+    if (kind === 'dumbbell' || kind === 'range') {
+      var pts = kind === 'range' ? (series.length >= 3 ? [series[1]] : []) : series, ends = kind === 'range' ? [series[0], series[series.length - 1]] : series;
+      var link = { type: 'bar', label: '', msLink: true, order: 2, data: labels.map(function (_, j) { var v = ends.map(function (s) { return Number(s && s.values[j]); }).filter(isFinite); return v.length ? [Math.min.apply(null, v), Math.max.apply(null, v)] : null; }),
+        backgroundColor: kind === 'range' ? '#B8BEC6' : '#CBD2DA', borderColor: kind === 'range' ? '#B8BEC6' : '#CBD2DA', barThickness: kind === 'range' ? 16 : 3, borderSkipped: false };
+      return [link].concat(pts.map(function (s) { return { type: 'line', label: s.name, data: s.values, showLine: false, pointRadius: 6, pointHoverRadius: 8, order: 1, borderWidth: 2 }; }));
+    }
+    return null;
+  }
+  rt.shapeData = shapeData;
   function renderNative() {
     if (!window.Chart) return;
     Array.prototype.forEach.call(D.querySelectorAll('[data-ms-chart]'), function (h) {
       var cv = h.querySelector('canvas');
-      if (cv && window.Chart.getChart && window.Chart.getChart(cv)) return;
       var cs = rt.state.charts[h.getAttribute('data-ms-chart')];
+      var old = cv && window.Chart.getChart && window.Chart.getChart(cv);
+      if (old && (!cs || !cs.native || old.__msNativeType === (cs.native.type || 'bar'))) return;
       if (!cs || !cs.native) return;
+      if (old) { try { old.destroy(); } catch (e) {} }
       h.innerHTML = '';
       cv = el('canvas'); h.appendChild(cv);
-      try { var i = new window.Chart(cv, nativeConfig(cs.native)); i.__msNative = true; } catch (e) { console.warn('[Mothership] chart failed', e); }
+      try { var i = new window.Chart(cv, nativeConfig(cs.native)); i.__msNative = true; i.__msNativeType = cs.native.type || 'bar'; } catch (e) { console.warn('[Mothership] chart failed', e); }
     });
   }
   rt.nativeConfig = nativeConfig;

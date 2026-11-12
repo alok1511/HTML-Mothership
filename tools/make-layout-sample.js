@@ -2,8 +2,8 @@
 /*
  * Development only (needs Node.js and the dev dependency Playwright; users never run this).
  *   node tools/make-layout-sample.js && node tools/build.js
- * Rebuilds samples/src/claims-risk-review.html: a dashboard made entirely from Insert › Chart layouts on their
- * sample data, by driving the real editor. Run it again after changing src/js/layouts.js.
+ * Rebuilds samples/src/claims-risk-review.html and samples/src/chart-layout-gallery.html: dashboards made entirely
+ * from Insert › Chart layouts on their sample data, by driving the real editor. Run it again after changing src/js/layouts.js.
  */
 'use strict';
 const fs = require('fs');
@@ -12,17 +12,22 @@ const { pathToFileURL } = require('url');
 const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '..');
-const out = path.join(root, 'samples/src/claims-risk-review.html');
 const SOURCE = 'Illustrative sample data';
 const AS_OF = '2026-09-30';
 
-const tabs = [
+const review = [
   ['Summary', [['exec-summary', { options: { takeaway: 'So what: West and South bring nearly two thirds of premium, and East is the only region that shrank. Decide whether to fix or exit East before the FY26 plan. The other tabs show why claims cost is rising (bigger claims, not more of them) and which risks stay above appetite.' } }]]],
   ['Claims', [['frequency-severity'], ['lossrun-paid-outstanding'], ['claims-by-cause'], ['large-loss-ranking'], ['incurred-bridge'], ['loss-triangle']]],
   ['Risk register', [['risk-heatmap'], ['risk-inherent-vs-residual'], ['risk-by-category'], ['risk-register-rag']]],
   ['Customers and peers', [['survey-nps'], ['survey-top2box'], ['benchmark-ranked-gap'], ['benchmark-scorecard']]],
   ['Performance', [['cagr-columns'], ['mix-100'], ['line-target'], ['variance-vs-plan'], ['ranked-highlight'], ['distribution']]]
 ];
+const gallery = [
+  ['Comparisons', [['dumbbell'], ['gap-pairs'], ['range-dots'], ['net-diverging'], ['parity-scatter'], ['quadrant-2x2'], ['bubble-impact'], ['stacked-ranked']]],
+  ['Trends', [['actual-forecast'], ['stacked-area'], ['line-focus'], ['growth-multiples'], ['percentile-curve'], ['small-multiples']]],
+  ['Composition', [['pyramid'], ['heat-grid'], ['marimekko'], ['overlap-venn'], ['dot-matrix-stats']]]
+];
+const books = [['Claims and risk review', review, 'samples/src/claims-risk-review.html', 'Summary'], ['Chart layout gallery', gallery, 'samples/src/chart-layout-gallery.html', 'Comparisons']];
 
 (async () => {
   const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
@@ -32,7 +37,9 @@ const tabs = [
   await page.goto(pathToFileURL(path.join(root, 'mothership.html')).href);
   await page.waitForFunction(() => window.MS && MS.api && MS.api.run);
   const api = (n, a) => page.evaluate(([n, a]) => MS.api.run(n, a).then(x => JSON.parse(JSON.stringify(x === undefined ? null : x))), [n, a || {}]);
-  await api('new_dashboard', { title: 'Claims and risk review', tabs: true, force: true });
+  for (const [title, tabs, file, home] of books) {
+  const out = path.join(root, file);
+  await api('new_dashboard', { title, tabs: true, force: true });
   await page.waitForFunction(() => MS.rt() && MS.child);
   const first = (await api('outline')).tabs.map(t => t.title);
   for (const [i, [tab, items]] of tabs.entries()) {
@@ -45,11 +52,12 @@ const tabs = [
       console.log('  ' + tab.padEnd(20) + id.padEnd(28) + r.title);
     }
   }
-  await api('show_tab', { tab: 'Summary' });
+  await api('show_tab', { tab: home });
   await page.waitForTimeout(800);
   const html = await page.evaluate(() => { MS.dirty = false; return MS.exportHtml(); });
   if (errors.length) throw new Error(errors.join('\n'));
   fs.writeFileSync(out, html);
   console.log('sample   ' + path.relative(root, out) + ' ' + (html.length / 1024).toFixed(0) + ' KB');
+  }
   await browser.close();
 })().catch(e => { console.error(e); process.exit(1); });

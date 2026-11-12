@@ -187,7 +187,10 @@
       return w.Chart;
     });
   };
-  var TYPES = [{ value: 'bar', label: 'Column (vertical bars)' }, { value: 'hbar', label: 'Bar (horizontal)' }, { value: 'stacked', label: 'Stacked columns (needs "split by")' }, { value: 'hstacked', label: 'Stacked bars, horizontal (needs "split by")' }, { value: 'line', label: 'Line' }, { value: 'area', label: 'Area' }, { value: 'pie', label: 'Pie' }, { value: 'doughnut', label: 'Doughnut' }];
+  var TYPES = [{ value: 'bar', label: 'Column (vertical bars)' }, { value: 'hbar', label: 'Bar (horizontal)' }, { value: 'stacked', label: 'Stacked columns (needs "split by")' }, { value: 'hstacked', label: 'Stacked bars, horizontal (needs "split by")' }, { value: 'line', label: 'Line' }, { value: 'area', label: 'Area' }, { value: 'pie', label: 'Pie' }, { value: 'doughnut', label: 'Doughnut' }, { value: 'stackedarea', label: 'Stacked area (needs "split by")' }, { value: 'dumbbell', label: 'Dumbbell: two values per row joined by a line (needs "split by")' }, { value: 'range', label: 'Range: low to high bar with the middle as a dot (split by low / mid / high)' }, { value: 'pyramid', label: 'Pyramid: two groups back to back (split by the two groups)' }, { value: 'scatter', label: 'Scatter (x and y columns)' }, { value: 'bubble', label: 'Bubble (x, y and size columns)' }];
+  Cp.TYPES = TYPES;
+  // Binding keys beyond the basics, kept by every editor that rewrites a binding.
+  Cp.EXTRA = ['x', 'y', 'size', 'where', 'only', 'hide', 'order', 'rename', 'seriesOnly', 'seriesHide', 'seriesOrder', 'percent'];
   Cp.chart = function () {
     if (!need()) return;
     var rt = MS.rt(); if (!rt) return MS.toast('Turn off Safe mode (View tab) to add charts.', 'warn');
@@ -219,10 +222,11 @@
   };
   Cp.addChart = function (v) {
     var rt = MS.rt(), key = rt.uid('c');
-    var b = MS.blocks.create({ title: v.title || '', sub: v.ds, span: /pie|doughnut/.test(v.type) ? 4 : 6, height: 300 });
+    var b = MS.blocks.create({ title: v.title || '', sub: v.ds, span: v.span || (/pie|doughnut/.test(v.type) ? 4 : 6), height: v.height || 300 });
     var holder = make('<div></div>'); holder.setAttribute('data-ms-chart', key);
     b.querySelector('.ms-visual').appendChild(holder);
     var spec = { native: { type: v.type }, binding: { dataset: v.ds, levels: [v.by].filter(Boolean), measure: v.agg === 'count' ? undefined : v.measure, agg: v.agg, series: v.series || undefined, sort: v.sort || undefined, top: v.top || undefined, percent: v.percent || undefined }, drill: { mode: 'levels' }, title: v.title };
+    Cp.EXTRA.forEach(function (k) { if (v[k] != null && v[k] !== '' && !(Array.isArray(v[k]) && !v[k].length)) spec.binding[k] = v[k]; });
     MS.history.group('Insert chart', function () {
       MS.history.state('New chart', function (s) { s.charts[key] = JSON.parse(JSON.stringify(spec)); });
       var sec = MS.sel && MS.sel.closest && MS.sel.closest('.ms-section');

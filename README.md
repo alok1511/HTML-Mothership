@@ -27,7 +27,7 @@
 13. [Roadmap ideas](#13-roadmap-ideas)
 14. [Licence](#14-licence)
 
-**Version 4.0.0** (see [Version history](#version-history) for how the numbers fit together). Open **Start here** for the guided workflow or **Help › Tutorial** for 13 practice lessons. The [user guide](docs/USER-GUIDE.md) and [practice handout](docs/TUTORIAL.md) are also available here. See [what changed](CHANGELOG.md).
+**Version 4.1.0** (see [Version history](#version-history) for how the numbers fit together). Open **Start here** for the guided workflow or **Help › Tutorial** for 14 practice lessons. The [user guide](docs/USER-GUIDE.md) and [practice handout](docs/TUTORIAL.md) are also available here. See [what changed](CHANGELOG.md).
 
 ---
 
@@ -246,6 +246,17 @@ The [changelog](CHANGELOG.md) lists all fixes and compatibility notes.
 
 ---
 
+### New in 4.1.0: more chart layouts, and every chart editable
+
+| Feature | Where | What it does |
+|---|---|---|
+| **19 more chart layouts** | **Insert › Chart layouts** (new groups: Comparisons and relationships, Trends and forecasts, Shares and composition) | Dumbbell, paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble, net bars either side of zero, stacked bars ranked by total, actuals then forecast, stacked area, one line in focus, growth multiples, small multiples, sorted percentile curve, population pyramid, Marimekko, three-way overlap, 100-dot stats and heat grid. Same as before: sample data to try, your columns guessed, an action title from the numbers, one undo step. |
+| **Edit layout** | **Charts › Edit layout**, or the wand on the floating toolbar | Redo a layout you inserted with other columns, options, words or data, or turn it into a different layout. The charts are rebuilt in the same place; Ctrl+Z puts the old ones back. |
+| **Reshape chart** | **Charts › Reshape**, or the filter button on the floating toolbar | For any chart made from data: change its type, columns and calculation; filter the rows this one chart uses; tick categories and series on or off, rename them and put them in the order that tells the story. |
+| **New chart types** | Insert › Chart, Reshape, `insert_chart` | Scatter, bubble, dumbbell, range (low to high with the median), stacked area and pyramid; reference lines on any Chart.js chart. |
+| **Chart layout gallery sample** | **File › Samples** | A dashboard with every new layout on its sample data. |
+| **MCP** | Both servers | `chart_edit`; `chart_layouts` gains `runs` and `edit`. |
+
 ### New in 4.0.0: chart layouts, and one version number
 
 | Feature | Where | What it does |
@@ -258,11 +269,12 @@ The [changelog](CHANGELOG.md) lists all fixes and compatibility notes.
 
 ### Version history
 
-Until 3.9.0 the releases had two numbers: the name used in messages and zip files ("v3.7") and a different number inside the app and `package.json` (2.8.0). From 3.9.0 there is one number, set in `package.json` and checked by `node tools/build.js` against the editor, the dashboard runtime, both MCP servers, this README and the changelog. Zip files are named after it: `HTML-Mothership-v4.0.0.zip` (`node tools/release.js`).
+Until 3.9.0 the releases had two numbers: the name used in messages and zip files ("v3.7") and a different number inside the app and `package.json` (2.8.0). From 3.9.0 there is one number, set in `package.json` and checked by `node tools/build.js` against the editor, the dashboard runtime, both MCP servers, this README and the changelog. Zip files are named after it: `HTML-Mothership-v4.1.0.zip` (`node tools/release.js`).
 
 | Release | Number inside the app | Pull request | Highlights |
 |---|---|---|---|
-| **4.0.0** | 4.0.0 | #14 to #17 and this release | Chart layouts, recipe workshop, report layouts, inference ladder, numbered versions. The earlier zip `HTML-Mothership-v3.9-inferences.zip` was a preview of part of it. |
+| **4.1.0** | 4.1.0 | this release | 19 more chart layouts, Edit layout, Reshape chart, scatter / bubble / dumbbell / range / pyramid / stacked area |
+| 4.0.0 | 4.0.0 | #14 to #18 | Chart layouts, recipe workshop, report layouts, inference ladder, numbered versions. The earlier zip `HTML-Mothership-v3.9-inferences.zip` was a preview of part of it. |
 | 3.9.0 | 3.9.0 | #13 | Studio redesign, reliability, guided workflow and lessons |
 | v3.8 | 2.9.0 | #12 | Full-coverage testing and expected numbers |
 | v3.7 | 2.8.0 | #11 | Watch tests run, prompt from failed tests, top bar |
@@ -532,7 +544,8 @@ Python's PowerPoint reader is used only to validate a test output; users do not 
 | `src/js/importers.js` | md/docx/pptx/xlsx/pdf/images → HTML |
 | `src/js/plugins.js` | Plugin API and recipes |
 | `src/js/versions.js` | Export, numbered versions per dashboard, safety copies, autosave |
-| `src/js/layouts.js` | Chart layouts (`MS.layouts`, tool `chart_layouts`): the consulting chart gallery and its sample data |
+| `src/js/layouts.js` | Chart layouts (`MS.layouts`, tool `chart_layouts`): the consulting chart gallery, its sample data, and Edit layout |
+| `src/js/reshape.js` | Reshape chart (`MS.reshape`): type, columns, filters, categories and series of any chart from data (tool `chart_edit`, in `api.js`) |
 | `src/js/present.js` | Presenter mode |
 | `src/js/compose.js` | Build from scratch: page parts, KPI cards, new charts, new dashboard |
 | `src/js/arrange.js` | Category order, category colours, format painter, chart image/CSV, drill-down data files |
@@ -618,7 +631,8 @@ with MothershipClient() as ms:                      # starts the Python server
 | Checks | `chart_summaries`, `number_check`, `compare_versions`, `compare_file` |
 | Draw and share | `chart_shapes` (growth arrow with CAGR, difference, arrows, boxes, callouts), `chart_picture`, `annotate` |
 | Testing (like Playwright) | `ui_snapshot`, `ui_tab`, `ui_click`, `ui_hover`, `ui_select`, `ui_type`, `ui_press`, `ui_scroll`, `ui_wait`, `ui_read`, `ui_expect`, `ui_errors`, `ui_width`, `ui_screenshot`, `ui_mouse` (real mouse), `test_plan`, `test_run`, `test_record`, `test_document`, `save_test_document` |
-| Chart layouts | `chart_layouts` (list, preview the suggested title, insert with your columns or sample data) |
+| Chart layouts | `chart_layouts` (list, preview the suggested title, insert with your columns or sample data, runs, edit in place) |
+| Reshape a chart | `chart_edit` (type, columns, calculation, `where` filters, show / hide / order / rename categories and series) |
 | Recipes | `recipe_context`, `preview_recipe`, `capture_recipe`, `run_recipe` |
 | Versions | `save_version`, `versions` (list, restore, delete), `compare_versions` |
 | Anything else | `undo`, `redo`, `call` (any Mothership function by name) |

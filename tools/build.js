@@ -33,7 +33,7 @@ for (const [p, re] of versionChecks) {
 // 1. samples
 const srcDir = path.join(root, 'samples/src');
 const bundle = {};
-const ids = { 'sales-dashboard.html': 'sales', 'ops-dashboard.html': 'ops', 'risk-dashboard.html': 'risk', 'claims-risk-review.html': 'layouts' };
+const ids = { 'sales-dashboard.html': 'sales', 'ops-dashboard.html': 'ops', 'risk-dashboard.html': 'risk', 'claims-risk-review.html': 'layouts', 'chart-layout-gallery.html': 'gallery' };
 function inlineSample(html) {
   return html.replace(/<script data-inline="([^"]+)"><\/script>/g, (m, p) => '<script>/* ' + p.split('/').pop() + ' (inlined) */\n' + esc(read(p)) + '\n</script>');
 }

@@ -468,6 +468,312 @@
         { tool: 'table_rules', args: { table: '$table', action: 'set', rules: [{ col: 'Gap', type: 'rag', value: 0, value2: -round(spread || 1, 2), higher: true }, { col: 'Client', type: 'bars', color: C.highlight }] } }];
     } });
 
+  /* ==========================================================================================================
+     4.1.0: chart forms seen in recent consulting "chart of the week" pieces and the MGI year in charts:
+     comparisons (dumbbell, gap pairs, ranges, parity and 2 × 2 scatters, bubbles, net bars, stacked ranking),
+     trends (actual and forecast, stacked area, one line in focus, growth multiples, small multiples, percentile curve)
+     and composition (pyramid, Marimekko, three-set overlap, dot-matrix stats, heat grid). Sample data is made up. */
+  function uniq(rows, col) { var out = []; rows.forEach(function (r) { var v = r[col]; if (v == null || v === '') return; v = String(v); if (out.indexOf(v) < 0) out.push(v); }); return out; }
+  function pctile(vals, p) { var v = vals.slice().sort(function (a, b) { return a - b; }); if (!v.length) return 0; var i = (v.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return v[lo] + (v[hi] - v[lo]) * (i - lo); }
+  // sum of val for rows where col = v (and col2 = v2)
+  function sumWhere(rows, val, col, v, col2, v2) { var t = 0; rows.forEach(function (r) { if (String(r[col]) === v && (!col2 || String(r[col2]) === v2)) { var n = num(r[val]); if (n != null) t += n; } }); return t; }
+  var GREYS = [C.ink, C.secondary, C.grey, '#D9DDE2', '#8E99A6', '#5B6B7A'];
+  function partColours(parts, pick) { var o = {}, k = 0; parts.forEach(function (p) { o[p] = p === pick ? C.highlight : GREYS[k++ % GREYS.length]; }); return o; }
+  function sgn(v, d) { return (v >= 0 ? '+' : '−') + fmt(Math.abs(round(v, d == null ? 1 : d))); }
+  function rec(names, vals) { return names.reduce(function (o, n, i) { o[n] = vals[i]; return o; }, {}); }
+
+  Ly.GROUPS.splice(Ly.GROUPS.length - 1, 0, { id: 'compare', label: 'Comparisons and relationships' }, { id: 'trend', label: 'Trends and forecasts' }, { id: 'composition', label: 'Shares and composition' });
+
+  /* ---------- comparisons */
+  add({ id: 'dumbbell', group: 'compare', name: 'Dumbbell: before and after', question: 'What changed for each item between two points?', pic: 'dumbbell',
+    roles: [{ key: 'cat', label: 'Items (rows)', kind: 'text', hint: /item|channel|source|state|country|segment|activity|name|category/ }, { key: 'when', label: 'The two points (e.g. years)', kind: 'text', hint: /year|period|wave|time|when|group|fy/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'from', label: 'From (blank = the first)' }, { key: 'to', label: 'To (blank = the last)' }],
+    sample: { name: 'Customer trust by channel', rows: [['Insurance agent', 52, 49], ['Bank branch', 38, 33], ['Insurer website', 31, 36], ['Comparison site', 22, 27], ['Friends and family', 47, 45], ['Social media', 6, -9], ['Gen AI assistant', -14, -4]].reduce(function (a, r) { a.push({ Channel: r[0], Year: '2024', 'Net trust': r[1] }); a.push({ Channel: r[0], Year: '2026', 'Net trust': r[2] }); return a; }, []), fields: { cat: 'Channel', when: 'Year', val: 'Net trust' }, unit: 'Net trust (% trusting minus % distrusting), 2024 and 2026, made-up survey' },
+    ends: function (x) { var w = uniq(x.rows, x.f.when); return { a: x.o.from || w[0], b: x.o.to || w[w.length - 1] }; },
+    moves: function (x) { var e = this.ends(x); return uniq(x.rows, x.f.cat).map(function (c) { var a = sumWhere(x.rows, x.f.val, x.f.cat, c, x.f.when, e.a), b = sumWhere(x.rows, x.f.val, x.f.cat, c, x.f.when, e.b); return { label: c, a: a, b: b, d: b - a }; }); },
+    draft: function (x) {
+      var e = this.ends(x), m = this.moves(x).sort(function (p, q) { return Math.abs(q.d) - Math.abs(p.d); })[0]; if (!m) return {};
+      return { title: m.label + ' moved most, from ' + fmt(m.a) + ' to ' + fmt(m.b) + ' between ' + e.a + ' and ' + e.b, sub: x.f.val + ' by ' + x.f.cat + ', ' + e.a + ' and ' + e.b };
+    },
+    build: function (x) {
+      var e = this.ends(x), order = this.moves(x).sort(function (p, q) { return q.b - p.b; }).map(function (m) { return m.label; }), colors = {}; colors[e.a] = C.grey; colors[e.b] = C.highlight;
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.cat, measure: x.f.val, series: x.f.when, type: 'dumbbell', sort: 'source', order: order, series_only: [e.a, e.b], series_order: [e.a, e.b], title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'top', colors: colors, refs: [{ axis: 'x', value: 0, dash: false, color: '#CBD2DA' }] }) } }];
+    } });
+
+  add({ id: 'gap-pairs', group: 'compare', name: 'Paired bars with the gap', question: 'How far apart are two groups on each measure?', pic: 'pair',
+    roles: [{ key: 'cat', label: 'Measures (rows)', kind: 'text', hint: /measure|metric|question|item|kpi|statement/ }, { key: 'grp', label: 'The two groups', kind: 'text', hint: /group|segment|cohort|who|type/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'unit', label: 'Gap unit', value: 'pts' }],
+    sample: { name: 'Claim experience survey', rows: [['Satisfied with insurer', 78, 61], ['Would renew', 82, 70], ['Would recommend', 64, 41], ['Trust the insurer', 71, 58], ['Understand the cover', 55, 49]].reduce(function (a, r) { a.push({ Measure: r[0], Group: 'No claim', Share: r[1] }); a.push({ Measure: r[0], Group: 'Had a claim', Share: r[2] }); return a; }, []), fields: { cat: 'Measure', grp: 'Group', val: 'Share' }, unit: '% of policyholders agreeing, by claim experience in the last year, made-up survey' },
+    gaps: function (x) { var g = uniq(x.rows, x.f.grp).slice(0, 2); return { g: g, list: uniq(x.rows, x.f.cat).map(function (c) { var a = sumWhere(x.rows, x.f.val, x.f.cat, c, x.f.grp, g[0]), b = sumWhere(x.rows, x.f.val, x.f.cat, c, x.f.grp, g[1]); return { label: c, a: a, b: b, d: b - a }; }) }; },
+    draft: function (x) {
+      var r = this.gaps(x), big = r.list.slice().sort(function (p, q) { return Math.abs(q.d) - Math.abs(p.d); })[0]; if (!big) return {};
+      return { title: 'The widest gap is on ' + big.label.toLowerCase() + ': ' + fmt(Math.abs(round(big.d))) + ' ' + (x.o.unit || 'pts') + ' between ' + r.g[0] + ' and ' + r.g[1], sub: x.f.val + ' by ' + x.f.grp };
+    },
+    build: function (x) {
+      var r = this.gaps(x), ren = {}, colors = {}, u = x.o.unit || 'pts', order = r.list.slice().sort(function (p, q) { return Math.abs(q.d) - Math.abs(p.d); }).map(function (q) { return q.label; });
+      r.list.forEach(function (q) { ren[q.label] = q.label + ' (' + sgn(q.d, 0) + ' ' + u + ')'; });
+      colors[r.g[0]] = C.grey; if (r.g[1]) colors[r.g[1]] = C.highlight;
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.cat, measure: x.f.val, series: x.f.grp, type: 'hbar', sort: 'source', order: order, rename: ren, series_only: r.g, title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'top', labels: true, valueAxis: false, colors: colors }) } }];
+    } });
+
+  add({ id: 'range-dots', group: 'compare', name: 'Ranges with the median', question: 'How wide is the spread in each group, and where is the middle?', pic: 'range',
+    roles: [{ key: 'grp', label: 'Groups', kind: 'text', hint: /group|segment|type|sector|peer|tier|category/ }, { key: 'val', label: 'Value of each member', kind: 'number' }],
+    options: [{ key: 'lo', label: 'Low end (percentile)', type: 'number', value: 25 }, { key: 'hi', label: 'High end (percentile)', type: 'number', value: 75 }],
+    sample: { name: 'Combined ratio by insurer type', rows: [['Public sector', [118, 112, 109, 121, 115]], ['Large private', [101, 98, 104, 96, 103, 99]], ['Mid-size private', [108, 97, 112, 104, 95, 117]], ['Standalone health', [96, 103, 99, 92, 101]], ['Specialist', [88, 94, 107, 91, 99]]].reduce(function (a, g) { g[1].forEach(function (v, i) { a.push({ Type: g[0], Insurer: g[0] + ' ' + (i + 1), 'Combined ratio': v }); }); return a; }, []), fields: { grp: 'Type', val: 'Combined ratio' }, unit: 'Combined ratio, %, FY25; bar = 25th to 75th percentile, dot = median, made-up insurers' },
+    stats: function (x) { var lo = (num(x.o.lo) == null ? 25 : num(x.o.lo)) / 100, hi = (num(x.o.hi) == null ? 75 : num(x.o.hi)) / 100; return uniq(x.rows, x.f.grp).map(function (g) { var v = x.rows.filter(function (r) { return String(r[x.f.grp]) === g; }).map(function (r) { return num(r[x.f.val]); }).filter(function (n) { return n != null; }); return { label: g, lo: pctile(v, lo), mid: pctile(v, 0.5), hi: pctile(v, hi), n: v.length }; }); },
+    draft: function (x) { var s = this.stats(x).sort(function (p, q) { return (q.hi - q.lo) - (p.hi - p.lo); }); if (!s.length) return {}; return { title: s[0].label + ' has the widest spread (' + fmt(s[0].lo) + ' to ' + fmt(s[0].hi) + ')', sub: x.f.val + ' by ' + x.f.grp + '; bar = middle half, dot = median' }; },
+    build: function (x) {
+      var s = this.stats(x), lo = 'P' + (num(x.o.lo) == null ? 25 : num(x.o.lo)), hi = 'P' + (num(x.o.hi) == null ? 75 : num(x.o.hi)), rows = [];
+      s.forEach(function (g) { rows.push({ Group: g.label, Stat: lo, Value: round(g.lo, 2) }); rows.push({ Group: g.label, Stat: 'Median', Value: round(g.mid, 2) }); rows.push({ Group: g.label, Stat: hi, Value: round(g.hi, 2) }); });
+      return [{ tool: 'add_dataset', args: { name: x.ds + ' · ranges', rows: rows }, as: 'ds' },
+        { tool: 'insert_chart', args: { dataset: '$ds', by: 'Group', measure: 'Value', series: 'Stat', type: 'range', sort: 'source', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'none', colors: { Median: C.highlight } }) } }];
+    } });
+
+  function xyRoles(size) { return [{ key: 'name', label: 'Points (one per item)', kind: 'text', hint: /name|item|country|branch|state|line|product|event|company|segment/ }, { key: 'x', label: 'Across (x)', kind: 'number' }, { key: 'y', label: 'Up (y)', kind: 'number' }].concat(size ? [{ key: 'size', label: 'Bubble size', kind: 'number', hint: /size|volume|value|premium|amount|exposure|loss/ }] : []); }
+  function points(x) { return uniq(x.rows, x.f.name).map(function (n) { var rs = x.rows.filter(function (r) { return String(r[x.f.name]) === n; }), k = rs.length || 1, s = function (c) { return rs.reduce(function (t, r) { return t + (num(r[c]) || 0); }, 0); }; return { n: n, x: s(x.f.x) / k, y: s(x.f.y) / k, v: x.f.size ? s(x.f.size) : 0 }; }); }
+
+  add({ id: 'parity-scatter', group: 'compare', name: 'Scatter against the 45° line', question: 'Which items grow (or cost) faster on one measure than the other?', pic: 'parity',
+    roles: xyRoles(false), options: [{ key: 'above', label: 'Words for points above the line', value: 'above the line' }],
+    sample: { name: 'Growth by line of business', rows: [['Motor', 8.2, 9.6], ['Health', 14.5, 12.1], ['Fire', 6.1, 7.8], ['Marine', 4.2, 3.1], ['Crop', 9.8, 13.4], ['Liability', 11.2, 8.5], ['Engineering', 5.5, 6.9], ['Personal accident', 7.4, 5.2]].map(function (r) { return { Line: r[0], 'Premium growth': r[1], 'Claims growth': r[2] }; }), fields: { name: 'Line', x: 'Premium growth', y: 'Claims growth' }, unit: 'Annual growth, %, FY22–FY25; above the line = claims growing faster than premium, made-up data' },
+    draft: function (x) { var p = points(x), up = p.filter(function (q) { return q.y > q.x; }); return { title: up.length + ' of ' + p.length + ' ' + x.f.name.toLowerCase() + 's have ' + x.f.y.toLowerCase() + ' running ahead of ' + x.f.x.toLowerCase(), sub: x.f.y + ' against ' + x.f.x + '; the dashed line is where they are equal' }; },
+    build: function (x) {
+      var p = points(x), colors = {}; p.forEach(function (q) { colors[q.n] = q.y > q.x ? C.highlight : C.secondary; });
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.name, type: 'scatter', x: x.f.x, y: x.f.y, agg: 'avg', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'none', labels: true, grid: true, colors: colors, refs: [{ diag: true, label: x.o.above || 'above the line' }] }) } }];
+    } });
+
+  add({ id: 'quadrant-2x2', group: 'compare', name: '2 × 2 matrix', question: 'Which items are high on both measures, and which are low on both?', pic: 'quad',
+    roles: xyRoles(false), options: [{ key: 'xcut', label: 'Split across at (blank = median)', type: 'number' }, { key: 'ycut', label: 'Split up at (blank = median)', type: 'number' }, { key: 'tr', label: 'Name of the top-right box', value: 'Stars' }],
+    sample: { name: 'Branch growth and profit', rows: [['Pune', 18, 12], ['Nagpur', 6, 9], ['Indore', 22, 4], ['Surat', 14, 15], ['Kochi', 9, 2], ['Jaipur', 16, 11], ['Lucknow', 4, -3], ['Coimbatore', 11, 13], ['Bhopal', 7, 6], ['Vizag', 20, 14]].map(function (r) { return { Branch: r[0], 'Premium growth': r[1], 'Profit margin': r[2] }; }), fields: { name: 'Branch', x: 'Premium growth', y: 'Profit margin' }, options: { tr: 'Grow and earn' }, unit: 'Premium growth and profit margin, %, FY25; lines at the medians, made-up branches' },
+    cuts: function (x, p) { var g = function (v) { return v == null || v === '' ? null : num(v); }; return { x: g(x.o.xcut) != null ? g(x.o.xcut) : median(p.map(function (q) { return q.x; })), y: g(x.o.ycut) != null ? g(x.o.ycut) : median(p.map(function (q) { return q.y; })) }; },
+    draft: function (x) { var p = points(x), c = this.cuts(x, p), tr = p.filter(function (q) { return q.x > c.x && q.y > c.y; }); return { title: tr.length + ' of ' + p.length + ' are high on both ' + x.f.x.toLowerCase() + ' and ' + x.f.y.toLowerCase() + (tr.length ? ', led by ' + tr.sort(function (a, b) { return b.x + b.y - a.x - a.y; })[0].n : ''), sub: x.f.y + ' against ' + x.f.x + '; lines at ' + (x.o.xcut || x.o.ycut ? 'the chosen cut-offs' : 'the medians') }; },
+    build: function (x) {
+      var p = points(x), c = this.cuts(x, p), colors = {}; p.forEach(function (q) { colors[q.n] = q.x > c.x && q.y > c.y ? C.highlight : C.secondary; });
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.name, type: 'scatter', x: x.f.x, y: x.f.y, agg: 'avg', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'none', labels: true, grid: true, colors: colors, refs: [{ axis: 'x', value: round(c.x, 2) }, { axis: 'y', value: round(c.y, 2), label: x.o.tr || 'Stars' }] }) } }];
+    } });
+
+  add({ id: 'bubble-impact', group: 'compare', name: 'Bubble chart with one in focus', question: 'Which item is big on three measures at once?', pic: 'bubble',
+    roles: xyRoles(true), options: [{ key: 'pick', label: 'Bubble to highlight (blank = the largest)' }],
+    sample: { name: 'Catastrophe events', rows: [['Coastal cyclone', 9, 11.5, 2400], ['Urban flood', 6, 7.2, 1650], ['Heatwave', 40, 3.1, 520], ['Hailstorm', 2, 1.4, 180], ['Earthquake', 3, 4.6, 940], ['Landslide', 5, 0.9, 120], ['River flood', 21, 8.8, 1320]].map(function (r) { return { Event: r[0], 'Duration (days)': r[1], 'Share of annual claims': r[2], 'Incurred (millions)': r[3] }; }), fields: { name: 'Event', x: 'Duration (days)', y: 'Share of annual claims', size: 'Incurred (millions)' }, unit: 'Event duration, days; share of the year\'s claims, %; bubble = incurred loss, made-up events' },
+    draft: function (x) { var p = points(x).sort(function (a, b) { return b.v - a.v; }), f = x.o.pick ? p.filter(function (q) { return q.n === x.o.pick; })[0] || p[0] : p[0]; if (!f) return {}; return { title: f.n + ' is the largest at ' + fmt(f.v) + ' ' + x.f.size.replace(/\s*\(.*\)/, '').toLowerCase(), sub: x.f.y + ' against ' + x.f.x + '; bubble size = ' + x.f.size }; },
+    build: function (x) {
+      var p = points(x).sort(function (a, b) { return b.v - a.v; }), pick = x.o.pick || (p[0] && p[0].n);
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.name, type: 'bubble', x: x.f.x, y: x.f.y, size: x.f.size, agg: 'sum', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'none', labels: true, grid: true, highlight: [pick] }) } }];
+    } });
+
+  add({ id: 'net-diverging', group: 'compare', name: 'Net bars either side of zero', question: 'Which groups are net positive and which net negative?', pic: 'variance',
+    roles: [{ key: 'cat', label: 'Groups (bars)', kind: 'text', hint: /group|segment|generation|age|state|country|cohort/ }, { key: 'val', label: 'Net value (+ / −)', kind: 'number', hint: /net|balance|intent|score/ }, { key: 'series', label: 'Split by (optional)', kind: 'text', opt: true, hint: /product|channel|line|type/ }],
+    sample: { name: 'Net intent to change cover', rows: [['Gen Z', 'Health', 18], ['Gen Z', 'Motor', 6], ['Gen Z', 'Life', -4], ['Millennials', 'Health', 12], ['Millennials', 'Motor', -3], ['Millennials', 'Life', 5], ['Gen X', 'Health', 4], ['Gen X', 'Motor', -9], ['Gen X', 'Life', -6], ['Boomers', 'Health', -2], ['Boomers', 'Motor', -14], ['Boomers', 'Life', -11]].map(function (r) { return { Generation: r[0], Product: r[1], 'Net intent': r[2] }; }), fields: { cat: 'Generation', val: 'Net intent', series: 'Product' }, unit: 'Net intent to increase cover next year (% more minus % less), made-up survey' },
+    draft: function (x) {
+      var g = group(x.rows, x.f.cat, x.f.val, x.f.series ? 'avg' : 'sum'), neg = g.filter(function (q) { return q.value < 0; }), low_ = sorted(g, 'asc')[0]; if (!low_) return {};
+      return { title: neg.length ? low_.label + ' is the most negative' + (neg.length > 1 ? '; ' + neg.length + ' of ' + g.length + ' are below zero' : '') : 'Every group is net positive; ' + sorted(g)[0].label + ' leads', sub: x.f.val + ' by ' + x.f.cat + (x.f.series ? ' and ' + x.f.series : '') };
+    },
+    build: function (x) {
+      var st = x.f.series ? look({ legend: 'top', labels: true, valueAxis: false, colors: partColours(uniq(x.rows, x.f.series), null) }) : look({ legend: 'none', labels: true, valueAxis: false, signs: { up: C.highlight, down: C.down } });
+      st.refs = [{ axis: 'x', value: 0, dash: false, color: '#94A3B8' }];
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.cat, measure: x.f.val, series: x.f.series || undefined, type: 'hbar', sort: x.f.series ? 'source' : 'desc', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: st } }];
+    } });
+
+  add({ id: 'stacked-ranked', group: 'compare', name: 'Stacked bars ranked by total', question: 'Who is biggest overall, and what is it made of?', pic: 'hstack',
+    roles: [{ key: 'cat', label: 'Items (bars)', kind: 'text', hint: /item|product|category|state|segment|name/ }, { key: 'part', label: 'Parts of each bar', kind: 'text', hint: /type|part|kind|split|channel/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'pick', label: 'Part to highlight (blank = the first)' }],
+    sample: { name: 'Bought online in the last 3 months', rows: [['Motor renewal', 21, 9], ['Travel', 6, 17], ['Health top-up', 11, 8], ['Two-wheeler', 14, 4], ['Home contents', 3, 7], ['Personal accident', 4, 5], ['Pet', 2, 3]].reduce(function (a, r) { a.push({ Product: r[0], Purchase: 'Repeat', Share: r[1] }); a.push({ Product: r[0], Purchase: 'First time', Share: r[2] }); return a; }, []), fields: { cat: 'Product', part: 'Purchase', val: 'Share' }, unit: '% of online buyers, by product and type of purchase, made-up survey' },
+    draft: function (x) { var g = sorted(group(x.rows, x.f.cat, x.f.val)); if (!g.length) return {}; var parts = uniq(x.rows, x.f.part), pick = x.o.pick || parts[0], share = g[0].value ? sumWhere(x.rows, x.f.val, x.f.cat, g[0].label, x.f.part, pick) / g[0].value * 100 : 0; return { title: g[0].label + ' leads at ' + fmt(g[0].value) + '; ' + round(share, 0) + '% of it is ' + String(pick).toLowerCase(), sub: x.f.val + ' by ' + x.f.cat + ', split by ' + x.f.part }; },
+    build: function (x) {
+      var parts = uniq(x.rows, x.f.part), pick = x.o.pick || parts[0], colors = {}; colors[pick] = C.highlight; parts.filter(function (p) { return p !== pick; }).forEach(function (p, i) { colors[p] = [C.grey, C.secondary, '#D9DDE2'][i % 3]; });
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.cat, measure: x.f.val, series: x.f.part, type: 'hstacked', sort: 'desc', series_order: [pick], title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'top', labels: 'inside', valueAxis: false, colors: colors }) } }];
+    } });
+
+  /* ---------- trends */
+  add({ id: 'actual-forecast', group: 'trend', name: 'Actuals then forecast', question: 'Where are we heading? History solid, forecast lighter.', pic: 'forecast',
+    roles: [{ key: 'period', label: 'Period (in order)', kind: 'text', hint: /year|fy|period|month|quarter|date/ }, { key: 'val', label: 'Value', kind: 'number' }, { key: 'kind', label: 'Actual / forecast column (optional)', kind: 'text', opt: true, hint: /kind|type|status|scenario|actual|forecast|basis/ }],
+    options: [{ key: 'first', label: 'First forecast period (if there is no actual / forecast column)' }],
+    sample: { name: 'Policies sold online', rows: [['FY21', 4.1], ['FY22', 5.6], ['FY23', 7.4], ['FY24', 9.9], ['FY25', 12.8], ['FY26', 16.5], ['FY27', 20.6], ['FY28', 25.1], ['FY29', 29.8], ['FY30', 34.4]].map(function (r) { return { Year: r[0], Policies: r[1] }; }), fields: { period: 'Year', val: 'Policies' }, options: { first: 'FY26' }, unit: 'Policies sold online, millions; FY26 onwards is a forecast, made-up data' },
+    split: function (x) {
+      var g = group(x.rows, x.f.period, x.f.val), fc = {}, seen = false;
+      if (x.f.kind) uniq(x.rows, x.f.period).forEach(function (p) { var r = x.rows.filter(function (q) { return String(q[x.f.period]) === p; })[0]; fc[p] = /fore|proj|plan|est|budget|target|scen/i.test(String(r[x.f.kind])); });
+      else g.forEach(function (p) { if (x.o.first && p.label === String(x.o.first)) seen = true; fc[p.label] = seen; });
+      return g.map(function (p) { return { label: p.label, value: p.value, fc: !!fc[p.label] }; });
+    },
+    draft: function (x) {
+      var s = this.split(x), act = s.filter(function (p) { return !p.fc; }), last = s[s.length - 1], base = act[act.length - 1]; if (!last || !base || last === base) return { title: x.f.val + ' reached ' + fmt(last ? last.value : 0), sub: x.f.val };
+      var n = s.indexOf(last) - s.indexOf(base), g = base.value > 0 && last.value > 0 ? (Math.pow(last.value / base.value, 1 / n) - 1) * 100 : null;
+      return { title: x.f.val + ' is forecast to reach ' + fmt(last.value) + ' by ' + last.label + (g != null ? ', about ' + round(g, 0) + '% a year' : ''), sub: x.f.val + ', ' + s[0].label + '–' + last.label + '; lighter bars are forecast' };
+    },
+    build: function (x) {
+      var s = this.split(x), rows = s.map(function (p) { return { Period: p.label, Basis: p.fc ? 'Forecast' : 'Actual', Value: round(p.value, 2) }; }), act = s.filter(function (p) { return !p.fc; }), base = act[act.length - 1], last = s[s.length - 1];
+      var steps = [{ tool: 'add_dataset', args: { name: x.ds + ' · actual and forecast', rows: rows }, as: 'ds' },
+        { tool: 'insert_chart', args: { dataset: '$ds', by: 'Period', measure: 'Value', series: 'Basis', type: 'stacked', sort: 'source', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'top', labels: true, valueAxis: false, colors: { Actual: C.ink, Forecast: '#8FA8FF' } }) } }];
+      if (base && last && base !== last) steps.push({ tool: 'chart_shapes', args: { action: 'add', chart: '$1', kind: 'cagr', a: { label: base.label, series: 0 }, b: { label: last.label, series: 1 }, periods: s.indexOf(last) - s.indexOf(base) } });
+      return steps;
+    } });
+
+  add({ id: 'stacked-area', group: 'trend', name: 'Stacked area over time', question: 'How has the total grown, and which part drove it?', pic: 'area',
+    roles: [{ key: 'period', label: 'Period (in order)', kind: 'text', hint: /year|fy|period|month|quarter|date/ }, { key: 'part', label: 'Parts', kind: 'text', hint: /line|segment|source|region|type|product|channel/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'pick', label: 'Part to highlight (blank = the one that grew most)' }],
+    sample: { name: 'Premium by line', rows: ['FY17', 'FY18', 'FY19', 'FY20', 'FY21', 'FY22', 'FY23', 'FY24', 'FY25'].reduce(function (a, y, i) { [['Motor', 60 + i * 4], ['Health', 32 + i * 9 + (i > 3 ? 8 : 0)], ['Fire and property', 14 + i * 2], ['Other', 18 + i * 2]].forEach(function (p) { a.push({ Year: y, Line: p[0], Premium: p[1] }); }); return a; }, []), fields: { period: 'Year', part: 'Line', val: 'Premium' }, unit: 'Gross written premium by line, billions, FY17–FY25, made-up data' },
+    grow: function (x) { var per = uniq(x.rows, x.f.period), a = per[0], b = per[per.length - 1]; return uniq(x.rows, x.f.part).map(function (p) { return { label: p, a: sumWhere(x.rows, x.f.val, x.f.part, p, x.f.period, a), b: sumWhere(x.rows, x.f.val, x.f.part, p, x.f.period, b), first: a, last: b }; }).sort(function (p, q) { return (q.b - q.a) - (p.b - p.a); }); },
+    draft: function (x) { var g = this.grow(x); if (!g.length) return {}; var t = g.reduce(function (s, p) { return s + p.b - p.a; }, 0), top = x.o.pick ? g.filter(function (p) { return p.label === x.o.pick; })[0] || g[0] : g[0]; return { title: top.label + ' added ' + fmt(top.b - top.a) + (t > 0 ? ', ' + round((top.b - top.a) / t * 100, 0) + '% of the growth' : '') + ' since ' + top.first, sub: x.f.val + ' by ' + x.f.part + ', ' + top.first + '–' + top.last }; },
+    build: function (x) {
+      var g = this.grow(x), pick = x.o.pick || (g[0] && g[0].label), parts = uniq(x.rows, x.f.part), order = [pick].concat(parts.filter(function (p) { return p !== pick; }));
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.period, measure: x.f.val, series: x.f.part, type: 'stackedarea', sort: 'source', series_order: order, title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, look: look({ legend: 'right', colors: partColours(parts, pick) }) } }];
+    } });
+
+  add({ id: 'line-focus', group: 'trend', name: 'Several lines, one in focus', question: 'How does one series compare with the rest over time?', pic: 'lines',
+    roles: [{ key: 'period', label: 'Period (in order)', kind: 'text', hint: /year|fy|period|month|quarter|date/ }, { key: 'line', label: 'Lines', kind: 'text', hint: /segment|region|line|product|group|company|series/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'pick', label: 'Line in focus (blank = the latest highest)' }, { key: 'dashed', label: 'Line(s) to dash, comma separated (e.g. a projection)' }],
+    sample: { name: 'Loss ratio by segment', rows: ['FY18', 'FY19', 'FY20', 'FY21', 'FY22', 'FY23', 'FY24', 'FY25'].reduce(function (a, y, i) { [['Retail health', [71, 73, 69, 88, 79, 76, 74, 72]], ['Group health', [92, 95, 90, 104, 97, 95, 98, 101]], ['Motor own damage', [66, 64, 58, 62, 67, 69, 70, 71]], ['Commercial', [61, 63, 66, 64, 60, 62, 59, 58]]].forEach(function (p) { a.push({ Year: y, Segment: p[0], 'Loss ratio': p[1][i] }); }); return a; }, []), fields: { period: 'Year', line: 'Segment', val: 'Loss ratio' }, unit: 'Incurred loss ratio, %, FY18–FY25, made-up data' },
+    draft: function (x) {
+      var per = uniq(x.rows, x.f.period), last = per[per.length - 1], lines = uniq(x.rows, x.f.line).map(function (l) { return { label: l, v: sumWhere(x.rows, x.f.val, x.f.line, l, x.f.period, last) }; }).sort(function (a, b) { return b.v - a.v; });
+      var pick = x.o.pick || (lines[0] && lines[0].label), pv = x.rows.filter(function (r) { return String(r[x.f.line]) === pick; }), peak = pv.slice().sort(function (a, b) { return (num(b[x.f.val]) || 0) - (num(a[x.f.val]) || 0); })[0];
+      return { title: pick + (peak ? ' peaked at ' + fmt(num(peak[x.f.val])) + ' in ' + peak[x.f.period] : '') + (lines[0] && lines[0].label === pick ? ' and is still the highest' : ''), sub: x.f.val + ' by ' + x.f.line + ', ' + per[0] + '–' + last };
+    },
+    build: function (x) {
+      var per = uniq(x.rows, x.f.period), last = per[per.length - 1], lines = uniq(x.rows, x.f.line), pick = x.o.pick || lines.slice().sort(function (a, b) { return sumWhere(x.rows, x.f.val, x.f.line, b, x.f.period, last) - sumWhere(x.rows, x.f.val, x.f.line, a, x.f.period, last); })[0];
+      var dashed = String(x.o.dashed || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.period, measure: x.f.val, series: x.f.line, type: 'line', sort: 'source', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'right', highlight: [pick], restColor: C.grey, dashed: dashed.length ? dashed : undefined, straight: true }) } }];
+    } });
+
+  function multiples(x) { return uniq(x.rows, x.f.item).map(function (i) { var a = sumWhere(x.rows, x.f.before, x.f.item, i), b = sumWhere(x.rows, x.f.after, x.f.item, i); return { label: i, a: a, b: b, m: a ? b / a : null }; }); }
+  add({ id: 'growth-multiples', group: 'trend', name: 'Growth multiples (2.5×)', question: 'Which items more than doubled?', pic: 'rank',
+    roles: [{ key: 'item', label: 'Items', kind: 'text', hint: /item|area|trend|technology|product|segment|name/ }, { key: 'before', label: 'Before (number)', kind: 'number', hint: /before|start|base|20\d\d|from|prior|last/ }, { key: 'after', label: 'After (number)', kind: 'number', hint: /after|end|now|latest|to|current/ }],
+    options: [{ key: 'cut', label: 'Highlight from (multiple)', type: 'number', value: 2 }],
+    sample: { name: 'Investment by technology area', rows: [['Agentic AI', 0.6, 7.7], ['Claims automation', 2.1, 5.8], ['Telematics', 1.4, 2.2], ['Cyber analytics', 1.1, 3.4], ['Parametric cover', 0.4, 1.5], ['Core system cloud', 3.2, 4.0], ['Fraud detection', 1.8, 2.5], ['Embedded insurance', 0.9, 2.3]].map(function (r) { return { Area: r[0], FY25: r[1], FY26: r[2] }; }), fields: { item: 'Area', before: 'FY25', after: 'FY26' }, unit: 'Investment FY26 as a multiple of FY25, made-up data' },
+    draft: function (x) { var m = multiples(x).filter(function (q) { return q.m != null; }).sort(function (a, b) { return b.m - a.m; }), cut = num(x.o.cut) || 2, over = m.filter(function (q) { return q.m >= cut; }); if (!m.length) return {}; return { title: over.length + ' of ' + m.length + ' at least ' + (cut === 2 ? 'doubled' : 'grew ' + cut + '×') + '; ' + m[0].label + ' grew most at ' + round(m[0].m) + '×', sub: x.f.after + ' as a multiple of ' + x.f.before }; },
+    build: function (x) {
+      var m = multiples(x).filter(function (q) { return q.m != null; }), cut = num(x.o.cut) || 2;
+      return [{ tool: 'add_dataset', args: { name: x.ds + ' · multiples', rows: m.map(function (q) { return { Item: q.label, Multiple: round(q.m, 2), Before: q.a, After: q.b }; }) }, as: 'ds' },
+        { tool: 'insert_chart', args: { dataset: '$ds', by: 'Item', measure: 'Multiple', type: 'hbar', sort: 'desc', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{value:0.0}× ({Before:short} to {After:short})', look: look({ legend: 'none', labels: true, labelFormat: '0.0', labelSuffix: '×', valueAxis: false, highlight: m.filter(function (q) { return q.m >= cut; }).map(function (q) { return q.label; }), refs: [{ axis: 'x', value: 1, label: '1× (no growth)' }] }) } }];
+    } });
+
+  add({ id: 'small-multiples', group: 'trend', name: 'Small multiples', question: 'The same small chart for each item, side by side.', pic: 'multiples', titleOnPage: true,
+    roles: [{ key: 'panel', label: 'One chart for each', kind: 'text', hint: /area|segment|region|product|trend|state|country|line/ }, { key: 'period', label: 'Across (e.g. years)', kind: 'text', hint: /year|fy|period|month|quarter|date/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'type', label: 'Chart', type: 'select', options: [{ value: 'bar', label: 'Columns' }, { value: 'line', label: 'Line' }], value: 'bar' }, { key: 'max', label: 'Most charts', type: 'number', value: 6 }, { key: 'cut', label: 'Highlight items that grew at least (multiple)', type: 'number', value: 2 }],
+    sample: { name: 'Claims by region', rows: ['North', 'South', 'East', 'West', 'Central', 'North-east'].reduce(function (a, r, k) { [[120, 135, 150, 171], [210, 228, 260, 412], [90, 88, 95, 101], [180, 230, 290, 380], [60, 64, 70, 72], [20, 28, 35, 48]][k].forEach(function (v, i) { a.push({ Region: r, Quarter: 'Q' + (i + 1), Claims: v }); }); return a; }, []), fields: { panel: 'Region', period: 'Quarter', val: 'Claims' }, unit: 'Claims reported per quarter, thousands, FY26, made-up data' },
+    panels: function (x) { var per = uniq(x.rows, x.f.period), a = per[0], b = per[per.length - 1], max = num(x.o.max) || 6; return uniq(x.rows, x.f.panel).slice(0, max).map(function (p) { var va = sumWhere(x.rows, x.f.val, x.f.panel, p, x.f.period, a), vb = sumWhere(x.rows, x.f.val, x.f.panel, p, x.f.period, b); return { label: p, m: va ? vb / va : null }; }); },
+    draft: function (x) { var p = this.panels(x), cut = num(x.o.cut) || 2, over = p.filter(function (q) { return q.m != null && q.m >= cut; }), per = uniq(x.rows, x.f.period); return { title: over.length ? over.map(function (q) { return q.label; }).slice(0, 3).join(', ') + (over.length > 1 ? ' have' : ' has') + ' grown ' + (cut === 2 ? 'twofold' : cut + '×') + ' or more since ' + per[0] : 'No ' + x.f.panel.toLowerCase() + ' has grown ' + cut + '× since ' + per[0], sub: x.f.val + ' by ' + x.f.period + ', one chart for each ' + x.f.panel.toLowerCase() }; },
+    build: function (x) {
+      var p = this.panels(x), cut = num(x.o.cut) || 2, span = p.length <= 2 ? 6 : p.length === 4 ? 6 : 4;
+      var s = [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0;color:#4B5563">' + esc(x.sub) + '</p>', span: 12 }, as: 'block' }];
+      p.forEach(function (q) {
+        s.push({ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.period, measure: x.f.val, type: x.o.type || 'bar', sort: 'source', where: [{ field: x.f.panel, op: 'eq', value: q.label }], span: span, height: 200, title: q.label + (q.m != null ? ' · ' + round(q.m) + '×' : '') } });
+        s.push({ tool: 'chart_settings', args: { chart: '$' + (s.filter(function (t) { return t.tool === 'insert_chart'; }).length), subtitle: '', look: look({ legend: 'none', labels: true, valueAxis: false, highlight: [], restColor: q.m != null && q.m >= cut ? C.highlight : C.secondary }) } });
+      });
+      return s;
+    } });
+
+  add({ id: 'percentile-curve', group: 'trend', name: 'Sorted curve (percentiles)', question: 'How uneven is it? Everyone sorted from lowest to highest.', pic: 'curve',
+    roles: [{ key: 'name', label: 'Items', kind: 'text', hint: /name|agent|item|branch|policy|skill|id/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'name_top', label: 'Name the top', type: 'number', value: 3 }],
+    sample: { name: 'Policies per agent', rows: (function () { var out = [], seed = 7; for (var i = 1; i <= 80; i++) { seed = (seed * 9301 + 49297) % 233280; var r = seed / 233280; out.push({ Agent: 'Agent ' + (i < 10 ? '0' : '') + i, Policies: Math.round(8 + 140 * Math.pow(r, 3.2)) }); } return out; })(), fields: { name: 'Agent', val: 'Policies' }, unit: 'Policies sold per agent, FY25, sorted lowest to highest, made-up agents' },
+    curve: function (x) { var v = uniq(x.rows, x.f.name).map(function (n) { return { n: n, v: sumWhere(x.rows, x.f.val, x.f.name, n) }; }).sort(function (a, b) { return a.v - b.v; }), N = v.length; return v.map(function (p, i) { return { n: p.n, v: p.v, p: N > 1 ? Math.round(i / (N - 1) * 100) : 100 }; }); },
+    draft: function (x) { var c = this.curve(x), vals = c.map(function (p) { return p.v; }), q3 = pctile(vals, 0.75), md = pctile(vals, 0.5); if (!c.length) return {}; return { title: 'The top quarter sit above ' + fmt(q3) + (md ? ', ' + round(q3 / md) + '× the median of ' + fmt(md) : ''), sub: x.f.val + ' by ' + x.f.name + ', sorted lowest to highest (percentile)' }; },
+    build: function (x) {
+      var c = this.curve(x), seen = {}, rows = [];
+      c.forEach(function (p) { var k = 'P' + p.p; if (seen[k]) { seen[k].Value = Math.max(seen[k].Value, p.v); seen[k].Name = p.n; return; } seen[k] = { Percentile: k, Value: p.v, Name: p.n }; rows.push(seen[k]); });
+      var top = rows.slice().sort(function (a, b) { return b.Value - a.Value; }).slice(0, num(x.o.name_top) == null ? 3 : num(x.o.name_top));
+      var s = [{ tool: 'add_dataset', args: { name: x.ds + ' · sorted', rows: rows }, as: 'ds' },
+        { tool: 'insert_chart', args: { dataset: '$ds', by: 'Percentile', measure: 'Value', type: 'line', sort: 'source', title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{Name}: {value:short}', look: look({ legend: 'none', colors: { Value: C.highlight }, refs: [{ axis: 'y', value: round(pctile(c.map(function (p) { return p.v; }), 0.5), 2), label: 'median' }] }) } }];
+      top.forEach(function (t, i) { s.push({ tool: 'annotate', args: { action: 'add', chart: '$1', label: t.Percentile, kind: 'callout', text: t.Name + ': ' + fmt(t.Value), dx: -150 - i * 10, dy: 24 + i * 34 } }); });
+      return s;
+    } });
+
+  /* ---------- composition */
+  add({ id: 'pyramid', group: 'composition', name: 'Population pyramid', question: 'How do two groups compare across bands, back to back?', pic: 'pyramid',
+    roles: [{ key: 'band', label: 'Bands (e.g. age)', kind: 'text', hint: /age|band|bucket|tenure|range|group/ }, { key: 'side', label: 'The two sides', kind: 'text', hint: /gender|sex|side|group|type|segment/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    sample: { name: 'Policyholders by age', rows: [['70+', 42, 51], ['60–69', 88, 94], ['50–59', 131, 126], ['40–49', 168, 152], ['30–39', 192, 171], ['18–29', 121, 109]].reduce(function (a, r) { a.push({ Age: r[0], Gender: 'Men', Policyholders: r[1] }); a.push({ Age: r[0], Gender: 'Women', Policyholders: r[2] }); return a; }, []), fields: { band: 'Age', side: 'Gender', val: 'Policyholders' }, unit: 'Health policyholders by age band, thousands, March 2026, made-up data' },
+    draft: function (x) { var s = uniq(x.rows, x.f.side).slice(0, 2), g = sorted(group(x.rows, x.f.band, x.f.val)), t = total(g); if (!g.length) return {}; return { title: g[0].label + ' is the largest band, ' + round(g[0].value / (t || 1) * 100, 0) + '% of ' + x.f.val.toLowerCase(), sub: x.f.val + ' by ' + x.f.band + '; ' + s[0] + ' left, ' + (s[1] || '') + ' right' }; },
+    build: function (x) {
+      var s = uniq(x.rows, x.f.side).slice(0, 2), colors = {}; colors[s[0]] = C.ink; if (s[1]) colors[s[1]] = C.highlight;
+      return [{ tool: 'insert_chart', args: { dataset: x.ds, by: x.f.band, measure: x.f.val, series: x.f.side, type: 'pyramid', sort: 'source', series_only: s, series_order: s, title: x.title } },
+        { tool: 'chart_settings', args: { chart: '$1', subtitle: x.sub, tooltip: '{label}\n{series}: {value:short}', look: look({ legend: 'top', labels: 'inside', colors: colors }) } }];
+    } });
+
+  Ly.marimekkoHtml = function (cols, parts, pick, colors) {
+    var T = cols.reduce(function (t, c) { return t + c.total; }, 0) || 1, W = 900, H = 300, x0 = 0, out = '';
+    cols.forEach(function (c) {
+      var w = c.total / T * W, y0 = 0;
+      parts.forEach(function (p) {
+        var v = c.parts[p] || 0, hh = c.total ? v / c.total * H : 0; if (hh <= 0) return;
+        out += '<rect x="' + (x0 + 1).toFixed(1) + '" y="' + (y0 + 1).toFixed(1) + '" width="' + Math.max(0, w - 2).toFixed(1) + '" height="' + Math.max(0, hh - 2).toFixed(1) + '" fill="' + colors[p] + '"><title>' + esc(c.label + ' · ' + p + ': ' + fmt(v)) + '</title></rect>';
+        if (w > 44 && hh > 16) out += '<text x="' + (x0 + w / 2).toFixed(1) + '" y="' + (y0 + hh / 2 + 4).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">' + Math.round(v / c.total * 100) + '%</text>';
+        y0 += hh;
+      });
+      out += '<text x="' + (x0 + w / 2).toFixed(1) + '" y="' + (H + 16) + '" text-anchor="middle" font-size="11" fill="#374151">' + esc(c.label) + '</text><text x="' + (x0 + w / 2).toFixed(1) + '" y="' + (H + 30) + '" text-anchor="middle" font-size="10" fill="#6B7280">' + Math.round(c.total / T * 100) + '% of total</text>';
+      x0 += w;
+    });
+    var legend = parts.map(function (p) { return '<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px"><i style="width:10px;height:10px;display:inline-block;background:' + colors[p] + '"></i>' + esc(p) + '</span>'; }).join('');
+    return '<div class="ms-mekko"><div style="font-size:11px;color:#374151;margin-bottom:6px">' + legend + '</div><svg viewBox="0 0 ' + W + ' ' + (H + 36) + '" width="100%" style="max-height:380px" role="img" aria-label="Marimekko chart">' + out + '</svg>' +
+      '<p style="font-size:11px;color:#4B5563;margin:4px 0 0">Column width = share of the total; height inside a column = share of that column. A picture of the data: rebuild it (Edit layout) when the numbers change.</p></div>';
+  };
+  add({ id: 'marimekko', group: 'composition', name: 'Marimekko (mekko)', question: 'How big is each market, and who or what wins inside it?', pic: 'mekko',
+    roles: [{ key: 'col', label: 'Columns (e.g. markets)', kind: 'text', hint: /market|line|segment|region|cost|category/ }, { key: 'part', label: 'Parts inside each column', kind: 'text', hint: /channel|player|company|type|part|measure/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'pick', label: 'Part to highlight (blank = the biggest overall)' }],
+    sample: { name: 'Premium by line and channel', rows: [['Motor', [['Agency', 34], ['Dealers', 41], ['Online', 18], ['Banks', 7]]], ['Health', [['Agency', 46], ['Dealers', 0], ['Online', 16], ['Banks', 24]]], ['Commercial', [['Agency', 22], ['Dealers', 0], ['Online', 3], ['Banks', 9]]], ['Other', [['Agency', 9], ['Dealers', 2], ['Online', 6], ['Banks', 5]]]].reduce(function (a, c) { c[1].forEach(function (p) { a.push({ Line: c[0], Channel: p[0], Premium: p[1] }); }); return a; }, []), fields: { col: 'Line', part: 'Channel', val: 'Premium' }, unit: 'Gross written premium by line and channel, billions, FY25, made-up data' },
+    cols: function (x) { var parts = uniq(x.rows, x.f.part); return { parts: parts, cols: sorted(group(x.rows, x.f.col, x.f.val)).map(function (c) { var o = {}; parts.forEach(function (p) { o[p] = sumWhere(x.rows, x.f.val, x.f.col, c.label, x.f.part, p); }); return { label: c.label, total: c.value, parts: o }; }) }; },
+    draft: function (x) { var m = this.cols(x), T = m.cols.reduce(function (t, c) { return t + c.total; }, 0); if (!m.cols.length) return {}; var c = m.cols[0], best = m.parts.slice().sort(function (a, b) { return (c.parts[b] || 0) - (c.parts[a] || 0); })[0]; return { title: c.label + ' is ' + round(c.total / (T || 1) * 100, 0) + '% of the total, and ' + best + ' wins ' + round((c.parts[best] || 0) / (c.total || 1) * 100, 0) + '% of it', sub: x.f.val + ' by ' + x.f.col + ' and ' + x.f.part }; },
+    build: function (x) {
+      var m = this.cols(x), tot = {}; m.parts.forEach(function (p) { tot[p] = m.cols.reduce(function (t, c) { return t + (c.parts[p] || 0); }, 0); });
+      var pick = x.o.pick || m.parts.slice().sort(function (a, b) { return tot[b] - tot[a]; })[0];
+      return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 6px;color:#4B5563;font-size:12px">' + esc(x.sub) + '</p>' + Ly.marimekkoHtml(m.cols, m.parts, pick, partColours(m.parts, pick)), span: 8 }, as: 'block' }];
+    } });
+
+  function yes(v) { if (typeof v === 'number') return v > 0; return /^(y|yes|true|1|x|✓)$/i.test(String(v == null ? '' : v).trim()); }
+  Ly.vennHtml = function (names, z) {
+    var c = [[150, 120, '#2251FF'], [250, 120, '#051C2C'], [200, 205, '#7F8C99']], T = Object.keys(z).reduce(function (t, k) { return t + z[k]; }, 0) || 1;
+    var lab = function (k, x_, y_) { return '<text x="' + x_ + '" y="' + y_ + '" text-anchor="middle" font-size="12" font-weight="700" fill="#111827">' + fmt(z[k] || 0) + '</text><text x="' + x_ + '" y="' + (y_ + 13) + '" text-anchor="middle" font-size="10" fill="#374151">' + Math.round((z[k] || 0) / T * 100) + '%</text>'; };
+    var svg = c.map(function (q) { return '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="92" fill="' + q[2] + '" fill-opacity="0.14" stroke="' + q[2] + '" stroke-width="1.5"/>'; }).join('') +
+      lab('a', 110, 95) + lab('b', 290, 95) + lab('c', 200, 260) + lab('ab', 200, 82) + lab('ac', 145, 185) + lab('bc', 255, 185) + lab('abc', 200, 150) +
+      '<text x="70" y="22" font-size="12" font-weight="600" fill="#2251FF">' + esc(names[0]) + '</text><text x="330" y="22" text-anchor="end" font-size="12" font-weight="600" fill="#051C2C">' + esc(names[1]) + '</text><text x="200" y="318" text-anchor="middle" font-size="12" font-weight="600" fill="#4B5563">' + esc(names[2]) + '</text>';
+    return '<div class="ms-venn"><svg viewBox="0 0 400 326" width="100%" style="max-width:460px;display:block;margin:auto" role="img" aria-label="Three-set overlap">' + svg + '</svg>' +
+      '<p style="font-size:11px;color:#4B5563;margin:4px 0 0">' + fmt(z.none || 0) + ' (' + Math.round((z.none || 0) / T * 100) + '%) is in none of the three. A picture of the data: rebuild it (Edit layout) when the numbers change.</p></div>';
+  };
+  add({ id: 'overlap-venn', group: 'composition', name: 'Three-way overlap', question: 'How much is exposed to one, two or all three risks?', pic: 'venn',
+    roles: [{ key: 'item', label: 'Items', kind: 'text', hint: /item|supplier|product|name|vendor|risk|id/ }, { key: 'a', label: 'First test (yes / no or 1 / 0)', kind: 'text', hint: /critical|first|a$/ }, { key: 'b', label: 'Second test', kind: 'text', hint: /concentr|second|b$/ }, { key: 'c', label: 'Third test', kind: 'text', hint: /hard|distant|third|c$/ }, { key: 'val', label: 'Value (optional; blank counts items)', kind: 'number', opt: true }],
+    sample: { name: 'Vendor exposure', rows: [['Core policy system', 'Yes', 'Yes', 'Yes', 42], ['Claims platform', 'Yes', 'Yes', 'No', 31], ['Payment gateway', 'Yes', 'No', 'No', 18], ['Data centre', 'Yes', 'Yes', 'Yes', 26], ['Call centre', 'No', 'Yes', 'No', 14], ['Reinsurance broker', 'Yes', 'No', 'Yes', 22], ['Print and mail', 'No', 'No', 'No', 6], ['Cloud analytics', 'No', 'Yes', 'Yes', 19], ['Survey network', 'No', 'No', 'Yes', 9], ['Security operations', 'Yes', 'No', 'Yes', 12]].map(function (r) { return { Vendor: r[0], Critical: r[1], Concentrated: r[2], 'Hard to replace': r[3], Spend: r[4] }; }), fields: { item: 'Vendor', a: 'Critical', b: 'Concentrated', c: 'Hard to replace', val: 'Spend' }, unit: 'Vendor spend, millions, FY25, by the three tests it meets, made-up vendors' },
+    zones: function (x) { var z = { a: 0, b: 0, c: 0, ab: 0, ac: 0, bc: 0, abc: 0, none: 0 }; x.rows.forEach(function (r) { var k = (yes(r[x.f.a]) ? 'a' : '') + (yes(r[x.f.b]) ? 'b' : '') + (yes(r[x.f.c]) ? 'c' : '') || 'none'; z[k] += x.f.val ? (num(r[x.f.val]) || 0) : 1; }); return z; },
+    draft: function (x) { var z = this.zones(x), T = Object.keys(z).reduce(function (t, k) { return t + z[k]; }, 0) || 1, any = T - z.none; return { title: round(any / T * 100, 0) + '% ' + (x.f.val ? 'of ' + x.f.val.toLowerCase() : 'of items') + ' meets at least one test; ' + round(z.abc / T * 100, 0) + '% meets all three', sub: (x.f.val || 'Count of ' + x.f.item) + ' by ' + [x.f.a, x.f.b, x.f.c].join(', ') }; },
+    build: function (x) { return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 6px;color:#4B5563;font-size:12px">' + esc(x.sub) + '</p>' + Ly.vennHtml([x.f.a, x.f.b, x.f.c], this.zones(x)), span: 6 }, as: 'block' }]; } });
+
+  Ly.dotsHtml = function (items) {
+    return '<div class="ms-dotstats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">' + items.map(function (it, k) {
+      var n = Math.max(0, Math.min(100, Math.round(it.v))), dots = '';
+      for (var i = 0; i < 100; i++) dots += '<circle cx="' + (6 + (i % 10) * 11) + '" cy="' + (6 + Math.floor(i / 10) * 11) + '" r="4" fill="' + (i < n ? (k === 0 ? C.highlight : C.ink) : '#D9DDE2') + '"/>';
+      return '<div style="text-align:left"><div style="font-size:28px;font-weight:700;color:' + (k === 0 ? C.highlight : C.ink) + '">' + n + '%</div><div style="font-size:12px;color:#374151;margin:2px 0 6px;min-height:30px">' + esc(it.label) + '</div><svg viewBox="0 0 112 112" width="112" height="112" role="img" aria-label="' + n + ' of 100">' + dots + '</svg></div>';
+    }).join('') + '</div>';
+  };
+  add({ id: 'dot-matrix-stats', group: 'composition', name: 'Big numbers with 100-dot grids', question: 'A few headline percentages, each out of 100.', pic: 'dots',
+    roles: [{ key: 'label', label: 'Statement', kind: 'text', hint: /step|stage|statement|label|measure|item|question/ }, { key: 'val', label: 'Percentage (0–100)', kind: 'number', hint: /pct|percent|share|%/ }],
+    options: [{ key: 'max', label: 'Most panels', type: 'number', value: 6 }],
+    sample: { name: 'Digital use along the journey', rows: [['used a digital tool to research cover', 74], ['compared quotes online', 58], ['asked an AI assistant a question', 37], ['bought the policy online', 29], ['filed a claim in the app', 22], ['let an AI agent renew for them', 6]].map(function (r) { return { Step: r[0], Share: r[1] }; }), fields: { label: 'Step', val: 'Share' }, unit: '% of policyholders, last 12 months, made-up survey' },
+    draft: function (x) { var g = group(x.rows, x.f.label, x.f.val, 'avg'), top = sorted(g)[0], bot = sorted(g, 'asc')[0]; if (!top) return {}; return { title: round(top.value, 0) + '% ' + top.label + (bot && bot !== top ? ', but only ' + round(bot.value, 0) + '% ' + bot.label : ''), sub: x.f.val + ', %' }; },
+    build: function (x) { var g = group(x.rows, x.f.label, x.f.val, 'avg').slice(0, num(x.o.max) || 6).map(function (q) { return { label: q.label, v: q.value }; }); return [{ tool: 'insert_text_block', args: { title: x.title, html: '<p style="margin:0 0 10px;color:#4B5563;font-size:12px">' + esc(x.sub) + '</p>' + Ly.dotsHtml(g), span: 12 }, as: 'block' }]; } });
+
+  add({ id: 'heat-grid', group: 'composition', name: 'Heat grid (rows × columns)', question: 'Across many items and measures, where are the hot spots?', pic: 'heat',
+    roles: [{ key: 'row', label: 'Rows', kind: 'text', hint: /region|state|country|branch|economy|item|name/ }, { key: 'col', label: 'Columns', kind: 'text', hint: /measure|kpi|element|metric|dimension|factor/ }, { key: 'val', label: 'Value', kind: 'number' }],
+    options: [{ key: 'better', label: 'Darker means', type: 'select', options: [{ value: 'high', label: 'Higher (good or important)' }, { value: 'low', label: 'Lower' }], value: 'high' }],
+    sample: { name: 'Branch scorecard', rows: [['Mumbai', [82, 71, 64, 90]], ['Delhi', [77, 58, 69, 84]], ['Bengaluru', [88, 79, 72, 93]], ['Chennai', [74, 66, 81, 79]], ['Kolkata', [61, 52, 57, 70]], ['Hyderabad', [85, 74, 68, 88]]].reduce(function (a, r) { ['Customer score', 'Claims speed', 'Renewal rate', 'Digital share'].forEach(function (k, i) { a.push({ Branch: r[0], Measure: k, Score: r[1][i] }); }); return a; }, []), fields: { row: 'Branch', col: 'Measure', val: 'Score' }, unit: 'Score out of 100 by branch and measure, FY25, made-up data' },
+    pivot: function (x) { var cols = uniq(x.rows, x.f.col); return { cols: cols, rows: uniq(x.rows, x.f.row).map(function (r) { var o = {}; o[x.f.row] = r; cols.forEach(function (c) { o[c] = round(sumWhere(x.rows, x.f.val, x.f.row, r, x.f.col, c), 2); }); return o; }) }; },
+    draft: function (x) { var p = this.pivot(x), lo = null; p.rows.forEach(function (r) { p.cols.forEach(function (c) { if (!lo || (x.o.better === 'low' ? r[c] > lo.v : r[c] < lo.v)) lo = { r: r[x.f.row], c: c, v: r[c] }; }); }); return lo ? { title: lo.r + ' lags most on ' + lo.c.toLowerCase() + ' at ' + fmt(lo.v), sub: x.f.val + ' by ' + x.f.row + ' and ' + x.f.col + '; darker is ' + (x.o.better === 'low' ? 'lower' : 'higher') } : {}; },
+    build: function (x) {
+      var p = this.pivot(x), hi = x.o.better !== 'low';
+      return [{ tool: 'add_dataset', args: { name: x.ds + ' · grid', rows: p.rows }, as: 'ds' },
+        { tool: 'insert_table', args: { dataset: '$ds', title: x.title, span: 8 }, as: 'table' },
+        { tool: 'table_rules', args: { table: '$table', action: 'set', rules: p.cols.map(function (c) { return { col: c, type: 'scale', low: '#F1F4F8', mid: '', high: '#2251FF', higher: hi }; }) } }];
+    } });
+
   /* ---------------------------------------------------------- matching columns, running a layout */
   Ly.get = function (id) { var l = L.filter(function (x) { return x.id === id; })[0]; if (!l) throw new Error('No chart layout "' + id + '". Layouts: ' + L.map(function (x) { return x.id; }).join(', ')); return l; };
   // A best guess at which column plays each role: by name first, then by kind (text / number), each column once.
@@ -512,38 +818,95 @@
     if (v && typeof v === 'object') { var o = {}; Object.keys(v).forEach(function (k) { o[k] = sub(v[k], refs); }); return o; }
     return v;
   }
-  // a: { dataset, sample, fields: {role: column}, options, title, subtitle, source, as_of }  ->  Promise<{ layout, charts, dataset, title, issues }>
+  // Runs a layout's steps (inside the caller's undo group) and records the run, so "Edit layout" can redo it later.
+  function runSteps(lay, a, ds, child) {
+    var issues = [], refs = {}, charts = [], units = [], derived = [];
+    var x = context(lay, a, lay.roles.length ? ds : null), steps = lay.build(x);
+    return steps.reduce(function (p, s, i) {
+      return p.then(function () {
+        if (MS.child !== child) throw new Error('The dashboard changed while the layout was being inserted.');
+        if (s.ifChart && !charts.length) return;
+        return MS.api.run(s.tool, sub(s.args, refs)).then(function (res) {
+          if (s.tool === 'insert_chart' && res && res.key) { charts.push(res.key); refs[String(charts.length)] = res.key; }
+          if (s.as === 'ds') { refs.ds = res && res.name; if (res && res.name) derived.push(res.name); }
+          if (s.as === 'table') refs.table = res && res.table;
+          if (s.as === 'block') refs.block = res && res.ref;
+          if (res && res.ref && s.tool !== 'insert_chart') units.push(res.ref);
+        }, function (e) { issues.push('Step ' + (i + 1) + ' (' + s.tool + '): ' + e.message); });
+      });
+    }, Promise.resolve()).then(function () {
+      // the action title goes in through chart_settings so the commentary header and the chart agree
+      var p = charts[0] && !lay.titleOnPage ? MS.api.run('chart_settings', { chart: charts[0], title: x.title }).catch(function (e) { issues.push(e.message); }) : Promise.resolve();
+      if (x.source && lay.id !== 'house-style') charts.forEach(function (k) { p = p.then(function () { return MS.api.run('chart_source', { chart: k, text: x.source, as_of: x.asOf || undefined }).catch(function (e) { issues.push(e.message); }); }); });
+      return p;
+    }).then(function () {
+      var run = null;
+      if (lay.roles.length && (charts.length || units.length)) {
+        run = MS.rt().uid('lay');
+        var rec = { layout: lay.id, dataset: ds, fields: x.f, options: x.o, title: x.title, subtitle: x.sub, source: x.source || '', as_of: x.asOf || '', charts: charts, refs: units, derived: derived };
+        MS.history.state('Chart layout record', function (st) { st.layoutRuns = st.layoutRuns || {}; st.layoutRuns[run] = JSON.parse(JSON.stringify(rec)); });
+      }
+      return { layout: lay.id, name: lay.name, run: run, charts: charts, units: units, dataset: ds || null, title: x.title, subtitle: x.sub, issues: issues };
+    });
+  }
+  // a: { dataset, sample, fields: {role: column}, options, title, subtitle, source, as_of }  ->  Promise<{ layout, run, charts, dataset, title, issues }>
   Ly.insert = function (id, a) {
     var lay = Ly.get(id), r = rt(); a = a || {};
     if (MS.firm && MS.firm.locked && MS.firm.locked() && MS.firm.blocks('chart layout colours')) return Promise.reject(MS.firm.lockedError());
-    var ds = a.dataset, child = MS.child, issues = [], refs = {}, charts = [];
+    var ds = a.dataset, child = MS.child;
     if (lay.roles.length && !ds && !a.sample) return Promise.reject(new Error('Say which dataset to use, or sample: true to try it on sample data.'));
     if (ds && !a.sample && !r.state.datasets[ds]) return Promise.reject(new Error('No dataset "' + ds + '". Datasets: ' + Object.keys(r.state.datasets).join(', ')));
-    var label = 'Insert chart layout ' + lay.name;
-    return MS.history.groupAsync(label, function () {
+    return MS.history.groupAsync('Insert chart layout ' + lay.name, function () {
       if (a.sample && lay.roles.length) ds = MS.data.addDataset(a.dataset || lay.sample.name, sampleRows(lay), true);
-      var x = context(lay, a, lay.roles.length ? ds : null), steps = lay.build(x);
-      return steps.reduce(function (p, s, i) {
-        return p.then(function () {
-          if (MS.child !== child) throw new Error('The dashboard changed while the layout was being inserted.');
-          if (s.ifChart && !charts.length) return;
-          return MS.api.run(s.tool, sub(s.args, refs)).then(function (res) {
-            if (s.tool === 'insert_chart' && res && res.key) { charts.push(res.key); refs[String(charts.length)] = res.key; }
-            if (s.as === 'ds') refs.ds = res && res.name;
-            if (s.as === 'table') refs.table = res && res.table;
-            if (s.as === 'block') refs.block = res && res.ref;
-          }, function (e) { issues.push('Step ' + (i + 1) + ' (' + s.tool + '): ' + e.message); });
-        });
-      }, Promise.resolve()).then(function () {
-        // the action title goes in through chart_settings so the commentary header and the chart agree
-        var p = charts[0] && !lay.titleOnPage ? MS.api.run('chart_settings', { chart: charts[0], title: x.title }).catch(function (e) { issues.push(e.message); }) : Promise.resolve();
-        if (x.source && lay.id !== 'house-style') charts.forEach(function (k) { p = p.then(function () { return MS.api.run('chart_source', { chart: k, text: x.source, as_of: x.asOf || undefined }).catch(function (e) { issues.push(e.message); }); }); });
-        return p;
-      }).then(function () { return { layout: lay.id, name: lay.name, charts: charts, dataset: ds || null, title: x.title, subtitle: x.sub, issues: issues }; });
-    }).then(function (res) {
-      MS.afterDomChange();
-      return res;
-    });
+      return runSteps(lay, a, ds, child);
+    }).then(function (res) { MS.afterDomChange(); return res; });
+  };
+
+  /* ---------------------------------------------------------- editing a layout after it is in: other columns, options, words, or another layout */
+  Ly.runs = function () {
+    var r = MS.rt(), runs = (r && r.state.layoutRuns) || {};
+    return Object.keys(runs).map(function (id) { var x = runs[id]; return { run: id, layout: x.layout, name: (L.filter(function (l) { return l.id === x.layout; })[0] || {}).name || x.layout, dataset: x.dataset, fields: x.fields, options: x.options, title: x.title, charts: x.charts || [], live: (x.charts || []).filter(function (k) { return !!r.chart(k); }).length }; });
+  };
+  // The run a chart (key or name) or block ref belongs to.
+  Ly.runOf = function (which) {
+    var r = MS.rt(); if (!r || !which) return null;
+    var runs = r.state.layoutRuns || {}; if (runs[which]) return which;
+    var key = null; try { key = MS.api.chartKey ? MS.api.chartKey(which) : null; } catch (e) {}
+    if (!key && r.state.charts[which]) key = which;
+    for (var id in runs) { var x = runs[id]; if ((key && (x.charts || []).indexOf(key) >= 0) || (x.refs || []).indexOf(which) >= 0) return id; }
+    return null;
+  };
+  function unitsOf(x) {
+    var r = MS.rt(), out = [];
+    (x.charts || []).forEach(function (k) { var c = r.chart(k); var u = c && (MS.blocks.of(c.el) || c.el); if (u && u.isConnected && out.indexOf(u) < 0) out.push(u); });
+    (x.refs || []).forEach(function (ref) { var e = null; try { e = MS.api.elOf(ref); } catch (er) {} var u = e && (MS.blocks.of(e) || e); if (u && u.isConnected && out.indexOf(u) < 0) out.push(u); });
+    return out.sort(function (p, q) { return p.compareDocumentPosition(q) & 4 ? -1 : 1; });
+  }
+  // ch: { layout (switch to another), dataset, fields, options, title, subtitle, source, as_of, keep_title }
+  Ly.edit = function (which, ch) {
+    var r = rt(), id = Ly.runOf(which); ch = ch || {};
+    if (!id) return Promise.reject(new Error('That chart was not inserted from a chart layout (or its record is gone). Use chart_edit to reshape it, or insert a layout again.'));
+    var old = JSON.parse(JSON.stringify(r.state.layoutRuns[id])), lay = Ly.get(ch.layout || old.layout), switched = lay.id !== old.layout, child = MS.child;
+    var ds = ch.dataset || old.dataset;
+    if (!r.state.datasets[ds]) return Promise.reject(new Error('No dataset "' + ds + '". Datasets: ' + Object.keys(r.state.datasets).join(', ')));
+    var numbersChanged = switched || ch.dataset || ch.fields || ch.options;
+    var a = { dataset: ds, fields: switched && !ch.fields ? {} : Object.assign({}, switched ? {} : old.fields, ch.fields || {}), options: Object.assign({}, switched ? {} : old.options, ch.options || {}),
+      title: ch.title != null ? ch.title : (ch.keep_title || !numbersChanged ? old.title : undefined), subtitle: ch.subtitle != null ? ch.subtitle : (ch.keep_title || !numbersChanged ? old.subtitle : undefined),
+      source: ch.source != null ? ch.source : old.source, as_of: ch.as_of != null ? ch.as_of : old.as_of };
+    if (switched && !ch.fields) a.fields = {}; // let the new layout guess its columns
+    try { context(lay, a, ds); } catch (e) { return Promise.reject(e); }
+    var oldUnits = unitsOf(old), anchor = oldUnits[0] || null;
+    return MS.history.groupAsync('Edit chart layout ' + lay.name, function () {
+      MS.history.state('Chart layout record', function (st) { (old.derived || []).forEach(function (n) { if (n !== ds) delete st.datasets[n]; }); if (st.layoutRuns) delete st.layoutRuns[id]; });
+      return runSteps(lay, a, ds, child).then(function (res) {
+        var fresh = unitsOf({ charts: res.charts, refs: res.units });
+        if (anchor) fresh.forEach(function (u) { MS.move.to(u, { before: anchor }); });
+        oldUnits.forEach(function (u) { if (u.isConnected) MS.blocks.remove(u); });
+        if (!anchor) res.issues.push('The old charts were not found on the page, so the new ones were added at the end.');
+        res.replaced = old.charts || [];
+        return res;
+      });
+    }).then(function (res) { MS.afterDomChange(); var rr = MS.rt(); if (rr) rr.refresh(); return res; });
   };
   Ly.list = function () {
     return L.map(function (l) { return { id: l.id, group: l.group, name: l.name, question: l.question, columns: l.roles.map(function (r) { return { role: r.key, label: r.label, kind: r.kind, optional: !!r.opt }; }), options: (l.options || []).map(function (o) { return { key: o.key, label: o.label, default: o.value }; }) }; });
@@ -566,6 +929,21 @@
     pair: [0, 1, 2, 3].map(function (i) { return '<rect x="' + (10 + i * 21) + '" y="' + (14 + i * 3) + '" width="8" height="' + (46 - i * 3) + '" fill="#B8BEC6"/><rect x="' + (18 + i * 21) + '" y="' + (34 + i * 2) + '" width="8" height="' + (26 - i * 2) + '" fill="#2251FF"/>'; }).join(''),
     twin: '<rect x="6" y="36" width="8" height="24" fill="#B8BEC6"/><rect x="17" y="34" width="8" height="26" fill="#B8BEC6"/><rect x="28" y="33" width="8" height="27" fill="#B8BEC6"/><rect x="39" y="32" width="8" height="28" fill="#B8BEC6"/><rect x="52" y="40" width="8" height="20" fill="#051C2C"/><rect x="63" y="34" width="8" height="26" fill="#051C2C"/><rect x="74" y="26" width="8" height="34" fill="#051C2C"/><rect x="85" y="16" width="8" height="44" fill="#051C2C"/>',
     likert: [0, 1, 2].map(function (i) { var w = [[10, 14, 14, 30, 16], [4, 8, 10, 40, 22], [3, 6, 10, 38, 27]][i], x = 6, s = ''; w.forEach(function (v, k) { s += '<rect x="' + x + '" y="' + (10 + i * 17) + '" width="' + v + '" height="11" fill="' + ['#C62828', '#E39A9A', '#B8BEC6', '#8FA8FF', '#2251FF'][k] + '"/>'; x += v; }); return s; }).join(''),
+    dumbbell: [0, 1, 2, 3, 4].map(function (i) { var a = [20, 30, 14, 44, 36][i], b = [62, 50, 70, 54, 22][i], y = 9 + i * 11; return '<path d="M' + a + ' ' + y + ' H' + b + '" stroke="#CBD2DA" stroke-width="2"/><circle cx="' + a + '" cy="' + y + '" r="3.5" fill="#B8BEC6"/><circle cx="' + b + '" cy="' + y + '" r="3.5" fill="#2251FF"/>'; }).join(''),
+    range: [0, 1, 2, 3].map(function (i) { var x = 14 + i * 22, lo = [44, 30, 38, 24][i], hi = [20, 12, 26, 8][i], m = [32, 22, 31, 15][i]; return '<rect x="' + (x - 4) + '" y="' + hi + '" width="8" height="' + (lo - hi) + '" fill="#B8BEC6"/><circle cx="' + x + '" cy="' + m + '" r="4" fill="#2251FF"/>'; }).join('') + '<path d="M4 58 H92" stroke="#94A3B8"/>',
+    parity: '<path d="M8 58 L88 6" stroke="#7F8C99" stroke-dasharray="4 3"/><circle cx="20" cy="30" r="3.5" fill="#2251FF"/><circle cx="34" cy="22" r="3.5" fill="#2251FF"/><circle cx="52" cy="44" r="3.5" fill="#7F8C99"/><circle cx="66" cy="40" r="3.5" fill="#7F8C99"/><circle cx="78" cy="30" r="3.5" fill="#7F8C99"/><circle cx="46" cy="18" r="3.5" fill="#2251FF"/>',
+    quad: '<path d="M48 4 V60 M6 32 H92" stroke="#7F8C99" stroke-dasharray="4 3"/><circle cx="66" cy="14" r="3.5" fill="#2251FF"/><circle cx="78" cy="22" r="3.5" fill="#2251FF"/><circle cx="24" cy="18" r="3.5" fill="#7F8C99"/><circle cx="30" cy="48" r="3.5" fill="#7F8C99"/><circle cx="64" cy="46" r="3.5" fill="#7F8C99"/><circle cx="14" cy="40" r="3.5" fill="#7F8C99"/>',
+    bubble: '<circle cx="24" cy="42" r="6" fill="#7F8C99" fill-opacity=".7"/><circle cx="44" cy="30" r="9" fill="#7F8C99" fill-opacity=".7"/><circle cx="70" cy="22" r="15" fill="#2251FF" fill-opacity=".75"/><circle cx="58" cy="50" r="5" fill="#7F8C99" fill-opacity=".7"/><circle cx="16" cy="18" r="4" fill="#7F8C99" fill-opacity=".7"/>',
+    hstack: [0, 1, 2, 3, 4].map(function (i) { var a = [40, 30, 26, 18, 10][i], b = [30, 26, 16, 14, 10][i], y = 6 + i * 11; return '<rect x="6" y="' + y + '" width="' + a + '" height="8" fill="#2251FF"/><rect x="' + (6 + a) + '" y="' + y + '" width="' + b + '" height="8" fill="#B8BEC6"/>'; }).join(''),
+    forecast: [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { var hh = 8 + i * 6; return '<rect x="' + (6 + i * 11) + '" y="' + (60 - hh) + '" width="8" height="' + hh + '" fill="' + (i < 5 ? '#051C2C' : '#8FA8FF') + '"/>'; }).join(''),
+    area: '<path d="M6 60 L6 44 L30 40 L54 34 L78 28 L90 24 L90 60 Z" fill="#B8BEC6"/><path d="M6 44 L30 40 L54 34 L78 28 L90 24 L90 10 L78 14 L54 22 L30 32 L6 38 Z" fill="#2251FF"/><path d="M6 38 L30 32 L54 22 L78 14 L90 10 L90 6 L78 10 L54 18 L30 28 L6 34 Z" fill="#051C2C"/>',
+    lines: '<path d="M6 40 L24 36 L42 42 L60 30 L78 32 L90 28" stroke="#B8BEC6" stroke-width="2" fill="none"/><path d="M6 50 L24 46 L42 48 L60 44 L78 40 L90 42" stroke="#B8BEC6" stroke-width="2" fill="none"/><path d="M6 34 L24 30 L42 22 L60 12 L78 16 L90 18" stroke="#2251FF" stroke-width="2.5" fill="none"/>',
+    multiples: [0, 1, 2, 3, 4, 5].map(function (k) { var ox = 4 + (k % 3) * 31, oy = 4 + Math.floor(k / 3) * 30, big = k === 1 || k === 3; return [0, 1, 2, 3].map(function (i) { var hh = big ? 5 + i * 6 : 8 + i * 2; return '<rect x="' + (ox + i * 7) + '" y="' + (oy + 26 - hh) + '" width="5" height="' + hh + '" fill="' + (big ? '#2251FF' : '#7F8C99') + '"/>'; }).join(''); }).join(''),
+    curve: '<path d="M6 58 C40 56 60 52 72 40 C80 30 86 18 90 4" stroke="#2251FF" stroke-width="2.5" fill="none"/><path d="M6 50 H90" stroke="#7F8C99" stroke-dasharray="4 3"/><circle cx="90" cy="4" r="3" fill="#051C2C"/>',
+    pyramid: [0, 1, 2, 3, 4, 5].map(function (i) { var l = [10, 18, 26, 32, 36, 28][i], r = [12, 20, 25, 30, 33, 26][i], y = 4 + i * 10; return '<rect x="' + (47 - l) + '" y="' + y + '" width="' + l + '" height="8" fill="#051C2C"/><rect x="49" y="' + y + '" width="' + r + '" height="8" fill="#2251FF"/>'; }).join(''),
+    mekko: '<rect x="4" y="4" width="40" height="24" fill="#2251FF"/><rect x="4" y="29" width="40" height="18" fill="#051C2C"/><rect x="4" y="48" width="40" height="12" fill="#B8BEC6"/><rect x="45" y="4" width="26" height="30" fill="#2251FF"/><rect x="45" y="35" width="26" height="25" fill="#051C2C"/><rect x="72" y="4" width="20" height="14" fill="#2251FF"/><rect x="72" y="19" width="20" height="20" fill="#051C2C"/><rect x="72" y="40" width="20" height="20" fill="#B8BEC6"/>',
+    venn: '<circle cx="38" cy="26" r="18" fill="#2251FF" fill-opacity=".2" stroke="#2251FF"/><circle cx="58" cy="26" r="18" fill="#051C2C" fill-opacity=".15" stroke="#051C2C"/><circle cx="48" cy="42" r="18" fill="#7F8C99" fill-opacity=".2" stroke="#7F8C99"/>',
+    dots: [0, 1].map(function (k) { var s = '', n = [74, 29][k]; for (var i = 0; i < 100; i++) s += '<circle cx="' + (6 + k * 46 + (i % 10) * 4) + '" cy="' + (16 + Math.floor(i / 10) * 4.4) + '" r="1.4" fill="' + (i < n ? (k ? '#051C2C' : '#2251FF') : '#D9DDE2') + '"/>'; return s; }).join(''),
     kpi: '<rect x="4" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="35" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="66" y="14" width="27" height="34" rx="3" fill="#E2E8F0"/><rect x="9" y="26" width="17" height="9" fill="#2251FF"/><rect x="40" y="26" width="17" height="9" fill="#051C2C"/><rect x="71" y="26" width="17" height="9" fill="#C62828"/>'
   };
   function thumb(lay) {
@@ -575,7 +953,7 @@
   }
 
   /* ---------------------------------------------------------- the gallery and the fill-in dialog */
-  Ly.gallery = function (only) {
+  Ly.gallery = function (only, run) {
     var r = MS.rt(); if (!r) return MS.toast('Open a dashboard (or File › New) and turn off Safe mode to add chart layouts.', 'warn');
     var close = function () { var w = MS.$$('.dlg-wrap').pop(); if (w) w.remove(); };
     var search = h('input', { type: 'search', 'class': 'inp', placeholder: 'Search: bridge, loss run, survey, peers…', 'aria-label': 'Search chart layouts' });
@@ -587,20 +965,22 @@
         if (!items.length) return;
         groups.appendChild(h('h4', { 'class': 'lay-head', text: g.label }));
         groups.appendChild(h('div', { 'class': 'lay-grid' }, items.map(function (l) {
-          return h('button', { 'class': 'lay-card', 'data-layout': l.id, title: l.question, onclick: function () { close(); Ly.fill(l.id); } }, [thumb(l), h('strong', { text: l.name }), h('small', { text: l.question })]);
+          return h('button', { 'class': 'lay-card', 'data-layout': l.id, title: l.question, onclick: function () { close(); Ly.fill(l.id, run); } }, [thumb(l), h('strong', { text: l.name }), h('small', { text: l.question })]);
         })));
       });
       if (!groups.childNodes.length) groups.appendChild(h('p', { 'class': 'muted', text: 'No layout matches. Try another word.' }));
     }
     search.addEventListener('input', draw); draw();
-    MS.dialog({ title: 'Chart layouts', sub: 'Consulting-style charts ready to fill: action title, one highlight colour, values on the bars, source line. Pick one, then choose your columns or try it on sample data.', xwide: true,
+    MS.dialog({ title: run ? 'Switch to another chart layout' : 'Chart layouts', sub: run ? 'Pick the layout to rebuild these charts as. Your data stays; check the columns on the next step.' : 'Consulting-style charts ready to fill: action title, one highlight colour, values on the bars, source line. Pick one, then choose your columns or try it on sample data.', xwide: true,
       body: h('div', { 'class': 'lay-gallery' }, [search, groups]), buttons: [{ label: 'Close', value: null }] });
   };
 
-  Ly.fill = function (id) {
+  // run: the id of an inserted layout to edit (columns, options and words start from what it used; Update replaces it in place)
+  Ly.fill = function (id, run) {
     var lay = Ly.get(id), r = MS.rt(); if (!r) return;
-    var names = Object.keys(r.state.datasets);
-    var dsField = lay.roles.length ? [{ key: 'ds', label: 'Data', type: 'select', options: [{ value: '', label: 'Sample data (try the layout first)' }].concat(names.map(function (n) { return { value: n, label: n }; })), value: names.length && !/·/.test(names[names.length - 1]) ? names[names.length - 1] : '' }] : [];
+    var rec = run && r.state.layoutRuns && r.state.layoutRuns[run], same = rec && rec.layout === id;
+    var names = Object.keys(r.state.datasets).filter(function (n) { return !rec || (rec.derived || []).indexOf(n) < 0; });
+    var dsField = lay.roles.length ? [{ key: 'ds', label: 'Data', type: 'select', options: (rec ? [] : [{ value: '', label: 'Sample data (try the layout first)' }]).concat(names.map(function (n) { return { value: n, label: n }; })), value: rec ? rec.dataset : names.length && !/·/.test(names[names.length - 1]) ? names[names.length - 1] : '' }] : [];
     var form = h('div');
     var head = h('div', { 'class': 'lay-fill-head' }, [thumb(lay), h('div', {}, [h('strong', { text: lay.name }), h('p', { 'class': 'muted', text: lay.question })])]);
     var topForm = MS.form(dsField, function () { build(); });
@@ -630,46 +1010,65 @@
       form.innerHTML = '';
       if (lay.roles.length) {
         if (ds) {
-          var g = Ly.guess(lay, ds);
+          var g = Ly.guess(lay, ds); if (same && ds === rec.dataset) g = Object.assign(g, rec.fields);
           colForm = MS.form(lay.roles.map(function (role) { return { key: role.key, label: role.label, type: 'select', options: fieldsOpts(ds, role.kind, role.opt), value: g[role.key] || '' }; }), suggest);
           form.appendChild(h('h4', { 'class': 'rag-head', text: 'Your columns' })); form.appendChild(colForm);
         } else { colForm = null; form.appendChild(h('p', { 'class': 'hint', text: 'Sample data: a small made-up dataset is added to the dashboard so you can see the layout working. Swap in your own data later with Data › Load data, then insert the layout again.' })); }
       }
-      var ops = (lay.options || []).map(function (o) { var c = Object.assign({}, o); if (!ds && lay.sample && lay.sample.options && lay.sample.options[o.key] != null) c.value = lay.sample.options[o.key]; return c; });
+      var ops = (lay.options || []).map(function (o) { var c = Object.assign({}, o); if (!ds && lay.sample && lay.sample.options && lay.sample.options[o.key] != null) c.value = lay.sample.options[o.key]; if (same && rec.options && rec.options[o.key] != null) c.value = rec.options[o.key]; return c; });
       optForm = ops.length ? MS.form(ops, suggest) : null;
       if (optForm) { form.appendChild(h('h4', { 'class': 'rag-head', text: 'Options' })); form.appendChild(optForm); }
       textForm = MS.form([{ key: 'title', label: 'Action title (a full sentence with the so-what)' }, { key: 'subtitle', label: 'Unit line (measure, unit, period, scope)' }, { key: 'source', label: 'Source (optional)', placeholder: 'e.g. Policy admin extract' }, { key: 'as_of', label: 'Data as of (optional)', type: 'date' }]);
       textForm.__edited = {};
-      ['title', 'subtitle'].forEach(function (k) { textForm.inputs[k].addEventListener('input', function () { textForm.__edited[k] = true; }); });
+      ['title', 'subtitle'].forEach(function (k) { textForm.inputs[k].addEventListener('input', function () { textForm.__edited[k] = !!textForm.inputs[k].value; }); });
+      if (rec) {
+        textForm.inputs.source.value = rec.source || ''; textForm.inputs.as_of.value = rec.as_of || '';
+        if (same) { textForm.inputs.title.value = rec.title || ''; textForm.inputs.subtitle.value = rec.subtitle || ''; textForm.__edited = { title: !!rec.title, subtitle: !!rec.subtitle }; }
+      }
       if (lay.roles.length || lay.id !== 'house-style') { form.appendChild(h('h4', { 'class': 'rag-head', text: 'Words' })); form.appendChild(textForm); form.appendChild(preview); }
       else { form.appendChild(h('h4', { 'class': 'rag-head', text: 'Source line for every chart' })); form.appendChild(textForm); textForm.inputs.title.closest('label').style.display = textForm.inputs.subtitle.closest('label').style.display = 'none'; }
       suggest();
     }
     build();
-    MS.dialog({ title: 'Chart layout: ' + lay.name, wide: true, body: h('div', { 'class': 'lay-fill' }, [head, topForm, form]),
-      buttons: [{ label: '‹ All layouts', value: 'back' }, { label: 'Cancel', value: null }, { label: 'Insert', primary: true, value: function () {
+    if (rec) form.appendChild(h('p', { 'class': 'hint', text: 'Clear the title to get a new suggestion from the numbers. Update rebuilds the charts in the same place, as one undo step. To change single bars, series or filters on one chart, use Reshape chart instead.' }));
+    MS.dialog({ title: (rec ? 'Edit chart layout: ' : 'Chart layout: ') + lay.name, wide: true, body: h('div', { 'class': 'lay-fill' }, [head, topForm, form]),
+      buttons: [{ label: rec ? '‹ Switch layout' : '‹ All layouts', value: 'back' }, { label: 'Cancel', value: null }, { label: rec ? 'Update' : 'Insert', primary: true, value: function () {
         var a = current(), t = textForm.values();
         a.title = t.title || undefined; a.subtitle = t.subtitle; a.source = t.source || undefined; a.as_of = t.as_of || undefined;
         try { if (lay.roles.length) Ly.preview(id, a); } catch (e) { MS.dialogError(e.message); return false; }
         return a;
       } }] }).then(function (a) {
-      if (a === 'back') return Ly.gallery();
+      if (a === 'back') return Ly.gallery(null, run);
       if (!a) return;
+      if (rec) return Ly.edit(run, { layout: id, dataset: a.dataset, fields: a.fields, options: a.options, title: a.title || undefined, subtitle: a.subtitle, source: a.source || '', as_of: a.as_of || '' }).then(function (res) {
+        MS.toast('Updated “' + lay.name + '”. Ctrl+Z puts the old version back.' + (res.issues.length ? ' ' + res.issues[0] : ''), res.issues.length ? 'warn' : 'ok', 7000);
+      }, function (e) { MS.toast(e.message, 'error', 8000); });
       return Ly.insert(id, a).then(function (res) {
         MS.toast('Inserted “' + lay.name + '”' + (res.dataset && a.sample ? ' with sample data (dataset “' + res.dataset + '”)' : '') + '. Ctrl+Z removes it in one step.' + (res.issues.length ? ' ' + res.issues[0] : ''), res.issues.length ? 'warn' : 'ok', 7000);
       }, function (e) { MS.toast(e.message, 'error', 8000); });
     });
   };
 
+  // Edit the layout behind a chart (from the floating toolbar, the Charts tab or the palette).
+  Ly.editDialog = function (key) {
+    var r = MS.rt(); key = key || (MS.charts.selectedKey && MS.charts.selectedKey());
+    var run = key && Ly.runOf(key);
+    if (!run) { var ref = MS.sel && MS.blocks.of(MS.sel); ref = ref && (ref.getAttribute('data-ms-id') || ref.getAttribute('data-ms-ref')); run = ref && Ly.runOf(ref); }
+    if (!run) return MS.toast('Select a chart that came from a chart layout (Insert › Chart layouts). For any other chart, use Reshape chart.', 'warn', 6000);
+    Ly.fill(r.state.layoutRuns[run].layout, run);
+  };
+
   /* ---------------------------------------------------------- tool */
-  MS.api.add('chart_layouts', { d: 'Consulting-style chart layouts (from the McKinsey-style recipes): ranked bars with one highlight, columns with a CAGR arrow, bridge, 100% mix, line against target, variance against plan, distribution, risk heat map, risk register RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause, frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, executive summary page and house style. action: list (default) | preview (the suggested action title and unit line, and the columns it would use) | insert. Leave out fields to let Mothership guess them; sample: true tries the layout on made-up data. Inserting is one undo step.',
-    p: { action: ['string', 'list | preview | insert'], layout: ['string', 'Layout id, from list'], dataset: ['string', 'Dataset to use (or the name for the sample data)'], sample: ['boolean', 'Use the layout\'s sample data'], fields: ['object', '{role: column}, e.g. {"cat": "State", "val": "Days"} (roles from list)'], options: ['object', 'Layout options, e.g. {"pick": "Maharashtra", "better": "low"}'], title: ['string', 'Action title (default: suggested from the data)'], subtitle: ['string', 'Unit line'], source: ['string', 'Source line under the chart'], as_of: ['string', 'Data as of (YYYY-MM-DD)'] },
+  MS.api.add('chart_layouts', { d: 'Consulting-style chart layouts (from the McKinsey-style recipes): ranked bars with one highlight, columns with a CAGR arrow, bridge, 100% mix, line against target, variance against plan, distribution, risk heat map, risk register RAG, risks by category, inherent vs residual, loss run paid/outstanding, large losses, claims by cause, frequency and severity, incurred bridge, loss triangle, survey top-2-box, Likert, NPS, client against peers, benchmark scorecard, executive summary page and house style; plus dumbbell, paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble, net bars either side of zero, stacked bars ranked by total, actuals then forecast, stacked area, one line in focus, growth multiples, small multiples, sorted percentile curve, population pyramid, Marimekko, three-way overlap, 100-dot stats and heat grid. action: list (default) | preview (the suggested action title and unit line, and the columns it would use) | insert | runs (the layouts already on the page) | edit (rebuild an inserted layout in place with other columns, options, words, or another layout: chart = any chart it made, or run). Leave out fields to let Mothership guess them; sample: true tries the layout on made-up data. Inserting and editing are one undo step each.',
+    p: { action: ['string', 'list | preview | insert | runs | edit'], layout: ['string', 'Layout id, from list (with edit: switch to this layout)'], chart: ['string', 'edit: a chart the layout inserted (name or key)'], run: ['string', 'edit: the run id from runs or insert'], keep_title: ['boolean', 'edit: keep the old title even though the numbers change'], dataset: ['string', 'Dataset to use (or the name for the sample data)'], sample: ['boolean', 'Use the layout\'s sample data'], fields: ['object', '{role: column}, e.g. {"cat": "State", "val": "Days"} (roles from list)'], options: ['object', 'Layout options, e.g. {"pick": "Maharashtra", "better": "low"}'], title: ['string', 'Action title (default: suggested from the data)'], subtitle: ['string', 'Unit line'], source: ['string', 'Source line under the chart'], as_of: ['string', 'Data as of (YYYY-MM-DD)'] },
     f: function (a) {
       var act = a.action || 'list';
       if (act === 'list') return { layouts: Ly.list(), groups: Ly.GROUPS };
+      if (act === 'runs') return { runs: Ly.runs() };
+      if (act === 'edit') return Ly.edit(a.run || a.chart, { layout: a.layout, dataset: a.dataset, fields: a.fields, options: a.options, title: a.title, subtitle: a.subtitle, source: a.source, as_of: a.as_of, keep_title: a.keep_title });
       if (!a.layout) throw new Error('Say which layout (layout: an id from action "list").');
       if (act === 'preview') return Ly.preview(a.layout, a);
       if (act === 'insert') return Ly.insert(a.layout, a);
-      throw new Error('action is list, preview or insert.');
+      throw new Error('action is list, preview, insert, runs or edit.');
     } });
 })(window.MS);

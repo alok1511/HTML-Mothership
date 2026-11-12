@@ -1,7 +1,7 @@
 /* Boot: wire up the shell, drag & drop, samples, preview size, mode switch. */
 (function (MS) {
   'use strict';
-  MS.VERSION = '4.0.0';
+  MS.VERSION = '4.1.0';
   // Release numbers are major.minor.patch (4.0.0). Returns -1, 0 or 1.
   MS.compareVersions = function (a, b) {
     var p = String(a || '0').split('.'), q = String(b || '0').split('.');
@@ -104,7 +104,8 @@
       { id: 'sales', label: 'Sales dashboard (Chart.js, with data for drill-down)' },
       { id: 'ops', label: 'Operations dashboard (ECharts)' },
       { id: 'risk', label: 'Risk dashboard (Plotly)' },
-      { id: 'layouts', label: 'Claims and risk review (built from Chart layouts)' }
+      { id: 'layouts', label: 'Claims and risk review (built from Chart layouts)' },
+      { id: 'gallery', label: 'Chart layout gallery: comparisons, trends and composition' }
     ],
     menu: function () { return MS.samples.list.map(function (s) { return { label: s.label, run: function () { MS.samples.open(s.id); } }; }); },
     open: function (id, opts) {

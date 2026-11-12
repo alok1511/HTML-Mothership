@@ -209,12 +209,17 @@
         return { changes: r.changes, sections: r.sections };
       });
     } };
-  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | hstacked | line | area | pie | doughnut'], series: ['string', 'Split-by column'], percent: ['boolean', 'Stacked charts: show each category as 100% (shares of its total)'], sort: ['string', 'desc | asc | source (the order of the rows, e.g. time or the steps of a bridge) | "" (by label, A to Z)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'] },
+  A.insert_chart = { d: 'Insert a new chart made from a dataset (Chart.js is embedded so it works offline). It follows filters and drills down.', p: { dataset: ['string', 'Dataset name', true], by: ['string', 'Category column', true], measure: ['string', 'Value column (omit for agg=count)'], agg: ['string', 'sum | avg | count | min | max'], type: ['string', 'bar | hbar | stacked | hstacked | line | area | stackedarea | pie | doughnut | dumbbell (series = the two ends) | range (series = low, mid, high) | pyramid (series = the two sides) | scatter (x, y) | bubble (x, y, size)'], series: ['string', 'Split-by column'], percent: ['boolean', 'Stacked charts: show each category as 100% (shares of its total)'], sort: ['string', 'desc | asc | source (the order of the rows, e.g. time or the steps of a bridge) | "" (by label, A to Z)'], top: ['number', 'Top N'], title: ['string', 'Title'], levels: ['array', 'Extra drill levels after `by`'], into: ['string', 'Section ref to put it in'],
+      x: ['string', 'scatter / bubble: column for the across axis'], y: ['string', 'scatter / bubble: column for the up axis'], size: ['string', 'bubble: column for the bubble size'], where: ['array', 'Rows this chart uses: [{field, op: eq|ne|in|notin|gt|ge|lt|le|contains, value}]'], only: ['array', 'Categories to show (others hidden)'], hide: ['array', 'Categories to hide'], order: ['array', 'Categories in this order first'], rename: ['object', '{old name: new name} for categories and series'], span: ['number', 'Width in 12ths (default 6)'], height: ['number', 'Height in px (default 300)'] },
     f: function (a) {
       if (a.into) MS.edit.select(elOf(a.into)); else MS.edit.select(null);
       return MS.compose.ensureChartLib().then(function () {
         var before = rt().charts().map(function (c) { return c.key; });
-        MS.compose.addChart({ title: a.title || ((a.agg === 'count' || !a.measure ? 'Count' : a.measure.charAt(0).toUpperCase() + a.measure.slice(1)) + ' by ' + a.by), ds: a.dataset, type: a.type || 'bar', by: a.by, measure: a.measure, agg: a.agg || 'sum', series: a.series, sort: a.sort == null ? 'desc' : a.sort, top: a.top, percent: !!a.percent });
+        if (/^(scatter|bubble)$/.test(a.type || '') && (!a.x || !a.y)) throw new Error('A ' + a.type + ' chart needs x and y columns' + (a.type === 'bubble' ? ' (and size)' : '') + '.');
+        var v = { title: a.title || (a.x ? a.y + ' against ' + a.x : (a.agg === 'count' || !a.measure ? 'Count' : a.measure.charAt(0).toUpperCase() + a.measure.slice(1)) + ' by ' + a.by), ds: a.dataset, type: a.type || 'bar', by: a.by, measure: a.measure || a.y, agg: a.agg || 'sum', series: a.series, sort: a.sort == null ? (a.x ? '' : 'desc') : a.sort, top: a.top, percent: !!a.percent, span: a.span, height: a.height };
+        MS.compose.EXTRA.forEach(function (k) { if (k !== 'percent' && a[k] != null) v[k] = a[k]; });
+        ['series_only', 'series_hide', 'series_order'].forEach(function (k) { if (a[k]) v[k.replace(/_(\w)/, function (_, c) { return c.toUpperCase(); })] = a[k]; });
+        MS.compose.addChart(v);
         return settle(300).then(function () {
           var r = rt(), c = r.charts().filter(function (x) { return before.indexOf(x.key) < 0; })[0];
           if (c && a.levels && a.levels.length) MS.history.state('Drill levels', function (s) { s.charts[c.key].binding.levels = [a.by].concat(a.levels); });
@@ -311,6 +316,36 @@
       });
       r.drill[key] = [];
       return settle(200).then(function () { return chartSummary(r.chart(key) || c); });
+    } };
+  /* Change what a chart shows after it is inserted: type, columns, calculation, per-chart row filters, which categories and
+     series appear (and in what order, under what names). One undo step. null clears a setting. */
+  A.chart_edit = { d: 'Reshape a chart made from data: change its type, category / series / value columns, calculation, sort, top N, 100% stacking, the rows it uses (where), and which categories and series it shows, in what order and under what names. Works on every chart from a dataset, including those a chart layout inserted. null clears a setting.',
+    p: { chart: ['string', 'Chart name or key', true], type: ['string', 'Any insert_chart type'], dataset: ['string', 'Dataset'], by: ['string', 'Category column'], levels: ['array', 'Drill levels (replaces by)'], measure: ['string', 'Value column'], agg: ['string', 'sum | avg | count | min | max'], series: ['string', 'Split-by column (null = none)'], sort: ['string', 'desc | asc | source | ""'], top: ['number', 'Top N (null = all)'], percent: ['boolean', '100% stacked'],
+      x: ['string', 'scatter / bubble across'], y: ['string', 'scatter / bubble up'], size: ['string', 'bubble size'], where: ['array', '[{field, op, value}] rows this chart uses'], only: ['array', 'Categories to show'], hide: ['array', 'Categories to hide'], order: ['array', 'Categories in this order first'], rename: ['object', '{old: new} names for categories and series'],
+      series_only: ['array', 'Series to show'], series_hide: ['array', 'Series to hide'], series_order: ['array', 'Series in this order'] },
+    f: function (a) {
+      var r = rt(), key = chartKey(a.chart), cs0 = r.state.charts[key] || {};
+      if (!cs0.binding && !a.dataset) throw new Error('This chart is not made from a dataset. Link it first (link_chart_data or chart_settings data), or rebuild it with insert_chart.');
+      if (a.type && !cs0.native) throw new Error('Only charts Mothership drew (Insert › Chart, chart layouts) can change type. This one is drawn by the page\'s own script.');
+      var map = { by: null, dataset: 'dataset', measure: 'measure', agg: 'agg', series: 'series', sort: 'sort', top: 'top', percent: 'percent', x: 'x', y: 'y', size: 'size', where: 'where', only: 'only', hide: 'hide', order: 'order', rename: 'rename', series_only: 'seriesOnly', series_hide: 'seriesHide', series_order: 'seriesOrder' };
+      var changed = [], b0 = cs0.binding || {};
+      if (/^(scatter|bubble)$/.test(a.type || (cs0.native || {}).type || '') && !((a.x !== undefined ? a.x : b0.x) && (a.y !== undefined ? a.y : b0.y))) throw new Error('A scatter or bubble chart needs x and y columns.');
+      MS.history.state('Edit chart', function (s) {
+        var cs = s.charts[key] = s.charts[key] || {}, b = cs.binding = cs.binding || { dataset: a.dataset, levels: [] };
+        Object.keys(map).forEach(function (k) {
+          if (a[k] === undefined) return; changed.push(k);
+          if (k === 'by') { if (a.by) { b.levels = [a.by].concat((b.levels || []).slice(1).filter(function (l) { return l !== a.by; })); } return; }
+          var t = map[k], v = a[k];
+          if (v === null || v === '' || (Array.isArray(v) && !v.length) || (k === 'percent' && !v)) delete b[t]; else b[t] = v;
+        });
+        if (a.levels) { b.levels = a.levels.slice(); changed.push('levels'); }
+        if (b.measure && b.agg === 'count') delete b.measure;
+        if (a.type) { cs.native = Object.assign({}, cs.native, { type: a.type }); changed.push('type'); }
+        cs.drill = cs.drill || { mode: 'levels' };
+      });
+      r.drill[key] = [];
+      r.refresh();
+      return settle(250).then(function () { var c = r.chart(key); return Object.assign(c ? chartSummary(c) : {}, { changed: changed, binding: r.state.charts[key].binding, type: (r.state.charts[key].native || {}).type }); });
     } };
   A.chart_look_all = { d: 'One look (fonts, legend, pop-up colours, axis format) for every chart.', p: { look: ['object', 'Same fields as chart_settings.look', true] }, f: function (a) { if (MS.charts.styleAll(a.look) === false) throw MS.firm.lockedError(); return done(); } };
   A.tooltip_all = { d: 'One pop-up template for every chart ("" restores each chart\'s own).', p: { template: ['string', 'Template', true] },

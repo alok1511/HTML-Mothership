@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 4.1.0 — 19 more chart layouts, and every chart editable after it is in
+
+### Added
+
+- **19 new chart layouts** from chart forms in recent consulting "chart of the week" pieces and the MGI year in charts, in three new groups. Comparisons: dumbbell (before and after), paired bars with the gap, ranges with the median, scatter against the 45° line, 2 × 2 matrix, bubble with one in focus, net bars either side of zero, stacked bars ranked by total. Trends: actuals then forecast, stacked area, several lines with one in focus, growth multiples (2.5×), small multiples, sorted percentile curve. Composition: population pyramid, Marimekko, three-way overlap, 100-dot stats, heat grid. 43 layouts in all, each with made-up sample data.
+- **Edit layout** (Charts › Edit layout, the wand on the floating toolbar, tool `chart_layouts {action: "edit"}`): redo an inserted layout in place with other columns, options, words or data, or switch it to another layout. One undo step. `chart_layouts {action: "runs"}` lists the layouts on the page.
+- **Reshape chart** (Charts › Reshape, the filter button on the floating toolbar, tool `chart_edit`): for any chart made from data, change the chart type, the category / series / value columns, the calculation, sort, top N and 100% stacking; filter the rows that chart uses (`where`); show, hide, reorder and rename categories and series (`hide`, `only`, `order`, `rename`, `series_hide`, `series_only`, `series_order`). Drill-down still uses the original names.
+- New chart types for `insert_chart` and `chart_edit`: `scatter` and `bubble` (with `x`, `y`, `size` columns), `dumbbell`, `range`, `stackedarea`, `pyramid`. Chart look: reference lines (`refs`: a value on either axis, or the 45° line) and `labelSuffix`; scatter and bubble points can be labelled with their names.
+- `insert_chart` takes `where`, `only`, `hide`, `order`, `rename`, `span` and `height`.
+- Sample: **Chart layout gallery** (comparisons, trends, composition), built from the new layouts.
+
+### Changed
+
+- Chart settings › Data & drill-down keeps a chart's filters, hidden categories, names and 100% setting when you apply it.
+
 ## 4.0.0 — Chart layouts, recipes, report studio and one version number
 
 ### Added

@@ -245,4 +245,14 @@ MS.review.buildPrompt({ scope: 'all|tab|must|ids', tab: 'Overview', ids: [...], 
 
 **Release number.** `package.json` `version` is the only one to change; `tools/build.js` checks `app.js`, `runtime.js`, both MCP servers, `package-lock.json`, `CHANGELOG.md` and `README.md` against it. `tools/release.js` writes `dist/HTML-Mothership-v<version>.zip`.
 
+## 4.1.0 building blocks (more layouts, Edit layout, Reshape, new chart types)
+
+**More layouts.** The 19 layouts added in 4.1.0 sit in the groups `compare`, `trend` and `composition` in `src/js/layouts.js`. Three are HTML pictures rather than charts (`Ly.marimekkoHtml`, `Ly.vennHtml`, `Ly.dotsHtml`, inserted with `insert_text_block`), like the risk heat map. `small-multiples` sets `titleOnPage` and inserts one chart per item with a `where` filter.
+
+**Layout runs and Edit layout.** Every insert records a run in `state.layoutRuns[run] = {layout, dataset, fields, options, title, subtitle, source, as_of, charts, refs, derived}` inside the same undo step (`refs` are the blocks that are not charts, `derived` the working datasets). `Ly.runs()`, `Ly.runOf(chart | ref)`, `Ly.edit(which, {layout, dataset, fields, options, title, subtitle, source, as_of, keep_title})` and `Ly.editDialog(key)`. `edit` removes the old working datasets, runs the steps again (`runSteps`), moves the new blocks to where the old ones were and removes the old ones, all as one undo step. Leaving out `title` recomputes it when the numbers change. Tool: `chart_layouts {action: runs | edit}`.
+
+**Reshape** (`src/js/reshape.js`, `MS.reshape.dialog(key)`) writes through the tool `chart_edit` in `api.js`, which patches `state.charts[key].binding` and `native.type` in one `MS.history.state`. Binding keys added in 4.1.0 (all optional, applied in the runtime's `renderBound`): `where [{field, op, value}]` (ops `eq ne in notin gt ge lt le contains`), `only`, `hide`, `order`, `rename {old: new}` (categories and series), `seriesOnly`, `seriesHide`, `seriesOrder`, and `x`, `y`, `size` for scatter and bubble. `MS.compose.EXTRA` lists them; any editor that rewrites a binding must carry them over (Chart settings does).
+
+**Chart types** (runtime `nativeConfig`, `shapeData`, `renderXY`): `scatter`, `bubble` (points are `{x, y, r, n, v}`, named by the category), `dumbbell` and `range` (a floating `msLink` bar plus point series; the link bar is skipped by colours, legend, tooltips and labels), `stackedarea`, `pyramid` (the first series is drawn negative; ticks, labels and tooltips show absolute values). Changing `native.type` rebuilds the Chart.js instance. Look keys: `refs [{axis: x | y, value, label, color, dash}]` or `{diag: true}` (plugin `msRefs`), and `labelSuffix`.
+
 **Adding tools from a module.** Modules loaded before `api.js` call `MS.api.add(name, {d, p, f})` too: the call is queued and added when `api.js` loads.

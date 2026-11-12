@@ -153,4 +153,19 @@ Insert a ready-made consulting chart, write its action title and know how to und
 5. Press Ctrl+S, name the version After layouts, then open File › Versions.
    **Check:** The version is listed as v1 (or the next number) for this practice dashboard, with Restore, Compare, Download and Delete.
 
+## 14. Reshape a chart and edit its layout (7 min)
+
+Change what a chart shows after it is in: other columns, fewer bars, new names, another layout.
+
+1. Open Insert › Chart layouts, type dumbbell and choose Dumbbell: before and after. Insert it with the sample data.
+   **Check:** Each channel has a grey dot for 2024 and a blue dot for 2026, joined by a line, with an action title about the biggest move.
+2. With the chart selected, open Charts › Reshape. Untick Social media, type Agents as the new name for Insurance agent, move Gen AI assistant to the top with the up arrow, and choose Apply.
+   **Check:** Social media has gone, Gen AI assistant is the first row and Insurance agent now reads Agents.
+3. In Reshape, add a filter: Year is 2026. Change Chart type to Bar (horizontal) and Apply.
+   **Check:** A plain bar chart of 2026 only. Undo (Ctrl+Z) goes back one change at a time.
+4. Press Ctrl+Z until the dumbbell is back. Then choose Charts › Edit layout, then ‹ Switch layout, and pick Paired bars with the gap.
+   **Check:** The window keeps your data and guesses the columns for the new layout.
+5. Choose Update.
+   **Check:** The dumbbell is replaced in the same place by paired bars with the gap in each label. One Ctrl+Z brings the dumbbell back.
+
 The monthly refresh lesson’s CSV downloads are available inside the tutorial. For offline practice without the editor tutorial, use [October](practice/sales-practice-2026-10.csv) and [November](practice/sales-practice-2026-11.csv).
